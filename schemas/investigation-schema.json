@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "investigation-schema.json",
+  "title": "Investigation report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "work_item_id",
+    "title",
+    "date",
+    "trigger",
+    "hypotheses",
+    "conclusion"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "work_item_id": {
+      "type": "string",
+      "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string"
+    },
+    "trigger": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hypotheses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "description",
+          "outcome"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^H\\d+$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_so_far": {
+            "type": "string"
+          },
+          "how_to_test": {
+            "type": "string"
+          },
+          "likelihood": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "confirmed",
+              "rejected",
+              "inconclusive",
+              "not_tested"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "conclusion": {
+      "type": "object",
+      "required": [
+        "root_cause",
+        "confidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "root_cause": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "next_steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

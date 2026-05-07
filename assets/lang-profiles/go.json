@@ -1,0 +1,21 @@
+{
+  "language": "go",
+  "extensions": [".go"],
+  "detect": "go.mod",
+  "checks": {
+    "type_check": "go vet ./...",
+    "lint": "golangci-lint run --new-from-rev=HEAD~1 \"$FILE\"",
+    "format": "gofmt -l \"$FILE\"",
+    "test": "go test ./...",
+    "mutation": "gremlins unleash",
+    "dead_code": "deadcode ./...",
+    "dep_audit": "go mod tidy -diff && govulncheck ./...",
+    "boundaries": null,
+    "contracts": null
+  },
+  "test_meta": {
+    "single_test_flag": "-run",
+    "file_pattern": "*_test.go",
+    "block_markers": ["func Test"]
+  }
+}

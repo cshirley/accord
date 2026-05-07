@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "checkpoint-schema.json",
+  "title": "Orchestrator crash-recovery checkpoint",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "work_item_id",
+    "phase",
+    "draft",
+    "answered",
+    "pending"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "work_item_id": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" },
+    "phase": { "type": "string", "minLength": 1 },
+    "draft": { "type": "object" },
+    "answered": { "type": "array", "items": { "type": "string" } },
+    "pending": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "status": "needs_input",
+    "parent_epic": "ACCORD-1200",
+    "candidates": [
+      {
+        "index": 0,
+        "title": "Configurable AUTH_REFRESH_TOKEN_TTL",
+        "category": "missing implementation",
+        "priority": "High",
+        "detail": "AC-3 (MUST): env var not wired into TokenStore. Test exists but implementation is stubbed.",
+        "duplicate_of": null
+      },
+      {
+        "index": 1,
+        "title": "OAuth2 provider integration for external IdPs",
+        "category": "deferred scope",
+        "priority": "Medium",
+        "detail": "Brief's Approach Direction explicitly deferred to phase 2.",
+        "duplicate_of": "ACCORD-1287"
+      }
+    ],
+    "usage": { "prompt_tokens": 6400, "completion_tokens": 900 }
+  },
+  {
+    "status": "done",
+    "created": ["ACCORD-1301"],
+    "skipped": [{ "index": 1, "reason": "duplicate of ACCORD-1287" }],
+    "linked": 1,
+    "usage": { "prompt_tokens": 7200, "completion_tokens": 400 }
+  },
+  {
+    "status": "stuck",
+    "question": "No parent epic found for ACCORD-1234. Cannot create follow-up tickets without a parent to link them to.",
+    "context": "Spec jira_context is absent; work item has no parent field. Tried searching Jira for epics containing ACCORD-1234 — no results.",
+    "usage": { "prompt_tokens": 5000, "completion_tokens": 200 }
+  }
+]

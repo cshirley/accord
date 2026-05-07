@@ -1,0 +1,21 @@
+{
+  "language": "ruby",
+  "extensions": [".rb"],
+  "detect": "Gemfile",
+  "checks": {
+    "type_check": null,
+    "lint": "rubocop",
+    "format": "rubocop -A --fail-level error",
+    "test": "bundle exec rspec",
+    "mutation": "mutant run",
+    "dead_code": null,
+    "dep_audit": "bundle audit",
+    "boundaries": null,
+    "contracts": null
+  },
+  "test_meta": {
+    "single_test_flag": "-e",
+    "file_pattern": "*_spec.rb",
+    "block_markers": ["describe ", "it ", "context "]
+  }
+}

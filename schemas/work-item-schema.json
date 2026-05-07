@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "work-item-schema.json",
+  "title": "Work Item",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "created",
+    "updated",
+    "pattern",
+    "phase",
+    "task_ids",
+    "decisions",
+    "deviations",
+    "cost_usd"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" },
+    "title": { "type": "string", "minLength": 1 },
+    "created": { "type": "string" },
+    "updated": { "type": "string" },
+    "pattern": {
+      "enum": [
+        "implement",
+        "quick_fix",
+        "investigate",
+        "infra",
+        "analyse"
+      ]
+    },
+    "variant": { "enum": ["express", "standard", "orchestrated"] },
+    "phase": { "type": "string", "minLength": 1 },
+    "intent_mode": {
+      "enum": ["narrow_change", "pipeline", "review", "commit", "explain", "investigate"],
+      "description": "Recommended handling mode from dev_intent; constrains phase escalation."
+    },
+    "intent_confidence": { "enum": ["high", "medium", "low"] },
+    "escalation_ceiling": {
+      "enum": [
+        "pipeline_allowed",
+        "no_pipeline_without_confirmation",
+        "no_implementation_without_confirmation",
+        "read_only_until_confirmed",
+        "no_edits"
+      ]
+    },
+    "target_paths": { "type": "array", "items": { "type": "string" } },
+    "out_of_scope": { "type": "array", "items": { "type": "string" } },
+    "expected_finish": { "type": "string" },
+    "terminal_outcome": { "enum": ["done", "blocked", "partially_achieved", "unclear"] },
+    "completed_at": { "type": "string" },
+    "next_action": { "type": ["string", "null"] },
+    "retro": {
+      "type": "object",
+      "required": ["ran_at"],
+      "additionalProperties": true,
+      "properties": {
+        "ran_at": { "type": "string" },
+        "verify_verdict": { "type": "string" },
+        "post_run_rework_detected": { "type": "boolean" },
+        "summary": { "type": "string" }
+      }
+    },
+    "shift_left_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "evidence", "recommendation"],
+        "additionalProperties": false,
+        "properties": {
+          "category": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "string", "minLength": 1 },
+          "recommendation": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "spec": { "type": ["string", "null"] },
+    "plan": { "type": ["string", "null"] },
+    "verify": { "type": ["string", "null"] },
+    "task_ids": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "question",
+          "context",
+          "source",
+          "phase",
+          "status",
+          "asked_at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "question": { "type": "string", "minLength": 1 },
+          "context": { "type": "string" },
+          "source": { "enum": ["spec", "plan", "escalation"] },
+          "phase": { "type": "string" },
+          "status": { "enum": ["pending", "resolved"] },
+          "answer": { "type": ["string", "null"] },
+          "asked_at": { "type": "string" }
+        }
+      }
+    },
+    "deviations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "description", "reason", "at"],
+        "additionalProperties": false,
+        "properties": {
+          "task_id": { "type": "integer", "minimum": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string" },
+          "at": { "type": "string" },
+          "resolution": {
+            "enum": ["mechanical", "blocking", "accepted"],
+            "description": "Set by /dev deviations after review-deviation runs"
+          },
+          "resolved_at": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when deviation was resolved"
+          },
+          "blocking_recommendation": {
+            "type": "string",
+            "description": "Review recommendation when resolution is blocking"
+          }
+        }
+      }
+    },
+    "brief": { "type": ["string", "null"] },
+    "cost_usd": { "type": "number", "minimum": 0 },
+    "timeout_minutes": { "type": "integer", "minimum": 1 },
+    "quick_fix_scope": { "type": "array", "items": { "type": "string" } }
+  }
+}

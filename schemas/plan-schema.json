@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "plan-schema.json",
+  "title": "Plan",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "work_item_id",
+    "spec",
+    "tasks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "work_item_id": {
+      "type": "string",
+      "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$"
+    },
+    "spec": {
+      "type": "string",
+      "minLength": 1
+    },
+    "guidance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "directive",
+          "source"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "directive": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Origin of the directive. Known values: engineer, reuse-scan, spec-rejected-alternative, convention (implementation-convention decision from phase-plan stage 3.6 — inherit repo default or autonomous choice), as-built (written only by review-deviation), engineer-accepted-deviation (written only by /dev deviations accept)."
+          },
+          "question": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "reuse_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "symbol",
+          "file",
+          "fit"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "fit": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "covers_ac",
+          "challenge",
+          "files",
+          "steps"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "covers_ac": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^AC-\\d+$"
+            }
+          },
+          "challenge": {
+            "type": "boolean"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "action"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "action": {
+                  "enum": [
+                    "add",
+                    "modify",
+                    "delete"
+                  ]
+                }
+              }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "tag",
+                "description"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "tag": {
+                  "enum": [
+                    "test",
+                    "impl",
+                    "verify"
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

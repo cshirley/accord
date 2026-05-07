@@ -1,0 +1,22 @@
+[
+  {
+    "status": "done",
+    "hypotheses": [
+      {
+        "id": "H1",
+        "description": "Token expiry check uses `<` instead of `<=`, allowing expired tokens through in the 1-second boundary window.",
+        "evidence_so_far": "Alert fires correlate with minute-boundary timestamps; auth.ts:45 uses strict less-than",
+        "how_to_test": "Run auth.test.ts with clock fixture set to exact expiry timestamp; expect rejection, observe pass-through",
+        "likelihood": "high"
+      },
+      {
+        "id": "H2",
+        "description": "Clock skew between auth service and token issuer causes premature or delayed expiry.",
+        "evidence_so_far": "Services run on different EC2 instances; NTP config not verified",
+        "how_to_test": "Check NTP sync status on both hosts; inject 5s clock offset in test and observe behaviour",
+        "likelihood": "medium"
+      }
+    ],
+    "usage": { "prompt_tokens": 3800, "completion_tokens": 500 }
+  }
+]

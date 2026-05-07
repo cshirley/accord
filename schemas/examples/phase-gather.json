@@ -1,0 +1,27 @@
+[
+  {
+    "status": "done",
+    "context": "ACCORD-1234: As a user, I want to refresh my auth token without being redirected to login.\n\nAcceptance Criteria:\n- AC-1: When access token expires, the system automatically refreshes using the stored refresh token\n- AC-2: If refresh fails, redirect to login with a flash message\n- AC-3: Refresh token TTL is configurable via AUTH_REFRESH_TOKEN_TTL env var",
+    "files_mentioned": ["src/services/auth.ts", "src/middleware/auth.ts"],
+    "linked_issues": ["ACCORD-1200"],
+    "enrichments": [
+      {
+        "source": "slack",
+        "status": "cached",
+        "title": "#backend-auth discussion on token refresh",
+        "summary": "Team agreed on PKCE flow for public clients. Sarah flagged SOC2 deadline.",
+        "url": "https://myco.slack.com/archives/C0123/p456",
+        "cache_path": ".tasks/ACCORD-1234-enrichments/slack-C0123-p456.json"
+      },
+      {
+        "source": "confluence",
+        "status": "cached",
+        "title": "Auth RFC v2",
+        "summary": "Design doc proposing PKCE-based auth flow with token rotation.",
+        "url": "https://myco.atlassian.net/wiki/spaces/ENG/pages/123",
+        "cache_path": ".tasks/ACCORD-1234-enrichments/confluence-123.json"
+      }
+    ],
+    "usage": { "prompt_tokens": 4200, "completion_tokens": 850 }
+  }
+]

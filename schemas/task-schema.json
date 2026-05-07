@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "task-schema.json",
+  "title": "Per-task runtime state",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "work_item_id",
+    "task_id",
+    "owner_nonce",
+    "phase",
+    "status",
+    "pre_impl_gates",
+    "events"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "work_item_id": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" },
+    "task_id": { "type": "integer", "minimum": 1 },
+    "owner_nonce": { "type": "string", "pattern": "^[0-9a-f]{6}$" },
+    "phase": {
+      "enum": ["phase-test", "phase-code", "phase-verify-code", "phase-verify-acceptance"]
+    },
+    "status": { "enum": ["pending", "in_progress", "done", "blocked"] },
+    "pre_impl_gates": { "enum": ["pending", "complete"] },
+    "test_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Test files written by phase-test"
+    },
+    "red_confirmed": {
+      "type": "boolean",
+      "description": "Whether tests fail as expected before implementation"
+    },
+    "quick_fix_contract": {
+      "type": "object",
+      "required": ["plan", "test"],
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "type": "object",
+          "required": ["summary", "target_paths", "out_of_scope", "expected_finish"],
+          "additionalProperties": false,
+          "properties": {
+            "summary": { "type": "string", "minLength": 1 },
+            "target_paths": { "type": "array", "items": { "type": "string" } },
+            "out_of_scope": { "type": "array", "items": { "type": "string" } },
+            "expected_finish": { "type": "string", "minLength": 1 }
+          }
+        },
+        "test": {
+          "type": "object",
+          "required": ["strategy", "red_required"],
+          "additionalProperties": false,
+          "properties": {
+            "strategy": { "enum": ["existing_tests", "new_red_test", "no_test"] },
+            "command": { "type": "string", "minLength": 1 },
+            "red_required": { "type": "boolean" },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "at"],
+        "properties": {
+          "type": {
+            "enum": ["usage", "escalation", "deviation", "request_review", "test_issue"]
+          },
+          "at": { "type": "string" }
+        },
+        "oneOf": [
+          {
+            "required": ["model", "usage"],
+            "properties": {
+              "type": { "const": "usage" },
+              "model": { "type": "string" },
+              "usage": {
+                "type": "object",
+                "required": ["prompt_tokens", "completion_tokens"],
+                "additionalProperties": false,
+                "properties": {
+                  "prompt_tokens": { "type": "integer", "minimum": 0 },
+                  "completion_tokens": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          },
+          {
+            "required": ["question", "context"],
+            "properties": {
+              "type": { "const": "escalation" },
+              "question": { "type": "string" },
+              "context": { "type": "string" },
+              "tried": { "type": "string" }
+            }
+          },
+          {
+            "required": ["description", "reason"],
+            "properties": {
+              "type": { "const": "deviation" },
+              "description": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          },
+          {
+            "required": ["reason", "files"],
+            "properties": {
+              "type": { "const": "request_review" },
+              "reason": { "type": "string" },
+              "files": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          {
+            "required": ["test_file", "issue", "recommendation"],
+            "properties": {
+              "type": { "const": "test_issue" },
+              "test_file": { "type": "string" },
+              "test_name": { "type": "string" },
+              "issue": { "type": "string" },
+              "ac_id": { "type": "string" },
+              "recommendation": { "enum": ["fix_test", "clarify_spec", "acceptable"] }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

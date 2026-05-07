@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "return-schemas/phase-hypothesise.json",
+  "title": "phase-hypothesise return packet",
+  "type": "object",
+  "required": ["status", "hypotheses", "usage"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["done", "stuck"] },
+    "hypotheses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "how_to_test", "likelihood"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^H\\d+$" },
+          "description": { "type": "string", "minLength": 1 },
+          "evidence_so_far": { "type": "string" },
+          "how_to_test": { "type": "string", "minLength": 1 },
+          "likelihood": { "enum": ["high", "medium", "low"] }
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "required": ["prompt_tokens", "completion_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

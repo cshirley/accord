@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "return-schemas/phase-align.json",
+  "title": "phase-align return packet",
+  "type": "object",
+  "required": ["status", "usage"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["done", "needs_input", "needs_gather", "stuck"] },
+    "brief": {
+      "type": "object",
+      "description": "Structured representation of the evolving problem brief",
+      "additionalProperties": false,
+      "properties": {
+        "core_problem": { "type": "string" },
+        "stakeholders": { "type": "string" },
+        "current_state": { "type": "string" },
+        "desired_outcome": { "type": "string" },
+        "security_and_data": { "type": "string" },
+        "infrastructure_and_deployment": { "type": "string" },
+        "scale_and_performance": { "type": "string" },
+        "constraints": { "type": "array", "items": { "type": "string" } },
+        "approach_direction": { "type": "string" },
+        "open_questions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "markers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "claim": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["proposed", "confirmed", "corrected", "contested"] },
+          "source": { "type": "string" },
+          "dimension": {
+            "enum": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "infrastructure_and_deployment", "scale_and_performance", "constraints", "approach_direction"]
+          }
+        }
+      }
+    },
+    "reflections": {
+      "type": "array",
+      "description": "The agent's reflection statements for the user to review",
+      "items": {
+        "type": "object",
+        "required": ["id", "text", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "text": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["reflection", "probe", "assumption"] }
+        }
+      }
+    },
+    "convergence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dimensions_covered": {
+          "type": "array",
+          "items": { "enum": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "infrastructure_and_deployment", "scale_and_performance", "constraints", "approach_direction"] }
+        },
+        "dimensions_remaining": {
+          "type": "array",
+          "items": { "enum": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "infrastructure_and_deployment", "scale_and_performance", "constraints", "approach_direction"] }
+        },
+        "markers_confirmed": { "type": "integer", "minimum": 0 },
+        "markers_contested": { "type": "integer", "minimum": 0 },
+        "round": { "type": "integer", "minimum": 1 },
+        "converged": { "type": "boolean" }
+      }
+    },
+    "gather_hint": {
+      "type": "object",
+      "description": "Hint for the orchestrator to run phase-gather before respawning align",
+      "additionalProperties": false,
+      "properties": {
+        "ticket_id": { "type": "string", "description": "Ticket ID to gather context for" },
+        "reason": { "type": "string", "description": "Why gather is needed" }
+      }
+    },
+    "brief_path": { "type": "string", "minLength": 1 },
+    "question": { "type": "string", "minLength": 1 },
+    "context": { "type": "string" },
+    "tried": { "type": "string" },
+    "usage": {
+      "type": "object",
+      "required": ["prompt_tokens", "completion_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "needs_input" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["brief", "markers", "reflections", "convergence"] }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "needs_gather" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["gather_hint"] }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "done" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["brief_path", "markers", "convergence"] }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "stuck" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["question", "context"] }
+    }
+  ]
+}

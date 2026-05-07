@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "provider-schema.json",
+  "title": "ACCORD Provider Definition",
+  "description": "Connectivity declaration sidecar for a tracker or enrichment provider. Each provider in assets/providers/{trackers,enrichments}/ has a paired <name>.md (fetch playbook) and <name>.json (this schema). User-supplied providers can also be declared inline in accord-config.json under the providers field.",
+  "type": "object",
+  "required": ["name", "kind", "label", "promptFile"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Provider identifier. Lowercase letters, digits, hyphens. Must match the filename (without extension) for bundled providers."
+    },
+    "kind": {
+      "enum": ["tracker", "enrichment"],
+      "description": "tracker = primary ticket source (one per work item). enrichment = supplementary context source (zero-or-more)."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable label used in preflight reports."
+    },
+    "mcpTools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Preferred MCP tool names. Any one match in the agent's available tool set marks the provider as available."
+    },
+    "cliFallback": {
+      "type": ["string", "null"],
+      "description": "CLI binary name (checked via `which`) used when no MCP tool is available."
+    },
+    "envFallback": {
+      "type": ["string", "null"],
+      "description": "Environment variable that, when set, enables an HTTP/API fallback fetch path."
+    },
+    "promptFile": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Path to the fetch playbook markdown file. For bundled providers this is a sibling filename (e.g. \"jira.md\"). For user-supplied providers in accord-config.json this can be an absolute or tilde-prefixed path."
+    }
+  }
+}

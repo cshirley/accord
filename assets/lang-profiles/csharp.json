@@ -1,0 +1,22 @@
+{
+  "language": "csharp",
+  "extensions": [".cs"],
+  "detect": "*.csproj",
+  "detect_alt": ["*.sln"],
+  "checks": {
+    "type_check": "dotnet build --no-restore",
+    "lint": "dotnet format --verify-no-changes",
+    "format": "dotnet format --verify-no-changes",
+    "test": "dotnet test",
+    "mutation": null,
+    "dead_code": null,
+    "dep_audit": "dotnet list package --vulnerable",
+    "boundaries": null,
+    "contracts": null
+  },
+  "test_meta": {
+    "single_test_flag": "--filter",
+    "file_pattern": "*Tests.cs",
+    "block_markers": ["[Test]", "[Fact]", "[Theory]", "void Test"]
+  }
+}

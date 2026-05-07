@@ -1,0 +1,18 @@
+[
+  {
+    "status": "done",
+    "test_files": ["src/middleware/__tests__/auth-refresh.test.ts"],
+    "red_confirmed": true,
+    "ac_covered": ["AC-1", "AC-3"],
+    "deviations_emitted": 0,
+    "usage": { "prompt_tokens": 5000, "completion_tokens": 1200 }
+  },
+  {
+    "status": "stuck",
+    "test_files": [],
+    "question": "AC-3 requires rate limit headers but the spec doesn't define the header names or values. The brief mentions SOC2 compliance but doesn't specify rate limiting details.",
+    "context": "Task 2, test step. AC-3 criterion: 'rate limiting is enforced on refresh endpoint'.",
+    "tried": "Checked spec constraints, brief's Security & Data section, and resolved_questions — rate limit specifics not defined anywhere.",
+    "usage": { "prompt_tokens": 5000, "completion_tokens": 1200 }
+  }
+]

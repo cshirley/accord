@@ -1,0 +1,493 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "spec-schema.json",
+  "title": "Spec",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "work_item_id",
+    "title",
+    "date",
+    "problem_statement",
+    "proposed_solution",
+    "acceptance_criteria",
+    "scope",
+    "verification"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "work_item_id": {
+      "type": "string",
+      "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string"
+    },
+    "problem_statement": {
+      "type": "string",
+      "minLength": 1
+    },
+    "proposed_solution": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "requirement",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^AC-\\d+$"
+          },
+          "requirement": {
+            "enum": [
+              "MUST",
+              "SHOULD",
+              "MAY"
+            ]
+          },
+          "type": {
+            "enum": [
+              "scenario",
+              "constraint",
+              "architectural",
+              "property"
+            ]
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "scenario"
+            ],
+            "properties": {
+              "type": {
+                "const": "scenario"
+              },
+              "scenario": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "criterion"
+            ],
+            "properties": {
+              "type": {
+                "const": "constraint"
+              },
+              "criterion": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "criterion",
+              "enforcement"
+            ],
+            "properties": {
+              "type": {
+                "const": "architectural"
+              },
+              "criterion": {
+                "type": "string",
+                "minLength": 1
+              },
+              "enforcement": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "criterion"
+            ],
+            "properties": {
+              "type": {
+                "const": "property"
+              },
+              "criterion": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "in",
+        "out"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "in": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "out": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "item",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "item": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "commands",
+        "test_cases"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "test_cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "covers",
+              "scenario"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^TC-\\d+$"
+              },
+              "covers": {
+                "type": "string",
+                "pattern": "^AC-\\d+$"
+              },
+              "scenario": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tier": {
+                "enum": [
+                  "unit",
+                  "integration",
+                  "e2e"
+                ]
+              },
+              "test_name_glob": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "infra_and_tooling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "monorepo_scaffold": {
+          "type": "string"
+        },
+        "package_manager": {
+          "type": "string"
+        },
+        "runtime_version": {
+          "type": "string"
+        },
+        "linter": {
+          "type": "string",
+          "description": "Linter/formatter choice — e.g. biome, eslint+prettier, ruff, gofmt. Use 'inherit' when adopting the repo default without change."
+        },
+        "env_validation": {
+          "type": "string",
+          "description": "Env validation library / approach — e.g. @t3-oss/env-nextjs, zod-custom, envalid, none (explicit opt-out)."
+        },
+        "coverage_threshold": {
+          "type": "string",
+          "description": "Coverage gate — numeric percent (e.g. '80') or 'none' when merge is not gated on coverage."
+        },
+        "ci_in_v1": {
+          "type": "boolean",
+          "description": "Whether a CI pipeline is delivered as part of this work item. If false, a scope.out entry MUST explain deferral."
+        },
+        "ci_platform": {
+          "type": "string"
+        },
+        "required_workflows": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "security_topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "tier"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tier": {
+                "enum": [
+                  "server-only",
+                  "client-safe",
+                  "public"
+                ]
+              },
+              "owner": {
+                "type": "string"
+              },
+              "rotation_window": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "registry_auth": {
+          "type": "array",
+          "description": "Private package/artifact registries the install or build depends on — each a credential surface that new contributors and CI must provision.",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "credential",
+              "tier"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Registry or scope — e.g. a GitHub Packages scope, private npm, ghcr.io."
+              },
+              "credential": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Env var or file providing access — e.g. GITHUB_TOKEN, NPM_TOKEN, GOOGLE_APPLICATION_CREDENTIALS."
+              },
+              "tier": {
+                "enum": [
+                  "server-only",
+                  "ci-only",
+                  "developer"
+                ],
+                "description": "Where the credential lives. 'developer' means every contributor provisions locally."
+              },
+              "scope": {
+                "type": "string",
+                "description": "Optional — what the credential grants read/write access to."
+              }
+            }
+          }
+        }
+      }
+    },
+    "dev_ergonomics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "local_auth_mode": {
+          "type": "string"
+        },
+        "seed_strategy": {
+          "type": "string"
+        },
+        "env_mode_for_verification_commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "command",
+              "env_mode"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "type": "string"
+              },
+              "env_mode": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "test_topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit_location": {
+          "type": "string"
+        },
+        "e2e_location": {
+          "type": "string"
+        },
+        "storage_state_strategy": {
+          "type": "string"
+        }
+      }
+    },
+    "amendments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "date",
+          "reason",
+          "summary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "triggered_phase": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rejected_alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "resolved_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "api_contract": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "symbol",
+          "description"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "jira_context": {
+      "type": "string"
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "dark_deploy": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

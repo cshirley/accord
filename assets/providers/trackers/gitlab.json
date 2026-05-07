@@ -1,0 +1,10 @@
+{
+  "$schema": "../../../schemas/provider-schema.json",
+  "name": "gitlab",
+  "kind": "tracker",
+  "label": "GitLab Issues",
+  "mcpTools": [],
+  "cliFallback": "glab",
+  "envFallback": "GITLAB_TOKEN",
+  "promptFile": "gitlab.md"
+}

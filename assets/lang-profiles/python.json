@@ -1,0 +1,21 @@
+{
+  "language": "python",
+  "extensions": [".py"],
+  "detect": "pyproject.toml",
+  "checks": {
+    "type_check": "mypy \"$FILE\"",
+    "lint": "ruff check \"$FILE\"",
+    "format": "ruff format --check \"$FILE\"",
+    "test": "pytest --bail",
+    "mutation": "mutmut run",
+    "dead_code": "vulture .",
+    "dep_audit": "pip-audit",
+    "boundaries": "import-linter",
+    "contracts": null
+  },
+  "test_meta": {
+    "single_test_flag": "-k",
+    "file_pattern": "test_*.py",
+    "block_markers": ["def test_", "class Test"]
+  }
+}

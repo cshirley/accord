@@ -1,0 +1,28 @@
+[
+  {
+    "status": "needs_input",
+    "draft": {
+      "schema_version": "1.0",
+      "work_item_id": "ACCORD-1234",
+      "problem_statement": "Access tokens expire silently, causing 401s with no recovery path"
+    },
+    "questions": [
+      { "id": "q_scope_1", "topic": "scope", "text": "What's explicitly out of scope for v1, and why?" },
+      { "id": "q_scope_2", "topic": "scope", "text": "Are there any tenants or regions we're deferring?" }
+    ],
+    "usage": { "prompt_tokens": 6200, "completion_tokens": 900 }
+  },
+  {
+    "status": "done",
+    "spec_path": "docs/dev/ACCORD-1234/spec.json",
+    "review_findings_remaining": 0,
+    "usage": { "prompt_tokens": 12400, "completion_tokens": 1800 }
+  },
+  {
+    "status": "stuck",
+    "question": "AC-3 mentions 'configurable TTL' but doesn't specify valid ranges or defaults. The brief's constraints section says 'SOC2 compliance' but doesn't map to specific TTL bounds.",
+    "context": "Spec topic 6 (acceptance_criteria), attempting to define verification scenario for AC-3.",
+    "tried": "Checked the brief's Security & Data section and gather enrichments (Confluence RFC) — neither specifies TTL bounds.",
+    "usage": { "prompt_tokens": 8100, "completion_tokens": 600 }
+  }
+]

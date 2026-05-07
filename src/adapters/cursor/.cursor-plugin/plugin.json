@@ -1,0 +1,7 @@
+{
+  "name": "accord",
+  "version": "0.1.0",
+  "description": "Rules and skills for Cursor Agent in the CLI: interactive sessions, non-interactive runs, MCP, and ACP integrations.",
+  "keywords": ["cursor", "agent", "cli", "acp", "mcp", "automation", "sdk"],
+  "license": "MIT"
+}

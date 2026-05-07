@@ -1,0 +1,10 @@
+[
+  {
+    "status": "done",
+    "valid": true,
+    "preview": "Terraform plan shows 2 additions (IAM role for token rotation Lambda, CloudWatch alarm for refresh failures), 1 change (API Gateway route config).",
+    "resources": { "add": 2, "change": 1, "destroy": 0 },
+    "iac_tool": "terraform",
+    "usage": { "prompt_tokens": 3200, "completion_tokens": 800 }
+  }
+]

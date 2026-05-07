@@ -1,0 +1,196 @@
+/**
+ * init-write — deterministic AGENTS.md writer for /dev init.
+ *
+ * Handles all write modes:
+ *   - "local"        → write config inline to cwd's AGENTS.md
+ *   - "root"         → write config to git root AGENTS.md + ref directive locally
+ *   - "root_replace" → replace existing root config + ref directive locally
+ *   - "link_only"    → write only the ref directive to local AGENTS.md (root untouched)
+ */
+
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+import type { DevHarnessConfig } from "./index.js";
+
+// ── Types ──────────────────────────────────────────────────
+
+export type WriteTarget = "local" | "root" | "root_replace" | "link_only";
+
+export interface InitWriteParams {
+  /** The finalised config (after user corrections). */
+  config: DevHarnessConfig;
+  /** Where to write: local (cwd), root, root_replace, or link_only. */
+  target: WriteTarget;
+  /** Current working directory (the sub-directory running /dev init). */
+  cwd: string;
+  /** Git root directory. Required when target ≠ "local". */
+  git_root?: string;
+}
+
+export interface InitWriteResult {
+  /** Files that were written or modified. */
+  written_to: string[];
+  /** Whether a dev_harness_ref was written to local AGENTS.md. */
+  ref_created: boolean;
+  /** Human-readable summary of what was done. */
+  summary: string;
+}
+
+// ── Write entry point ──────────────────────────────────────
+
+export function devInitWrite(params: InitWriteParams): InitWriteResult {
+  const { config, target, cwd, git_root } = params;
+  const written: string[] = [];
+  let refCreated = false;
+
+  const cwdAgentsMd = path.join(cwd, "AGENTS.md");
+  const rootAgentsMd = git_root ? path.join(git_root, "AGENTS.md") : null;
+
+  switch (target) {
+    case "local": {
+      // Write config inline to cwd's AGENTS.md
+      upsertDevHarnessSection(cwdAgentsMd, renderConfigBlock(config));
+      written.push(cwdAgentsMd);
+      break;
+    }
+
+    case "root":
+    case "root_replace": {
+      if (!rootAgentsMd || !git_root) {
+        throw new Error(`git_root is required when target is "${target}"`);
+      }
+      // Write config to root AGENTS.md
+      upsertDevHarnessSection(rootAgentsMd, renderConfigBlock(config));
+      written.push(rootAgentsMd);
+
+      // Write ref directive to local AGENTS.md (if cwd ≠ root)
+      if (path.resolve(cwd) !== path.resolve(git_root)) {
+        const relPath = path.relative(path.dirname(cwdAgentsMd), rootAgentsMd);
+        upsertDevHarnessSection(cwdAgentsMd, renderRefBlock(relPath));
+        written.push(cwdAgentsMd);
+        refCreated = true;
+      }
+      break;
+    }
+
+    case "link_only": {
+      if (!rootAgentsMd || !git_root) {
+        throw new Error('git_root is required when target is "link_only"');
+      }
+      // Write only the ref directive to local AGENTS.md — don't touch root
+      const relPath = path.relative(path.dirname(cwdAgentsMd), rootAgentsMd);
+      upsertDevHarnessSection(cwdAgentsMd, renderRefBlock(relPath));
+      written.push(cwdAgentsMd);
+      refCreated = true;
+      break;
+    }
+
+    default:
+      throw new Error(`Unknown write target: ${target}`);
+  }
+
+  return {
+    written_to: written,
+    ref_created: refCreated,
+    summary: buildSummary(written, refCreated, target, git_root),
+  };
+}
+
+// ── AGENTS.md section manipulation ─────────────────────────
+
+/**
+ * Insert or replace the `## Dev Harness` section in an AGENTS.md file.
+ * Creates the file if it doesn't exist.
+ */
+function upsertDevHarnessSection(filePath: string, sectionBody: string): void {
+  let content = "";
+  if (fs.existsSync(filePath)) {
+    content = fs.readFileSync(filePath, "utf8");
+  } else {
+    // Create parent dirs if needed
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  }
+
+  const heading = "## Dev Harness";
+  const headingRe = /^## Dev Harness\s*$/m;
+  const match = headingRe.exec(content);
+
+  if (match) {
+    // Find the end of the section (next ## heading or EOF)
+    const afterHeading = content.slice(match.index + match[0].length);
+    const nextHeadingRe = /^#{1,2} /m;
+    const nextMatch = nextHeadingRe.exec(afterHeading);
+    const sectionEnd = nextMatch
+      ? match.index + match[0].length + nextMatch.index
+      : content.length;
+
+    // Replace the section
+    content =
+      content.slice(0, match.index) +
+      heading + "\n\n" + sectionBody + "\n" +
+      content.slice(sectionEnd);
+  } else {
+    // Append the section
+    const separator = content.length > 0 && !content.endsWith("\n\n")
+      ? (content.endsWith("\n") ? "\n" : "\n\n")
+      : "";
+    content += separator + heading + "\n\n" + sectionBody + "\n";
+  }
+
+  fs.writeFileSync(filePath, content, "utf8");
+}
+
+// ── Section renderers ──────────────────────────────────────
+
+function renderConfigBlock(config: DevHarnessConfig): string {
+  // Clean copy — strip undefined fields for clean JSON output
+  const clean = JSON.parse(JSON.stringify(config));
+  const json = JSON.stringify(clean, null, 2);
+
+  return [
+    "<!-- Generated by /dev init. Edit freely; the harness reads this section at runtime. -->",
+    "",
+    "```json",
+    json,
+    "```",
+  ].join("\n");
+}
+
+function renderRefBlock(relativePath: string): string {
+  return [
+    `<!-- dev_harness_ref: ${relativePath} -->`,
+    "<!-- Config is defined in the monorepo root AGENTS.md. Edit there, or run /dev init to override locally. -->",
+  ].join("\n");
+}
+
+// ── Summary builder ────────────────────────────────────────
+
+function buildSummary(
+  written: string[],
+  refCreated: boolean,
+  target: WriteTarget,
+  gitRoot?: string,
+): string {
+  const lines: string[] = [];
+
+  if (target === "root" || target === "root_replace") {
+    const verb = target === "root_replace" ? "Replaced" : "Written";
+    lines.push(`${verb} ACCORD config to ${gitRoot}/AGENTS.md.`);
+    if (refCreated) {
+      lines.push(`Local AGENTS.md linked via dev_harness_ref.`);
+      lines.push("To override locally later: /dev init (and choose Override).");
+    }
+  } else if (target === "link_only") {
+    lines.push(`Linked local AGENTS.md to root config via dev_harness_ref.`);
+    lines.push("To override locally later: /dev init (and choose Override).");
+  } else {
+    lines.push(`ACCORD config written to ${written[0]}.`);
+  }
+
+  lines.push("");
+  lines.push("Next: /dev <ticket-id> <description> to start work.");
+  lines.push("The harness will use these commands for verification, type checking, and test discovery.");
+
+  return lines.join("\n");
+}

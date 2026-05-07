@@ -1,0 +1,15 @@
+---
+description: Align tasks with Cursor Agent CLI capabilities (modes, MCP, permissions, non-interactive and ACP flows).
+alwaysApply: false
+globs: "**/*.{sh,json,md,yml,yaml}"
+---
+
+When working on automation or tooling that invokes **Cursor Agent** from the terminal:
+
+- **Interactive CLI**: Modes mirror the editor (`agent`, Plan, Ask). Prefer explicit mode flags (`--mode=plan`, `--mode=ask`) when the user needs read-only exploration before edits.
+- **Non-interactive / scripts**: Use `-p` / `--print` with `--output-format json` or `text` for parseable results; callers must handle approvals or use tooling that approves shells (CLI prompts for terminal commands interactively).
+- **Context**: The CLI respects project `.cursor/rules`, `AGENTS.md`, and `CLAUDE.md`; keep rule changes consistent with CLI usage in the repo.
+- **MCP**: `mcp.json` at project or user level is picked up automatically; cloud-only or stdio MCP servers must match whether the agent runs locally or in automation.
+- **ACP**: Integrations spawn `agent acp` over stdio (JSON-RPC). Clients must respond to permission requests (`session/request_permission`) or tool calls can stall; handle Cursor extension RPCs (`cursor/ask_question`, `cursor/create_plan`, etc.) if the UX needs them.
+
+Prefer linking users to authoritative docs (`https://cursor.com/docs/cli/using`, `https://cursor.com/docs/cli/acp`) when behavior diverges across CLI versions rather than guessing flags.

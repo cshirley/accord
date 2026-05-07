@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "return-schemas/phase-gaps.json",
+  "title": "phase-gaps return packet",
+  "type": "object",
+  "required": ["status", "usage"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["done", "needs_input", "stuck"] },
+    "parent_epic": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "title", "category", "priority", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "title": { "type": "string", "minLength": 1 },
+          "category": { "enum": ["missing test", "missing implementation", "partial coverage", "deferred scope", "open question", "external dependency"] },
+          "priority": { "enum": ["High", "Medium", "Low"] },
+          "detail": { "type": "string", "minLength": 1 },
+          "duplicate_of": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "created": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" }
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "linked": { "type": "integer", "minimum": 0 },
+    "question": { "type": "string", "minLength": 1 },
+    "context": { "type": "string" },
+    "tried": { "type": "string" },
+    "usage": {
+      "type": "object",
+      "required": ["prompt_tokens", "completion_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "needs_input" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["parent_epic", "candidates"] }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "done" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["created", "linked"] }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "stuck" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["question", "context"] }
+    }
+  ]
+}

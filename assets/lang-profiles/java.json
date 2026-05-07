@@ -1,0 +1,22 @@
+{
+  "language": "java",
+  "extensions": [".java"],
+  "detect": "pom.xml",
+  "detect_alt": ["build.gradle", "build.gradle.kts"],
+  "checks": {
+    "type_check": null,
+    "lint": null,
+    "format": null,
+    "test": "mvn test",
+    "mutation": null,
+    "dead_code": null,
+    "dep_audit": "mvn dependency-check:check",
+    "boundaries": null,
+    "contracts": null
+  },
+  "test_meta": {
+    "single_test_flag": "-Dtest=",
+    "file_pattern": "*Test.java",
+    "block_markers": ["@Test", "void test"]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "return-schemas/review.json",
+  "title": "Review agent return packet",
+  "type": "object",
+  "required": ["verdict", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "verdict": { "enum": ["clean", "issues"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "issue"],
+        "additionalProperties": false,
+        "properties": {
+          "severity": { "enum": ["critical", "warning", "suggestion"] },
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "issue": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "string" },
+          "recommendation": { "type": "string" }
+        }
+      }
+    }
+  }
+}

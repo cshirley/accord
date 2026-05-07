@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "host": "pi",
+  "package": "@clive.shirley/pi-accord",
+  "assets": {
+    "skills": [
+      "accord",
+      "dev"
+    ],
+    "agents": [
+      "phase-align",
+      "phase-code",
+      "phase-explore",
+      "phase-gaps",
+      "phase-gather",
+      "phase-hypothesise",
+      "phase-plan",
+      "phase-spec",
+      "phase-test",
+      "phase-verify-acceptance",
+      "phase-verify-infra",
+      "review-code",
+      "review-design",
+      "review-deviation",
+      "review-investigation",
+      "review-plan",
+      "review-security",
+      "review-spec",
+      "review-test"
+    ],
+    "providers": {
+      "trackers": [
+        "github",
+        "gitlab",
+        "jira",
+        "plain-text"
+      ],
+      "enrichments": [
+        "confluence",
+        "figma",
+        "github-discussions",
+        "github-pr",
+        "google-docs",
+        "slack"
+      ]
+    }
+  },
+  "requires": {
+    "pi_extensions": [
+      "subagent"
+    ],
+    "tools": [
+      "subagent"
+    ]
+  }
+}

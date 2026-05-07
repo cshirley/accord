@@ -1,0 +1,461 @@
+/**
+ * Usage tracking - pricing, cost accounting, return packet extraction,
+ * and work item discovery.
+ */
+
+import { randomUUID } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import { createLogger } from "../logging.js";
+import { WORK_ITEM_ID_PATTERN, WORK_ITEM_FILE_PATTERN } from "../work-items/io.js";
+
+const log = createLogger("usage");
+
+// ── Types ──────────────────────────────────────────────────
+
+interface PricingEntry {
+  input: number;
+  output: number;
+}
+
+export interface PricingConfig {
+  unit: string;
+  default: PricingEntry;
+  models: Record<string, PricingEntry>;
+}
+
+export interface UsageLine {
+  at: string;
+  work_item_id: string;
+  /** Logical phase slot: phase agent name or "orchestrator" for the main session. */
+  subagent_type: string;
+  model: string | undefined;
+  usage: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    cost: number;
+    contextTokens: number;
+    turns: number;
+  };
+  /** Where usage was billed: isolated subagent pi vs main orchestrator turns. */
+  source?: "subagent" | "orchestrator";
+  /** Correlate `.tasks/<id>-usage.jsonl` rows for post-analysis (see /dev tag). */
+  harness_run_id?: string;
+  harness_session_tag?: string;
+}
+
+/** Persisted by /dev tag or auto-provisioned from the active work item. */
+export interface HarnessRunMeta {
+  run_id: string;
+  tag: string;
+  updated_at: string;
+  /** True when tag was inferred from work item id (first billable harness usage). */
+  auto?: boolean;
+  /** All work items that have recorded usage in this session. Allows retro/session
+   *  analysis to correlate a single run_id with multiple parallel work items. */
+  work_item_ids?: string[];
+}
+
+export interface WorkItemSummary {
+  id: string;
+  phase: string;
+  pattern: string;
+  cost_usd: number;
+  decisions_pending: number;
+}
+
+// ── Pricing ────────────────────────────────────────────────
+
+const HARNESS_RUN_META_PATH = path.join(".tasks", ".harness-run.json");
+
+const DEFAULT_PRICING: PricingConfig = {
+  unit: "usd_per_million_tokens",
+  default: { input: 3.0, output: 15.0 },
+  models: {},
+};
+
+function resolvePricingPath(): string | null {
+  try {
+    const extDir = new URL("../..", import.meta.url).pathname;
+    const candidate = path.join(extDir, "schemas", "model-pricing.json");
+    if (fs.existsSync(candidate)) return candidate;
+  } catch { /* bundled or unavailable */ }
+  return null;
+}
+
+// ── Harness run tagging (session → usage analytics) ────────
+
+export function readHarnessRunMeta(): HarnessRunMeta | null {
+  try {
+    if (!fs.existsSync(HARNESS_RUN_META_PATH)) return null;
+    const raw = JSON.parse(fs.readFileSync(HARNESS_RUN_META_PATH, "utf8"));
+    if (raw && typeof raw.run_id === "string" && typeof raw.tag === "string") return raw as HarnessRunMeta;
+  } catch { /* ignore */ }
+  return null;
+}
+
+export function resolveHarnessRunContext(): Partial<Pick<UsageLine, "harness_run_id" | "harness_session_tag">> {
+  const envTag = process.env.DEV_HARNESS_RUN_TAG?.trim();
+  const envRunId = process.env.DEV_HARNESS_RUN_ID?.trim();
+  const fileMeta = readHarnessRunMeta();
+  return {
+    harness_session_tag: envTag || fileMeta?.tag,
+    harness_run_id: envRunId || fileMeta?.run_id,
+  };
+}
+
+export function setHarnessRunTag(label: string, opts?: { newRunId?: boolean }): HarnessRunMeta {
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error("Tag must be non-empty");
+  fs.mkdirSync(".tasks", { recursive: true });
+  const prev = readHarnessRunMeta();
+  const meta: HarnessRunMeta = {
+    run_id: opts?.newRunId ? randomUUID() : (prev?.run_id ?? randomUUID()),
+    tag: trimmed,
+    updated_at: new Date().toISOString(),
+  };
+  fs.writeFileSync(HARNESS_RUN_META_PATH, JSON.stringify(meta, null, 2) + "\n");
+  return meta;
+}
+
+/**
+ * Ensure a harness run record exists for this session.
+ *
+ * On first call: creates meta with this work item as the tag.
+ * On subsequent calls with a different work item: adds it to work_item_ids
+ * but does NOT overwrite the tag (avoids flip-flopping in parallel sessions).
+ * The run_id is session-stable and is the primary correlator for retro/analytics.
+ */
+export function ensureAutoHarnessRunMeta(workItemId: string): void {
+  if (process.env.DEV_HARNESS_RUN_TAG?.trim() || process.env.DEV_HARNESS_RUN_ID?.trim()) return;
+  const existing = readHarnessRunMeta();
+
+  if (existing) {
+    const ids = existing.work_item_ids ?? [existing.tag];
+    if (ids.includes(workItemId)) return;
+    try {
+      ids.push(workItemId);
+      const meta: HarnessRunMeta = {
+        ...existing,
+        work_item_ids: ids,
+        updated_at: new Date().toISOString(),
+      };
+      fs.writeFileSync(HARNESS_RUN_META_PATH, JSON.stringify(meta, null, 2) + "\n");
+    } catch (e) { log.warn(`failed to update harness run meta: ${e}`); }
+    return;
+  }
+
+  try {
+    fs.mkdirSync(".tasks", { recursive: true });
+    const meta: HarnessRunMeta = {
+      run_id: randomUUID(),
+      tag: workItemId,
+      updated_at: new Date().toISOString(),
+      auto: true,
+      work_item_ids: [workItemId],
+    };
+    fs.writeFileSync(HARNESS_RUN_META_PATH, JSON.stringify(meta, null, 2) + "\n");
+  } catch (e) { log.warn(`failed to write harness run meta: ${e}`); }
+}
+
+export function clearHarnessRunTag(): void {
+  try {
+    if (fs.existsSync(HARNESS_RUN_META_PATH)) fs.unlinkSync(HARNESS_RUN_META_PATH);
+  } catch { /* ignore */ }
+}
+
+export function describeHarnessRunMeta(): string {
+  const envTag = process.env.DEV_HARNESS_RUN_TAG?.trim();
+  const envRunId = process.env.DEV_HARNESS_RUN_ID?.trim();
+  if (envTag || envRunId) {
+    const parts = [`DEV_HARNESS_RUN_TAG=${envTag || "(unset)"}`, `DEV_HARNESS_RUN_ID=${envRunId || "(unset)"}`];
+    return `Harness run (environment overrides file):\n  ${parts.join("\n  ")}`;
+  }
+  const m = readHarnessRunMeta();
+  if (!m) return "No harness run tag yet - it will auto-set on first billable usage for a work item, or use `/dev tag <label>`.";
+  const prov = m.auto ? " (auto)" : "";
+  const ids = m.work_item_ids ?? [m.tag];
+  const idLine = ids.length > 1
+    ? `  work_items: ${ids.join(", ")}`
+    : `  tag:    ${m.tag}`;
+  return `Harness run${prov}:\n${idLine}\n  run_id: ${m.run_id}\n  updated_at: ${m.updated_at}`;
+}
+
+/** Normalize provider usage.cost (number vs { total }) for append + rollup. */
+export function normalizeUsageCostFields(usage: unknown): UsageLine["usage"] {
+  const u = (usage && typeof usage === "object" ? usage : {}) as {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    cost?: unknown;
+    totalTokens?: number;
+    contextTokens?: number;
+    turns?: number;
+  };
+  let cost = 0;
+  const c = u.cost as number | { total?: number } | undefined;
+  if (typeof c === "number") cost = c;
+  else if (c && typeof c === "object" && typeof c.total === "number") cost = c.total;
+
+  return {
+    input: u.input || 0,
+    output: u.output || 0,
+    cacheRead: u.cacheRead || 0,
+    cacheWrite: u.cacheWrite || 0,
+    cost,
+    contextTokens: u.contextTokens ?? u.totalTokens ?? 0,
+    turns: u.turns ?? 0,
+  };
+}
+
+function extractTextFromUserMessageContent(content: unknown[] | undefined): string {
+  if (!content) return "";
+  const parts: string[] = [];
+  for (const block of content) {
+    if (typeof block === "object" && block !== null && (block as { type?: string }).type === "text") {
+      parts.push(String((block as { text?: string }).text ?? ""));
+    }
+  }
+  return parts.join("\n");
+}
+
+/** Walk session branch (chronological); collect user-visible text payloads. */
+function collectUserTextsFromBranch(ctx: ExtensionContext): string[] {
+  const out: string[] = [];
+  try {
+    for (const e of ctx.sessionManager.getBranch()) {
+      if (e.type !== "message") continue;
+      const m = e.message as { role?: string; content?: unknown[] };
+      if (m.role !== "user") continue;
+      const t = extractTextFromUserMessageContent(m.content);
+      if (t) out.push(t);
+    }
+  } catch { /* no session */ }
+  return out;
+}
+
+/**
+ * Resolve work item for attributing orchestrator usage: active subagent WI,
+ * last user mention of PROJ-123, or single WI in .tasks/.
+ *
+ * Only accepts IDs that correspond to an actual .tasks/<ID>.json file to avoid
+ * false positives from example text in tool descriptions (e.g. "ACCORD-1234").
+ */
+export function inferWorkItemIdFromSession(ctx: ExtensionContext, activeWorkItem: string | null): string | null {
+  if (activeWorkItem) return activeWorkItem;
+  const knownIds = new Set(discoverWorkItems().map(i => i.id));
+  if (knownIds.size === 0) return null;
+  if (knownIds.size === 1) return [...knownIds][0];
+  const texts = collectUserTextsFromBranch(ctx);
+  for (let i = texts.length - 1; i >= 0; i--) {
+    const id = extractWorkItemId(texts[i]);
+    if (id && knownIds.has(id)) return id;
+  }
+  return null;
+}
+
+export function loadPricing(): PricingConfig {
+  const pricingPath = resolvePricingPath();
+  if (!pricingPath) return DEFAULT_PRICING;
+  try {
+    return JSON.parse(fs.readFileSync(pricingPath, "utf8"));
+  } catch {
+    return DEFAULT_PRICING;
+  }
+}
+
+export function pricingFor(pricing: PricingConfig, modelId?: string): PricingEntry {
+  if (modelId) {
+    if (pricing.models[modelId]) return pricing.models[modelId];
+    const bare = modelId.replace(/^[^/]+\//, "");
+    if (pricing.models[bare]) return pricing.models[bare];
+    const normalised = bare.replace(/\./g, "-");
+    for (const [key, val] of Object.entries(pricing.models)) {
+      if (key.replace(/\./g, "-") === normalised) return val;
+    }
+  }
+  return pricing.default;
+}
+
+// ── Work item ID extraction ────────────────────────────────
+
+export function extractWorkItemId(task: string): string | null {
+  const match = task.match(WORK_ITEM_ID_PATTERN);
+  return match ? match[0] : null;
+}
+
+// ── Usage persistence ──────────────────────────────────────
+
+export function appendUsageLine(workItemId: string, line: UsageLine): void {
+  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  try {
+    fs.mkdirSync(".tasks", { recursive: true });
+    const ctx = resolveHarnessRunContext();
+    const merged: UsageLine = {
+      ...line,
+      ...(ctx.harness_run_id ? { harness_run_id: ctx.harness_run_id } : {}),
+      ...(ctx.harness_session_tag ? { harness_session_tag: ctx.harness_session_tag } : {}),
+    };
+    fs.appendFileSync(jsonlPath, JSON.stringify(merged) + "\n");
+  } catch (e) { log.warn(`failed to append usage line for ${workItemId}: ${e}`); }
+}
+
+export function recomputeCost(workItemId: string, pricing: PricingConfig): number {
+  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  if (!fs.existsSync(jsonlPath)) return 0;
+
+  let totalCost = 0;
+  try {
+    const lines = fs.readFileSync(jsonlPath, "utf8").trim().split("\n");
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const entry: UsageLine = JSON.parse(line);
+      totalCost += computeLineCost(entry, pricing);
+    }
+  } catch (e) { log.warn(`failed to recompute cost for ${workItemId}: ${e}`); }
+  return totalCost;
+}
+
+/** Compute cost for a single usage line. Used by the in-memory cache for incremental updates. */
+export function computeLineCost(line: UsageLine, pricing: PricingConfig): number {
+  const rates = pricingFor(pricing, line.model);
+  const u = line.usage;
+  const lineCost = typeof u.cost === "number" ? u.cost : 0;
+  if (lineCost > 0) return lineCost;
+  const inputTokens = u.input + (u.cacheRead ?? 0) * 0.1;
+  return (inputTokens * rates.input) / 1_000_000 + (u.output * rates.output) / 1_000_000;
+}
+
+export function updateWorkItemCost(workItemId: string, cost: number): void {
+  const wiPath = path.join(".tasks", `${workItemId}.json`);
+  if (!fs.existsSync(wiPath)) return;
+  try {
+    const wi = JSON.parse(fs.readFileSync(wiPath, "utf8"));
+    wi.cost_usd = Math.round(cost * 10000) / 10000;
+    wi.updated = new Date().toISOString();
+    fs.writeFileSync(wiPath, JSON.stringify(wi, null, 2) + "\n");
+  } catch (e) { log.warn(`failed to update work item cost for ${workItemId}: ${e}`); }
+}
+
+// ── Return packet extraction ───────────────────────────────
+
+export function extractReturnPacket(text: string): any | null {
+  // Fenced code block
+  const fencedMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
+  if (fencedMatch) {
+    try { return JSON.parse(fencedMatch[1]); } catch { /* fall through */ }
+  }
+  // Last JSON object with a known key
+  const jsonMatches = text.match(/\{[\s\S]*\}/g);
+  if (jsonMatches) {
+    for (let i = jsonMatches.length - 1; i >= 0; i--) {
+      try {
+        const parsed = JSON.parse(jsonMatches[i]);
+        if (parsed.status || parsed.verdict) return parsed;
+      } catch { continue; }
+    }
+  }
+  return null;
+}
+
+function contentBlocksToText(content: any): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (part?.type === "text" && typeof part.text === "string") return part.text;
+      if (typeof part?.text === "string") return part.text;
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function extractReturnPacketFromSubagentResult(result: any): any | null {
+  const candidates: string[] = [];
+
+  if (Array.isArray(result?.messages)) {
+    const assistantMessages = [...result.messages]
+      .reverse()
+      .filter((m: any) => m?.role === "assistant");
+    for (const msg of assistantMessages) {
+      const text = contentBlocksToText(msg.content);
+      if (text) candidates.push(text);
+    }
+  }
+
+  for (const key of ["content", "output", "text", "response", "result", "final", "finalResponse"]) {
+    const value = result?.[key];
+    if (typeof value === "string") candidates.push(value);
+    else {
+      const text = contentBlocksToText(value);
+      if (text) candidates.push(text);
+    }
+  }
+
+  const messageText = contentBlocksToText(result?.message?.content);
+  if (messageText) candidates.push(messageText);
+
+  for (const text of candidates) {
+    const packet = extractReturnPacket(text);
+    if (packet) return packet;
+  }
+  return null;
+}
+
+// ── Subagent result handoff formatting ─────────────────────
+
+export function formatPacketInjection(agentName: string, packet: any): string {
+  return `\n\n## ${agentName} Return Packet\n\n\`\`\`json\n${JSON.stringify(packet, null, 2)}\n\`\`\`\n`;
+}
+
+export function formatMissingPacketWarning(agentName: string, resultKeys: string[]): string {
+  const keys = resultKeys.sort().join(", ") || "(none)";
+  return `\n⚠ Return packet missing for ${agentName}. Expected a final fenced \`\`\`json block matching its return schema. Result keys: ${keys}.`;
+}
+
+export function assembleHandoffContent(
+  existingContent: any[] | undefined,
+  contentAppend: string,
+): { type: "text"; text: string }[] {
+  const existingParts: string[] = [];
+  if (Array.isArray(existingContent)) {
+    for (const block of existingContent) {
+      if (typeof block === "string") existingParts.push(block);
+      else if (block?.type === "text" && typeof block.text === "string") existingParts.push(block.text);
+    }
+  }
+  return [{ type: "text", text: existingParts.join("\n") + contentAppend }];
+}
+
+// ── Work item discovery ────────────────────────────────────
+
+export function discoverWorkItems(): WorkItemSummary[] {
+  const tasksDir = ".tasks";
+  if (!fs.existsSync(tasksDir)) return [];
+
+  const items: WorkItemSummary[] = [];
+  try {
+    for (const file of fs.readdirSync(tasksDir)) {
+      if (!WORK_ITEM_FILE_PATTERN.test(file)) continue;
+      try {
+        const wi = JSON.parse(fs.readFileSync(path.join(tasksDir, file), "utf8"));
+        items.push({
+          id: wi.id,
+          phase: wi.phase,
+          pattern: wi.pattern,
+          cost_usd: wi.cost_usd || 0,
+          decisions_pending: (wi.decisions || []).filter(
+            (d: any) => d.status === "pending",
+          ).length,
+        });
+      } catch { continue; }
+    }
+  } catch { /* .tasks not readable */ }
+  return items;
+}

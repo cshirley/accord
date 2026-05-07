@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../schemas/provider-schema.json",
+  "name": "github-pr",
+  "kind": "enrichment",
+  "label": "GitHub PRs",
+  "mcpTools": [
+    "mcp__github__get_pull_request"
+  ],
+  "cliFallback": "gh",
+  "envFallback": null,
+  "promptFile": "github-pr.md"
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "status": "done",
+    "verdict": "pass",
+    "verify_path": "docs/dev/ACCORD-1234/verify.json",
+    "summary": { "pass": 3, "fail": 0, "partial": 0, "not_verified": 0 },
+    "usage": { "prompt_tokens": 9800, "completion_tokens": 1600 }
+  },
+  {
+    "status": "done",
+    "verdict": "gaps",
+    "verify_path": "docs/dev/ACCORD-1234/verify.json",
+    "summary": { "pass": 2, "fail": 1, "partial": 0, "not_verified": 0 },
+    "usage": { "prompt_tokens": 9800, "completion_tokens": 1600 }
+  }
+]

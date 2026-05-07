@@ -1,0 +1,33 @@
+{
+  "language": "typescript",
+  "extensions": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],
+  "detect": "package.json",
+  "scripts": {
+    "type_check": ["typecheck", "type-check", "types", "tsc"],
+    "lint": ["lint", "eslint", "lint:check", "lint:fix"],
+    "format": ["format", "format:check", "prettier"],
+    "test": ["test", "jest"]
+  },
+  "local_bins": {
+    "type_check": { "bin": "tsc", "args": ["--noEmit"] },
+    "lint": { "bin": "eslint", "args": ["--no-warn-ignored", "$FILE"] },
+    "format": { "bin": "prettier", "args": ["--check", "$FILE"] },
+    "test": { "bin": "jest", "args": ["--bail"] }
+  },
+  "checks": {
+    "type_check": "npx tsc --noEmit",
+    "lint": "npx eslint --no-warn-ignored \"$FILE\"",
+    "format": "npx prettier --check \"$FILE\"",
+    "test": "npx jest --bail",
+    "mutation": "npx stryker run --reporters=json",
+    "dead_code": "npx knip",
+    "dep_audit": "npx sherif && yarn audit --level moderate",
+    "boundaries": "npx depcruise src --config",
+    "contracts": "yarn test:contracts"
+  },
+  "test_meta": {
+    "single_test_flag": "-t",
+    "file_pattern": "*.test.{ts,tsx,js,jsx}",
+    "block_markers": ["describe(", "it(", "test("]
+  }
+}

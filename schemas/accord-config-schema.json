@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "accord-config-schema.json",
+  "title": "ACCORD Project Configuration",
+  "description": "Stack-specific configuration for the /dev ACCORD workflow, embedded in a project's AGENTS.md under the ## Dev Harness compatibility heading as a fenced JSON block.",
+  "type": "object",
+  "required": ["schema_version", "language", "test", "verification_commands"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "language": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Primary language — e.g. typescript, python, go, rust, ruby, java, csharp"
+    },
+    "detect_file": {
+      "type": "string",
+      "description": "Marker file that identifies this stack — e.g. go.mod, Cargo.toml, package.json, pyproject.toml"
+    },
+    "test": {
+      "type": "object",
+      "required": ["command"],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Full test suite command — e.g. go test ./..., pytest, cargo test, vitest run"
+        },
+        "single_test_flag": {
+          "type": "string",
+          "description": "Flag to run a single named test — e.g. -run (Go), -k (pytest), -t (vitest/jest)"
+        },
+        "file_pattern": {
+          "type": "string",
+          "description": "Glob for test files — e.g. *_test.go, *.test.ts, test_*.py"
+        },
+        "block_markers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Test block declaration patterns for grep — e.g. func Test, def test_, describe(, it("
+        }
+      }
+    },
+    "type_check": {
+      "type": ["string", "null"],
+      "description": "Type/static-analysis command — e.g. go vet ./..., mypy ., cargo check, tsc --noEmit. null when the language has no separate type-check step."
+    },
+    "lint": {
+      "type": ["string", "null"],
+      "description": "Linter command — e.g. golangci-lint run, ruff check, cargo clippy. null to skip."
+    },
+    "format": {
+      "type": ["string", "null"],
+      "description": "Format-check command — e.g. gofmt -l, ruff format --check, cargo fmt --check. null to skip."
+    },
+    "verification_commands": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Default verification commands for specs in this project. Seeded into spec.verification.commands during /dev spec."
+    },
+    "tracker": {
+      "type": "object",
+      "description": "Issue tracker configuration. Determines how phase-gather fetches ticket context. Defaults to jira if omitted.",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Tracker provider name. Must match a bundled provider (jira, github, gitlab, plain-text) or a user-defined one declared in the top-level `providers` array."
+        },
+        "project_prefix": {
+          "type": "string",
+          "description": "Expected work item ID prefix — e.g. STEP, ENG, PROJ. Used for ID validation and inference."
+        }
+      }
+    },
+    "log_level": {
+      "type": "string",
+      "enum": ["debug", "info", "warn", "error", "silent"],
+      "default": "error",
+      "description": "ACCORD diagnostic log level. Logs go to stderr prefixed [accord:<tag>:<level>]. Override at runtime with ACCORD_LOG_LEVEL env var."
+    },
+    "providers": {
+      "type": "array",
+      "description": "User-defined provider declarations. Each entry adds (or overrides) a tracker or enrichment provider. Bundled providers from assets/providers/ are always available; entries here let projects swap a playbook, point at a custom MCP/CLI/env tool, or add an entirely new provider. See schemas/provider-schema.json for the per-entry shape.",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "promptFile"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "kind": { "enum": ["tracker", "enrichment"] },
+          "label": { "type": "string", "minLength": 1 },
+          "mcpTools": { "type": "array", "items": { "type": "string" } },
+          "cliFallback": { "type": ["string", "null"] },
+          "envFallback": { "type": ["string", "null"] },
+          "promptFile": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Absolute path (or ~/-prefixed path) to the markdown fetch playbook for this provider."
+          }
+        }
+      }
+    },
+    "context_sources": {
+      "type": "array",
+      "description": "Project-level enrichment source overrides. Merged on top of global accord-config.json sources (matched by type). Use enabled:false to disable a global source for this project.",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Enrichment source name. Must match a bundled enrichment provider or a user-defined one declared in the top-level `providers` array."
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Set false to disable a globally-enabled source for this project."
+          },
+          "default_lookback_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90
+          },
+          "channels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Slack channels to scope keyword search to."
+          },
+          "space": {
+            "type": "string",
+            "description": "Confluence space key."
+          },
+          "labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Confluence/Notion labels to filter by."
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "Google Drive folder ID."
+          },
+          "base_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Service base URL override for this project."
+          }
+        }
+      }
+    },
+    "monorepo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "description": "Workspace tool — e.g. nx, turbo, cargo workspaces, go workspaces, pnpm workspaces, lerna"
+        },
+        "root": {
+          "type": "string",
+          "description": "Path to monorepo root relative to this AGENTS.md"
+        }
+      }
+    }
+  }
+}

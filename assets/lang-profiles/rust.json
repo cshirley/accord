@@ -1,0 +1,21 @@
+{
+  "language": "rust",
+  "extensions": [".rs"],
+  "detect": "Cargo.toml",
+  "checks": {
+    "type_check": "cargo check --all-targets",
+    "lint": "cargo clippy -- -D warnings",
+    "format": "cargo fmt --check -- \"$FILE\"",
+    "test": "cargo test",
+    "mutation": "cargo mutants",
+    "dead_code": "cargo udeps",
+    "dep_audit": "cargo audit",
+    "boundaries": null,
+    "contracts": null
+  },
+  "test_meta": {
+    "single_test_flag": "--test",
+    "file_pattern": "*_test.rs",
+    "block_markers": ["#[test]", "#[cfg(test)]"]
+  }
+}
