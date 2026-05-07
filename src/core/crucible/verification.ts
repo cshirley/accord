@@ -47,8 +47,24 @@ export async function runVerificationCommands(
       });
       output = (stdout || "") + (stderr || "");
     } catch (err: any) {
-      exitCode = err.code ?? 1;
-      output = (err.stdout || "") + "\n" + (err.stderr || "");
+      // Distinguish three classes of failure that all land here:
+      //   • normal non-zero exit  → err.code is the exit code, stdout/stderr present
+      //   • timeout               → err.killed === true, signal === 'SIGTERM'
+      //   • maxBuffer overflow    → err.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
+      // Surface a meaningful exitCode and output for each.
+      exitCode = typeof err.code === "number" ? err.code : 1;
+      const stdout = typeof err.stdout === "string" ? err.stdout : "";
+      const stderr = typeof err.stderr === "string" ? err.stderr : "";
+      output = stdout + (stdout && stderr ? "\n" : "") + stderr;
+      if (err.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
+        exitCode = exitCode || 1;
+        output = (output || "") + "\n[verification: command exceeded 10 MB stdio buffer; output truncated]";
+      } else if (err.killed && err.signal === "SIGTERM") {
+        exitCode = exitCode || 124;
+        output = (output || "") + `\n[verification: command timed out after ${timeout}ms]`;
+      } else if (!output && err.message) {
+        output = String(err.message);
+      }
       log.info(`command failed: ${cmd} (exit ${exitCode})`);
     }
     const lines = output.trim().split("\n");

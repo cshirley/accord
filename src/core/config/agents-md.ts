@@ -58,9 +58,17 @@ export function extractDevHarnessJson(content: string): string | null {
   const nextMatch = nextHeadingRe.exec(afterHeading);
   const section = nextMatch ? afterHeading.slice(0, nextMatch.index) : afterHeading;
 
-  const fenceRe = /```json\s*\n([\s\S]*?)\n```/;
-  const fenceMatch = fenceRe.exec(section);
-  return fenceMatch ? fenceMatch[1] : null;
+  // Pick the *last* ```json block in the section. Earlier blocks are usually
+  // documentation/example snippets ("here's what an empty config looks like
+  // …"); the canonical config is always the final block before the next
+  // heading. The /g flag is required so exec advances past prior matches.
+  const fenceRe = /```json\s*\n([\s\S]*?)\n```/g;
+  let fenceMatch: RegExpExecArray | null;
+  let last: string | null = null;
+  while ((fenceMatch = fenceRe.exec(section)) !== null) {
+    last = fenceMatch[1];
+  }
+  return last;
 }
 
 /**

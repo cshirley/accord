@@ -2,8 +2,9 @@
  * Spec-gaps — 10-point checklist run deterministically against spec JSON.
  */
 
+import * as fs from "node:fs";
 import * as path from "node:path";
-import { readJson } from "../work-items/io.js";
+import { loadWorkItem, readJson } from "../work-items/io.js";
 
 export interface SpecGapResult {
   check: string;
@@ -19,10 +20,33 @@ export interface SpecGapsResult {
   formatted: string;
 }
 
+function resolveSpecPath(id: string): string | null {
+  const wi = loadWorkItem(id);
+  const candidates = [
+    wi?.spec,
+    path.join("docs", "dev", id, "spec.json"),
+    // Legacy layout, kept as a read-only fallback for older runs.
+    path.join("docs", "specs", `${id}-spec.json`),
+  ].filter((p): p is string => Boolean(p));
+
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    if (seen.has(candidate)) continue;
+    seen.add(candidate);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
-  const specPath = path.join("docs", "specs", `${id}-spec.json`);
+  const specPath = resolveSpecPath(id);
+  if (!specPath) {
+    return {
+      error: `Spec not found for ${id}. Tried wi.spec, docs/dev/${id}/spec.json, docs/specs/${id}-spec.json.`,
+    };
+  }
   const spec = readJson<any>(specPath);
-  if (!spec) return { error: `Spec not found: ${specPath}` };
+  if (!spec) return { error: `Spec not readable: ${specPath}` };
 
   const results: SpecGapResult[] = [];
   const scopeOut = (spec.scope?.out || []).map((e: any) =>

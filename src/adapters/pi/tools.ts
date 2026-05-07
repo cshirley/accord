@@ -147,7 +147,10 @@ export function registerTools(
     parameters: Type.Object({
       id: Type.String({ description: "Work item ID" }),
       action: StringEnum(["read", "write", "delete"] as const),
-      data: Type.Optional(Type.Any({ description: "Checkpoint data (for write action)" })),
+      data: Type.Optional(Type.Object({}, {
+        additionalProperties: true,
+        description: "Checkpoint data object (for write action). Free-form JSON object; schema_version is normalised by the harness.",
+      })),
     }),
     async execute(_id, params) {
       if (params.action === "read") {
@@ -156,7 +159,10 @@ export function registerTools(
         return ok(JSON.stringify(cp, null, 2), cp);
       }
       if (params.action === "write") {
-        const result = devCheckpointWrite(params.id, params.data);
+        if (!params.data || typeof params.data !== "object") {
+          return err("dev_checkpoint write requires a 'data' object");
+        }
+        const result = devCheckpointWrite(params.id, params.data as any);
         return ok(`Checkpoint written: ${result.path}`);
       }
       const deleted = devCheckpointDelete(params.id);
@@ -309,7 +315,15 @@ export function registerTools(
       id: Type.String({ description: "Work item ID" }),
       terminal_outcome: StringEnum(["done", "blocked", "partially_achieved", "unclear"] as const),
       next_action: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-      retro: Type.Optional(Type.Any({ description: "Retrospective object; ran_at is auto-filled if omitted" })),
+      retro: Type.Optional(Type.Object({
+        ran_at: Type.Optional(Type.String({ description: "ISO timestamp; auto-filled if omitted" })),
+        verify_verdict: Type.Optional(Type.String()),
+        post_run_rework_detected: Type.Optional(Type.Boolean()),
+        summary: Type.Optional(Type.String()),
+      }, {
+        additionalProperties: true,
+        description: "Retrospective object; ran_at is auto-filled if omitted",
+      })),
       shift_left_findings: Type.Optional(Type.Array(Type.Object({
         category: Type.String(),
         evidence: Type.String(),
@@ -360,12 +374,17 @@ export function registerTools(
     parameters: Type.Object({
       work_item_id: Type.String(),
       state_label: Type.String({ description: "e.g. 'TASK COMPLETE', 'VERIFICATION COMPLETE'" }),
-      fields: Type.Any({ description: "Key-value pairs to display" }),
+      fields: Type.Object({}, {
+        additionalProperties: true,
+        description: "Key-value pairs to display (object, not array)",
+      }),
       next_action: Type.String({ description: "What the user should do next" }),
     }),
     async execute(_id, params) {
       const text = devDecisionPacket(params.work_item_id, {
-        state_label: params.state_label, fields: params.fields, next_action: params.next_action,
+        state_label: params.state_label,
+        fields: params.fields as Record<string, string>,
+        next_action: params.next_action,
       });
       return ok(text);
     },
@@ -396,7 +415,10 @@ export function registerTools(
     description: "Write ACCORD config to AGENTS.md (local, root, root_replace, or link_only)",
     promptSnippet: "Write the finalised config to AGENTS.md. Handles inline config blocks, dev_harness_ref directives, root vs local placement, and section upsert. Call after user confirms the detected config.",
     parameters: Type.Object({
-      config: Type.Any({ description: "The finalised ACCORD config object (after user corrections)" }),
+      config: Type.Object({}, {
+        additionalProperties: true,
+        description: "The finalised ACCORD config object (after user corrections). See schemas/dev-harness-config-schema.json.",
+      }),
       target: StringEnum(["local", "root", "root_replace", "link_only"] as const, {
         description: "Where to write: 'local' (cwd only), 'root' (root + link), 'root_replace' (replace root + link), 'link_only' (ref directive only)",
       }),

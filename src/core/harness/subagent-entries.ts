@@ -23,7 +23,9 @@ export function firstSubagentAgentName(input: Record<string, unknown>): string {
 }
 
 /**
- * The entry Pi mutates for `task` injection (single agent, or head of chain/tasks).
+ * Returns a live reference into `input` (single agent, head of chain/tasks)
+ * so the caller can mutate the entry in place. This is intentional — the
+ * subagent prepare hook injects briefs by writing to entry.task.
  */
 export function getPrimarySubagentEntry(
   input: Record<string, unknown>,

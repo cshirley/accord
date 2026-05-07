@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { createLogger } from "../logging.js";
-import { WORK_ITEM_ID_PATTERN, WORK_ITEM_FILE_PATTERN } from "../work-items/io.js";
+import { WORK_ITEM_ID_PATTERN, WORK_ITEM_FILE_PATTERN, mutateJson } from "../work-items/io.js";
 
 const log = createLogger("usage");
 
@@ -249,11 +249,20 @@ export function inferWorkItemIdFromSession(ctx: ExtensionContext, activeWorkItem
   if (activeWorkItem) return activeWorkItem;
   const knownIds = new Set(discoverWorkItems().map(i => i.id));
   if (knownIds.size === 0) return null;
-  if (knownIds.size === 1) return [...knownIds][0];
+  // Before falling back to the single-item shortcut, prefer an explicit
+  // mention in the user's recent messages — that handles the case where the
+  // user starts a new conversation after /clear with an unrelated topic.
   const texts = collectUserTextsFromBranch(ctx);
   for (let i = texts.length - 1; i >= 0; i--) {
     const id = extractWorkItemId(texts[i]);
     if (id && knownIds.has(id)) return id;
+  }
+  if (knownIds.size === 1) {
+    const onlyId = [...knownIds][0];
+    log.debug(
+      `attributing usage to single existing work item ${onlyId} (no active WI, no explicit mention)`,
+    );
+    return onlyId;
   }
   return null;
 }
@@ -334,30 +343,78 @@ export function updateWorkItemCost(workItemId: string, cost: number): void {
   const wiPath = path.join(".tasks", `${workItemId}.json`);
   if (!fs.existsSync(wiPath)) return;
   try {
-    const wi = JSON.parse(fs.readFileSync(wiPath, "utf8"));
-    wi.cost_usd = Math.round(cost * 10000) / 10000;
-    wi.updated = new Date().toISOString();
-    fs.writeFileSync(wiPath, JSON.stringify(wi, null, 2) + "\n");
+    mutateJson<any>(wiPath, wi => {
+      if (!wi) return;
+      wi.cost_usd = Math.round(cost * 10000) / 10000;
+      wi.updated = new Date().toISOString();
+    });
   } catch (e) { log.warn(`failed to update work item cost for ${workItemId}: ${e}`); }
 }
 
 // ── Return packet extraction ───────────────────────────────
 
+/**
+ * Scan `text` for balanced top-level `{...}` regions and return them in
+ * source order. Strings (with escapes) are skipped so braces inside strings
+ * don't unbalance the scanner. This is O(n) and avoids the catastrophic
+ * backtracking of the previous greedy regex approach.
+ */
+function findBalancedJsonRegions(text: string): string[] {
+  const regions: string[] = [];
+  const len = text.length;
+  let i = 0;
+  while (i < len) {
+    if (text.charCodeAt(i) !== 0x7b /* { */) { i++; continue; }
+    const start = i;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let j = i;
+    for (; j < len; j++) {
+      const ch = text.charCodeAt(j);
+      if (inString) {
+        if (escape) { escape = false; continue; }
+        if (ch === 0x5c /* \ */) { escape = true; continue; }
+        if (ch === 0x22 /* " */) inString = false;
+        continue;
+      }
+      if (ch === 0x22 /* " */) { inString = true; continue; }
+      if (ch === 0x7b /* { */) { depth++; continue; }
+      if (ch === 0x7d /* } */) {
+        depth--;
+        if (depth === 0) {
+          regions.push(text.slice(start, j + 1));
+          break;
+        }
+      }
+    }
+    if (depth === 0 && j < len) {
+      i = j + 1;
+    } else {
+      // Unbalanced from this `{`; advance by one to avoid quadratic rescans.
+      i = start + 1;
+    }
+  }
+  return regions;
+}
+
 export function extractReturnPacket(text: string): any | null {
-  // Fenced code block
+  if (!text) return null;
+  // Fenced code block first; bounded match avoids any backtracking risk.
   const fencedMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
   if (fencedMatch) {
     try { return JSON.parse(fencedMatch[1]); } catch { /* fall through */ }
   }
-  // Last JSON object with a known key
-  const jsonMatches = text.match(/\{[\s\S]*\}/g);
-  if (jsonMatches) {
-    for (let i = jsonMatches.length - 1; i >= 0; i--) {
-      try {
-        const parsed = JSON.parse(jsonMatches[i]);
-        if (parsed.status || parsed.verdict) return parsed;
-      } catch { continue; }
-    }
+  // Walk balanced {...} regions from the end and accept the last one with
+  // a recognised packet key.
+  const regions = findBalancedJsonRegions(text);
+  for (let i = regions.length - 1; i >= 0; i--) {
+    try {
+      const parsed = JSON.parse(regions[i]);
+      if (parsed && typeof parsed === "object" && (parsed.status || parsed.verdict)) {
+        return parsed;
+      }
+    } catch { /* try the next region */ }
   }
   return null;
 }

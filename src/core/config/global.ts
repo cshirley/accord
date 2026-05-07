@@ -28,6 +28,9 @@ export function loadGlobalConfig(): DevHarnessGlobalConfig | null {
  * without disturbing strings. Trailing commas are *not* handled — the
  * seeded template avoids them, and users editing the file can keep the
  * structure JSON-valid by following the same convention.
+ *
+ * Also exported as the canonical JSONC stripper for any callers (e.g.
+ * artifact validation) that need to be tolerant of inline comments.
  */
 export function stripJsonComments(input: string): string {
   let out = "";

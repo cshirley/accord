@@ -22,9 +22,52 @@ export function readJson<T>(filePath: string): T | null {
   }
 }
 
+/**
+ * Atomic JSON write: serialise to a sibling temp file, fsync, then rename
+ * over the destination. The rename is atomic on POSIX, so readers either
+ * see the previous value or the new one — never a partial write — even if
+ * the process is killed mid-write.
+ */
 export function writeJson(filePath: string, data: any): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+  const payload = JSON.stringify(data, null, 2) + "\n";
+  // Use process.pid + a counter to make collisions between concurrent
+  // writers in the same process impossible.
+  const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp-${process.pid}-${tmpCounter++}`);
+  const fd = fs.openSync(tmpPath, "w");
+  try {
+    fs.writeFileSync(fd, payload);
+    try {
+      fs.fsyncSync(fd);
+    } catch {
+      // fsync can fail on some filesystems (e.g. tmpfs in CI); ignore.
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(tmpPath, filePath);
+}
+
+let tmpCounter = 0;
+
+/**
+ * Read-modify-write a JSON file in a single helper so callers don't have to
+ * remember to load then write. The mutator may either mutate `current` in
+ * place and return void, or return a replacement value.
+ *
+ * Concurrency note: this is not a cross-process lock — the underlying
+ * `writeJson` is atomic per-write, but interleaved read/modify/write cycles
+ * on the same file from separate processes can still lose updates. For the
+ * `.tasks/` work-item case that's acceptable: the harness is single-writer
+ * within a phase, and atomic writes prevent torn files.
+ */
+export function mutateJson<T>(filePath: string, mutator: (current: T | null) => T | void): T {
+  const current = readJson<T>(filePath);
+  const result = mutator(current);
+  const next = (result === undefined ? current : result) as T;
+  writeJson(filePath, next);
+  return next;
 }
 
 export function now(): string {

@@ -4,8 +4,20 @@
 
 import * as path from "node:path";
 import type { IntentConfidence, IntentMode, ShiftLeftFinding, WorkItemPattern, WorkItem } from "./types.js";
-import { TASKS_DIR, loadWorkItem, loadTaskFile, writeJson, now } from "./io.js";
+import { TASKS_DIR, loadWorkItem, loadTaskFile, writeJson, mutateJson, now } from "./io.js";
 import { devCheckpointDelete } from "./checkpoint.js";
+import { createLogger } from "../logging.js";
+
+const log = createLogger("work-items");
+
+function parseTaskId(taskId: string | number): number | null {
+  if (typeof taskId === "number" && Number.isFinite(taskId)) return taskId;
+  if (typeof taskId === "string" && /^\d+$/.test(taskId.trim())) {
+    const n = Number(taskId.trim());
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
 
 // ── Bootstrap ──────────────────────────────────────────────
 
@@ -154,10 +166,16 @@ export function devPromoteEvents(
   const reviewAgents: string[] = [];
   const existingDecisionIds = new Set((wi.decisions || []).map(d => d.id));
 
-  for (const event of (tf.events || [])) {
+  // Decision IDs encode the per-task event index so re-running promotion on
+  // a task with new escalations doesn't collide with previously-promoted IDs.
+  const events = tf.events || [];
+  const numericTaskId = parseTaskId(taskId);
+
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
     switch (event.type) {
       case "escalation": {
-        const decisionId = `esc-${workItemId}-${taskId}-${escalations}`;
+        const decisionId = `esc-${workItemId}-${taskId}-evt${i}`;
         if (existingDecisionIds.has(decisionId)) continue;
         wi.decisions.push({
           id: decisionId,
@@ -173,7 +191,10 @@ export function devPromoteEvents(
         break;
       }
       case "deviation": {
-        const numericTaskId = parseInt(taskId, 10);
+        if (numericTaskId === null) {
+          log.warn(`devPromoteEvents: skipping deviation for non-numeric taskId="${taskId}" on ${workItemId}`);
+          continue;
+        }
         const alreadyExists = wi.deviations.some(
           d => d.task_id === numericTaskId && d.description === event.description,
         );

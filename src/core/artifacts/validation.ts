@@ -11,6 +11,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { isReviewAgent } from "../agents/registry.js";
+import { stripJsonComments } from "../config/global.js";
 import { createLogger } from "../logging.js";
 import { WORK_ITEM_FILE_PATTERN } from "../work-items/io.js";
 
@@ -56,14 +57,39 @@ function compileValidator(ajv: any, schemaPath: string, schema: any): any {
 
 // --- strip JSONC (trailing commas + comments) ---
 
+/**
+ * Tolerant parse helper: strip `//` and block comments using the
+ * string-aware `stripJsonComments`, then sweep trailing commas only
+ * outside strings. Strict JSON is left unchanged.
+ */
+function stripTrailingCommas(input: string): string {
+  let out = "";
+  let inString = false;
+  let stringChar = "";
+  let escaped = false;
+  for (let i = 0; i < input.length; i++) {
+    const c = input[i];
+    if (inString) {
+      out += c;
+      if (escaped) { escaped = false; continue; }
+      if (c === "\\") { escaped = true; continue; }
+      if (c === stringChar) { inString = false; stringChar = ""; }
+      continue;
+    }
+    if (c === '"' || c === "'") { inString = true; stringChar = c; out += c; continue; }
+    if (c === ",") {
+      // Look ahead, skipping whitespace, to the next non-space character.
+      let j = i + 1;
+      while (j < input.length && /\s/.test(input[j])) j++;
+      if (input[j] === "}" || input[j] === "]") continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
 function stripJsonc(text: string): string {
-  // Remove single-line comments
-  let result = text.replace(/\/\/.*$/gm, "");
-  // Remove multi-line comments
-  result = result.replace(/\/\*[\s\S]*?\*\//g, "");
-  // Remove trailing commas before } or ]
-  result = result.replace(/,\s*([}\]])/g, "$1");
-  return result;
+  return stripTrailingCommas(stripJsonComments(text));
 }
 
 // --- Artifact validation (file-based) ---

@@ -1,5 +1,11 @@
 /**
  * Config guard, stack/schema brief injection, intent contract — before subagent runs.
+ *
+ * This hook intentionally mutates the outgoing `subagent` tool-call payload
+ * (entry.task strings and input.model). That is the Pi hook contract: the
+ * pre-tool-call hook adjusts arguments in place so that the dispatched call
+ * carries the injected brief. Do not refactor to a defensive copy — the
+ * mutation is load-bearing.
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
