@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -117,7 +117,7 @@ describe("installPiAssets", () => {
     const target = tempPiAgent();
     // Pre-create skills/accord as a regular file (not a symlink) so the installer flags it
     const skillsDir = join(target, "skills");
-    require("node:fs").mkdirSync(skillsDir, { recursive: true });
+    mkdirSync(skillsDir, { recursive: true });
     writeFileSync(join(skillsDir, "accord"), "user content", "utf8");
 
     const result = installPiAssets({ target });
@@ -176,7 +176,7 @@ describe("maybeAutoInstallAssets", () => {
     expect(events).toEqual([]);
   });
 
-  test("stale metadata (version drift) → re-installs and notifies info", () => {
+  test("stale metadata (version drift) → reconciles silently when symlinks already correct", () => {
     const target = tempPiAgent();
     installPiAssets({ target });
     // Tamper with recorded version so the bootstrap thinks the install is stale
@@ -188,12 +188,39 @@ describe("maybeAutoInstallAssets", () => {
     const { host, events } = captureNotifies();
     const r = maybeAutoInstallAssets(host, { target, env: {} });
 
-    // Symlinks already point at the right targets, so no relink happens —
-    // the bootstrap reconciles the metadata silently.
-    expect(["installed", "current"]).toContain(r.status);
-    if (r.status === "installed") {
-      expect(events[0].message).toMatch(/re-linked/);
-    }
+    // Symlinks already point at the right targets, so installPiAssets
+    // returns linked.length === 0 and the bootstrap takes the
+    // "reconciled" edge case in asset-bootstrap.ts: status="current",
+    // no notification. Pinning this so a later change that DOES relink
+    // (or DOES notify on reconcile) gets caught.
+    expect(r.status).toBe("current");
+    expect(r.linked).toBe(0);
+    expect(events).toEqual([]);
+  });
+
+  test("stale metadata + missing symlinks → re-installs and notifies info", () => {
+    const target = tempPiAgent();
+    installPiAssets({ target });
+    // Tamper with recorded version AND remove the symlinks so the bootstrap
+    // has actual relink work to do (covers the "installed" branch of the
+    // stale-metadata behaviour matrix).
+    const metaPath = join(target, ".accord-assets.json");
+    const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+    meta.version = "0.0.0-stale";
+    writeFileSync(metaPath, JSON.stringify(meta));
+    rmSync(join(target, "skills", "accord"));
+    rmSync(join(target, "agents", "accord"));
+    rmSync(join(target, "providers"));
+
+    const { host, events } = captureNotifies();
+    const r = maybeAutoInstallAssets(host, { target, env: {} });
+
+    expect(r.status).toBe("installed");
+    expect(r.linked).toBeGreaterThan(0);
+    expect(events).toHaveLength(1);
+    expect(events[0].level).toBe("info");
+    expect(events[0].message).toMatch(/re-linked/);
+    expect(events[0].message).toMatch(/restart pi/);
   });
 
   test("ACCORD_AUTO_INSTALL_ASSETS=false skips install and warns instead", () => {
@@ -327,7 +354,7 @@ describe("maybeAutoInstallAssets", () => {
 
   test("conflicts → warns with --force hint, status conflicts", () => {
     const target = tempPiAgent();
-    require("node:fs").mkdirSync(join(target, "skills"), { recursive: true });
+    mkdirSync(join(target, "skills"), { recursive: true });
     writeFileSync(join(target, "skills", "accord"), "user content", "utf8");
 
     const { host, events } = captureNotifies();
@@ -410,7 +437,7 @@ describe("seedGlobalConfigFile", () => {
   test("does not overwrite an existing config", () => {
     const target = tempPiAgent();
     const path = join(target, "accord-config.json");
-    require("node:fs").mkdirSync(target, { recursive: true });
+    mkdirSync(target, { recursive: true });
     writeFileSync(path, '{ "context_sources": [] }', "utf8");
 
     const result = seedGlobalConfigFile({ target });

@@ -165,7 +165,12 @@ function linkAsset(
   linked.push(dst);
   if (opts.dryRun) return;
 
-  rmSync(dst, { recursive: true, force: true });
+  // Only rm when something is actually there; this keeps the brief window
+  // in which dst doesn't exist as short as possible (a concurrent Pi
+  // startup scan could otherwise momentarily see no skill).
+  if (pathExists(dst)) {
+    rmSync(dst, { recursive: true, force: true });
+  }
   mkdirSync(dirname(dst), { recursive: true });
   symlinkSync(linkTarget(src, dst), dst, kind);
 }

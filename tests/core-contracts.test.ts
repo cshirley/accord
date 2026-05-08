@@ -680,6 +680,20 @@ describe("AGENTS.md config contracts", () => {
     });
   });
 
+  test("extractDevHarnessJson is reusable across calls (no /g lastIndex leak)", () => {
+    // Guards against a refactor that hoists the /g fence regex to module
+    // scope: persistent lastIndex would break the second call. Calling the
+    // same function on the same and different inputs must always return
+    // the canonical JSON block.
+    const goContent = agentsMdWithConfig(sampleConfig({ language: "go" }));
+    const rustContent = agentsMdWithConfig(sampleConfig({ language: "rust" }));
+
+    expect(JSON.parse(extractDevHarnessJson(goContent)!).language).toBe("go");
+    expect(JSON.parse(extractDevHarnessJson(rustContent)!).language).toBe("rust");
+    expect(JSON.parse(extractDevHarnessJson(goContent)!).language).toBe("go");
+    expect(JSON.parse(extractDevHarnessJson(goContent)!).language).toBe("go");
+  });
+
   test("loads config from a linked root AGENTS.md", () => {
     const root = tempProject();
     const packageDir = join(root, "packages", "app");

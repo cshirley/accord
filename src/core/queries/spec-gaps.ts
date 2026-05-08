@@ -52,8 +52,12 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   const scopeOut = (spec.scope?.out || []).map((e: any) =>
     typeof e === "string" ? e.toLowerCase() : (e.item || e.reason || "").toLowerCase(),
   );
-  const hasScope = (keyword: string) =>
-    scopeOut.some((s: string) => s.includes(keyword));
+  // Word-boundary match so e.g. keyword "ci" does not falsely match
+  // "specific" or "explicit" inside a scope.out item.
+  const hasScope = (keyword: string) => {
+    const re = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
+    return scopeOut.some((s: string) => re.test(s));
+  };
 
   const infra = spec.infra_and_tooling || {};
   const security = spec.security_topology || {};

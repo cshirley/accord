@@ -8,9 +8,10 @@
 import { exec as execCb } from "node:child_process";
 import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import type { DevHarnessConfig } from "../config/index.js";
 import { agentSchemas } from "../agents/registry.js";
+import { EXT_DIR } from "../config/paths.js";
 import { createLogger } from "../logging.js";
 
 const log = createLogger("verify");
@@ -30,12 +31,27 @@ const execAsync = promisify(execCb);
 
 export async function runVerificationCommands(
   commands: string[],
-  opts?: { timeoutMs?: number },
+  opts?: { timeoutMs?: number; totalTimeoutMs?: number },
 ): Promise<VerificationResult[]> {
   const timeout = opts?.timeoutMs ?? 120_000;
+  // Default total budget: 5 × per-command timeout. With six commands at 120s
+  // each, this caps verify-preflight + post-code verification at 10 minutes
+  // instead of letting a slow type-checker block subagent dispatch for an
+  // unbounded number of minutes.
+  const totalTimeout = opts?.totalTimeoutMs ?? Math.max(timeout * 5, 600_000);
   const results: VerificationResult[] = [];
+  const budgetStart = Date.now();
 
   for (const cmd of commands) {
+    if (Date.now() - budgetStart > totalTimeout) {
+      results.push({
+        command: cmd,
+        exitCode: 124,
+        output: `[verification: skipped — total timeout of ${totalTimeout}ms exceeded after ${results.length}/${commands.length} command(s)]`,
+        durationMs: 0,
+      });
+      continue;
+    }
     const start = Date.now();
     let exitCode = 0;
     let output = "";
@@ -105,7 +121,6 @@ export function formatVerificationResults(
 
 // ── Schema injection ─────────────────────────────────────
 
-const EXT_DIR = resolve(new URL(".", import.meta.url).pathname, "../../..");
 const SCHEMAS_DIR = join(EXT_DIR, "schemas");
 
 /** Cache loaded schemas in memory — intentionally unbounded since the set of

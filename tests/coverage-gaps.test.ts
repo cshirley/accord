@@ -389,6 +389,11 @@ describe("usage helpers", () => {
     });
     expect(recomputeCost("USD-1", pricing)).toBeCloseTo(2.5, 5);
 
+    // Pin the assumption: "unknown" is not in pricing.models, so pricingFor
+    // must return the default rates. If pricingFor ever gains a fuzzy match,
+    // the cost calculation below would drift silently.
+    expect(pricingFor(pricing, "unknown")).toEqual(pricing.default);
+
     const lineCost = computeLineCost(
       {
         at: "",

@@ -52,10 +52,19 @@ export async function processSubagentToolResult(
 
   let contentAppend = "";
 
+  // Track distinct billable work items in this batch so we only nudge
+  // state.activeWorkItem / sessionCost when there's an unambiguous owner.
+  // When the orchestrator dispatches parallel agents across multiple WIs,
+  // mutating these per-result lets the last result win and silently drifts
+  // attribution for the next orchestrator turn.
+  const billableTotals = new Map<string, number>();
+
   for (const result of d.results as Record<string, unknown>[]) {
     const agentName: string = (result.agent as string) || "";
     const task: string = (result.task as string) || "";
-    const workItemId = extractWorkItemId(task);
+    // Filter against `.tasks/` so an incidental ID token in the task brief
+    // (e.g. an example "ACCORD-1234") cannot misattribute usage cost.
+    const workItemId = extractWorkItemId(task, { mustExist: true });
 
     if (workItemId && result.usage) {
       const normalized = normalizeUsageCostFields(result.usage as any);
@@ -77,8 +86,7 @@ export async function processSubagentToolResult(
         const totalCost = cached + computeLineCost(line, pricing);
         state.costCache.set(workItemId, totalCost);
         updateWorkItemCost(workItemId, totalCost);
-        state.sessionCost = totalCost;
-        state.activeWorkItem = workItemId;
+        billableTotals.set(workItemId, totalCost);
       }
     }
 
@@ -159,6 +167,17 @@ export async function processSubagentToolResult(
         }
       }
     }
+  }
+
+  // Only update orchestrator-facing state when this batch unambiguously
+  // belongs to a single work item. With two parallel WIs in one subagent
+  // call, leave activeWorkItem/sessionCost untouched so the next
+  // orchestrator turn doesn't get attributed to whichever result happened
+  // to be processed last.
+  if (billableTotals.size === 1) {
+    const [id, total] = [...billableTotals][0];
+    state.activeWorkItem = id;
+    state.sessionCost = total;
   }
 
   host?.refreshUi?.();

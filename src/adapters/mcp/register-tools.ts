@@ -177,7 +177,12 @@ export function registerAccordMcpTools(
       inputSchema: {
         id: z.string().describe("Work item ID"),
         action: z.enum(["read", "write", "delete"]),
-        data: z.unknown().optional().describe("Checkpoint data (for write action)"),
+        data: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "Checkpoint data object (required for write). schema_version is normalised by the harness.",
+          ),
       },
     },
     async ({ id, action, data }) => {
@@ -187,7 +192,10 @@ export function registerAccordMcpTools(
         return ok(JSON.stringify(cp, null, 2), cp);
       }
       if (action === "write") {
-        const result = devCheckpointWrite(id, data as Checkpoint);
+        if (!data || typeof data !== "object") {
+          return toolErr("dev_checkpoint write requires a 'data' object");
+        }
+        const result = devCheckpointWrite(id, data as unknown as Checkpoint);
         return ok(`Checkpoint written: ${result.path}`);
       }
       const deleted = devCheckpointDelete(id);
@@ -360,7 +368,16 @@ export function registerAccordMcpTools(
         id: z.string().describe("Work item ID"),
         terminal_outcome: z.enum(["done", "blocked", "partially_achieved", "unclear"]),
         next_action: z.union([z.string(), z.null()]).optional(),
-        retro: z.unknown().optional().describe("Retrospective object; ran_at is auto-filled if omitted"),
+        retro: z
+          .object({
+            ran_at: z.string().optional(),
+            verify_verdict: z.string().optional(),
+            post_run_rework_detected: z.boolean().optional(),
+            summary: z.string().optional(),
+          })
+          .passthrough()
+          .optional()
+          .describe("Retrospective object; ran_at is auto-filled if omitted"),
         shift_left_findings: z
           .array(
             z.object({

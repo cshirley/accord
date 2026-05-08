@@ -8,7 +8,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { createLogger } from "../logging.js";
-import { WORK_ITEM_ID_PATTERN, WORK_ITEM_FILE_PATTERN, mutateJson } from "../work-items/io.js";
+import { EXT_DIR } from "../config/paths.js";
+import { WORK_ITEM_ID_PATTERN, WORK_ITEM_FILE_PATTERN, mutateJson, writeJson } from "../work-items/io.js";
 
 const log = createLogger("usage");
 
@@ -79,8 +80,7 @@ const DEFAULT_PRICING: PricingConfig = {
 
 function resolvePricingPath(): string | null {
   try {
-    const extDir = new URL("../..", import.meta.url).pathname;
-    const candidate = path.join(extDir, "schemas", "model-pricing.json");
+    const candidate = path.join(EXT_DIR, "schemas", "model-pricing.json");
     if (fs.existsSync(candidate)) return candidate;
   } catch { /* bundled or unavailable */ }
   return null;
@@ -110,14 +110,15 @@ export function resolveHarnessRunContext(): Partial<Pick<UsageLine, "harness_run
 export function setHarnessRunTag(label: string, opts?: { newRunId?: boolean }): HarnessRunMeta {
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Tag must be non-empty");
-  fs.mkdirSync(".tasks", { recursive: true });
   const prev = readHarnessRunMeta();
   const meta: HarnessRunMeta = {
     run_id: opts?.newRunId ? randomUUID() : (prev?.run_id ?? randomUUID()),
     tag: trimmed,
     updated_at: new Date().toISOString(),
   };
-  fs.writeFileSync(HARNESS_RUN_META_PATH, JSON.stringify(meta, null, 2) + "\n");
+  // writeJson is atomic (tmp + fsync + rename) so concurrent readers in
+  // hooks never observe a torn file.
+  writeJson(HARNESS_RUN_META_PATH, meta);
   return meta;
 }
 
@@ -143,13 +144,12 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
         work_item_ids: ids,
         updated_at: new Date().toISOString(),
       };
-      fs.writeFileSync(HARNESS_RUN_META_PATH, JSON.stringify(meta, null, 2) + "\n");
+      writeJson(HARNESS_RUN_META_PATH, meta);
     } catch (e) { log.warn(`failed to update harness run meta: ${e}`); }
     return;
   }
 
   try {
-    fs.mkdirSync(".tasks", { recursive: true });
     const meta: HarnessRunMeta = {
       run_id: randomUUID(),
       tag: workItemId,
@@ -157,7 +157,7 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
       auto: true,
       work_item_ids: [workItemId],
     };
-    fs.writeFileSync(HARNESS_RUN_META_PATH, JSON.stringify(meta, null, 2) + "\n");
+    writeJson(HARNESS_RUN_META_PATH, meta);
   } catch (e) { log.warn(`failed to write harness run meta: ${e}`); }
 }
 
@@ -292,9 +292,25 @@ export function pricingFor(pricing: PricingConfig, modelId?: string): PricingEnt
 
 // ── Work item ID extraction ────────────────────────────────
 
-export function extractWorkItemId(task: string): string | null {
+/**
+ * Extract a work-item ID from arbitrary text. The regex is unanchored so it
+ * may match incidental tokens (e.g. "HTTP-200", "ABC-1234" in an example
+ * embedded in a brief). Pass `mustExist: true` to filter the result against
+ * `.tasks/<ID>.json` so attribution can't drift onto IDs that aren't real
+ * work items in this project.
+ */
+export function extractWorkItemId(
+  task: string,
+  opts?: { mustExist?: boolean },
+): string | null {
   const match = task.match(WORK_ITEM_ID_PATTERN);
-  return match ? match[0] : null;
+  if (!match) return null;
+  const id = match[0];
+  if (opts?.mustExist) {
+    const known = new Set(discoverWorkItems().map((i) => i.id));
+    return known.has(id) ? id : null;
+  }
+  return id;
 }
 
 // ── Usage persistence ──────────────────────────────────────

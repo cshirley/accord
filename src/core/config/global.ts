@@ -24,10 +24,47 @@ export function loadGlobalConfig(): DevHarnessGlobalConfig | null {
 }
 
 /**
+ * Strip trailing commas before `}` or `]` outside of strings. Pairs with
+ * `stripJsonComments` to form `stripJsonc`. Strings (including escapes)
+ * are preserved verbatim.
+ */
+export function stripTrailingCommas(input: string): string {
+  let out = "";
+  let inString = false;
+  let stringChar = "";
+  let escaped = false;
+  for (let i = 0; i < input.length; i++) {
+    const c = input[i];
+    if (inString) {
+      out += c;
+      if (escaped) { escaped = false; continue; }
+      if (c === "\\") { escaped = true; continue; }
+      if (c === stringChar) { inString = false; stringChar = ""; }
+      continue;
+    }
+    if (c === '"' || c === "'") { inString = true; stringChar = c; out += c; continue; }
+    if (c === ",") {
+      let j = i + 1;
+      while (j < input.length && /\s/.test(input[j])) j++;
+      if (input[j] === "}" || input[j] === "]") continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
+/**
+ * Strip JSONC comments AND trailing commas. The canonical helper for any
+ * caller that needs to parse a hand-edited JSON-with-comments file.
+ */
+export function stripJsonc(input: string): string {
+  return stripTrailingCommas(stripJsonComments(input));
+}
+
+/**
  * Strip JSONC `//` line comments and `/* ... *\/` block comments
- * without disturbing strings. Trailing commas are *not* handled — the
- * seeded template avoids them, and users editing the file can keep the
- * structure JSON-valid by following the same convention.
+ * without disturbing strings. Trailing commas are NOT handled here — use
+ * `stripJsonc` for the combined operation.
  *
  * Also exported as the canonical JSONC stripper for any callers (e.g.
  * artifact validation) that need to be tolerant of inline comments.

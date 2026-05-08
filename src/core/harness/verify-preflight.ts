@@ -22,6 +22,10 @@ export async function runVerifyPreflightOnSubagentCall(
       : typeof input.task === "string"
         ? input.task
         : "";
+  // Use the unfiltered extractor: when a phase-verify-* agent is dispatched
+  // for a missing/typo'd work-item ID, the staleness check below produces a
+  // clearer block message ("Spec not found: docs/dev/<ID>/spec.json") than
+  // the silent no-op we'd get with mustExist:true.
   const workItemId = extractWorkItemId(task);
   if (!workItemId) return {};
 

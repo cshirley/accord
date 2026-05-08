@@ -205,7 +205,17 @@ describe("harness orchestrator usage", () => {
       }),
     ).toBe(true);
     expect(state.activeWorkItem).toBe("USD-1");
-    expect(state.costCache.get("USD-1")).toBeGreaterThanOrEqual(0);
+    // Billable input/output > 0 with default pricing must produce a positive
+    // cost. >= 0 would silently pass a regression that returned 0.
+    expect(state.costCache.get("USD-1")!).toBeGreaterThan(0);
+
+    // Side-effect: the orchestrator turn must persist a usage line tagged
+    // source="orchestrator" so retro / cost rollup can attribute it.
+    const jsonl = join(project, ".tasks", "USD-1-usage.jsonl");
+    expect(existsSync(jsonl)).toBe(true);
+    const line = readFileSync(jsonl, "utf8").trim().split("\n").pop()!;
+    expect(line).toContain("USD-1");
+    expect(line).toContain('"source":"orchestrator"');
   });
 });
 

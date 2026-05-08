@@ -25,6 +25,12 @@ function tempDir(): string {
   return dir;
 }
 
+/**
+ * Mutate process.env and remember the original value on FIRST call so
+ * afterEach can restore it. Subsequent setEnv calls for the same key keep
+ * the originally-saved baseline. Do NOT delete savedEnv[key] inside test
+ * bodies or cleanup will leak the mutation.
+ */
 function setEnv(key: string, value: string | undefined): void {
   if (!(key in savedEnv)) savedEnv[key] = process.env[key];
   if (value === undefined) delete process.env[key];

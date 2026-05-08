@@ -2,7 +2,7 @@ import { extractWorkItemId } from "../telemetry/usage.js";
 import { loadWorkItem } from "../work-items/io.js";
 
 export function formatIntentContractForTask(task: string): string {
-  const workItemId = extractWorkItemId(task);
+  const workItemId = extractWorkItemId(task, { mustExist: true });
   if (!workItemId) return "";
   const wi = loadWorkItem(workItemId);
   if (!wi) return "";
