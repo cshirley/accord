@@ -16,7 +16,7 @@
  *   3. Default: enabled.
  *
  * When disabled the bootstrap still detects drift and warns, leaving
- * the fix to the user (`bun run install:pi-assets`).
+ * the fix to the user (`bun run install:assets`).
  *
  * Behaviour matrix:
  *
@@ -24,9 +24,9 @@
  *   -------------+---------+-----------------------------------
  *   matches      | -       | silent no-op
  *   missing      | yes     | install + notify "restart pi"
- *   missing      | no      | warn "run install:pi-assets"
+ *   missing      | no      | warn "run install:assets"
  *   mismatched   | yes     | re-install + notify "restart pi"
- *   mismatched   | no      | warn "run install:pi-assets"
+ *   mismatched   | no      | warn "run install:assets"
  *   conflicts    | -       | warn "run with --force"
  */
 
@@ -178,8 +178,8 @@ export function maybeAutoInstallAssets(
           ? " (disabled by ACCORD_AUTO_INSTALL_ASSETS)"
           : "";
     const msg = installed
-      ? `ACCORD: bundled assets are stale (installed v${installed.version}, current v${current.version})${suffix}. Run \`bun run install:pi-assets\` and restart pi.`
-      : `ACCORD: bundled assets are not installed${suffix}. Run \`bun run install:pi-assets\` and restart pi.`;
+      ? `ACCORD: bundled assets are stale (installed v${installed.version}, current v${current.version})${suffix}. Run \`bun run install:assets\` and restart pi.`
+      : `ACCORD: bundled assets are not installed${suffix}. Run \`bun run install:assets\` and restart pi.`;
     log.debug(
       `auto-install skipped (source=${auto.source}, enabled=false); user notify=${Boolean(host.notify)}`,
     );
@@ -195,7 +195,7 @@ export function maybeAutoInstallAssets(
   try {
     result = installPiAssets({ target: opts.target, packageRoot: opts.packageRoot });
   } catch (e) {
-    const msg = `ACCORD: asset install failed (${e instanceof Error ? e.message : String(e)}). Run \`bun run install:pi-assets\` manually for details.`;
+    const msg = `ACCORD: asset install failed (${e instanceof Error ? e.message : String(e)}). Run \`bun run install:assets\` manually for details.`;
     log.debug(`installPiAssets threw: ${msg}`);
     host.notify?.("warning", msg);
     return { status: "error", linked: 0, conflicts: 0, message: msg };
@@ -204,7 +204,7 @@ export function maybeAutoInstallAssets(
   if (result.conflicts.length > 0) {
     const list = result.conflicts.slice(0, 5).join(", ");
     const more = result.conflicts.length > 5 ? `, +${result.conflicts.length - 5} more` : "";
-    const msg = `ACCORD: ${result.conflicts.length} bundled asset(s) blocked by local modifications (${list}${more}). Run \`bun run install:pi-assets --force\` to overwrite.`;
+    const msg = `ACCORD: ${result.conflicts.length} bundled asset(s) blocked by local modifications (${list}${more}). Run \`bun run install:assets --force\` to overwrite.`;
     log.debug(`install blocked: ${result.conflicts.length} path conflict(s)`);
     host.notify?.("warning", msg);
     return {

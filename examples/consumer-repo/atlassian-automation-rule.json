@@ -1,0 +1,31 @@
+{
+  "_comment": "Direct-import Atlassian Automation rule. See docs/ci/atlassian-automation.md for screenshot walkthrough.",
+  "name": "ACCORD autopipeline trigger",
+  "state": "ENABLED",
+  "actor": { "type": "ACCOUNT_ID", "value": "REPLACE_WITH_AUTOMATION_USER_ACCOUNT_ID" },
+  "trigger": {
+    "component": "TRIGGER",
+    "type": "jira.issue.event.transitioned",
+    "value": {
+      "criteria": [
+        { "key": "TO_STATUS", "value": "Ready for Autopilot" }
+      ]
+    }
+  },
+  "components": [
+    {
+      "component": "ACTION",
+      "type": "jira.issue.outgoing-webhook",
+      "value": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/REPLACE_WITH_CONSUMER_OWNER/REPLACE_WITH_CONSUMER_REPO/dispatches",
+        "headers": [
+          { "name": "Accept", "value": "application/vnd.github+json" },
+          { "name": "Authorization", "value": "Bearer {{REPLACE_WITH_GH_PAT_SLOT}}" },
+          { "name": "X-GitHub-Api-Version", "value": "2022-11-28" }
+        ],
+        "body": "{\"event_type\":\"accord-autopipeline\",\"client_payload\":{\"ticket\":\"{{issue.key}}\",\"status_at_trigger\":\"{{issue.status.name}}\"}}"
+      }
+    }
+  ]
+}

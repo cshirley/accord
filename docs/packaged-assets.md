@@ -21,7 +21,7 @@ flowchart TB
 Install or refresh the bundled Pi assets with:
 
 ```bash
-bun run install:pi-assets
+bun run install:assets
 ```
 
 The installer targets `~/.config/pi/agent` by default, creates relative symlinks to the bundled assets, refuses to replace locally modified files unless `--force` is supplied, supports `--dry-run`, and writes `.accord-assets.json` metadata with the package version and manifest checksum.

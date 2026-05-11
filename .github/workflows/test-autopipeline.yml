@@ -1,0 +1,57 @@
+# AC-17: PR-blocking self-test workflow.
+#
+# Runs on every PR to this repo and invokes the reusable workflow handlers
+# in DRY_RUN mode against the ten-scenario fixture corpus under
+# tests/ci/self-test/. Any byte-level drift in the per-scenario Jira-comment
+# payloads, or any deviation in exit codes, fails the PR.
+#
+# The actual scenario inventory + assertions live in tests/ci/self-test/
+# *.test.ts and tests/ci/exit-code.test.ts so they auto-run under any
+# `bun test` invocation, not just CI.
+
+name: ACCORD autopipeline self-test
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    name: AC-17 ten-scenario self-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: bun install
+        run: bun install --frozen-lockfile
+
+      - name: Type-check
+        run: bun run check:types
+
+      - name: AC-17 scenario harness
+        run: bun test tests/ci/self-test/
+
+      - name: AC-18 exit-code policy
+        run: bun test tests/ci/exit-code.test.ts
+
+      - name: Full CI test surface
+        run: bun test tests/ci/
+
+      - name: Asset validation
+        run: |
+          bun run validate:schemas
+          bun run validate:assets

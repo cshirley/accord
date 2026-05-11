@@ -1,0 +1,442 @@
+{
+  "schema_version": "1.0",
+  "work_item_id": "TICKET-TO-PR-1",
+  "title": "Jira → ACCORD → PR Autopipeline (v1)",
+  "date": "2026-05-11",
+  "problem_statement": "Engineering work today follows the deterministic path Jira ticket → human picks it up → human runs /dev locally → human pushes a PR. ACCORD already automates that sequence end-to-end given an agreed brief, so the engineering time spent driving the harness is pure overhead and the latency from \"ticket ready\" to \"PR in review\" is gated by human availability rather than by the work's complexity. There is no production-grade way for an arbitrary GitHub repository to opt into a fully autonomous Jira → PR pipeline today: consumers cannot trigger ACCORD from a Jira status transition, cannot gate well-formedness of the ticket before paying for a run, cannot reliably resume a partially-completed work item across separate workflow invocations, and cannot get structured feedback into Jira when the pipeline declines or stalls.",
+  "proposed_solution": "Ship a reusable GitHub Actions workflow plus two composite actions plus a small set of TypeScript scripts under cshirley/accord that any consumer repository can opt into with ten lines of YAML, four secrets, an AGENTS.md with a populated `## Dev Harness` block, and one per-Jira-project Atlassian Automation rule. Atlassian Automation fires `repository_dispatch` on the configured status transition; the reusable workflow runs a deterministic two-stage gate (AGENTS.md sanity + Jira-ticket completeness) before paying for any LLM calls; if both gates pass it seeds the brief from the Jira ticket, bootstraps the work item with phase `speccing`, and drives spec → plan → code → verify → commit → PR by spawning `pi -p --mode json /skill:accord <phase> <ticket>` subprocesses (one per phase) and parsing the JSON event stream and the resulting return packet. ACCORD's own `dev_*` tools are called in-process by `bootstrap-work-item.ts` via direct TypeScript imports; the Pi SDK is explicitly not used. Every terminal branch (gate fail, needs_input, blocked, gaps, cost exceeded, complete) writes a structured Jira comment, optionally transitions the ticket, uploads `docs/dev/<ticket>/` + `.tasks/<ticket>*` as the `accord-state-<ticket>` workflow artifact (`if: always()`, `overwrite: true`, retention 14 days), and exits 0. Non-zero exit is reserved for infrastructure failures (missing secret, checkout failed, Pi install failed). Cross-run resume is deterministic and conjunctive: `decide-resume.ts` resumes only when the prior work-item phase is resumable, the freshly-seeded brief matches the prior brief by normalised hash, and cumulative cost is below the cap. A self-test workflow on this repo's PRs runs the reusable workflow in `dry_run: true` against ten fixture scenarios so regressions are caught before consumers feel them.",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "The reusable workflow at `.github/workflows/autopipeline.yml` declares `on: workflow_call` and `on: repository_dispatch` with `types: [accord-autopipeline]`; when invoked it reads `inputs.ticket` (workflow_call) or `github.event.client_payload.ticket` (repository_dispatch) and `client_payload.status_at_trigger`; if either is absent the workflow hard-fails with a structured error `MISSING_REQUIRED_DISPATCH_FIELD: <name>` before any LLM call is made."
+    },
+    {
+      "id": "AC-2",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "The AGENTS.md sub-gate runs first on the consumer checkout and performs three strict sub-checks in order: (1) the file `AGENTS.md` exists at the repo root; (2) it contains a literal `## Dev Harness` section header; (3) the first fenced ```json block inside that section parses as valid JSON and has a non-null string field `test.command`. Failure on any sub-check posts a structured Jira comment whose remediation text differentiates `missing file` / `missing section` / `malformed JSON` / `missing test.command` and tells the author exactly what to fix; the workflow then transitions the ticket to `Needs Triage` (configurable) and exits 0. There is no auto `dev_init` in v1."
+    },
+    {
+      "id": "AC-3",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "The Jira-ticket-completeness gate is a deterministic TypeScript checklist with eight sub-checks: description length ≥ threshold, acceptance-criteria block present with ≥ 1 item, problem framing covers both what and why, out-of-scope statement present, target paths / area hint present, no blocking questions or TBD markers in the ticket body, issue type in the configured allow-list, ticket status equals the configured trigger status. Any failure produces a single Jira comment listing precisely the failed checks (one bullet per check, with the literal field/regex that failed and a one-line remediation), transitions the ticket to `Needs Triage`, and exits 0. No LLM call is made on this path."
+    },
+    {
+      "id": "AC-4",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "When a phase return packet has `status: needs_input`, the workflow writes a Jira comment listing the structured `questions[]` verbatim (id, topic, text), uploads the `accord-state-<ticket>` artifact, transitions the ticket to the configurable `Needs Author Input` status, and exits 0. No further phases are spawned in this run."
+    },
+    {
+      "id": "AC-5",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "On the happy path (gates pass, every phase returns `status: done`, cost under cap), the workflow seeds the brief, bootstraps the work item, drives spec → plan → code → verify, commits each phase's artifacts according to ACCORD's commit skill, opens a PR via the PR skill with the body citing the spec AC IDs and the verify.md evidence, transitions the Jira ticket to the configurable `In Review` status, writes a closing Jira comment with the PR URL and cumulative cost, uploads the `accord-state-<ticket>` artifact, and exits 0."
+    },
+    {
+      "id": "AC-6",
+      "requirement": "MUST",
+      "type": "architectural",
+      "criterion": "Phase orchestration uses `pi -p --mode json /skill:accord <phase> <ticket>` subprocesses only. The workflow does not embed Pi via the SDK and does not start any in-process Pi runtime. ACCORD's own `dev_*` tools (`dev_bootstrap`, `dev_transitions`, `dev_finalize`, `dev_verify_summary`) are called by `bootstrap-work-item.ts` via direct TypeScript imports from `@clive.shirley/pi-accord/src/core/...`; no MCP sidecar is started.",
+      "enforcement": "Unit test `tests/ci/no-extra-pi-spawns.test.ts` parses every `scripts/ci/*.ts` and every `action.yml` for `pi ` invocations, asserts each is exactly `pi -p --mode json /skill:accord <phase> <ticket>` plus argv flags from an allowlist, and asserts no `@mariozechner/pi-coding-agent` SDK symbols are imported anywhere under `scripts/ci/`."
+    },
+    {
+      "id": "AC-7",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "Between any two phases the workflow reads `.tasks/<ticket>.json` and if `cost_usd` ≥ `inputs.max_cost_usd` it stops before spawning the next phase, writes a Jira comment with the cumulative cost summary (per-phase breakdown, total, cap, the phase that would have run next), transitions the ticket to the configurable `Cost Exceeded` status, uploads the `accord-state-<ticket>` artifact, and exits 0. Cumulative cost is not reset across runs; resume continues against the same budget."
+    },
+    {
+      "id": "AC-8",
+      "requirement": "MUST",
+      "type": "property",
+      "criterion": "Every PR opened by the autopipeline has a body that (a) cites at least one spec AC ID, (b) includes a `Verify report` section quoting the contents of `docs/dev/<ticket>/verify.md`, and (c) follows the template structure of `assets/skills/pr/SKILL.md` (sections: Summary, Scope, Verify report, Spec ACs, Cost). The PR body never contains the value of any secret listed in `security_topology.secrets`."
+    },
+    {
+      "id": "AC-9",
+      "requirement": "MUST",
+      "type": "property",
+      "criterion": "Every autopilot-authored PR includes the literal trailer line `pi.dev/autopilot: v1` in its body and is labelled `autopilot/v1`. The label is created idempotently by the workflow if it does not already exist on the consumer repo (404 from `gh label view` triggers a single `gh label create` retry). PR titles do not carry an autopilot prefix."
+    },
+    {
+      "id": "AC-10",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "When any phase returns `status: blocked` or `status: gaps`, the workflow writes a Jira comment listing the structured `blockers[]` or `gaps[]` payload verbatim, uploads the `accord-state-<ticket>` artifact, transitions the ticket to the configurable `Blocked` or `Gaps Reported` status respectively, and exits 0. No follow-up Jira tickets are auto-created in v1 (out of scope; see scope.out)."
+    },
+    {
+      "id": "AC-11",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "On a re-run for the same ticket key, the workflow targets the deterministic branch name `<inputs.branch_prefix><ticket>-<slug>` where `<slug>` is derived from the ticket summary by `seed-brief.ts`. If the branch already exists locally or remotely, the workflow checks it out, applies the run's commits, and pushes with `--force-with-lease`. The existing PR (matched by `head: <branch>` against `base: <inputs.base_branch>`) is amended in place — a second PR is never opened against the same head/base pair. The artifact upload preserves the per-run forensic state across re-runs."
+    },
+    {
+      "id": "AC-12",
+      "requirement": "MUST",
+      "type": "architectural",
+      "criterion": "The `setup-pi` composite uses `actions/cache@v4` with the literal key `accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/assets/manifest.json') }}`, the restore-keys ladder `accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-` and `accord-${{ runner.os }}-${{ inputs.pi_version }}-`, and exactly the four cache paths `~/.npm`, `~/.bun/install/cache`, `~/.config/pi/agent`, `.accord-ci/node_modules`.",
+      "enforcement": "Unit test `tests/ci/setup-pi-cache.test.ts` parses `.github/actions/setup-pi/action.yml` and asserts the literal key, restore-keys, and paths arrays match the strings above and that no other `actions/cache` steps appear in the composite."
+    },
+    {
+      "id": "AC-13",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "The `setup-pi` composite's `actions/cache@v4` path entry for `~/.config/pi/agent` is implemented as an inclusion list rooted at that directory and explicitly excludes `~/.config/pi/agent/auth.json` and `~/.config/pi/agent/sessions/**`. A composite post-step runs `rm -f ~/.config/pi/agent/auth.json` before the cache save step regardless of cache outcome, as defence in depth against accidental credential persistence."
+    },
+    {
+      "id": "AC-14",
+      "requirement": "MUST",
+      "type": "architectural",
+      "criterion": "Every terminal job in `.github/workflows/autopipeline.yml` uploads the `accord-state-${{ inputs.ticket }}` artifact via `actions/upload-artifact@v4` with `if: always()`, `overwrite: true`, `retention-days: 14`, and `path:` exactly `docs/dev/${{ inputs.ticket }}/` plus `.tasks/${{ inputs.ticket }}*`. Cross-run download uses `dawidd6/action-download-artifact` pinned by a SHA documented in `docs/ci/troubleshooting.md`.",
+      "enforcement": "Unit test `tests/ci/artifact-upload.test.ts` parses `.github/workflows/autopipeline.yml` and asserts that every `job` containing a terminal step (gate-fail, needs_input, blocked, gaps, cost_exceeded, complete) ends with the canonical upload-artifact step matching the literal config above, and that the cross-run download action is referenced exclusively by SHA pin (no `@v*` tag refs)."
+    },
+    {
+      "id": "AC-15",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "The reusable workflow declares the following inputs with the listed defaults: `ticket` (string, required), `pi_version` (string, default `latest`), `accord_ref` (string, default `v1`), `max_runtime_minutes` (number, default `90`), `max_cost_usd` (number, default `20`), `base_branch` (string, default `main`), `branch_prefix` (string, default `accord/`), `dry_run` (boolean, default `false`), `runner` (string, default `ubuntu-latest`). It declares the following required secrets: `ANTHROPIC_API_KEY`, `JIRA_BASE_URL`, `JIRA_USER_EMAIL`, `JIRA_API_TOKEN`. Any missing required secret causes the workflow to hard-fail (exit non-zero) with `MISSING_REQUIRED_SECRET: <NAME>` before any LLM call. `GH_PAT_PR` is an optional secret; when absent the workflow uses `GITHUB_TOKEN`."
+    },
+    {
+      "id": "AC-16",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "`decide-resume.ts` resumes a prior run only when all three conditions hold simultaneously: (a) the work item's `phase` in the downloaded `.tasks/<ticket>.json` is one of `speccing`, `planning`, `implementing`; (b) `sha256(normalise(prior_brief)) === sha256(normalise(fresh_brief))` where `normalise` strips trailing whitespace, collapses internal whitespace runs, and removes the `## Gathered Context` section's `Generated at` timestamp line; (c) cumulative `cost_usd` from prior runs is strictly less than `inputs.max_cost_usd`. When all three hold the workflow runs `/skill:accord resume <ticket>`. Otherwise it deletes `.tasks/<ticket>*` and runs the fresh seed → bootstrap → spec path. The chosen branch (resume vs fresh) and the reason for fresh (`brief_drift` / `phase_non_resumable` / `cost_cap_breached` / `no_prior_state`) are written verbatim into the run-opening Jira comment."
+    },
+    {
+      "id": "AC-17",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "The self-test workflow `.github/workflows/test-autopipeline.yml` runs on every PR to this repo and invokes the reusable workflow with `dry_run: true` against fixture tickets covering ten scenarios: (1) passing-gate → complete; (2) failing-gate, with eight sub-fixtures, one per gate sub-check from AC-3; (3) missing-AGENTS.md, with three sub-fixtures covering the three sub-failure modes from AC-2 (missing-file, missing-section, malformed-JSON / missing-test.command); (4) phase returns `needs_input`; (5) phase returns `blocked`; (6) phase returns `gaps`; (7) phase returns `complete`; (8) decide-resume → resume (prior brief unchanged, phase resumable, cost under cap); (9) decide-resume → fresh due to brief drift; (10) between-phases cost-cap breach. Each fixture has a corresponding golden file in `tests/ci/fixtures/expected-jira-comments/<scenario>.md` that the dry-run Jira logger must match byte-for-byte; the self-test workflow fails on any mismatch."
+    },
+    {
+      "id": "AC-18",
+      "requirement": "MUST",
+      "type": "property",
+      "criterion": "For every terminal branch enumerated in the workflow YAML — gate-fail (AGENTS.md), gate-fail (Jira completeness), needs_input, blocked, gaps, cost_exceeded, complete — the final `exit` is `0`. Non-zero exit is reserved for infrastructure failures: missing required secret (AC-15), `actions/checkout` failure, `setup-pi` install failure, runner-level timeout from `max_runtime_minutes`. An enforcement test `tests/ci/exit-code.test.ts` enumerates all terminal-state fixtures and asserts the run-script wrapper returns exit code 0 for each."
+    },
+    {
+      "id": "AC-19",
+      "requirement": "MUST",
+      "type": "architectural",
+      "criterion": "The reusable workflow's main job declares `concurrency: { group: accord-${{ inputs.ticket }}, cancel-in-progress: false }`. Simultaneous status transitions of the same Jira ticket queue rather than race; transitions of different tickets run in parallel up to the consumer's runner quota.",
+      "enforcement": "Unit test `tests/ci/concurrency.test.ts` parses `.github/workflows/autopipeline.yml` and asserts the main job has exactly that concurrency block (group string template and `cancel-in-progress: false`), and that no other concurrency block conflicts at the workflow level."
+    },
+    {
+      "id": "AC-20",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "Required env var `ANTHROPIC_API_KEY` must be set in the runner environment before any phase subprocess starts; missing env causes `scripts/ci/lib/env.ts` to throw `MISSING_REQUIRED_SECRET: ANTHROPIC_API_KEY` and fail startup with non-zero exit before any LLM call or Jira call."
+    },
+    {
+      "id": "AC-21",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "Required env var `JIRA_BASE_URL` must be set in the runner environment before any Jira REST call; missing env causes `scripts/ci/lib/env.ts` to throw `MISSING_REQUIRED_SECRET: JIRA_BASE_URL` and fail startup with non-zero exit before any Jira call."
+    },
+    {
+      "id": "AC-22",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "Required env var `JIRA_USER_EMAIL` must be set in the runner environment before any Jira REST call; missing env causes `scripts/ci/lib/env.ts` to throw `MISSING_REQUIRED_SECRET: JIRA_USER_EMAIL` and fail startup with non-zero exit before any Jira call."
+    },
+    {
+      "id": "AC-23",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "Required env var `JIRA_API_TOKEN` must be set in the runner environment before any Jira REST call; missing env causes `scripts/ci/lib/env.ts` to throw `MISSING_REQUIRED_SECRET: JIRA_API_TOKEN` and fail startup with non-zero exit before any Jira call."
+    },
+    {
+      "id": "AC-24",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "Required env var `GITHUB_TOKEN` must be set in the runner environment before any GitHub REST call (the runner provides it by default for workflow_call jobs); missing env causes `scripts/ci/lib/env.ts` to throw `MISSING_REQUIRED_SECRET: GITHUB_TOKEN` and fail startup with non-zero exit before any GitHub call. When `GH_PAT_PR` is also set it overrides `GITHUB_TOKEN` for cross-repo PR creation only."
+    },
+    {
+      "id": "AC-25",
+      "requirement": "MUST",
+      "type": "constraint",
+      "criterion": "Optional env var `GH_PAT_PR` is read only when cross-repo PR creation is needed; when required-but-missing in cross-repo mode `scripts/ci/lib/env.ts` throws `MISSING_REQUIRED_SECRET: GH_PAT_PR` and fails startup with non-zero exit. In same-repo mode its absence is non-fatal and `GITHUB_TOKEN` is used."
+    }
+  ],
+  "scope": {
+    "in": [
+      "Reusable workflow at `.github/workflows/autopipeline.yml` with `on: workflow_call` and `on: repository_dispatch` for `accord-autopipeline`.",
+      "Self-test workflow at `.github/workflows/test-autopipeline.yml` running the reusable workflow in `dry_run: true` against the ten-scenario fixture corpus on every PR.",
+      "Composite actions `.github/actions/setup-pi/action.yml` (Pi + ACCORD install + cache) and `.github/actions/run-accord-phase/action.yml` (wraps `scripts/ci/run-phase.ts`).",
+      "`scripts/ci/*.ts`: `gate-agents-md.ts`, `gate-ticket.ts`, `seed-brief.ts`, `bootstrap-work-item.ts`, `decide-resume.ts`, `run-phase.ts`, `parse-phase-result.ts`, `jira-comment.ts`, `commit-and-pr.ts`, `lib/env.ts` (env existence checks with `MISSING_REQUIRED_SECRET: <NAME>` errors).",
+      "`tests/ci/**/*.test.ts` covering all ACs plus the fixture corpus under `tests/ci/fixtures/{jira,return-packets,expected-jira-comments}/`.",
+      "`examples/consumer-repo/` containing a copy-pasteable starter wrapper workflow, an `AGENTS.md` template, and the Atlassian Automation rule JSON.",
+      "`docs/ci/{autopipeline,consumer-quickstart,atlassian-automation,troubleshooting}.md` covering consumer onboarding, the dispatch rule, and operator recovery procedures.",
+      "Caching strategy via `actions/cache@v4` with the four-path key + restore-keys ladder pinned in AC-12.",
+      "Cross-run artifact recovery via `dawidd6/action-download-artifact` pinned by SHA, documented in troubleshooting.",
+      "Pi env wiring (`PI_OFFLINE=1`, `PI_SKIP_VERSION_CHECK=1`) in the `setup-pi` composite and the minimum workflow `permissions:` block (contents/pull-requests/issues: write)."
+    ],
+    "out": [
+      { "item": "`phase-gaps` auto-creation of follow-up Jira tickets when `finish` returns `gaps`.", "reason": "Deferred to v1.1; in v1 the workflow only writes the structured gaps payload into a Jira comment (AC-10)." },
+      { "item": "Per-consumer prompt-level customisation of phase agents (e.g. swapping `phase-code` for a custom variant).", "reason": "v2 candidate; v1 configuration surface is locked to AGENTS.md + accord-config.json (see constraints)." },
+      { "item": "PR auto-merge.", "reason": "Human review is required by compliance / SRE for autonomous-agent commits." },
+      { "item": "Multi-base-branch matrices (parallel runs against `main` and `develop`, etc.).", "reason": "Single-base-branch assumption pinned in constraints; matrix support is a v2 candidate." },
+      { "item": "Pi SDK-based phase orchestration.", "reason": "Increases owned-code surface in unattended CI (~2x); CLI subprocesses are sufficient for v1. Re-evaluate for v2 if SDK-only features are required." },
+      { "item": "Self-hosted webhook receiver for Jira events.", "reason": "Atlassian Automation already supports `POST /dispatches`; running our own receiver adds operational burden with no behavioural benefit." },
+      { "item": "Mid-run writes to Jira (comments, status transitions, edits made while a phase is executing).", "reason": "Violates the headless-agent contract — only terminal-state writes are permitted." },
+      { "item": "Auto `dev_init` in the consumer repo when `AGENTS.md` is missing or malformed.", "reason": "AC-2 mandates a strict hard-fail with a sub-check-specific Jira comment in v1; auto-init is deferred." },
+      { "item": "Local-developer auth model (a `local_auth_mode` value).", "reason": "The new code is a CI-only subsystem under `scripts/ci/` and `.github/`; there is no local app dev surface that needs auth, and test fixtures cover all local execution paths." }
+    ]
+  },
+  "verification": {
+    "commands": [
+      "bun test",
+      "bun run validate:schemas",
+      "bun run validate:assets",
+      "bun run check:types",
+      "bun run check:bundle",
+      "bun run check:runtime"
+    ],
+    "test_cases": [
+      {
+        "id": "TC-1",
+        "covers": "AC-2",
+        "scenario": "Fixture corpus covering the three AGENTS.md sub-failure modes (missing file, missing `## Dev Harness` section, malformed JSON / missing `test.command`) plus the pass case; for each failure mode assert the generated Jira comment matches the sub-check-specific golden file under `tests/ci/fixtures/expected-jira-comments/agents-md/` and that the script exits 0. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/agents-md-gate.test.ts"
+      },
+      {
+        "id": "TC-2",
+        "covers": "AC-3",
+        "scenario": "Eight failing-ticket fixtures under `tests/ci/fixtures/jira/gate-failing/*.json` (one per gate sub-check) plus one passing fixture; assert each failing fixture's Jira-comment output matches its golden, the ticket transition target is `Needs Triage`, exit code is 0, and no LLM call is initiated (mock `pi` binary unreachable on PATH for this test). Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/gate-ticket.test.ts"
+      },
+      {
+        "id": "TC-3",
+        "covers": "AC-4",
+        "scenario": "Feed `parse-phase-result.ts` a return packet with `status: needs_input` and `questions[]` of length >= 1; assert the Jira comment renders each question verbatim, the artifact-upload step is invoked, the ticket transitions to the configurable Needs-Author-Input status, no further phase is spawned, and exit code is 0. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/parse-phase-result.test.ts"
+      },
+      {
+        "id": "TC-4",
+        "covers": "AC-5",
+        "scenario": "Self-test dry-run drives the full reusable workflow against the `complete-happy-path` fixture ticket; assert the resulting commit set, PR body (cites >= 1 AC ID + quotes verify.md content + matches the pr-skill template sections), Jira closing comment (contains PR URL + cost summary), final ticket status, and artifact contents all match the goldens; assert exit code 0. Runs under `bun test` via the integration-tier self-test harness.",
+        "tier": "integration",
+        "test_name_glob": "tests/ci/self-test/complete-happy-path.test.ts"
+      },
+      {
+        "id": "TC-5",
+        "covers": "AC-7",
+        "scenario": "Run the inter-phase cost-cap gate with a synthetic `.tasks/<ticket>.json` whose cumulative `cost_usd` exceeds `max_cost_usd`; assert the next phase is not spawned, the Jira comment matches the cost-summary golden (per-phase breakdown + cap + would-be-next-phase line), the ticket transitions to the configurable Cost-Exceeded status, and exit code is 0. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/cost-cap.test.ts"
+      },
+      {
+        "id": "TC-6",
+        "covers": "AC-10",
+        "scenario": "Feed `parse-phase-result.ts` two fixture return packets, one with `status: blocked` and `blockers[]` non-empty and one with `status: gaps` and `gaps[]` non-empty; assert each renders the structured payload verbatim into the Jira comment, transitions the ticket to its configured terminal status (Blocked / Gaps Reported respectively), uploads the artifact, and exits 0; assert no follow-up Jira ticket is created via the `jira-create` helper (mock asserts zero calls). Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/parse-phase-result.test.ts"
+      },
+      {
+        "id": "TC-7",
+        "covers": "AC-11",
+        "scenario": "Drive `commit-and-pr.ts` twice against the same ticket key: first run creates branch `accord/<ticket>-<slug>` and opens a PR; second run mutates the spec on disk and re-runs. Assert the second run reuses the same branch, performs `git push --force-with-lease`, the existing PR is updated (not duplicated — search for PRs by `head: <branch>` returns exactly 1), and the artifact from each run preserves that run's per-phase state. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/commit-and-pr.test.ts"
+      },
+      {
+        "id": "TC-8",
+        "covers": "AC-16",
+        "scenario": "Drive `decide-resume.ts` against the matrix of inputs: phase in {speccing, planning, implementing, verifying, complete, blocked} x brief-hash {match, drift} x cost {below, equal, above}; assert resume is chosen only for (phase in resumable, hash match, cost below) and for every other combination `decide-resume.ts` deletes `.tasks/<ticket>*` and outputs `fresh` with the reason code `brief_drift` / `phase_non_resumable` / `cost_cap_breached` / `no_prior_state`; assert the run-opening Jira comment golden matches. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/decide-resume.test.ts"
+      },
+      {
+        "id": "TC-9",
+        "covers": "AC-17",
+        "scenario": "Run the self-test workflow against all ten scenarios in `tests/ci/fixtures/scenarios/{passing-gate,failing-gate-1..8,missing-agents-md-1..3,needs-input,blocked,gaps,complete,resume,fresh-due-to-drift,cost-cap-breach}/` in dry-run mode; assert each generates the byte-for-byte Jira comment golden under `tests/ci/fixtures/expected-jira-comments/`, exits 0, and uploads the expected artifact contents. Runs under `bun test` against the integration-tier self-test harness; the `test-autopipeline.yml` workflow then re-runs the same suite end-to-end on PRs.",
+        "tier": "integration",
+        "test_name_glob": "tests/ci/self-test/scenarios.test.ts"
+      },
+      {
+        "id": "TC-10",
+        "covers": "AC-6",
+        "scenario": "Walk every TypeScript file under `scripts/ci/` and every YAML file under `.github/actions/` plus `.github/workflows/autopipeline.yml`; assert that every `pi ` invocation matches the regex `^pi -p --mode json /skill:accord (spec|plan|code|verify|resume|finish|gather|align|init) \\S+( --[a-z-]+(=\\S+)?)*$`, and that no source file imports any symbol from `@mariozechner/pi-coding-agent` (SDK ban). Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/no-extra-pi-spawns.test.ts"
+      },
+      {
+        "id": "TC-11",
+        "covers": "AC-12",
+        "scenario": "Parse `.github/actions/setup-pi/action.yml` and assert exactly one `actions/cache@v4` step exists with the literal key string, restore-keys list, and four `path:` lines pinned in AC-12; assert no other `actions/cache` reference appears in the composite. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/setup-pi-cache.test.ts"
+      },
+      {
+        "id": "TC-12",
+        "covers": "AC-14",
+        "scenario": "Parse `.github/workflows/autopipeline.yml` and enumerate the seven terminal job paths (AGENTS.md gate fail, ticket gate fail, needs_input, blocked, gaps, cost_exceeded, complete); for each assert the final step is `actions/upload-artifact@v4` with `if: always()`, `overwrite: true`, `retention-days: 14`, `name: accord-state-${{ inputs.ticket }}`, and `path:` containing both `docs/dev/${{ inputs.ticket }}/` and `.tasks/${{ inputs.ticket }}*`. Assert any `dawidd6/action-download-artifact` reference uses a 40-char SHA, not a tag. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/artifact-upload.test.ts"
+      },
+      {
+        "id": "TC-13",
+        "covers": "AC-19",
+        "scenario": "Parse `.github/workflows/autopipeline.yml` and assert the main job carries `concurrency.group == 'accord-${{ inputs.ticket }}'` and `concurrency.cancel-in-progress == false`; assert no conflicting workflow-level `concurrency:` block is present. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/concurrency.test.ts"
+      },
+      {
+        "id": "TC-14",
+        "covers": "AC-18",
+        "scenario": "Integration-tier enumeration of every terminal branch in the workflow; drive a runner-script wrapper for each fixture under `tests/ci/fixtures/terminal-states/` and assert exit code 0 for all seven terminal states. Drive the four infra-failure fixtures (missing-secret, checkout-fail, setup-pi-fail, runtime-timeout) and assert exit code is non-zero for each. Runs under `bun test`.",
+        "tier": "integration",
+        "test_name_glob": "tests/ci/exit-code.test.ts"
+      },
+      {
+        "id": "TC-15",
+        "covers": "AC-15",
+        "scenario": "`bun run check:types` succeeds with zero TypeScript diagnostics over the entire repo, including the new TypeScript under `scripts/ci/` and `tests/ci/`. The reusable-workflow input set is generated from a single TypeScript source (`scripts/ci/inputs.ts`) and the typecheck enforces that the declared input set is exactly the set in AC-15. Verification command: `bun run check:types`.",
+        "tier": "integration",
+        "test_name_glob": "scripts/ci/inputs.ts"
+      },
+      {
+        "id": "TC-16",
+        "covers": "AC-15",
+        "scenario": "`bun run validate:schemas` succeeds against the existing schema set plus any new schemas introduced for CI-specific return packets (none required for v1 — the existing `schemas/return-schemas/*.json` are reused unchanged). Verification command: `bun run validate:schemas`.",
+        "tier": "integration",
+        "test_name_glob": "schemas/"
+      },
+      {
+        "id": "TC-17",
+        "covers": "AC-6",
+        "scenario": "`bun run validate:assets` succeeds; the autopipeline introduces no new agents/providers/skills so the existing `assets/manifest.json` cross-checks remain green. Verification command: `bun run validate:assets`.",
+        "tier": "integration",
+        "test_name_glob": "assets/"
+      },
+      {
+        "id": "TC-18",
+        "covers": "AC-6",
+        "scenario": "`bun run check:bundle` succeeds; the new `scripts/ci/` and `tests/ci/` directories are excluded from the npm package via the existing `files`/`.npmignore` rules and the bundle size remains within the existing budget. Verification command: `bun run check:bundle`.",
+        "tier": "integration",
+        "test_name_glob": "scripts/"
+      },
+      {
+        "id": "TC-19",
+        "covers": "AC-6",
+        "scenario": "`bun run check:runtime` loads the published package against a smoke harness; the in-process import path used by `bootstrap-work-item.ts` (`@clive.shirley/pi-accord/src/core/...`) resolves and `dev_bootstrap` is invocable from a clean Bun process. Verification command: `bun run check:runtime`.",
+        "tier": "integration",
+        "test_name_glob": "src/core/"
+      },
+      {
+        "id": "TC-20",
+        "covers": "AC-1",
+        "scenario": "Drive the workflow entrypoint script with four synthetic dispatch payloads: (a) `workflow_call` with `inputs.ticket` present; (b) `repository_dispatch` with `client_payload.ticket` and `status_at_trigger` present; (c) dispatch missing `ticket`; (d) dispatch missing `status_at_trigger`. Assert (a) and (b) pass through to the AGENTS.md gate stage with the parsed ticket key, and (c) and (d) exit non-zero with stderr containing `MISSING_REQUIRED_DISPATCH_FIELD: ticket` and `MISSING_REQUIRED_DISPATCH_FIELD: status_at_trigger` respectively before any `pi` invocation. Runs under `bun test`.",
+        "tier": "unit",
+        "test_name_glob": "tests/ci/dispatch-validation.test.ts"
+      }
+    ]
+  },
+  "infra_and_tooling": {
+    "monorepo_scaffold": "bun_workspaces",
+    "package_manager": "bun",
+    "runtime_version": "bun",
+    "linter": "none",
+    "env_validation": "none",
+    "coverage_threshold": "none",
+    "ci_in_v1": true,
+    "ci_platform": "github_actions",
+    "required_workflows": [
+      ".github/workflows/test-autopipeline.yml"
+    ]
+  },
+  "security_topology": {
+    "secrets": [
+      { "name": "ANTHROPIC_API_KEY", "tier": "server-only", "owner": "consumer", "rotation_window": "90d" },
+      { "name": "JIRA_BASE_URL", "tier": "server-only", "owner": "consumer", "rotation_window": "n/a" },
+      { "name": "JIRA_USER_EMAIL", "tier": "server-only", "owner": "consumer", "rotation_window": "n/a" },
+      { "name": "JIRA_API_TOKEN", "tier": "server-only", "owner": "consumer", "rotation_window": "90d" },
+      { "name": "GH_PAT_PR", "tier": "server-only", "owner": "consumer", "rotation_window": "90d" },
+      { "name": "GITHUB_TOKEN", "tier": "server-only", "owner": "runner", "rotation_window": "per-run" }
+    ],
+    "registry_auth": [
+      { "name": "npm_public", "credential": "none", "tier": "ci-only", "scope": "Public read of @mariozechner/pi-coding-agent and @clive.shirley/pi-accord; no credential required." }
+    ]
+  },
+  "dev_ergonomics": {
+    "local_auth_mode": "n/a (CI-only subsystem; see scope.out)",
+    "seed_strategy": "Fixture corpus under `tests/ci/fixtures/jira/*.json` (Jira payloads) and `tests/ci/fixtures/return-packets/*.json` (Pi return packets) plus `tests/ci/fixtures/expected-jira-comments/*.md` goldens. No database; no app seed data.",
+    "env_mode_for_verification_commands": [
+      { "command": "bun test", "env_mode": "DRY_RUN=1" },
+      { "command": "bun run validate:schemas", "env_mode": "DRY_RUN=1" },
+      { "command": "bun run validate:assets", "env_mode": "DRY_RUN=1" },
+      { "command": "bun run check:types", "env_mode": "DRY_RUN=1" },
+      { "command": "bun run check:bundle", "env_mode": "DRY_RUN=1" },
+      { "command": "bun run check:runtime", "env_mode": "DRY_RUN=1" }
+    ]
+  },
+  "test_topology": {
+    "unit_location": "tests/ci/**/*.test.ts",
+    "e2e_location": "n/a (no end-user UI; self-test workflow at .github/workflows/test-autopipeline.yml runs integration-tier scenarios under bun test)",
+    "storage_state_strategy": "n/a (no browser, no session storage)"
+  },
+  "constraints": [
+    "Headless-agent contract: any phase return packet with `status: needs_input` must cause the workflow to bail with a Jira comment (no human is available mid-run).",
+    "No mid-run modification of the Jira ticket: comments and transitions are written only at terminal points by the workflow, never by an in-flight phase agent.",
+    "No PR auto-merge: PRs are opened as drafts where supported and never marked ready-for-review automatically.",
+    "Single base branch per work item: configurable via `base_branch` input (default `main`); multi-branch matrices are out of scope for v1.",
+    "Idempotency: a re-run on the same ticket reuses branch `<branch_prefix><ticket>-<slug>`, force-pushes with lease, and amends the existing PR. The work item ID is the Jira ticket key.",
+    "Customisation surface locked: consumers configure ACCORD only via `AGENTS.md` (`## Dev Harness` block) and `accord-config.json`; no per-consumer prompt overrides in v1.",
+    "Runtime model locked: `pi-accord` is `pi install`ed onto the runner; the consumer's checkout is Pi's `cwd`.",
+    "Default `max_runtime_minutes` is 90 and default `max_cost_usd` is 20; both overridable per-call via reusable-workflow inputs.",
+    "AGENTS.md missing or malformed produces a hard-fail Jira comment and exit 0 (no auto `dev_init` in v1; deferred per scope.out).",
+    "Autopilot PR markers: `pi.dev/autopilot: v1` body trailer plus `autopilot/v1` label (created idempotently); no PR title prefix.",
+    "Cross-run artifact recovery uses `dawidd6/action-download-artifact` pinned by 40-char SHA in the workflow YAML; the pin is documented in `docs/ci/troubleshooting.md` and reviewed on each accord release.",
+    "Cache `path:` excludes `~/.config/pi/agent/auth.json` and `~/.config/pi/agent/sessions/`; a composite post-step removes any `auth.json` before the cache save.",
+    "`.tasks/<ticket>*` is never cached; per-work-item runtime state is recovered exclusively via the `accord-state-<ticket>` artifact.",
+    "`accord_ref` input defaults to the moving major tag `v1`; consumers MAY pin to a 40-char SHA for reproducibility.",
+    "The `setup-pi` composite sets `PI_OFFLINE=1` and `PI_SKIP_VERSION_CHECK=1` in the runner env before any `pi -p` invocation, to avoid outbound Pi-side calls during phase execution.",
+    "The reusable workflow declares the minimum `permissions:` block needed: `contents: write`, `pull-requests: write`, `issues: write`. It does not request any additional scopes (no `id-token`, no `actions: write`)."
+  ],
+  "risks": [
+    "Pi `--mode json` event-stream schema drift across Pi versions could break `parse-phase-result.ts`; mitigated by pinning `pi_version` per consumer and a self-test scenario that exercises every event type currently parsed.",
+    "Jira REST rate-limiting / throttling on large Jira-comment payloads could swallow terminal-state reports; mitigated by truncating golden Jira comments to a documented size budget and emitting a single retry on 429.",
+    "Cache poisoning: if the cache key fails to invalidate on a Pi-or-asset upgrade, a stale `~/.config/pi/agent` could survive an upgrade; mitigated by including `pi_version`, `accord_ref`, and `hashFiles('.accord-ci/assets/manifest.json')` in the key.",
+    "Anthropic API outage mid-run leaves the work item in an indeterminate phase; mitigated by the artifact-based recovery model plus decide-resume (the next dispatch picks up from the persisted state).",
+    "Brief-drift hash detection has false-positives if the Jira ticket UI inserts whitespace/markdown variations on edit; mitigated by normalising both briefs (whitespace, ordering of fields, timestamp line stripped) before hashing.",
+    "Cost-cap enforcement races against the LLM call: cumulative cost is updated by ACCORD's usage hook at phase end, so a single phase can overshoot the cap before being stopped; documented limitation in `docs/ci/autopipeline.md`.",
+    "Cross-run artifact download depends on `dawidd6/action-download-artifact` (third-party); if the action is yanked or compromised the SHA pin freezes us to a known-good revision until first-party `download-artifact@v4` gains symmetric cross-run support.",
+    "Network failure to Jira mid-run (after phase start, before terminal comment can be posted) loses the terminal-state report; mitigated by writing the prepared Jira comment payload into the artifact plus a single retry pass on the next dispatch reading it back.",
+    "Concurrent transitions of the same ticket arriving while a run is in-flight are mitigated by the AC-19 concurrency group with `cancel-in-progress: false`; the residual risk is that queued transitions may surface stale state if many transitions stack up while one run is slow.",
+    "Jira ticket deleted or moved (key change) between gate and run-phase: the run continues against the cached brief; the closing Jira-comment POST fails gracefully (404 logged plus artifact uploaded), workflow exit remains 0.",
+    "`pi -p` process crash without a graceful JSON-event close (segfault, OOM, signal kill) leaves a truncated event stream; `parse-phase-result.ts` treats truncated streams as `status: stuck` and emits the stuck-state Jira comment.",
+    "Clock skew between the runner and the Jira tenant could mis-order status-transition timestamps; Jira's server timestamp is treated as authoritative for transition ordering and the runner uses UTC for all log/artifact filenames."
+  ],
+  "rejected_alternatives": [
+    { "name": "Pi SDK-based phase orchestration", "reason": "Roughly 2x the owned-code surface in unattended CI (session lifecycle, abort, signal handling, runtime/factory creation, bindExtensions) for a small set of benefits (type-safe events, custom CI tools). CLI subprocesses against the stable `pi -p --mode json` surface are sufficient for v1." },
+    { "name": "GitHub App distribution", "reason": "Heavy install ceremony per consumer org; requires us to operate a hosted backend or webhook receiver. Reusable workflow plus composite gives consumers a 10-line opt-in with no central infrastructure on our side." },
+    { "name": "Docker action distribution", "reason": "Slower cold-start (image pull); harder to debug (consumers can't easily re-run the same command in a local shell); worse iteration loop for us. The composite-action plus scripts/ci/* approach is functionally equivalent and operationally cheaper." },
+    { "name": "Self-hosted webhook receiver for Jira events", "reason": "Atlassian Automation natively supports `POST /repos/<owner>/<repo>/dispatches`. Running our own receiver adds operational burden, an attack surface, and a single point of failure with zero behavioural benefit." },
+    { "name": "Auto `phase-gaps` with follow-up Jira-ticket creation when `finish` returns `gaps`", "reason": "Deferred to v1.1 per scope.out; v1 only writes the structured gaps payload to a Jira comment so authors can decide whether to spawn follow-ups manually." },
+    { "name": "Mid-run writes to Jira (per-phase progress comments, status transitions during execution)", "reason": "Violates the headless-agent contract — the harness has always been designed for terminal-only writes, and mid-run writes would dilute the signal that a Jira comment carries (terminal report)." },
+    { "name": "Per-consumer prompt-level customisation of phase agents (swappable `phase-code` variants)", "reason": "Out for v1 to keep the customisation surface narrow (AGENTS.md plus accord-config.json only); revisit for v2 once we have data on which agent prompts consumers most want to override." },
+    { "name": "PR auto-merge after CI green", "reason": "Compliance and SRE explicitly require human approval before an autonomous-agent commit lands on `main`. Auto-merge would change the trust contract; reviewers must remain in the loop." }
+  ],
+  "resolved_questions": [
+    { "question": "Default `max_runtime_minutes` for the reusable workflow?", "answer": "90 minutes, exposed as an input override (`inputs.max_runtime_minutes`)." },
+    { "question": "Default `max_cost_usd` for the reusable workflow?", "answer": "$20, exposed as an input override (`inputs.max_cost_usd`)." },
+    { "question": "If `AGENTS.md` is missing or malformed on the consumer repo, auto-init or hard-fail?", "answer": "Hard-fail with a structured Jira comment that names the specific sub-check that failed (missing file / missing section / malformed JSON / missing `test.command`). No auto `dev_init` in v1." },
+    { "question": "How are autopilot-authored PRs marked so reviewers can distinguish them from human-driven PRs?", "answer": "Body trailer `pi.dev/autopilot: v1` plus the label `autopilot/v1` (created idempotently if absent). No PR title prefix." },
+    { "question": "Should `phase-gaps` auto-create follow-up Jira tickets when `finish` returns `gaps`?", "answer": "No — out of scope for v1. The structured gaps payload is written into a single Jira comment (AC-10); follow-up creation is a v1.1 candidate." },
+    { "question": "Single base branch vs multi-branch matrix?", "answer": "Single base branch per call, configurable via `inputs.base_branch` (default `main`). Multi-branch matrices are a v2 candidate." },
+    { "question": "Pi SDK or `pi -p --mode json` CLI for phase orchestration?", "answer": "CLI subprocesses against the stable `pi -p --mode json` surface for v1. SDK is re-evaluated for v2 if a feature requires SDK-only capabilities." },
+    { "question": "How strict is the AGENTS.md sub-gate — section presence only, or also validate the JSON block?", "answer": "Strict three-sub-check pattern: file exists, contains the literal `## Dev Harness` section header, and the first fenced JSON block in that section parses with a non-null string `test.command`. Each failure mode gets its own sub-check-specific remediation in the Jira comment." },
+    { "question": "On re-run, should we force-push-with-lease over the existing branch or stack a new commit on top?", "answer": "Force-push-with-lease. Clean PR history is the priority; the per-run artifact upload preserves the per-run state for forensic review without polluting PR history." },
+    { "question": "Does the self-test corpus need to cover resume and brief-drift and cost-cap scenarios in addition to gate / phase-return outcomes?", "answer": "Yes — the corpus covers all ten scenarios listed in AC-17 (passing-gate, the 8 gate-failing sub-fixtures, the 3 AGENTS.md sub-failures, needs_input, blocked, gaps, complete, decide-resume → resume, decide-resume → fresh-due-to-drift, between-phases cost-cap breach), each with its own expected-jira-comments golden." },
+    { "question": "How is secret leak prevention enforced given the agent runs against the consumer's source?", "answer": "All listed secrets are tier `server-only`; the workflow YAML registers them with GitHub's secret-mask via `secrets:` inheritance, the composite `setup-pi` sets `PI_OFFLINE=1` and `PI_SKIP_VERSION_CHECK=1`, and AC-8's PR-body invariant plus the parse-phase-result helper both scan their outputs for any of the secret values before posting. There is no client-side code in this subsystem so client-safe leak patterns do not apply." }
+  ],
+  "deployment": {
+    "dark_deploy": false
+  }
+}

@@ -57,9 +57,10 @@ schemas/                         Source of truth for artifact shapes
   examples/*.json                Validated example payloads
   examples/validate-examples.mjs
 
-scripts/runtime-smoke.ts          Lightweight runtime smoke test for core helpers
-scripts/install-pi-assets.ts      Links bundled Pi assets into a host config directory
-scripts/pi-dev-install.sh         Pi dev install: `pi install` this repo + `install:pi-assets`
+scripts/install-assets.ts         Link bundled Pi assets into the host agent config dir (`install:assets`)
+scripts/install-dev.sh            Run `pi install` on this repo then `install:assets` (`install:dev`)
+scripts/runtime-smoke.ts          Lightweight runtime smoke (`check:runtime`)
+scripts/validate-assets.ts        Manifest + registry consistency (`validate:assets`)
 tests/*.test.ts                   Bun unit tests (`core-contracts`, `harness`, `providers`, …)
 ```
 

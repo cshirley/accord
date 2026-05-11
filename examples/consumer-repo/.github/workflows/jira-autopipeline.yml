@@ -1,0 +1,42 @@
+# Consumer-side wrapper. Copy this file into your repository under
+# .github/workflows/jira-autopipeline.yml. The four required secrets must be
+# present at the org or repo level — see docs/ci/consumer-quickstart.md.
+
+name: ACCORD autopipeline (consumer wrapper)
+
+on:
+  repository_dispatch:
+    types: [accord-autopipeline]
+  workflow_dispatch:
+    inputs:
+      ticket:
+        description: Jira ticket key (e.g. PROJ-123)
+        required: true
+        type: string
+      dry_run:
+        description: Run without pushing branches / opening PRs / commenting on Jira.
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  autopipeline:
+    uses: cshirley/accord/.github/workflows/autopipeline.yml@v1
+    with:
+      ticket: ${{ inputs.ticket || github.event.client_payload.ticket }}
+      dry_run: ${{ inputs.dry_run || false }}
+      max_runtime_minutes: 90
+      max_cost_usd: 20
+      base_branch: main
+      branch_prefix: accord/
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      GH_PAT_PR: ${{ secrets.GH_PAT_PR }}

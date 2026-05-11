@@ -27,7 +27,7 @@ function parseArgs(argv: string[]): Args {
     } else if (arg === "--dry-run") {
       args.dryRun = true;
     } else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: bun scripts/install-pi-assets.ts [--target PATH] [--force] [--dry-run]");
+      console.log("Usage: bun scripts/install-assets.ts [--target PATH] [--force] [--dry-run]");
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);

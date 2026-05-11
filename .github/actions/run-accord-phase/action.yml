@@ -1,0 +1,47 @@
+# Thin composite invoking `bun run scripts/ci/run-phase.ts` so the main
+# workflow keeps its conditional branching readable. The script handles all
+# JSON-event parsing + cost-cap pre-check + terminal-action dispatch.
+
+name: Run ACCORD phase
+description: Invoke `pi -p --mode json /skill:accord <phase> <ticket>` and dispatch the terminal action.
+
+inputs:
+  phase:
+    description: ACCORD phase name (spec | plan | code | verify | resume | finish | gather | align | init).
+    required: true
+  ticket:
+    description: Jira ticket key.
+    required: true
+  task_id:
+    description: Optional task id (for the `code` and `verify` phases).
+    required: false
+    default: ""
+  owner_nonce:
+    description: Optional owner nonce (for the `code` and `verify` phases).
+    required: false
+    default: ""
+
+outputs:
+  status:
+    description: Final status from the phase return packet (done / needs_input / blocked / gaps / stuck).
+    value: ${{ steps.runphase.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - name: Run phase via scripts/ci/run-phase.ts
+      id: runphase
+      shell: bash
+      working-directory: .accord-ci
+      env:
+        PI_OFFLINE: "1"
+        PI_SKIP_VERSION_CHECK: "1"
+      run: |
+        EXTRA_ARGS=()
+        if [ -n "${{ inputs.task_id }}" ]; then
+          EXTRA_ARGS+=("--task-id=${{ inputs.task_id }}")
+        fi
+        if [ -n "${{ inputs.owner_nonce }}" ]; then
+          EXTRA_ARGS+=("--owner-nonce=${{ inputs.owner_nonce }}")
+        fi
+        bun run scripts/ci/run-phase.ts --phase "${{ inputs.phase }}" --ticket "${{ inputs.ticket }}" "${EXTRA_ARGS[@]}"

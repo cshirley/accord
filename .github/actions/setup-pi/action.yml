@@ -1,0 +1,89 @@
+# AC-12 + AC-13: pi-coding-agent + pi-accord installer + cache surface.
+#
+# Caches: node_modules, bun caches, ~/.config/pi/agent (minus auth.json and
+# sessions/**). The cache key is pinned literally — `tests/ci/setup-pi-cache.test.ts`
+# enforces every string verbatim per the AC-12 contract.
+#
+# Defence-in-depth (AC-13): a step with `if: always()` deletes
+# ~/.config/pi/agent/auth.json BEFORE the cache save step so a credential
+# never lands inside the published cache artifact, regardless of whether the
+# cache step ran to completion.
+
+name: Setup pi + ACCORD
+description: Install pi-coding-agent + pi-accord with cache-friendly layout (AC-12 / AC-13).
+
+inputs:
+  pi_version:
+    description: npm tag or version of @mariozechner/pi-coding-agent.
+    required: false
+    default: latest
+  accord_ref:
+    description: Tag/branch of pi-accord asset bundle to install.
+    required: false
+    default: v1
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout pi-accord into .accord-ci/
+      uses: actions/checkout@v4
+      with:
+        repository: cshirley/accord
+        ref: ${{ inputs.accord_ref }}
+        path: .accord-ci
+
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Scrub stale auth.json before cache save (AC-13)
+      if: ${{ always() }}
+      shell: bash
+      run: rm -f ~/.config/pi/agent/auth.json
+
+    - name: Cache pi + accord install (AC-12 + AC-13)
+      uses: actions/cache@v4
+      with:
+        key: accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/assets/manifest.json') }}
+        restore-keys: |
+          accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-
+          accord-${{ runner.os }}-${{ inputs.pi_version }}-
+        path: |
+          ~/.npm
+          ~/.bun/install/cache
+          ~/.config/pi/agent
+          .accord-ci/node_modules
+          !~/.config/pi/agent/auth.json
+          !~/.config/pi/agent/sessions/**
+
+    - name: Install pi-coding-agent
+      shell: bash
+      env:
+        PI_OFFLINE: "1"
+        PI_SKIP_VERSION_CHECK: "1"
+      run: |
+        npm i -g @mariozechner/pi-coding-agent@${{ inputs.pi_version }}
+
+    - name: bun install (in .accord-ci/)
+      shell: bash
+      working-directory: .accord-ci
+      env:
+        PI_OFFLINE: "1"
+      run: bun install --frozen-lockfile
+
+    - name: pi install pi-accord
+      shell: bash
+      working-directory: .accord-ci
+      env:
+        PI_OFFLINE: "1"
+        PI_SKIP_VERSION_CHECK: "1"
+      run: |
+        pi install $(pwd)
+        bun run install:assets
+
+    - name: Export PI flags to subsequent steps
+      shell: bash
+      run: |
+        echo "PI_OFFLINE=1" >> "$GITHUB_ENV"
+        echo "PI_SKIP_VERSION_CHECK=1" >> "$GITHUB_ENV"
