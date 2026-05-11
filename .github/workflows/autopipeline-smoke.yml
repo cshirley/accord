@@ -1,0 +1,44 @@
+# Smoke wrapper for the reusable autopipeline.
+#
+# Used by maintainers to fire the autopipeline against a dummy ticket from
+# `gh workflow run`. NOT for consumers — consumers use
+# examples/consumer-repo/.github/workflows/jira-autopipeline.yml as a
+# starting point.
+#
+# Default is dry_run=true so this never touches a real Jira/GitHub side
+# effect unless explicitly overridden.
+
+name: Autopipeline smoke (maintainer-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticket:
+        description: Dummy Jira-style key for the smoke (e.g. DEMO-1).
+        required: true
+        type: string
+        default: DEMO-1
+      dry_run:
+        description: Skip all side effects (git push, PR open, Jira comment/transition).
+        required: false
+        type: boolean
+        default: true
+      max_cost_usd:
+        description: Cost cap. Keep low for smoke runs.
+        required: false
+        type: number
+        default: 1
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/autopipeline.yml
+    with:
+      ticket: ${{ inputs.ticket }}
+      dry_run: ${{ inputs.dry_run }}
+      max_cost_usd: ${{ inputs.max_cost_usd }}
+    secrets: inherit

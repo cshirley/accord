@@ -98,6 +98,24 @@ above and that no file under `scripts/ci/` imports
 `bootstrap-work-item.ts` via direct TypeScript imports from
 `@clive.shirley/pi-accord/src/core/...`.
 
+## Local testing
+
+The autopipeline is designed to be exercised at four progressively-larger
+levels of fidelity before a wet run hits real Jira:
+
+| Level | What it covers | How to run |
+|---|---|---|
+| L1 — unit | All deterministic logic: gates, brief seed, bootstrap, resume gate, terminal dispatch, cost cap, commit/PR shape. | `bun test tests/ci` |
+| L2 — scenarios | Ten-scenario self-test (AC-17) + exit-code policy (AC-18). | `bun test tests/ci/self-test tests/ci/exit-code.test.ts` |
+| L3 — workflow YAML | Runs the workflow YAML in a local Docker container via [`act`](https://github.com/nektos/act). Closest to a real runner without GitHub Actions. | `bun run smoke:act:self-test` (no secrets) or `bun run smoke:act:autopipeline` (needs `.env.smoke` — see `.env.smoke.example`) |
+| L4 — real runner | Real GitHub-hosted runner, `dry_run=true` so no Jira/PR side effects. | `bun run smoke:gh:autopipeline` (`gh` CLI required, branch must be pushed) |
+| L5 — wet run | End-to-end: sandbox Jira → Automation rule → real `pi` subprocess → PR. | See `docs/ci/consumer-quickstart.md`. |
+
+L3 and L4 both default to `dry_run=true`: `commit-and-pr.ts` skips
+`git push` / PR open, and `jira-comment.ts` logs each would-be comment
+to a JSONL file instead of POSTing. Cost stays bounded by
+`max_cost_usd` (default `1` for the smoke wrapper).
+
 ## Where to look
 
 | Concern | File |
