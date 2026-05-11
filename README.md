@@ -32,8 +32,16 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 | [`docs/extending.md`](docs/extending.md)                 | …add a language profile, a new agent, or a custom tracker/enrichment provider (bundled or per-project).                                                              |
 | [`docs/file-structure.md`](docs/file-structure.md)       | …navigate the source tree by responsibility.                                                                                                                         |
 | [`docs/local-development.md`](docs/local-development.md) | …register this checked-out repo in Pi `settings.json` so `/dev` runs from your local source.                                                                         |
+| [`docs/ci/autopipeline.md`](docs/ci/autopipeline.md)     | …run ACCORD end-to-end in GitHub Actions: Jira → spec → plan → code → verify → PR, with no human in the loop. See also the sibling docs in [`docs/ci/`](docs/ci/).   |
 
 For the dev-harness configuration this package itself uses (test/lint/verify commands), see [`AGENTS.md`](AGENTS.md).
+
+For the CI autopipeline (Jira-triggered, fully autonomous spec→PR), see the dedicated CI docs:
+
+- [`docs/ci/autopipeline.md`](docs/ci/autopipeline.md) — architecture + contract surface.
+- [`docs/ci/consumer-quickstart.md`](docs/ci/consumer-quickstart.md) — ten-line adoption walkthrough.
+- [`docs/ci/atlassian-automation.md`](docs/ci/atlassian-automation.md) — Jira trigger rule setup.
+- [`docs/ci/troubleshooting.md`](docs/ci/troubleshooting.md) — recurring review items + recovery flows.
 
 ## Install Pi ([pi.dev](https://pi.dev/))
 

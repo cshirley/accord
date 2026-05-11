@@ -1,0 +1,9 @@
+{
+  "key": "PROJ-42",
+  "fields": {
+    "issuetype": { "name": "Story" },
+    "status": { "name": "Ready for Autopilot" },
+    "summary": "Add per-call rate limit on the public search endpoint",
+    "description": "## Problem\n\nWHAT: Anonymous callers hit `/v1/search` without any per-IP rate limit, which lets a single tenant exhaust the search node pool during peak hours.\n\nWHY: Last week's incident (INC-1023) traced 88% of dropped requests to one IP. We need a deterministic per-IP cap so no single caller can degrade the rest of the tenant base.\n\n## Acceptance criteria\n\n- AC1: Requests to `/v1/search` from a single IP beyond N/min (configurable, default 60) are rejected with HTTP 429 + a JSON body `{error: 'rate_limited', retry_after_seconds: <int>}`.\n- AC2: Authenticated callers (any bearer token) bypass the per-IP cap and instead enforce the existing per-token quota.\n- AC3: The limiter persists state in Redis so it survives pod restarts.\n\n## Out of scope\n\n- Refactoring the search node pool sizing.\n- Tenant-tier-specific quotas (handled by the existing per-token quota).\n\n## Target paths\n\n- `services/search-api/src/middleware/`\n- `services/search-api/src/config/`\n- `services/search-api/tests/middleware/`"
+  }
+}

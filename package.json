@@ -61,7 +61,8 @@
     "@biomejs/biome": "^2.4.14",
     "ajv": "^8.20.0",
     "bun-types": "^1.3.13",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "yaml": "^2.9.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

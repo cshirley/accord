@@ -1,0 +1,221 @@
+# Reusable autopipeline workflow — drives Jira → ACCORD → GitHub PR.
+#
+# Spec: docs/dev/TICKET-TO-PR-1/spec.json
+# Tests:
+#   tests/ci/inputs-and-concurrency.test.ts        (AC-1, AC-15, AC-19)
+#   tests/ci/dispatch-validation.test.ts            (AC-1)
+#   tests/ci/agents-md-gate.test.ts                 (AC-2)
+#   tests/ci/gate-ticket.test.ts                    (AC-3)
+#   tests/ci/artifact-upload.test.ts                (AC-14)
+#
+# Every terminal job ends with the canonical actions/upload-artifact@v4
+# block (AC-14): if: always(), overwrite: true, retention-days: 14, name
+# `accord-state-${{ inputs.ticket }}`, path includes both docs/dev and
+# .tasks ticket roots.
+
+name: ACCORD autopipeline
+
+on:
+  workflow_call:
+    inputs:
+      ticket:
+        description: Jira ticket key (e.g. PROJ-123).
+        type: string
+        required: true
+      pi_version:
+        description: npm tag or version of @mariozechner/pi-coding-agent.
+        type: string
+        required: false
+        default: latest
+      accord_ref:
+        description: Tag/branch of pi-accord asset bundle to install.
+        type: string
+        required: false
+        default: v1
+      max_runtime_minutes:
+        description: Hard cap on job runtime in minutes.
+        type: number
+        required: false
+        default: 90
+      max_cost_usd:
+        description: Hard cap on accumulated subagent USD cost.
+        type: number
+        required: false
+        default: 20
+      base_branch:
+        description: Branch the autopipeline branches from and opens PRs against.
+        type: string
+        required: false
+        default: main
+      branch_prefix:
+        description: Prefix for the working branch.
+        type: string
+        required: false
+        default: accord/
+      dry_run:
+        description: When true, runs the pipeline without pushing branches, opening PRs, or commenting on Jira.
+        type: boolean
+        required: false
+        default: false
+      runner:
+        description: GitHub-hosted runner label or self-hosted runner group.
+        type: string
+        required: false
+        default: ubuntu-latest
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      JIRA_BASE_URL:
+        required: true
+      JIRA_USER_EMAIL:
+        required: true
+      JIRA_API_TOKEN:
+        required: true
+      GH_PAT_PR:
+        required: false
+
+  repository_dispatch:
+    types: [accord-autopipeline]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  autopipeline:
+    name: ACCORD autopipeline (${{ inputs.ticket }})
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: ${{ inputs.max_runtime_minutes }}
+    concurrency:
+      group: accord-${{ inputs.ticket }}
+      cancel-in-progress: false
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      GH_PAT_PR: ${{ secrets.GH_PAT_PR }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+    steps:
+      - name: Checkout consumer repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+
+      - name: Setup pi + ACCORD
+        uses: ./.github/actions/setup-pi
+        with:
+          pi_version: ${{ inputs.pi_version }}
+          accord_ref: ${{ inputs.accord_ref }}
+
+      - name: Validate dispatch payload (AC-1)
+        id: dispatch
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: bun run scripts/ci/dispatch.ts
+
+      - name: Download prior accord-state-${{ inputs.ticket }} artifact (cross-run resume; AC-14)
+        id: prior_state
+        continue-on-error: true
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+        with:
+          name: accord-state-${{ inputs.ticket }}
+          path: .
+          if_no_artifact_found: warn
+
+      - name: AGENTS.md gate (AC-2)
+        id: agents_md_gate
+        run: bun run scripts/ci/gate-agents-md.ts > "${GITHUB_OUTPUT}.gate.json" || true
+
+      - name: Jira-ticket completeness gate (AC-3)
+        id: ticket_gate
+        run: bun run scripts/ci/gate-ticket.ts > "${GITHUB_OUTPUT}.ticket-gate.json" || true
+
+      - name: Seed brief.md from Jira ticket (AC-5)
+        id: seed_brief
+        run: bun run scripts/ci/seed-brief.ts
+
+      - name: Bootstrap work item (AC-5 / AC-6)
+        id: bootstrap
+        run: bun run scripts/ci/bootstrap-work-item.ts
+
+      - name: Decide resume vs fresh (AC-16)
+        id: decide_resume
+        run: bun run scripts/ci/decide-resume.ts
+
+      - name: phase-spec
+        id: phase_spec
+        uses: ./.github/actions/run-accord-phase
+        with:
+          phase: spec
+          ticket: ${{ inputs.ticket }}
+
+      - name: phase-plan (in_review path)
+        id: phase_plan
+        if: ${{ steps.phase_spec.outputs.status == 'done' }}
+        uses: ./.github/actions/run-accord-phase
+        with:
+          phase: plan
+          ticket: ${{ inputs.ticket }}
+
+      - name: phase-code
+        id: phase_code
+        if: ${{ steps.phase_plan.outputs.status == 'done' }}
+        uses: ./.github/actions/run-accord-phase
+        with:
+          phase: code
+          ticket: ${{ inputs.ticket }}
+
+      - name: phase-verify
+        id: phase_verify
+        if: ${{ steps.phase_code.outputs.status == 'done' }}
+        uses: ./.github/actions/run-accord-phase
+        with:
+          phase: verify
+          ticket: ${{ inputs.ticket }}
+
+      - name: Cost-cap pre-check between phases (AC-7)
+        id: cost_cap
+        if: ${{ always() }}
+        run: bun run scripts/ci/parse-phase-result.ts --check-cost --ticket "${{ inputs.ticket }}" --max "${{ inputs.max_cost_usd }}"
+
+      - name: Terminal — needs_input (AC-4)
+        id: terminal_needs_input
+        if: ${{ steps.phase_spec.outputs.status == 'needs_input' || steps.phase_plan.outputs.status == 'needs_input' || steps.phase_code.outputs.status == 'needs_input' || steps.phase_verify.outputs.status == 'needs_input' }}
+        run: bun run scripts/ci/parse-phase-result.ts --terminal needs_input --ticket "${{ inputs.ticket }}"
+
+      - name: Terminal — blocked (AC-10)
+        id: terminal_blocked
+        if: ${{ steps.phase_spec.outputs.status == 'blocked' || steps.phase_plan.outputs.status == 'blocked' || steps.phase_code.outputs.status == 'blocked' || steps.phase_verify.outputs.status == 'blocked' }}
+        run: bun run scripts/ci/parse-phase-result.ts --terminal blocked --ticket "${{ inputs.ticket }}"
+
+      - name: Terminal — gaps (AC-10)
+        id: terminal_gaps
+        if: ${{ steps.phase_verify.outputs.status == 'gaps' }}
+        run: bun run scripts/ci/parse-phase-result.ts --terminal gaps --ticket "${{ inputs.ticket }}"
+
+      - name: Terminal — cost_exceeded (AC-7)
+        id: terminal_cost
+        if: ${{ steps.cost_cap.outputs.tripped == 'true' }}
+        run: bun run scripts/ci/parse-phase-result.ts --terminal cost_exceeded --ticket "${{ inputs.ticket }}"
+
+      - name: Commit + open PR (happy path → in_review; AC-8 / AC-9 / AC-11)
+        id: commit_and_pr
+        if: ${{ steps.phase_verify.outputs.status == 'done' && steps.cost_cap.outputs.tripped != 'true' }}
+        run: bun run scripts/ci/commit-and-pr.ts
+
+      - name: Upload accord-state artifact (terminal canonical; AC-14)
+        id: upload_state
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: accord-state-${{ inputs.ticket }}
+          overwrite: true
+          retention-days: 14
+          path: |
+            docs/dev/${{ inputs.ticket }}/
+            .tasks/${{ inputs.ticket }}*
