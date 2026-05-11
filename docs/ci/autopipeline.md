@@ -116,6 +116,11 @@ L3 and L4 both default to `dry_run=true`: `commit-and-pr.ts` skips
 to a JSONL file instead of POSTing. Cost stays bounded by
 `max_cost_usd` (default `1` for the smoke wrapper).
 
+The L3 wrapper (`scripts/ci/smoke-act.ts`) auto-detects a Docker
+socket — Docker Desktop, Rancher Desktop, Colima, OrbStack, or rootless
+Linux Docker — and surfaces a clear error if no runtime is reachable.
+An explicit `DOCKER_HOST` is honoured if set.
+
 ## Where to look
 
 | Concern | File |

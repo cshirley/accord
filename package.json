@@ -15,8 +15,8 @@
     "check:runtime": "bun scripts/runtime-smoke.ts",
     "mcp": "bun run src/adapters/mcp/server.ts",
     "check": "npm run test && npm run validate:schemas && npm run validate:assets && npm run check:types && npm run check:bundle && npm run check:runtime",
-    "smoke:act:self-test": "act pull_request -W .github/workflows/test-autopipeline.yml",
-    "smoke:act:autopipeline": "act workflow_dispatch -W .github/workflows/autopipeline-smoke.yml --input ticket=DEMO-1 --input dry_run=true --secret-file .env.smoke",
+    "smoke:act:self-test": "bun run scripts/ci/smoke-act.ts pull_request -W .github/workflows/test-autopipeline.yml",
+    "smoke:act:autopipeline": "bun run scripts/ci/smoke-act.ts workflow_dispatch -W .github/workflows/autopipeline-smoke.yml --input ticket=DEMO-1 --input dry_run=true --secret-file .env.smoke",
     "smoke:gh:autopipeline": "gh workflow run autopipeline-smoke.yml --ref ticket-to-pr-feature -f ticket=DEMO-1 -f dry_run=true"
   },
   "license": "MIT",
