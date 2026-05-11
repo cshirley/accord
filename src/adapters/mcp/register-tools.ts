@@ -1,5 +1,6 @@
 /**
  * Registers ACCORD `dev_*` tools on an MCP server — same surface as adapters/pi/tools.ts.
+ * Tool names and declaration order must match `../accord-dev-tool-names.ts` (enforced by tests).
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -90,6 +91,7 @@ const ticketSignalsZ = z.object({
   linked_issue_count: z.number().optional(),
 });
 
+/** @see ../accord-dev-tool-names.ts */
 export function registerAccordMcpTools(
   mcp: McpServer,
   getConfig: () => DevHarnessConfig | null,

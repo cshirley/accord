@@ -32,6 +32,7 @@
 
 import { loadGlobalConfig } from "../config/global.js";
 import type { DevHarnessGlobalConfig } from "../config/types.js";
+import { createLogger } from "../logging.js";
 import {
   currentAssetSignature,
   installPiAssets,
@@ -40,6 +41,8 @@ import {
   type InstallResult,
 } from "../asset-install.js";
 import type { HarnessHost } from "./types.js";
+
+const log = createLogger("bootstrap");
 
 export type AssetBootstrapStatus =
   | "current"
@@ -128,7 +131,7 @@ export interface BootstrapOptions {
 /**
  * Run the asset bootstrap. Designed to be fire-and-forget at
  * extension activation. Never throws; surface any failure through the
- * `error` status and a `host.notify("warning", …)` call.
+ * `error` status and a `host.notify("warning", ...)` call.
  */
 export function maybeAutoInstallAssets(
   host: HarnessHost,
@@ -139,12 +142,16 @@ export function maybeAutoInstallAssets(
     current = currentAssetSignature(opts.packageRoot);
   } catch (e) {
     const msg = `ACCORD: cannot read bundled manifest (${e instanceof Error ? e.message : String(e)}). Run \`bun install\` in the extension repo.`;
+    log.debug(`asset bootstrap aborted: ${msg}`);
     host.notify?.("warning", msg);
     return { status: "error", linked: 0, conflicts: 0, message: msg };
   }
 
   const installed = readInstalledMetadata(opts.target);
   if (metadataMatches(installed, current)) {
+    log.debug(
+      `bundled assets match installed metadata (v${current.version}, manifest_sha256=${current.manifest_sha256.slice(0, 8)}...); no install`,
+    );
     return {
       status: "current",
       linked: 0,
@@ -154,6 +161,11 @@ export function maybeAutoInstallAssets(
   }
 
   const reason = installed ? "stale" : "missing";
+  log.debug(
+    installed
+      ? `metadata out of date: installed v${installed.version} vs bundled v${current.version}`
+      : "no install metadata at target; treating as missing",
+  );
 
   const globalConfig =
     opts.globalConfig !== undefined ? opts.globalConfig : safeLoadGlobalConfig();
@@ -168,15 +180,23 @@ export function maybeAutoInstallAssets(
     const msg = installed
       ? `ACCORD: bundled assets are stale (installed v${installed.version}, current v${current.version})${suffix}. Run \`bun run install:pi-assets\` and restart pi.`
       : `ACCORD: bundled assets are not installed${suffix}. Run \`bun run install:pi-assets\` and restart pi.`;
+    log.debug(
+      `auto-install skipped (source=${auto.source}, enabled=false); user notify=${Boolean(host.notify)}`,
+    );
     host.notify?.("warning", msg);
     return { status: "skipped-by-env", linked: 0, conflicts: 0, message: msg };
   }
+
+  log.debug(
+    `running installPiAssets (auto-install source=${auto.source}, reason=${reason})`,
+  );
 
   let result: InstallResult;
   try {
     result = installPiAssets({ target: opts.target, packageRoot: opts.packageRoot });
   } catch (e) {
     const msg = `ACCORD: asset install failed (${e instanceof Error ? e.message : String(e)}). Run \`bun run install:pi-assets\` manually for details.`;
+    log.debug(`installPiAssets threw: ${msg}`);
     host.notify?.("warning", msg);
     return { status: "error", linked: 0, conflicts: 0, message: msg };
   }
@@ -185,6 +205,7 @@ export function maybeAutoInstallAssets(
     const list = result.conflicts.slice(0, 5).join(", ");
     const more = result.conflicts.length > 5 ? `, +${result.conflicts.length - 5} more` : "";
     const msg = `ACCORD: ${result.conflicts.length} bundled asset(s) blocked by local modifications (${list}${more}). Run \`bun run install:pi-assets --force\` to overwrite.`;
+    log.debug(`install blocked: ${result.conflicts.length} path conflict(s)`);
     host.notify?.("warning", msg);
     return {
       status: "conflicts",
@@ -198,6 +219,9 @@ export function maybeAutoInstallAssets(
   if (result.linked.length === 0) {
     // Edge case: metadata mismatched but installer found everything already
     // in place (e.g. user re-ran the script externally). Treat as current.
+    log.debug(
+      `metadata drift but installPiAssets linked 0 paths; treating as reconciled (v${current.version})`,
+    );
     return {
       status: "current",
       linked: 0,
@@ -209,6 +233,7 @@ export function maybeAutoInstallAssets(
 
   const verb = reason === "missing" ? "linked" : "re-linked";
   const msg = `ACCORD: ${verb} ${result.linked.length} bundled asset(s) (v${current.version}) — restart pi to activate.`;
+  log.debug(`${verb} ${result.linked.length} asset path(s); notifying host to restart pi`);
   host.notify?.("info", msg);
   return {
     status: "installed",

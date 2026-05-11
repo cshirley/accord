@@ -1,6 +1,7 @@
 /**
  * Tool registrations — thin wrappers that expose orchestrator
  * functions as pi tools callable by the LLM.
+ * `dev_*` tool names and declaration order must match `../accord-dev-tool-names.ts` (enforced by tests).
  */
 
 import type { ExtensionAPI, AgentToolResult } from "@mariozechner/pi-coding-agent";
@@ -31,6 +32,7 @@ function err(text: string): AgentToolResult<any> {
   return { content: [{ type: "text", text: `⚠ ${text}` }], details: undefined };
 }
 
+/** @see ../accord-dev-tool-names.ts */
 export function registerTools(
   pi: ExtensionAPI,
   getConfig: () => DevHarnessConfig | null,

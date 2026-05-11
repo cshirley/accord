@@ -13,7 +13,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { AutocompleteItem } from "@mariozechner/pi-tui";
 import { loadDevHarnessConfig } from "../../core/config/index.js";
-import { resolveLogLevel, setLogLevel } from "../../core/logging.js";
+import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import { registerTools } from "./tools.js";
 import { registerHooks } from "./hooks.js";
 import { syncHarnessRunSessionEntry, type HookState } from "./hook-state.js";
@@ -29,6 +29,8 @@ import { devTasks } from "../../core/queries/dashboard.js";
 import { devRetro } from "../../core/queries/retro.js";
 import { DEV_HELP_TEXT } from "../../core/commands/help.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";
+
+const extensionLog = createLogger("extension");
 
 function isReadOnlyDevRoute(route: ReturnType<typeof devDispatch>): boolean {
   if (route.type === "empty") return true;
@@ -135,7 +137,11 @@ export default function (pi: ExtensionAPI) {
       maybeAutoInstallAssets({
         notify: (level, message) => ctx.ui.notify(message, level),
       });
-    } catch { /* notify itself failed; never block session start */ }
+    } catch (e) {
+      extensionLog.warn(
+        `session_start: asset bootstrap notify failed (${e instanceof Error ? e.message : String(e)})`,
+      );
+    }
   });
 
   // ── Tools + Hooks ──────────────────────────────────────
