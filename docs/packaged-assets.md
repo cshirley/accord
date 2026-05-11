@@ -8,7 +8,10 @@ assets/
 ├── lang-profiles/*.json         Per-language default test/lint/format commands
 ├── skills/
 │   ├── accord/SKILL.md          Canonical orchestrator skill
-│   └── dev/SKILL.md             Legacy alias for direct /skill:dev calls
+│   ├── dev/SKILL.md             Legacy alias for direct /skill:dev calls
+│   ├── commit/SKILL.md          Staged commit flow (git_commit_* tools)
+│   ├── pr/SKILL.md              Push + GitHub PR (gh_pr_* tools)
+│   └── review/SKILL.md          Ad-hoc diff review (review-code, review-test)
 ├── agents/
 │   ├── phase-*.md               Phase execution roles
 │   └── review-*.md              Review roles

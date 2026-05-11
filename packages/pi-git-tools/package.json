@@ -1,0 +1,13 @@
+{
+  "name": "@clive.shirley/pi-git-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi extension: git_commit_*, gh_pr_* tools",
+  "keywords": ["pi-package"],
+  "main": "./src/index.ts",
+  "files": ["src/"],
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.73.0",
+    "typebox": "^1.1.37"
+  }
+}

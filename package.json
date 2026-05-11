@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "description": "ACCORD for pi — agentic contract, briefing, Crucible verification, and rigorous delivery workflow",
   "keywords": ["pi-package"],
+  "workspaces": ["packages/*"],
   "scripts": {
     "test": "bun test",
     "validate:schemas": "node schemas/examples/validate-examples.mjs",
     "validate:assets": "bun scripts/validate-assets.ts",
     "install:pi-assets": "bun scripts/install-pi-assets.ts",
-    "check:bundle": "bun build ./src/index.ts --target=node --outfile=/tmp/accord-check.js --external @mariozechner/pi-ai --external @mariozechner/pi-coding-agent --external @mariozechner/pi-tui --external typebox",
+    "install:pi-dev": "bash scripts/pi-dev-install.sh",
+    "check:bundle": "bun build ./src/index.ts --target=node --outfile=/tmp/accord-check.js --external @mariozechner/pi-ai --external @mariozechner/pi-agent-core --external @mariozechner/pi-coding-agent --external @mariozechner/pi-tui --external typebox",
     "check:types": "tsc --noEmit",
     "check:runtime": "bun scripts/runtime-smoke.ts",
     "mcp": "bun run src/adapters/mcp/server.ts",
@@ -18,6 +20,7 @@
   "main": "./src/index.ts",
   "files": [
     "src/",
+    "packages/",
     "assets/",
     "schemas/",
     "scripts/",
@@ -25,24 +28,31 @@
     "AGENTS.md"
   ],
   "peerDependencies": {
+    "@mariozechner/pi-agent-core": "^0.73.0",
     "@mariozechner/pi-ai": "^0.73.0",
     "@mariozechner/pi-coding-agent": "^0.73.0",
     "@mariozechner/pi-tui": "^0.73.0",
     "typebox": "^1.1.37"
   },
   "pi": {
-    "extensions": ["./src/index.ts"],
+    "extensions": [
+      "./packages/pi-subagent/src/index.ts",
+      "./packages/pi-worktree/src/index.ts",
+      "./packages/pi-thrift/src/index.ts",
+      "./packages/pi-git-tools/src/index.ts",
+      "./packages/pi-tools/src/index.ts",
+      "./src/index.ts"
+    ],
     "skills": [
       "./assets/skills/accord",
-      "./assets/skills/dev"
+      "./assets/skills/dev",
+      "./assets/skills/commit",
+      "./assets/skills/pr",
+      "./assets/skills/review"
     ],
     "agents": [
       "./assets/agents"
-    ],
-    "requires": {
-      "extensions": ["subagent"],
-      "tools": ["subagent"]
-    }
+    ]
   },
   "accord": {
     "assetManifest": "./assets/manifest.json"

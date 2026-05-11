@@ -31,7 +31,7 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — *where int
 | [`docs/configuration.md`](docs/configuration.md) | …see how `/dev init` detects the project stack and what supported languages are inferred. |
 | [`docs/extending.md`](docs/extending.md) | …add a language profile, a new agent, or a custom tracker/enrichment provider (bundled or per-project). |
 | [`docs/file-structure.md`](docs/file-structure.md) | …navigate the source tree by responsibility. |
-| [`docs/local-development.md`](docs/local-development.md) | …link this checked-out repo into your pi.dev install so `/dev` runs from your local source. |
+| [`docs/local-development.md`](docs/local-development.md) | …register this checked-out repo in Pi `settings.json` so `/dev` runs from your local source. |
 
 For the dev-harness configuration this package itself uses (test/lint/verify commands), see [`AGENTS.md`](AGENTS.md).
 
@@ -47,7 +47,8 @@ npm run check                    # bun test + schemas + assets + types + bundle 
 Make pi.dev load `/dev` from this checkout:
 
 ```bash
-ln -s "$(pwd)" ~/.config/pi/agent/extensions/accord    # link the extension
+bun run install:pi-dev       # pi install this repo + link bundled assets (see scripts/pi-dev-install.sh)
+# or: pi install .
 # Start pi → it auto-links the bundled skills/agents/providers and
 # notifies you to restart. Restart pi once more — done.
 ```

@@ -1,8 +1,15 @@
 # File structure
 
 ```
+packages/                      Bun workspaces — extra Pi extensions bundled with pi-accord
+  pi-subagent/src/             subagent tool + agent discovery (see package.json pi.extensions)
+  pi-worktree/src/             wt_* tools, /wt command
+  pi-thrift/src/               /thrift (alias /tp) input + output token pruning
+  pi-git-tools/src/            git_commit_*, gh_pr_* tools
+  pi-tools/src/                Jira / Slack / Google Workspace integrations (defs, commands, MCP)
+
 src/
-  index.ts                       Composition root; delegates to src/adapters/pi/extension.ts
+  index.ts                       Harness entry; delegates to src/adapters/pi/extension.ts
 
   core/
     harness/                     Host-neutral hook callables (Pi + Cursor)
@@ -52,6 +59,7 @@ schemas/                         Source of truth for artifact shapes
 
 scripts/runtime-smoke.ts          Lightweight runtime smoke test for core helpers
 scripts/install-pi-assets.ts      Links bundled Pi assets into a host config directory
+scripts/pi-dev-install.sh         Pi dev install: `pi install` this repo + `install:pi-assets`
 tests/*.test.ts                   Bun unit tests (`core-contracts`, `harness`, `providers`, …)
 ```
 

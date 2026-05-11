@@ -5,7 +5,10 @@
   "assets": {
     "skills": [
       "accord",
-      "dev"
+      "dev",
+      "commit",
+      "pr",
+      "review"
     ],
     "agents": [
       "phase-align",

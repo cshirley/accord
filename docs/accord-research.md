@@ -155,7 +155,7 @@ This unlocks two things: (a) custom in-house trackers (Linear, Shortcut, interna
 
 The blueprint had bundled assets (skills, agents, providers) but no installation story — the engineer had to run a script. The shipping design adds a `session_start` bootstrap that compares the installed manifest checksum against the bundled one and re-links on drift, notifying the user that a Pi restart is needed to pick up freshly linked assets.
 
-This is mundane but significant: it removes the only manual setup step. Cloning the repo and symlinking it as a Pi extension is enough — the assets install themselves on first launch.
+This is mundane but significant: it removes most manual setup. Cloning the repo, running **`pi install <path-to-repo>`** so Pi records it under global `settings.json` → `packages`, and restarting is enough — the assets install themselves on first launch.
 
 ### 5. Decision packets are render-time, not stored
 

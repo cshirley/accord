@@ -1,0 +1,16 @@
+{
+  "name": "@clive.shirley/pi-subagent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi extension: subagent tool (isolated pi processes)",
+  "keywords": ["pi-package"],
+  "main": "./src/index.ts",
+  "files": ["src/"],
+  "peerDependencies": {
+    "@mariozechner/pi-agent-core": "^0.73.0",
+    "@mariozechner/pi-ai": "^0.73.0",
+    "@mariozechner/pi-coding-agent": "^0.73.0",
+    "@mariozechner/pi-tui": "^0.73.0",
+    "typebox": "^1.1.37"
+  }
+}
