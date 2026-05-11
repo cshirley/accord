@@ -289,26 +289,30 @@ Two layers: committed artifacts (the contract) and transient runtime state (giti
 
 ### Committed (`docs/dev/<ID>/`)
 
-```
-docs/dev/<ID>/
-├── brief.md       Problem brief (phase-align)
-├── spec.json      Specification with typed ACs (phase-spec)
-├── plan.json      Tasks with covers_ac, files, steps (phase-plan)
-├── verify.json    Per-AC pass/fail/partial with evidence (phase-verify-acceptance)
-└── verify.md      Human-readable rendering for PR comments (dev_verify_summary)
+```mermaid
+flowchart TB
+  subgraph dev["docs/dev/(work-item-id)/"]
+    brief["brief.md — phase-align"]
+    spec["spec.json — typed ACs (phase-spec)"]
+    plan["plan.json — tasks, covers_ac (phase-plan)"]
+    vjson["verify.json — per-AC evidence (phase-verify-acceptance)"]
+    vmd["verify.md — PR-friendly summary (dev_verify_summary)"]
+  end
 ```
 
 These files are immutable after their generating phase emits `done`. The schemas live in `schemas/{spec,plan,verify}-schema.json`.
 
 ### Transient (`.tasks/`, gitignored)
 
-```
-.tasks/
-├── <ID>.json                 Work item: phase, decisions, deviations, cost
-├── <ID>-checkpoint.json      Multi-turn state (draft, answered, pending)
-├── <ID>-task-N.json          Per-task ownership and status
-├── <ID>-enrichments/         Gather cache (Slack, Confluence, Google Docs payloads)
-└── <ID>-usage.jsonl          Per-subagent token/cost append log
+```mermaid
+flowchart TB
+  subgraph tasks[".tasks/"]
+    wi["(id).json — phase, decisions, deviations, cost"]
+    cp["(id)-checkpoint.json — multi-turn state"]
+    tk["(id)-task-N.json — per-task status"]
+    en["(id)-enrichments/ — gather cache payloads"]
+    us["(id)-usage.jsonl — subagent token/cost log"]
+  end
 ```
 
 The work item file is the orchestrator's authoritative state. It carries:

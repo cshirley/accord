@@ -2,24 +2,16 @@
 
 The extension bundles the prompt assets it needs to run in pi.dev:
 
-```
-assets/
-├── manifest.json
-├── lang-profiles/*.json         Per-language default test/lint/format commands
-├── skills/
-│   ├── accord/SKILL.md          Canonical orchestrator skill
-│   ├── dev/SKILL.md             Legacy alias for direct /skill:dev calls
-│   ├── commit/SKILL.md          Staged commit flow (git_commit_* tools)
-│   ├── pr/SKILL.md              Push + GitHub PR (gh_pr_* tools)
-│   └── review/SKILL.md          Ad-hoc diff review (review-code, review-test)
-├── agents/
-│   ├── phase-*.md               Phase execution roles
-│   └── review-*.md              Review roles
-└── providers/
-    ├── trackers/<name>.md       Primary tracker fetch playbook
-    ├── trackers/<name>.json     Tracker connectivity sidecar
-    ├── enrichments/<name>.md    Enrichment fetch playbook
-    └── enrichments/<name>.json  Enrichment connectivity sidecar
+```mermaid
+flowchart TB
+  A["assets/"] --> M["manifest.json"]
+  A --> L["lang-profiles/*.json"]
+  A --> SK["skills/"]
+  SK --> SA["accord, dev, commit, pr, review — SKILL.md"]
+  A --> AG["agents/ — phase-*.md, review-*.md"]
+  A --> PR["providers/"]
+  PR --> TR["trackers/(name).md + .json"]
+  PR --> EN["enrichments/(name).md + .json"]
 ```
 
 `package.json` advertises these through the `pi.skills`, `pi.agents`, and `accord.assetManifest` fields. The current Pi adapter still depends on the host exposing `/skill:accord` and the `subagent` tool at runtime, but the package now carries the source prompt assets so an installer can link them into the host's skill/agent directories.

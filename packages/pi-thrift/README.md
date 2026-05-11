@@ -10,18 +10,16 @@ TTL window so cache hits compound.
 
 ## How it works
 
-```
-                    ┌─────────────────────┐
-  Tool results ───▶ │  input.ts           │ ───▶  Smaller context sent to LLM
-  (bash, read, …)   │  • truncate at source│
-                    │  • stub old turns    │
-                    └─────────────────────┘
-
-                    ┌─────────────────────┐
-  LLM responses ◀── │  output.ts          │ ◀───  Terse system-prompt injection
-                    │  • drop filler words │
-                    │  • fragments OK      │
-                    └─────────────────────┘
+```mermaid
+flowchart TB
+  subgraph inPath["Input path (fewer tokens in)"]
+    direction LR
+    TR["Tool results (bash, read, …)"] --> IN["input.ts: truncate at source, stub old turns"] --> CTX["Smaller context to LLM"]
+  end
+  subgraph outPath["Output path (fewer tokens out)"]
+    direction LR
+    INJ["Terse system-prompt injection"] --> OUT["output.ts: denser phrasing"] --> RESP["LLM responses"]
+  end
 ```
 
 | Module | Target | Mechanism | Typical saving |
@@ -121,14 +119,14 @@ you pay full input pricing every turn instead of cache-hit pricing.
 With `cacheAware` enabled, stubbing decisions become **monotonic within
 the cache TTL window**:
 
-```
- turn 1   turn 2   turn 3   ... turn 7    (within 5min)
-  full     full     full         full      ← cache hits compound
-
-               —— TTL elapses (>5min idle) ——
-
- turn 8                                     (after the gap)
-  stub stub stub kept kept kept full        ← free to re-prune; cache was dead anyway
+```mermaid
+flowchart LR
+  subgraph warm["Within TTL (~5 min idle window)"]
+    direction LR
+    t1["turns 1-7:<br/>results kept full"] --> note1["cache hits compound"]
+  end
+  warm -->|TTL elapses| cold["After gap:<br/>turn 8+ may re-stub"]
+  cold --> note2["prefix was cold anyway"]
 ```
 
 Mechanism:
@@ -256,13 +254,14 @@ When `showStatus` is enabled, two footer indicators show:
 
 ## File structure
 
-```
-packages/pi-thrift/
-├── src/index.ts    Barrel — loads config, wires modules, registers /tp commands
-├── src/config.ts   Shared types, defaults, load/save (→ thrift.json)
-├── src/input.ts    Input pruning: tool_result + context hooks
-├── src/output.ts   Output pruning: system-prompt injection + config dialog
-└── README.md       This file
+```mermaid
+flowchart TB
+  P["packages/pi-thrift/"]
+  P --> I["src/index.ts — barrel, /tp commands"]
+  P --> C["src/config.ts — thrift.json load/save"]
+  P --> IP["src/input.ts — tool_result + context hooks"]
+  P --> OP["src/output.ts — system prompt + config dialog"]
+  P --> R["README.md"]
 ```
 
 ## Credits

@@ -170,23 +170,22 @@ Template:
 
 ```
 /dev — agentic harness entry point
+```
 
-Standard flow:
-  /dev init
-      ↓
-  /dev <description>
-      ↓
-  /dev align <ID> → /dev spec <ID> → /dev plan <ID>
-      ↓
-  /dev resume <ID>
-      ↓
-  /dev finish <ID>
-      ├─ COMPLETE → /commit → /pr
-      ├─ GAPS → /dev gaps <ID>
-      ├─ NEEDS_DECISION → /dev review
-      └─ BLOCKED → /dev resume <ID>
+```mermaid
+flowchart TD
+  init["/dev init"] --> boot["/dev (free text or ticket + title)"]
+  boot --> asp["/dev align ID → /dev spec ID → /dev plan ID"]
+  asp --> res["/dev resume ID"]
+  res --> fin["/dev finish ID"]
+  fin --> c1["COMPLETE → /commit → /pr"]
+  fin --> c2["GAPS → /dev gaps ID"]
+  fin --> c3["NEEDS_DECISION → /dev review"]
+  fin --> c4["BLOCKED → /dev resume ID"]
+```
 
-Optional: /dev check <ID> reruns lower-level acceptance checks.
+```
+Optional: /dev check ID reruns lower-level acceptance checks.
 
 Subcommands:
   init                    Detect stack & write AGENTS.md ACCORD config

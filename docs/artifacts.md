@@ -4,24 +4,28 @@
 
 Committed artifacts — one directory per work item:
 
-```
-docs/dev/<ID>/
-├── brief.md       Problem brief (phase-align)
-├── spec.json      Specification (phase-spec)
-├── plan.json      Implementation plan (phase-plan)
-├── verify.json    Machine-readable verification report (phase-verify)
-└── verify.md      Human-readable verification report (dev_verify_summary)
+```mermaid
+flowchart TB
+  subgraph dev["docs/dev/(work-item-id)/"]
+    brief["brief.md — phase-align"]
+    spec["spec.json — phase-spec"]
+    plan["plan.json — phase-plan"]
+    vjson["verify.json — phase-verify"]
+    vmd["verify.md — dev_verify_summary"]
+  end
 ```
 
 Transient state — gitignored:
 
-```
-.tasks/
-├── <ID>.json                Work item (phase, decisions, deviations, cost)
-├── <ID>-checkpoint.json     Multi-turn state (draft, answered, pending)
-├── <ID>-task-N.json         Per-task file (phase-test/phase-code ownership)
-├── <ID>-enrichments/        Gather cache (Slack, Confluence, Google Docs)
-└── <ID>-usage.jsonl         Per-subagent token/cost tracking
+```mermaid
+flowchart TB
+  subgraph tasks[".tasks/"]
+    wi["(id).json — work item state"]
+    cp["(id)-checkpoint.json — multi-turn drafts"]
+    tk["(id)-task-N.json — per-task ownership"]
+    en["(id)-enrichments/ — gather cache"]
+    us["(id)-usage.jsonl — subagent usage"]
+  end
 ```
 
 See [`docs/schemas.md`](schemas.md) for the JSON schema each file is validated against.

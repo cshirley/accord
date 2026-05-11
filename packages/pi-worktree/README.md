@@ -81,9 +81,9 @@ subagent({ tasks: [
 
 ## Architecture
 
-```
-index.ts    Entry point — tools, /wt command, hooks, state management
-git.ts      Git worktree primitives (pure functions wrapping git commands)
+```mermaid
+flowchart LR
+  idx["index.ts — tools, /wt, hooks, state"] --- git["git.ts — worktree primitives"]
 ```
 
 This package does not import other extensions at build time; it pairs with the `subagent` tool (same repo, `packages/pi-subagent`) when you pass a worktree path as `cwd`. Works in any git repository.
