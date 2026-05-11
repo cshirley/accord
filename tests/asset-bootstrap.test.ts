@@ -236,7 +236,7 @@ describe("maybeAutoInstallAssets", () => {
     expect(r.linked).toBe(0);
     expect(events).toHaveLength(1);
     expect(events[0].level).toBe("warning");
-    expect(events[0].message).toMatch(/install:pi-assets/);
+    expect(events[0].message).toMatch(/install:assets/);
     expect(existsSync(join(target, ".accord-assets.json"))).toBe(false);
   });
 
@@ -267,7 +267,7 @@ describe("maybeAutoInstallAssets", () => {
     expect(r.linked).toBe(0);
     expect(events).toHaveLength(1);
     expect(events[0].message).toMatch(/accord-config\.json/);
-    expect(events[0].message).toMatch(/install:pi-assets/);
+    expect(events[0].message).toMatch(/install:assets/);
   });
 
   test("global config asset_bootstrap.auto_install=true installs (explicit opt-in)", () => {

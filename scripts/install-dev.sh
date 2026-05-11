@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Register this repo with Pi (`pi install`) so `package.json` → `pi` loads the
 # bundled extension modules (pi-subagent, pi-worktree, …) plus the ACCORD harness,
-# then link bundled skills/agents/providers (`bun run install:pi-assets`).
+# then link bundled skills/agents/providers (`bun run install:assets`).
 #
 # Usage:
-#   scripts/pi-dev-install.sh
-#   scripts/pi-dev-install.sh /path/to/other-pi-package [/path/to/another ...]
+#   scripts/install-dev.sh
+#   scripts/install-dev.sh /path/to/other-package [/path/to/another ...]
 #
 # Extra arguments are additional Pi package roots installed before this repo
 # (each must contain a package.json). This repo is always installed last.
@@ -41,7 +41,7 @@ done
 echo "pi install $ROOT"
 pi install "$ROOT"
 
-echo "bun run install:pi-assets"
-bun run install:pi-assets
+echo "bun run install:assets"
+bun run install:assets
 
 echo "Done. Restart pi.dev if it is already running."

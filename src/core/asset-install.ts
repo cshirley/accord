@@ -5,7 +5,7 @@
  * modified destinations are preserved unless `force: true`.
  *
  * This module is host-neutral and has no dependency on Pi APIs. The
- * CLI wrapper lives in `scripts/install-pi-assets.ts`; the runtime
+ * CLI wrapper lives in `scripts/install-assets.ts`; the runtime
  * auto-install bootstrap lives in `core/harness/asset-bootstrap.ts`.
  */
 
