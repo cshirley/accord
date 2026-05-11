@@ -114,7 +114,13 @@ jobs:
       - name: Validate dispatch payload (AC-1)
         id: dispatch
         env:
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          # `act` runs reusable workflows under the outer event name
+          # (typically `workflow_dispatch`) rather than `workflow_call` —
+          # see nektos/act#1462. When `ACT=true` we override to
+          # `workflow_call` so the validator sees the same event name a
+          # real GitHub runner would. The validator's strict allow-list
+          # behaviour is unchanged on real CI (ACT is unset there).
+          GITHUB_EVENT_NAME: ${{ env.ACT == 'true' && 'workflow_call' || github.event_name }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
         run: bun run scripts/ci/dispatch.ts
 

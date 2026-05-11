@@ -72,3 +72,30 @@ or Jira call, so no cost is incurred.
 Automation rule's webhook body is malformed (typically missing
 `status_at_trigger`). Fix the rule (see
 `docs/ci/atlassian-automation.md`) and re-fire.
+
+## `act`-specific quirks (L3 local smoke)
+
+The L3 smoke (`bun run smoke:act:autopipeline`) runs the workflow YAML
+inside Docker via `act`. A few behaviours differ from a real GitHub
+runner — none of them affect production:
+
+- **Reusable workflow events**: act runs the called workflow under the
+  caller's event name (typically `workflow_dispatch`), not
+  `workflow_call`. The validate-dispatch step honours `env.ACT == 'true'`
+  to override `GITHUB_EVENT_NAME` to `workflow_call` for local runs.
+  See `nektos/act#1462`.
+- **Multi-line YAML `path:` blocks**: act collapses them with a
+  URL-encoded newline (`%0A`), producing warnings like
+  `No files were found with the provided path: docs/dev/<ticket>/%0A.tasks/<ticket>*`.
+  Real GitHub treats each line as a separate glob. The workflow is
+  correct; the parser difference is verified by
+  `tests/ci/artifact-upload.test.ts`.
+- **Unrendered job-name templates**: act prints raw `${{ inputs.ticket }}`
+  in some error messages. Cosmetic only; real GitHub interpolates these
+  in logs and the UI.
+- **Pre-release `accord_ref`**: the autopipeline defaults to
+  `accord_ref: v1`. Until that tag exists on origin, the `setup-pi`
+  checkout step fails with a 73-second backoff. For pre-release smoke
+  tests, override `accord_ref` to the feature branch name via the smoke
+  wrapper's `accord_ref` input (`bun run smoke:act:autopipeline`
+  already does this).
