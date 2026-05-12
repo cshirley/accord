@@ -3,9 +3,8 @@
  */
 
 import * as path from "node:path";
-import type { TaskFile } from "../work-items/types.js";
-import { TASKS_DIR, readJson, listWorkItemFiles } from "../work-items/io.js";
-import type { WorkItem } from "../work-items/types.js";
+import { listWorkItemFiles, readJson, TASKS_DIR } from "../work-items/io.js";
+import type { TaskFile, WorkItem } from "../work-items/types.js";
 
 export interface TasksDashboardRow {
   id: string;
@@ -36,8 +35,10 @@ export function devTasks(): TasksDashboardResult {
     const wi = readJson<WorkItem>(path.join(TASKS_DIR, file));
     if (!wi) continue;
 
-    let done = 0, total = 0, blocked = 0;
-    for (const tid of (wi.task_ids || [])) {
+    let done = 0,
+      total = 0,
+      blocked = 0;
+    for (const tid of wi.task_ids || []) {
       total++;
       const tf = readJson<TaskFile>(path.join(TASKS_DIR, `${wi.id}-task-${tid}.json`));
       if (tf?.status === "done") done++;
@@ -52,7 +53,7 @@ export function devTasks(): TasksDashboardResult {
       tasks_done: done,
       tasks_total: total,
       tasks_blocked: blocked,
-      pending_decisions: (wi.decisions || []).filter(d => d.status === "pending").length,
+      pending_decisions: (wi.decisions || []).filter((d) => d.status === "pending").length,
       deviations: (wi.deviations || []).length,
       cost_usd: wi.cost_usd || 0,
       updated: wi.updated,
@@ -68,18 +69,23 @@ export function devTasks(): TasksDashboardResult {
   if (rows.length === 0) {
     lines.push("No active work items.");
   } else {
-    lines.push("ID           PATTERN              PHASE/OUTCOME      TASKS        PENDING  DEV   COST");
+    lines.push(
+      "ID           PATTERN              PHASE/OUTCOME      TASKS        PENDING  DEV   COST",
+    );
     for (const r of rows) {
-      const tasks = r.tasks_total > 0
-        ? `${r.tasks_done}/${r.tasks_total}${r.tasks_blocked > 0 ? ` (${r.tasks_blocked}b)` : ""}`
-        : "—";
+      const tasks =
+        r.tasks_total > 0
+          ? `${r.tasks_done}/${r.tasks_total}${r.tasks_blocked > 0 ? ` (${r.tasks_blocked}b)` : ""}`
+          : "—";
       const phase = r.terminal_outcome ? `${r.phase}/${r.terminal_outcome}` : r.phase;
       lines.push(
         `${r.id.padEnd(13)}${r.pattern.padEnd(21)}${phase.padEnd(19)}${tasks.padEnd(13)}${String(r.pending_decisions).padEnd(9)}${String(r.deviations).padEnd(6)}$${r.cost_usd.toFixed(2)}`,
       );
     }
     lines.push("");
-    lines.push(`${rows.length} work items · ${totalPending} pending decisions · total cost $${totalCost.toFixed(2)}`);
+    lines.push(
+      `${rows.length} work items · ${totalPending} pending decisions · total cost $${totalCost.toFixed(2)}`,
+    );
     if (totalPending > 0) lines.push("Run /dev review to work the queue.");
   }
 

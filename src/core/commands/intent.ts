@@ -73,23 +73,37 @@ function scoreMode(text: string, targetPaths: string[]): Record<IntentMode, numb
     investigate: 0,
   };
 
-  if (has(/\b(commit|stage|save (?:my |the )?work|create a commit|commit message)\b/i, text)) score.commit += 5;
-  if (has(/\b(review|code review|pre-commit sanity|find risks|find issues|critique)\b/i, text)) score.review += 5;
+  if (has(/\b(commit|stage|save (?:my |the )?work|create a commit|commit message)\b/i, text))
+    score.commit += 5;
+  if (has(/\b(review|code review|pre-commit sanity|find risks|find issues|critique)\b/i, text))
+    score.review += 5;
 
   const hasTicket = has(/[A-Z]+(?:-[A-Z]+)*-\d+/, text);
-  if (has(/\b(implement|build|feature|ship|end-to-end|full pipeline|spec and plan)\b/i, text)) score.pipeline += 2;
+  if (has(/\b(implement|build|feature|ship|end-to-end|full pipeline|spec and plan)\b/i, text))
+    score.pipeline += 2;
   if (hasTicket) score.pipeline += 2;
   if (hasTicket && has(/\b(add|update|change|fix)\b/i, text)) score.pipeline += 1;
   if (!targetPaths.length && has(/\badd\b/i, text)) score.pipeline += 1;
-  if (has(/\b(worktrees?|orchestrated|parallelisable|parallelizable)\b/i, text)) score.pipeline += 2;
+  if (has(/\b(worktrees?|orchestrated|parallelisable|parallelizable)\b/i, text))
+    score.pipeline += 2;
 
   if (targetPaths.length > 0) score.narrow_change += 2;
-  if (has(/\b(fix|tweak|change|update|rename|one-line|small|quick|narrow)\b/i, text)) score.narrow_change += 2;
+  if (has(/\b(fix|tweak|change|update|rename|one-line|small|quick|narrow)\b/i, text))
+    score.narrow_change += 2;
   if (targetPaths.length > 0 && has(/\badd\b/i, text)) score.narrow_change += 2;
   if (has(/\b(do not|don't) (?:implement|change|edit|touch)\b/i, text)) score.narrow_change -= 1;
 
-  if (has(/\b(why|root cause|debug|diagnose|investigate|failing|fails|broken|error|blocked)\b/i, text)) score.investigate += 3;
-  if (has(/\b(how can i|how do i|explain|what does|what is|suggest|should i|is there a way|based on (?:the )?feedback)\b/i, text)) score.explain += 3;
+  if (
+    has(/\b(why|root cause|debug|diagnose|investigate|failing|fails|broken|error|blocked)\b/i, text)
+  )
+    score.investigate += 3;
+  if (
+    has(
+      /\b(how can i|how do i|explain|what does|what is|suggest|should i|is there a way|based on (?:the )?feedback)\b/i,
+      text,
+    )
+  )
+    score.explain += 3;
 
   if (has(/\b(terraform|helm|kubernetes|pulumi|cloudformation|iac)\b/i, text)) score.pipeline += 1;
   if (has(/\b(adr|design doc|write up|compare options)\b/i, text)) score.explain += 1;
@@ -105,22 +119,35 @@ function confidence(topScore: number, secondScore: number): IntentConfidence {
 
 function ceilingFor(mode: IntentMode): EscalationCeiling {
   switch (mode) {
-    case "pipeline": return "pipeline_allowed";
-    case "narrow_change": return "no_pipeline_without_confirmation";
-    case "investigate": return "read_only_until_confirmed";
-    case "review": return "no_implementation_without_confirmation";
-    case "commit": return "no_edits";
-    case "explain": return "no_edits";
+    case "pipeline":
+      return "pipeline_allowed";
+    case "narrow_change":
+      return "no_pipeline_without_confirmation";
+    case "investigate":
+      return "read_only_until_confirmed";
+    case "review":
+      return "no_implementation_without_confirmation";
+    case "commit":
+      return "no_edits";
+    case "explain":
+      return "no_edits";
   }
 }
 
-function recommendedPattern(mode: IntentMode): Pick<IntentRecommendation, "recommended_pattern" | "recommended_variant"> {
+function recommendedPattern(
+  mode: IntentMode,
+): Pick<IntentRecommendation, "recommended_pattern" | "recommended_variant"> {
   switch (mode) {
-    case "pipeline": return { recommended_pattern: "implement", recommended_variant: "standard" };
-    case "narrow_change": return { recommended_pattern: "quick_fix" };
-    case "investigate": return { recommended_pattern: "investigate" };
-    case "explain": return { recommended_pattern: "analyse" };
-    default: return {};
+    case "pipeline":
+      return { recommended_pattern: "implement", recommended_variant: "standard" };
+    case "narrow_change":
+      return { recommended_pattern: "quick_fix" };
+    case "investigate":
+      return { recommended_pattern: "investigate" };
+    case "explain":
+      return { recommended_pattern: "analyse" };
+    default:
+      return {};
   }
 }
 
@@ -135,7 +162,8 @@ export function recommendIntentMode(text: string, brief?: string): IntentRecomme
 
   if (targetPaths.length > 0) reasons.push(`mentions target path(s): ${targetPaths.join(", ")}`);
   if (mode === "pipeline") reasons.push("contains broad implementation or ticket cues");
-  if (mode === "narrow_change") reasons.push("looks like a bounded edit rather than a full harness run");
+  if (mode === "narrow_change")
+    reasons.push("looks like a bounded edit rather than a full harness run");
   if (mode === "investigate") reasons.push("asks for diagnosis/root cause before edits");
   if (mode === "explain") reasons.push("asks for explanation or recommendations");
   if (mode === "review") reasons.push("asks for review/findings");
@@ -146,7 +174,9 @@ export function recommendIntentMode(text: string, brief?: string): IntentRecomme
     intent_mode: mode,
     confidence: conf,
     reasons,
-    needs_confirmation: conf !== "high" || (mode === "pipeline" && !has(/\b(full pipeline|spec|plan|implement)\b/i, combined)),
+    needs_confirmation:
+      conf !== "high" ||
+      (mode === "pipeline" && !has(/\b(full pipeline|spec|plan|implement)\b/i, combined)),
     escalation_ceiling: ceilingFor(mode),
     target_paths: targetPaths,
     out_of_scope: mode === "narrow_change" ? ["full pipeline", "unrelated refactors"] : [],
@@ -185,13 +215,19 @@ export interface TicketSignals {
 }
 
 export interface RefinementResult {
-  original: Pick<IntentRecommendation, "intent_mode" | "confidence" | "recommended_pattern" | "recommended_variant">;
+  original: Pick<
+    IntentRecommendation,
+    "intent_mode" | "confidence" | "recommended_pattern" | "recommended_variant"
+  >;
   refined: IntentRecommendation;
   changed: boolean;
   refinement_reasons: string[];
 }
 
-function countSignalWeight(signals: TicketSignals): { upgradeWeight: number; downgradeWeight: number } {
+function countSignalWeight(signals: TicketSignals): {
+  upgradeWeight: number;
+  downgradeWeight: number;
+} {
   let upgradeWeight = 0;
   let downgradeWeight = 0;
 
@@ -254,9 +290,13 @@ export function refineWithTicketSignals(
   const { upgradeWeight, downgradeWeight } = countSignalWeight(signals);
 
   const shouldUpgrade =
-    base.intent_mode === "narrow_change" && upgradeWeight >= UPGRADE_THRESHOLD && upgradeWeight > downgradeWeight;
+    base.intent_mode === "narrow_change" &&
+    upgradeWeight >= UPGRADE_THRESHOLD &&
+    upgradeWeight > downgradeWeight;
   const shouldDowngrade =
-    base.intent_mode === "pipeline" && downgradeWeight >= DOWNGRADE_THRESHOLD && downgradeWeight > upgradeWeight;
+    base.intent_mode === "pipeline" &&
+    downgradeWeight >= DOWNGRADE_THRESHOLD &&
+    downgradeWeight > upgradeWeight;
 
   if (shouldUpgrade) {
     refined.intent_mode = "pipeline";
@@ -266,18 +306,18 @@ export function refineWithTicketSignals(
     refined.needs_confirmation = true;
     refinement_reasons.push(
       `ticket signals suggest full pipeline (ac_count=${signals.ac_count ?? "?"}, ` +
-      `story_points=${signals.story_points ?? "?"}, subtasks=${signals.subtask_count ?? "?"})`,
+        `story_points=${signals.story_points ?? "?"}, subtasks=${signals.subtask_count ?? "?"})`,
     );
     refined.reasons.push("upgraded from narrow_change: ticket scope exceeds quick_fix threshold");
   } else if (shouldDowngrade) {
     refined.intent_mode = "narrow_change";
     refined.recommended_pattern = "quick_fix";
-    delete refined.recommended_variant;
+    refined.recommended_variant = undefined;
     refined.escalation_ceiling = "no_pipeline_without_confirmation";
     refined.needs_confirmation = true;
     refinement_reasons.push(
       `ticket signals suggest quick_fix (ac_count=${signals.ac_count ?? "?"}, ` +
-      `story_points=${signals.story_points ?? "?"}, description_length=${signals.description_length ?? "?"})`,
+        `story_points=${signals.story_points ?? "?"}, description_length=${signals.description_length ?? "?"})`,
     );
     refined.reasons.push("downgraded from pipeline: ticket scope fits quick_fix");
   }
@@ -287,7 +327,10 @@ export function refineWithTicketSignals(
       refined.confidence = "high";
       refinement_reasons.push("ticket signals confirm pipeline scope");
       refined.reasons.push("confidence boosted by ticket signals");
-    } else if (downgradeWeight >= CONFIDENCE_BOOST_THRESHOLD && base.intent_mode === "narrow_change") {
+    } else if (
+      downgradeWeight >= CONFIDENCE_BOOST_THRESHOLD &&
+      base.intent_mode === "narrow_change"
+    ) {
       refined.confidence = "high";
       refinement_reasons.push("ticket signals confirm narrow scope");
       refined.reasons.push("confidence boosted by ticket signals");
@@ -314,7 +357,9 @@ export function formatRefinementResult(r: RefinementResult): string {
     `escalation_ceiling: ${r.refined.escalation_ceiling}`,
   ];
   if (r.refined.recommended_pattern) {
-    lines.push(`recommended_pattern: ${r.refined.recommended_pattern}${r.refined.recommended_variant ? `/${r.refined.recommended_variant}` : ""}`);
+    lines.push(
+      `recommended_pattern: ${r.refined.recommended_pattern}${r.refined.recommended_variant ? `/${r.refined.recommended_variant}` : ""}`,
+    );
   }
   if (r.refinement_reasons.length) {
     lines.push("refinement_reasons:");
@@ -332,7 +377,10 @@ export function formatIntentRecommendation(r: IntentRecommendation): string {
     `needs_confirmation: ${r.needs_confirmation}`,
     `escalation_ceiling: ${r.escalation_ceiling}`,
   ];
-  if (r.recommended_pattern) lines.push(`recommended_pattern: ${r.recommended_pattern}${r.recommended_variant ? `/${r.recommended_variant}` : ""}`);
+  if (r.recommended_pattern)
+    lines.push(
+      `recommended_pattern: ${r.recommended_pattern}${r.recommended_variant ? `/${r.recommended_variant}` : ""}`,
+    );
   if (r.target_paths.length) lines.push(`target_paths: ${r.target_paths.join(", ")}`);
   if (r.out_of_scope.length) lines.push(`out_of_scope: ${r.out_of_scope.join(", ")}`);
   if (r.reasons.length) {

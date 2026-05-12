@@ -18,9 +18,7 @@ import { findGitRoot } from "./git.js";
  *     Init should offer to create one with the config.
  *  - `type: "at_root"` — cwd is already the git root. Standard init behaviour.
  */
-export function resolveConfigLocation(
-  cwd: string,
-): {
+export function resolveConfigLocation(cwd: string): {
   type: "root_exists" | "root_no_config" | "root_no_agents" | "at_root";
   gitRoot?: string;
   rootAgentsMd?: string;
@@ -42,7 +40,9 @@ export function resolveConfigLocation(
     if (jsonStr) {
       return { type: "root_exists", gitRoot, rootAgentsMd };
     }
-  } catch { /* ignore read errors */ }
+  } catch {
+    /* ignore read errors */
+  }
 
   return { type: "root_no_config", gitRoot, rootAgentsMd };
 }

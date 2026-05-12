@@ -3,14 +3,7 @@
   "$id": "checkpoint-schema.json",
   "title": "Orchestrator crash-recovery checkpoint",
   "type": "object",
-  "required": [
-    "schema_version",
-    "work_item_id",
-    "phase",
-    "draft",
-    "answered",
-    "pending"
-  ],
+  "required": ["schema_version", "work_item_id", "phase", "draft", "answered", "pending"],
   "additionalProperties": false,
   "properties": {
     "schema_version": { "const": "1.0" },

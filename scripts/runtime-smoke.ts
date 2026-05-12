@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { devDispatch } from "../src/core/commands/dispatch.js";
 import { validateReturn } from "../src/core/artifacts/validation.js";
+import { devDispatch } from "../src/core/commands/dispatch.js";
 import { formatSchemaBrief } from "../src/core/crucible/verification.js";
 
 const route = devDispatch("help");

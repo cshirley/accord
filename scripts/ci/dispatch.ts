@@ -108,8 +108,7 @@ async function main(): Promise<void> {
   const payload: GithubEventPayload = {
     eventName,
     inputs: (event.inputs as Record<string, unknown> | undefined) ?? undefined,
-    clientPayload:
-      (event.client_payload as Record<string, unknown> | undefined) ?? undefined,
+    clientPayload: (event.client_payload as Record<string, unknown> | undefined) ?? undefined,
   };
 
   try {

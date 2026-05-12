@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
@@ -98,7 +98,10 @@ describe("AC-6 / TC-10 — `pi` invocations match the allowlist", () => {
         if (/`pi\s+-p\b/.test(rawLine)) continue;
         const matches = line.match(PI_INVOCATION_DETECTOR_RE) ?? [];
         for (const m of matches) {
-          const cleaned = m.replace(/['"]/g, "").replace(/\s*[><|;&].*$/, "").trim();
+          const cleaned = m
+            .replace(/['"]/g, "")
+            .replace(/\s*[><|;&].*$/, "")
+            .trim();
           expect(cleaned).toMatch(PI_INVOCATION_ALLOWLIST_RE);
         }
       }
@@ -124,9 +127,7 @@ describe("AC-6 — no @mariozechner/pi-coding-agent SDK import under scripts/ci/
 
 describe("AC-6 — allowlist regex itself accepts canonical invocations", () => {
   test("accepts a bare spec invocation", () => {
-    expect("pi -p --mode json /skill:accord spec PROJ-123").toMatch(
-      PI_INVOCATION_ALLOWLIST_RE,
-    );
+    expect("pi -p --mode json /skill:accord spec PROJ-123").toMatch(PI_INVOCATION_ALLOWLIST_RE);
   });
 
   test("accepts an invocation with allowlist flags", () => {

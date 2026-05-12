@@ -3,9 +3,9 @@
  */
 
 import * as path from "node:path";
-import type { WorkItem } from "../work-items/types.js";
-import { TASKS_DIR, readJson, listWorkItemFiles } from "../work-items/io.js";
 import { devTasks } from "../queries/dashboard.js";
+import { listWorkItemFiles, readJson, TASKS_DIR } from "../work-items/io.js";
+import type { WorkItem } from "../work-items/types.js";
 
 export type EmptyInputRoute =
   | { route: "help" }
@@ -33,16 +33,21 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
   { value: "amend-spec", description: "Amend the spec" },
   { value: "spec-gaps", description: "Find spec gaps" },
   { value: "tasks", description: "Task dashboard" },
-  { value: "retro", description: "Retrospective over harness sessions and shift-left opportunities" },
-  { value: "tag", description: "Label this session for usage analytics (/dev tag [--new] <label>, --clear)" },
+  {
+    value: "retro",
+    description: "Retrospective over harness sessions and shift-left opportunities",
+  },
+  {
+    value: "tag",
+    description: "Label this session for usage analytics (/dev tag [--new] <label>, --clear)",
+  },
   { value: "help", description: "Show usage" },
 ];
 
 /** Split on first run of flags so multi-word labels stay intact. */
-export function parseHarnessTagArgs(raw: string):
-  | { mode: "show" }
-  | { mode: "clear" }
-  | { mode: "set"; label: string; newRunId: boolean } {
+export function parseHarnessTagArgs(
+  raw: string,
+): { mode: "show" } | { mode: "clear" } | { mode: "set"; label: string; newRunId: boolean } {
   const t = raw.trim();
   if (!t) return { mode: "show" };
   if (t === "--clear") return { mode: "clear" };
@@ -55,10 +60,7 @@ export function parseHarnessTagArgs(raw: string):
   return { mode: "set", label: t, newRunId: false };
 }
 
-const KNOWN_SUBCOMMANDS = new Set([
-  ...DEV_SUBCOMMANDS.map((s) => s.value),
-  "-h", "--help", "?",
-]);
+const KNOWN_SUBCOMMANDS = new Set([...DEV_SUBCOMMANDS.map((s) => s.value), "-h", "--help", "?"]);
 
 export function devDispatch(input: string): SubcommandRoute {
   const trimmed = input.trim();

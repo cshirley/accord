@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -86,7 +86,7 @@ describe("bootstrapWorkItem — idempotency (AC-5 resume safety)", () => {
     const wiPath = join(".tasks", `${PASSING.key}.json`);
     const wi = JSON.parse(readFileSync(wiPath, "utf8"));
     wi.phase = "coding";
-    wi.spec = "docs/dev/" + PASSING.key + "/spec.json";
+    wi.spec = `docs/dev/${PASSING.key}/spec.json`;
     wi.cost_usd = 4.2;
     writeFileSync(wiPath, JSON.stringify(wi, null, 2));
 
@@ -97,7 +97,7 @@ describe("bootstrapWorkItem — idempotency (AC-5 resume safety)", () => {
     });
     const after = JSON.parse(readFileSync(wiPath, "utf8"));
     expect(after.phase).toBe("coding");
-    expect(after.spec).toBe("docs/dev/" + PASSING.key + "/spec.json");
+    expect(after.spec).toBe(`docs/dev/${PASSING.key}/spec.json`);
     expect(after.cost_usd).toBe(4.2);
   });
 });

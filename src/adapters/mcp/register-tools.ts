@@ -5,41 +5,46 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { DevHarnessConfig } from "../../core/config/index.js";
+import { devCodeBrief, devNonce, devQuickFixBrief } from "../../core/briefing/code-brief.js";
+import { devDecisionPacket } from "../../core/briefing/decision-packet.js";
 import type { IntentRecommendation } from "../../core/commands/intent.js";
-import { formatIntentRecommendation, formatRefinementResult, recommendIntentMode, refineWithTicketSignals } from "../../core/commands/intent.js";
+import {
+  formatIntentRecommendation,
+  formatRefinementResult,
+  recommendIntentMode,
+  refineWithTicketSignals,
+} from "../../core/commands/intent.js";
+import type { DevHarnessConfig } from "../../core/config/index.js";
+import { devInitDetect } from "../../core/config/init-detect.js";
+import { devInitWrite, type WriteTarget } from "../../core/config/init-write.js";
 import { devTasks } from "../../core/queries/dashboard.js";
+import { devResumeState } from "../../core/queries/resume-state.js";
+import { devRetro } from "../../core/queries/retro.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { devSpecGaps } from "../../core/queries/spec-gaps.js";
 import { devVerifySummary } from "../../core/queries/verify-summary.js";
-import { devResumeState } from "../../core/queries/resume-state.js";
-import { devRetro } from "../../core/queries/retro.js";
+import {
+  devCheckpointDelete,
+  devCheckpointRead,
+  devCheckpointWrite,
+} from "../../core/work-items/checkpoint.js";
 import {
   devBootstrap,
   devFinalizeWorkItem,
-  devTransition,
   devPromoteEvents,
+  devTransition,
   type FinalizeWorkItemInput,
 } from "../../core/work-items/lifecycle.js";
 import type { Checkpoint } from "../../core/work-items/types.js";
-import { devCheckpointRead, devCheckpointWrite, devCheckpointDelete } from "../../core/work-items/checkpoint.js";
-import { devCodeBrief, devQuickFixBrief, devNonce } from "../../core/briefing/code-brief.js";
-import { devDecisionPacket } from "../../core/briefing/decision-packet.js";
-import { devInitDetect } from "../../core/config/init-detect.js";
-import { devInitWrite, type WriteTarget } from "../../core/config/init-write.js";
 
 function stringifyFieldValues(fields: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(fields).map(([k, v]) => [
-      k,
-      typeof v === "string" ? v : JSON.stringify(v),
-    ]),
+    Object.entries(fields).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]),
   );
 }
 
 function ok(text: string, details?: unknown) {
-  const body =
-    details === undefined ? text : `${text}\n---\n${JSON.stringify(details, null, 2)}`;
+  const body = details === undefined ? text : `${text}\n---\n${JSON.stringify(details, null, 2)}`;
   return { content: [{ type: "text" as const, text: body }] };
 }
 
@@ -222,12 +227,19 @@ export function registerAccordMcpTools(
         insights_dir: z
           .string()
           .optional()
-          .describe("Path to pi-insights directory (defaults to ./insights or ~/.config/pi/agent/insights)"),
+          .describe(
+            "Path to pi-insights directory (defaults to ./insights or ~/.config/pi/agent/insights)",
+          ),
         include_legacy_heuristic: z
           .boolean()
           .optional()
-          .describe("Also include pre-marker sessions that mention /dev, .tasks, or phase agents (default true)"),
-        limit: z.number().optional().describe("Maximum representative sessions to return (default 50)"),
+          .describe(
+            "Also include pre-marker sessions that mention /dev, .tasks, or phase agents (default true)",
+          ),
+        limit: z
+          .number()
+          .optional()
+          .describe("Maximum representative sessions to return (default 50)"),
         since: z.string().optional().describe("Only include sessions since this ISO date/time"),
         work_item_id: z
           .string()
@@ -449,8 +461,7 @@ export function registerAccordMcpTools(
   mcp.registerTool(
     "dev_init_detect",
     {
-      description:
-        "Detect project stack, infer commands, resolve config placement for /dev init",
+      description: "Detect project stack, infer commands, resolve config placement for /dev init",
       inputSchema: {
         cwd: z.string().optional().describe("Directory to scan (defaults to process cwd)"),
       },
@@ -476,7 +487,10 @@ export function registerAccordMcpTools(
             "Where to write: local (cwd only), root (root + link), root_replace (replace root + link), link_only (ref directive only)",
           ),
         cwd: z.string().optional().describe("Current working directory (defaults to process cwd)"),
-        git_root: z.string().optional().describe("Git root directory. Required when target ≠ local."),
+        git_root: z
+          .string()
+          .optional()
+          .describe("Git root directory. Required when target ≠ local."),
       },
     },
     async (params) => {

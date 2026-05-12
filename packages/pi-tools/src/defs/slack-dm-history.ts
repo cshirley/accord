@@ -1,21 +1,20 @@
-import { defineTool } from "../framework.js";
 import { getSlackAuth } from "../auth.js";
+import { defineTool } from "../framework.js";
 import {
-  makeSlackRequest, getTeamDomain, makePermalink,
+  getTeamDomain,
+  makePermalink,
+  makeSlackRequest,
   type UnansweredDM,
 } from "../services/slack.client.js";
 
-export default defineTool<
-  { userId: string; limit?: number; oldest?: string },
-  UnansweredDM[]
->({
+export default defineTool<{ userId: string; limit?: number; oldest?: string }, UnansweredDM[]>({
   name: "slack-getDMHistory",
   label: "Get Unanswered DMs",
   description: "Find unanswered DM threads that need a response",
 
   params: {
     userId: { type: "string", required: true, description: "Your Slack user ID" },
-    limit:  { type: "number", default: 10, description: "Max DM conversations to check" },
+    limit: { type: "number", default: 10, description: "Max DM conversations to check" },
     oldest: { type: "string", description: "Only check messages after this timestamp" },
   },
 
@@ -25,7 +24,9 @@ export default defineTool<
   async execute(p) {
     const teamDomain = await getTeamDomain();
     const convResp = await makeSlackRequest("conversations.list", {
-      types: "im", limit: p.limit || 10, exclude_archived: true,
+      types: "im",
+      limit: p.limit || 10,
+      exclude_archived: true,
     });
 
     const unanswered: UnansweredDM[] = [];
@@ -33,14 +34,15 @@ export default defineTool<
     for (const ch of (convResp.channels || []).slice(0, p.limit || 10)) {
       try {
         const hist = await makeSlackRequest("conversations.history", {
-          channel: ch.id, limit: 1,
+          channel: ch.id,
+          limit: 1,
           ...(p.oldest ? { oldest: p.oldest } : {}),
         });
         const lastMsg = hist.messages?.[0];
         if (lastMsg && lastMsg.user !== p.userId && !lastMsg.subtype) {
           // Skip if you've reacted to the message (emoji = acknowledgement)
-          const youReacted = (lastMsg.reactions || []).some(
-            (r: any) => (r.users || []).includes(p.userId),
+          const youReacted = (lastMsg.reactions || []).some((r: any) =>
+            (r.users || []).includes(p.userId),
           );
           if (!youReacted) {
             unanswered.push({
@@ -52,18 +54,21 @@ export default defineTool<
             });
           }
         }
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
 
     return unanswered;
   },
 
   format(threads) {
-    if (threads.length === 0) return { text: "No unanswered DM threads", details: { unanswered: [] } };
+    if (threads.length === 0)
+      return { text: "No unanswered DM threads", details: { unanswered: [] } };
 
-    const lines = threads.map((t) =>
-      `  • From user ${t.user}: "${t.lastMessage.slice(0, 120)}" — ${t.permalink}`,
-    ).join("\n");
+    const lines = threads
+      .map((t) => `  • From user ${t.user}: "${t.lastMessage.slice(0, 120)}" — ${t.permalink}`)
+      .join("\n");
     return {
       text: `${threads.length} unanswered DM threads:\n${lines}`,
       details: { unanswered: threads },

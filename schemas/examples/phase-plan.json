@@ -11,8 +11,16 @@
       ]
     },
     "questions": [
-      { "id": "q_guidance_1", "stage": "engineer_guidance", "text": "Should the refresh endpoint delegate to AuthService.refresh(), or a new dedicated RefreshService?" },
-      { "id": "q_guidance_2", "stage": "engineer_guidance", "text": "Any files, modules, or patterns to use or avoid?" }
+      {
+        "id": "q_guidance_1",
+        "stage": "engineer_guidance",
+        "text": "Should the refresh endpoint delegate to AuthService.refresh(), or a new dedicated RefreshService?"
+      },
+      {
+        "id": "q_guidance_2",
+        "stage": "engineer_guidance",
+        "text": "Any files, modules, or patterns to use or avoid?"
+      }
     ],
     "usage": { "prompt_tokens": 7800, "completion_tokens": 1100 }
   },

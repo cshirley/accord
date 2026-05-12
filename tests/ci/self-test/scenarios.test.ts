@@ -25,22 +25,21 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
+import { decideResume, type WorkItemState } from "../../../scripts/ci/decide-resume.js";
 import { runAgentsMdGate } from "../../../scripts/ci/gate-agents-md.js";
 import {
   DEFAULT_TICKET_GATE_CONFIG,
-  runTicketGate,
   type JiraIssue,
+  runTicketGate,
   type TicketGateCheckId,
   type TicketGateConfig,
 } from "../../../scripts/ci/gate-ticket.js";
 import {
-  dispatchTerminal,
   checkCostCap,
+  dispatchTerminal,
   type TerminalOpts,
   type WorkItemForCostCap,
 } from "../../../scripts/ci/parse-phase-result.js";
-import { decideResume, type WorkItemState } from "../../../scripts/ci/decide-resume.js";
 
 const GATE_CFG_AGENTS = { transitionOnFailure: "Needs Triage" } as const;
 const TICKET_GATE_CFG: TicketGateConfig = {
@@ -69,19 +68,22 @@ function passingJiraTicket(): JiraIssue {
       issuetype: { name: "Story" },
       status: { name: "Ready for Autopilot" },
       summary: "Add rate limit on /v1/search",
-      description: [
-        "## Problem",
-        "WHAT: callers exhaust pool. WHY: incident INC-1023.",
-        "",
-        "## Acceptance criteria",
-        "- AC1: limiter at 60 req/min/IP",
-        "",
-        "## Out of scope",
-        "- pool sizing",
-        "",
-        "## Target paths",
-        "- services/search-api/",
-      ].join("\n") + "\n\n" + "padding ".repeat(50),
+      description:
+        [
+          "## Problem",
+          "WHAT: callers exhaust pool. WHY: incident INC-1023.",
+          "",
+          "## Acceptance criteria",
+          "- AC1: limiter at 60 req/min/IP",
+          "",
+          "## Out of scope",
+          "- pool sizing",
+          "",
+          "## Target paths",
+          "- services/search-api/",
+        ].join("\n") +
+        "\n\n" +
+        "padding ".repeat(50),
     },
   };
 }
@@ -124,7 +126,10 @@ describe("AC-17 scenario 2: failing-ticket-gate sub-checks (eight sub-fixtures)"
         ...i,
         fields: {
           ...i.fields,
-          description: i.fields.description.replace(/## Acceptance criteria[\s\S]*?(?=\n## |$)/i, ""),
+          description: i.fields.description.replace(
+            /## Acceptance criteria[\s\S]*?(?=\n## |$)/i,
+            "",
+          ),
         },
       }),
     },
@@ -214,10 +219,7 @@ describe("AC-17 scenario 3: missing-AGENTS.md (three sub-fixtures)", () => {
   test("(c) malformed JSON / missing test.command → subCheck reflects it", () => {
     const dir = mkdtempSync(join(tmpdir(), "selftest-agentsmd-c-"));
     try {
-      writeFileSync(
-        join(dir, "AGENTS.md"),
-        '## Dev Harness\n\n```json\n{ "test": {} }\n```\n',
-      );
+      writeFileSync(join(dir, "AGENTS.md"), '## Dev Harness\n\n```json\n{ "test": {} }\n```\n');
       const r = runAgentsMdGate(dir, GATE_CFG_AGENTS);
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.subCheck).toBe("missing test.command");

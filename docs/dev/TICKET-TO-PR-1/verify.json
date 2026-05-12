@@ -8,205 +8,480 @@
       "ac_id": "AC-1",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Reusable workflow declares workflow_call + repository_dispatch + dispatch validation", "file": ".github/workflows/autopipeline.yml", "line_range": "1-60" },
-        { "type": "file", "name": "Dispatch field validator throws MISSING_REQUIRED_DISPATCH_FIELD", "file": "scripts/ci/dispatch.ts", "line_range": "1-120" },
-        { "type": "test", "name": "dispatch validation tests", "file": "tests/ci/inputs-and-concurrency.test.ts", "run_log": "30/30 pass (workflow + dispatch surface)" }
+        {
+          "type": "file",
+          "name": "Reusable workflow declares workflow_call + repository_dispatch + dispatch validation",
+          "file": ".github/workflows/autopipeline.yml",
+          "line_range": "1-60"
+        },
+        {
+          "type": "file",
+          "name": "Dispatch field validator throws MISSING_REQUIRED_DISPATCH_FIELD",
+          "file": "scripts/ci/dispatch.ts",
+          "line_range": "1-120"
+        },
+        {
+          "type": "test",
+          "name": "dispatch validation tests",
+          "file": "tests/ci/inputs-and-concurrency.test.ts",
+          "run_log": "30/30 pass (workflow + dispatch surface)"
+        }
       ]
     },
     {
       "ac_id": "AC-2",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "AGENTS.md gate sub-checks (file, section, JSON parse, test.command)", "file": "scripts/ci/gate-agents-md.ts", "line_range": "1-160" },
-        { "type": "test", "name": "AGENTS.md gate unit tests covering pass/fail paths", "file": "tests/ci/agents-md-gate.test.ts", "run_log": "all sub-checks + adversary paths pass" }
+        {
+          "type": "file",
+          "name": "AGENTS.md gate sub-checks (file, section, JSON parse, test.command)",
+          "file": "scripts/ci/gate-agents-md.ts",
+          "line_range": "1-160"
+        },
+        {
+          "type": "test",
+          "name": "AGENTS.md gate unit tests covering pass/fail paths",
+          "file": "tests/ci/agents-md-gate.test.ts",
+          "run_log": "all sub-checks + adversary paths pass"
+        }
       ]
     },
     {
       "ac_id": "AC-3",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Eight Jira completeness sub-checks return failedChecks array", "file": "scripts/ci/gate-ticket.ts", "line_range": "1-220" },
-        { "type": "test", "name": "Ticket-gate tests covering each sub-check + multi-fail reporting", "file": "tests/ci/gate-ticket.test.ts", "run_log": "8 sub-checks + adversary cases pass" }
+        {
+          "type": "file",
+          "name": "Eight Jira completeness sub-checks return failedChecks array",
+          "file": "scripts/ci/gate-ticket.ts",
+          "line_range": "1-220"
+        },
+        {
+          "type": "test",
+          "name": "Ticket-gate tests covering each sub-check + multi-fail reporting",
+          "file": "tests/ci/gate-ticket.test.ts",
+          "run_log": "8 sub-checks + adversary cases pass"
+        }
       ]
     },
     {
       "ac_id": "AC-4",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "dispatchTerminal renders questions[] verbatim + transitions to Needs Author Input", "file": "scripts/ci/parse-phase-result.ts", "line_range": "1-260" },
-        { "type": "test", "name": "needs_input case verifies verbatim payload + transition + artifact upload", "file": "tests/ci/parse-phase-result.test.ts", "run_log": "needs_input path covered" }
+        {
+          "type": "file",
+          "name": "dispatchTerminal renders questions[] verbatim + transitions to Needs Author Input",
+          "file": "scripts/ci/parse-phase-result.ts",
+          "line_range": "1-260"
+        },
+        {
+          "type": "test",
+          "name": "needs_input case verifies verbatim payload + transition + artifact upload",
+          "file": "tests/ci/parse-phase-result.test.ts",
+          "run_log": "needs_input path covered"
+        }
       ]
     },
     {
       "ac_id": "AC-5",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Happy-path orchestration (gates -> seed -> bootstrap -> phases -> commit/PR)", "file": ".github/workflows/autopipeline.yml", "line_range": "60-260" },
-        { "type": "file", "name": "Brief seeding with canonical phase-align shape", "file": "scripts/ci/seed-brief.ts", "line_range": "1-200" },
-        { "type": "file", "name": "Work-item bootstrap via direct devBootstrap/devTransition imports", "file": "scripts/ci/bootstrap-work-item.ts", "line_range": "1-120" },
-        { "type": "test", "name": "End-to-end happy-path scenario (TC-4)", "file": "tests/ci/self-test/complete-happy-path.test.ts", "run_log": "happy-path PR body + transitions verified" }
+        {
+          "type": "file",
+          "name": "Happy-path orchestration (gates -> seed -> bootstrap -> phases -> commit/PR)",
+          "file": ".github/workflows/autopipeline.yml",
+          "line_range": "60-260"
+        },
+        {
+          "type": "file",
+          "name": "Brief seeding with canonical phase-align shape",
+          "file": "scripts/ci/seed-brief.ts",
+          "line_range": "1-200"
+        },
+        {
+          "type": "file",
+          "name": "Work-item bootstrap via direct devBootstrap/devTransition imports",
+          "file": "scripts/ci/bootstrap-work-item.ts",
+          "line_range": "1-120"
+        },
+        {
+          "type": "test",
+          "name": "End-to-end happy-path scenario (TC-4)",
+          "file": "tests/ci/self-test/complete-happy-path.test.ts",
+          "run_log": "happy-path PR body + transitions verified"
+        }
       ]
     },
     {
       "ac_id": "AC-6",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "runPhase spawns pi -p --mode json /skill:accord <phase> <ticket>", "file": "scripts/ci/run-phase.ts", "line_range": "1-180" },
-        { "type": "test", "name": "Allow-list regex enforces invocation shape; SDK import ban scans scripts/ci + .yml", "file": "tests/ci/no-extra-pi-spawns.test.ts", "run_log": "every .ts/.yml under scripts/ci matches allow-list; no SDK imports" }
+        {
+          "type": "file",
+          "name": "runPhase spawns pi -p --mode json /skill:accord <phase> <ticket>",
+          "file": "scripts/ci/run-phase.ts",
+          "line_range": "1-180"
+        },
+        {
+          "type": "test",
+          "name": "Allow-list regex enforces invocation shape; SDK import ban scans scripts/ci + .yml",
+          "file": "tests/ci/no-extra-pi-spawns.test.ts",
+          "run_log": "every .ts/.yml under scripts/ci matches allow-list; no SDK imports"
+        }
       ]
     },
     {
       "ac_id": "AC-7",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "checkCostCap strict-less-than threshold + cost summary body", "file": "scripts/ci/parse-phase-result.ts", "line_range": "260-380" },
-        { "type": "test", "name": "Cost-cap unit tests cover strict <, cumulative, summary content", "file": "tests/ci/cost-cap.test.ts", "run_log": "below/at/above cap + cumulative paths pass" }
+        {
+          "type": "file",
+          "name": "checkCostCap strict-less-than threshold + cost summary body",
+          "file": "scripts/ci/parse-phase-result.ts",
+          "line_range": "260-380"
+        },
+        {
+          "type": "test",
+          "name": "Cost-cap unit tests cover strict <, cumulative, summary content",
+          "file": "tests/ci/cost-cap.test.ts",
+          "run_log": "below/at/above cap + cumulative paths pass"
+        }
       ]
     },
     {
       "ac_id": "AC-8",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "renderPrBody includes AC citation + verify report quote + secret-scrub pre-check", "file": "scripts/ci/commit-and-pr.ts", "line_range": "1-260" },
-        { "type": "test", "name": "PR body shape + scrubSecrets test", "file": "tests/ci/commit-and-pr.test.ts", "run_log": "renderPrBody asserts AC + verify quote; scrubSecrets throws on match" }
+        {
+          "type": "file",
+          "name": "renderPrBody includes AC citation + verify report quote + secret-scrub pre-check",
+          "file": "scripts/ci/commit-and-pr.ts",
+          "line_range": "1-260"
+        },
+        {
+          "type": "test",
+          "name": "PR body shape + scrubSecrets test",
+          "file": "tests/ci/commit-and-pr.test.ts",
+          "run_log": "renderPrBody asserts AC + verify quote; scrubSecrets throws on match"
+        }
       ]
     },
     {
       "ac_id": "AC-9",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "PR trailer pi.dev/autopilot: v1 + idempotent autopilot/v1 label creation", "file": "scripts/ci/commit-and-pr.ts", "line_range": "120-220" },
-        { "type": "test", "name": "Trailer presence + label idempotency tested", "file": "tests/ci/commit-and-pr.test.ts", "run_log": "trailer literal + labelExists short-circuit pass" }
+        {
+          "type": "file",
+          "name": "PR trailer pi.dev/autopilot: v1 + idempotent autopilot/v1 label creation",
+          "file": "scripts/ci/commit-and-pr.ts",
+          "line_range": "120-220"
+        },
+        {
+          "type": "test",
+          "name": "Trailer presence + label idempotency tested",
+          "file": "tests/ci/commit-and-pr.test.ts",
+          "run_log": "trailer literal + labelExists short-circuit pass"
+        }
       ]
     },
     {
       "ac_id": "AC-10",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "dispatchTerminal renders blockers/gaps verbatim with transitions", "file": "scripts/ci/parse-phase-result.ts", "line_range": "60-180" },
-        { "type": "test", "name": "Blocked + gaps cases verified verbatim", "file": "tests/ci/parse-phase-result.test.ts", "run_log": "blocked -> Blocked, gaps -> Gaps Reported pass" }
+        {
+          "type": "file",
+          "name": "dispatchTerminal renders blockers/gaps verbatim with transitions",
+          "file": "scripts/ci/parse-phase-result.ts",
+          "line_range": "60-180"
+        },
+        {
+          "type": "test",
+          "name": "Blocked + gaps cases verified verbatim",
+          "file": "tests/ci/parse-phase-result.test.ts",
+          "run_log": "blocked -> Blocked, gaps -> Gaps Reported pass"
+        }
       ]
     },
     {
       "ac_id": "AC-11",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "slugify in seed-brief.ts used as branch slug source", "file": "scripts/ci/seed-brief.ts", "line_range": "1-100" },
-        { "type": "file", "name": "commitAndPr uses force-with-lease and upserts PR for the deterministic branch", "file": "scripts/ci/commit-and-pr.ts", "line_range": "60-180" },
-        { "type": "test", "name": "Slug edge cases + branch naming + force-with-lease + upsert", "file": "tests/ci/commit-and-pr.test.ts", "run_log": "branch deterministic, push uses force-with-lease, PR idempotent" }
+        {
+          "type": "file",
+          "name": "slugify in seed-brief.ts used as branch slug source",
+          "file": "scripts/ci/seed-brief.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "file",
+          "name": "commitAndPr uses force-with-lease and upserts PR for the deterministic branch",
+          "file": "scripts/ci/commit-and-pr.ts",
+          "line_range": "60-180"
+        },
+        {
+          "type": "test",
+          "name": "Slug edge cases + branch naming + force-with-lease + upsert",
+          "file": "tests/ci/commit-and-pr.test.ts",
+          "run_log": "branch deterministic, push uses force-with-lease, PR idempotent"
+        }
       ]
     },
     {
       "ac_id": "AC-12",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "setup-pi composite: actions/cache@v4 with literal key/restore-keys/paths", "file": ".github/actions/setup-pi/action.yml", "line_range": "1-90" },
-        { "type": "test", "name": "Cache surface parsed and verbatim-asserted", "file": "tests/ci/setup-pi-cache.test.ts", "run_log": "key + restore-keys + paths + env vars asserted" }
+        {
+          "type": "file",
+          "name": "setup-pi composite: actions/cache@v4 with literal key/restore-keys/paths",
+          "file": ".github/actions/setup-pi/action.yml",
+          "line_range": "1-90"
+        },
+        {
+          "type": "test",
+          "name": "Cache surface parsed and verbatim-asserted",
+          "file": "tests/ci/setup-pi-cache.test.ts",
+          "run_log": "key + restore-keys + paths + env vars asserted"
+        }
       ]
     },
     {
       "ac_id": "AC-13",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Cache path excludes auth.json + sessions/**; post-step rm -f auth.json", "file": ".github/actions/setup-pi/action.yml", "line_range": "20-80" },
-        { "type": "test", "name": "Exclusion + scrub post-step asserted", "file": "tests/ci/setup-pi-cache.test.ts", "run_log": "auth.json + sessions/** excluded; if:always() scrub present" }
+        {
+          "type": "file",
+          "name": "Cache path excludes auth.json + sessions/**; post-step rm -f auth.json",
+          "file": ".github/actions/setup-pi/action.yml",
+          "line_range": "20-80"
+        },
+        {
+          "type": "test",
+          "name": "Exclusion + scrub post-step asserted",
+          "file": "tests/ci/setup-pi-cache.test.ts",
+          "run_log": "auth.json + sessions/** excluded; if:always() scrub present"
+        }
       ]
     },
     {
       "ac_id": "AC-14",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Every terminal step uploads accord-state-${{ inputs.ticket }} with overwrite + 14d retention", "file": ".github/workflows/autopipeline.yml", "line_range": "200-340" },
-        { "type": "test", "name": "artifact-upload test walks YAML and asserts canonical block per terminal", "file": "tests/ci/artifact-upload.test.ts", "run_log": "every terminal has matching upload-artifact@v4" }
+        {
+          "type": "file",
+          "name": "Every terminal step uploads accord-state-${{ inputs.ticket }} with overwrite + 14d retention",
+          "file": ".github/workflows/autopipeline.yml",
+          "line_range": "200-340"
+        },
+        {
+          "type": "test",
+          "name": "artifact-upload test walks YAML and asserts canonical block per terminal",
+          "file": "tests/ci/artifact-upload.test.ts",
+          "run_log": "every terminal has matching upload-artifact@v4"
+        }
       ]
     },
     {
       "ac_id": "AC-15",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Workflow input surface with declared defaults", "file": ".github/workflows/autopipeline.yml", "line_range": "1-60" },
-        { "type": "file", "name": "Single source of truth for INPUTS", "file": "scripts/ci/lib/inputs.ts", "line_range": "1-120" },
-        { "type": "test", "name": "Input contract enforced", "file": "tests/ci/inputs-and-concurrency.test.ts", "run_log": "each input + default + type asserted" }
+        {
+          "type": "file",
+          "name": "Workflow input surface with declared defaults",
+          "file": ".github/workflows/autopipeline.yml",
+          "line_range": "1-60"
+        },
+        {
+          "type": "file",
+          "name": "Single source of truth for INPUTS",
+          "file": "scripts/ci/lib/inputs.ts",
+          "line_range": "1-120"
+        },
+        {
+          "type": "test",
+          "name": "Input contract enforced",
+          "file": "tests/ci/inputs-and-concurrency.test.ts",
+          "run_log": "each input + default + type asserted"
+        }
       ]
     },
     {
       "ac_id": "AC-16",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "decideResume conjunctive gate: phase + normalised brief hash + strict cost <", "file": "scripts/ci/decide-resume.ts", "line_range": "1-180" },
-        { "type": "test", "name": "Resume matrix + precedence + cleanupPaths + normaliseBrief invariants", "file": "tests/ci/decide-resume.test.ts", "run_log": "all reasons (no_prior_state, phase_non_resumable, brief_drift, cost_cap_breached) covered" }
+        {
+          "type": "file",
+          "name": "decideResume conjunctive gate: phase + normalised brief hash + strict cost <",
+          "file": "scripts/ci/decide-resume.ts",
+          "line_range": "1-180"
+        },
+        {
+          "type": "test",
+          "name": "Resume matrix + precedence + cleanupPaths + normaliseBrief invariants",
+          "file": "tests/ci/decide-resume.test.ts",
+          "run_log": "all reasons (no_prior_state, phase_non_resumable, brief_drift, cost_cap_breached) covered"
+        }
       ]
     },
     {
       "ac_id": "AC-17",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Self-test workflow triggers on PR; runs scenario corpus + exit-code policy", "file": ".github/workflows/test-autopipeline.yml", "line_range": "1-80" },
-        { "type": "test", "name": "Ten-scenario corpus drives deterministic handlers", "file": "tests/ci/self-test/scenarios.test.ts", "run_log": "30/30 self-test pass" }
+        {
+          "type": "file",
+          "name": "Self-test workflow triggers on PR; runs scenario corpus + exit-code policy",
+          "file": ".github/workflows/test-autopipeline.yml",
+          "line_range": "1-80"
+        },
+        {
+          "type": "test",
+          "name": "Ten-scenario corpus drives deterministic handlers",
+          "file": "tests/ci/self-test/scenarios.test.ts",
+          "run_log": "30/30 self-test pass"
+        }
       ]
     },
     {
       "ac_id": "AC-18",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "Terminal branches exit 0; MissingSecretError causes non-zero exit", "file": "scripts/ci/lib/env.ts", "line_range": "1-100" },
-        { "type": "test", "name": "Exit-code policy enforced per terminal category", "file": "tests/ci/exit-code.test.ts", "run_log": "all 7 terminals -> 0; missing secret -> non-zero" }
+        {
+          "type": "file",
+          "name": "Terminal branches exit 0; MissingSecretError causes non-zero exit",
+          "file": "scripts/ci/lib/env.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "test",
+          "name": "Exit-code policy enforced per terminal category",
+          "file": "tests/ci/exit-code.test.ts",
+          "run_log": "all 7 terminals -> 0; missing secret -> non-zero"
+        }
       ]
     },
     {
       "ac_id": "AC-19",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "concurrency: group accord-${{ inputs.ticket }}, cancel-in-progress: false", "file": ".github/workflows/autopipeline.yml", "line_range": "40-60" },
-        { "type": "test", "name": "Concurrency block asserted by parser", "file": "tests/ci/inputs-and-concurrency.test.ts", "run_log": "literal concurrency group + cancel flag asserted" }
+        {
+          "type": "file",
+          "name": "concurrency: group accord-${{ inputs.ticket }}, cancel-in-progress: false",
+          "file": ".github/workflows/autopipeline.yml",
+          "line_range": "40-60"
+        },
+        {
+          "type": "test",
+          "name": "Concurrency block asserted by parser",
+          "file": "tests/ci/inputs-and-concurrency.test.ts",
+          "run_log": "literal concurrency group + cancel flag asserted"
+        }
       ]
     },
     {
       "ac_id": "AC-20",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "ANTHROPIC_API_KEY required by env.ts", "file": "scripts/ci/lib/env.ts", "line_range": "1-100" },
-        { "type": "test", "name": "Missing ANTHROPIC_API_KEY -> MISSING_REQUIRED_SECRET: ANTHROPIC_API_KEY", "file": "tests/ci/lib/env.test.ts", "run_log": "18/18 env tests pass" }
+        {
+          "type": "file",
+          "name": "ANTHROPIC_API_KEY required by env.ts",
+          "file": "scripts/ci/lib/env.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "test",
+          "name": "Missing ANTHROPIC_API_KEY -> MISSING_REQUIRED_SECRET: ANTHROPIC_API_KEY",
+          "file": "tests/ci/lib/env.test.ts",
+          "run_log": "18/18 env tests pass"
+        }
       ]
     },
     {
       "ac_id": "AC-21",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "JIRA_BASE_URL required by env.ts", "file": "scripts/ci/lib/env.ts", "line_range": "1-100" },
-        { "type": "test", "name": "Missing JIRA_BASE_URL -> MISSING_REQUIRED_SECRET: JIRA_BASE_URL", "file": "tests/ci/lib/env.test.ts", "run_log": "literal error message asserted" }
+        {
+          "type": "file",
+          "name": "JIRA_BASE_URL required by env.ts",
+          "file": "scripts/ci/lib/env.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "test",
+          "name": "Missing JIRA_BASE_URL -> MISSING_REQUIRED_SECRET: JIRA_BASE_URL",
+          "file": "tests/ci/lib/env.test.ts",
+          "run_log": "literal error message asserted"
+        }
       ]
     },
     {
       "ac_id": "AC-22",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "JIRA_USER_EMAIL required by env.ts", "file": "scripts/ci/lib/env.ts", "line_range": "1-100" },
-        { "type": "test", "name": "Missing JIRA_USER_EMAIL -> MISSING_REQUIRED_SECRET: JIRA_USER_EMAIL", "file": "tests/ci/lib/env.test.ts", "run_log": "literal error message asserted" }
+        {
+          "type": "file",
+          "name": "JIRA_USER_EMAIL required by env.ts",
+          "file": "scripts/ci/lib/env.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "test",
+          "name": "Missing JIRA_USER_EMAIL -> MISSING_REQUIRED_SECRET: JIRA_USER_EMAIL",
+          "file": "tests/ci/lib/env.test.ts",
+          "run_log": "literal error message asserted"
+        }
       ]
     },
     {
       "ac_id": "AC-23",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "JIRA_API_TOKEN required by env.ts", "file": "scripts/ci/lib/env.ts", "line_range": "1-100" },
-        { "type": "test", "name": "Missing JIRA_API_TOKEN -> MISSING_REQUIRED_SECRET: JIRA_API_TOKEN", "file": "tests/ci/lib/env.test.ts", "run_log": "literal error message asserted" }
+        {
+          "type": "file",
+          "name": "JIRA_API_TOKEN required by env.ts",
+          "file": "scripts/ci/lib/env.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "test",
+          "name": "Missing JIRA_API_TOKEN -> MISSING_REQUIRED_SECRET: JIRA_API_TOKEN",
+          "file": "tests/ci/lib/env.test.ts",
+          "run_log": "literal error message asserted"
+        }
       ]
     },
     {
       "ac_id": "AC-24",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "GITHUB_TOKEN resolution + GH_PAT_PR override in same-repo mode", "file": "scripts/ci/lib/env.ts", "line_range": "1-100" },
-        { "type": "test", "name": "resolveGithubToken same-repo cases", "file": "tests/ci/lib/env.test.ts", "run_log": "GITHUB_TOKEN fallback + GH_PAT_PR override + missing -> MISSING_REQUIRED_SECRET: GITHUB_TOKEN" }
+        {
+          "type": "file",
+          "name": "GITHUB_TOKEN resolution + GH_PAT_PR override in same-repo mode",
+          "file": "scripts/ci/lib/env.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "test",
+          "name": "resolveGithubToken same-repo cases",
+          "file": "tests/ci/lib/env.test.ts",
+          "run_log": "GITHUB_TOKEN fallback + GH_PAT_PR override + missing -> MISSING_REQUIRED_SECRET: GITHUB_TOKEN"
+        }
       ]
     },
     {
       "ac_id": "AC-25",
       "status": "pass",
       "evidence": [
-        { "type": "file", "name": "GH_PAT_PR required in cross-repo mode", "file": "scripts/ci/lib/env.ts", "line_range": "1-100" },
-        { "type": "test", "name": "resolveGithubToken cross-repo cases throw MISSING_REQUIRED_SECRET: GH_PAT_PR", "file": "tests/ci/lib/env.test.ts", "run_log": "cross-repo mode without GH_PAT_PR fails even with GITHUB_TOKEN set" }
+        {
+          "type": "file",
+          "name": "GH_PAT_PR required in cross-repo mode",
+          "file": "scripts/ci/lib/env.ts",
+          "line_range": "1-100"
+        },
+        {
+          "type": "test",
+          "name": "resolveGithubToken cross-repo cases throw MISSING_REQUIRED_SECRET: GH_PAT_PR",
+          "file": "tests/ci/lib/env.test.ts",
+          "run_log": "cross-repo mode without GH_PAT_PR fails even with GITHUB_TOKEN set"
+        }
       ]
     }
   ],

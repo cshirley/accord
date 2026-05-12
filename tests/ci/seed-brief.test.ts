@@ -2,9 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-import { seedBrief, slugify } from "../../scripts/ci/seed-brief.js";
 import type { JiraIssue } from "../../scripts/ci/gate-ticket.js";
+import { seedBrief, slugify } from "../../scripts/ci/seed-brief.js";
 
 const PASSING: JiraIssue = JSON.parse(
   readFileSync(join(import.meta.dir, "fixtures/jira/gate-passing.json"), "utf8"),
@@ -50,6 +49,33 @@ describe("seedBrief — canonical phase-align sections (TC-13 shape)", () => {
     expect(md).toContain(PASSING.fields.summary);
     // a distinctive substring from the description
     expect(md).toContain("INC-1023");
+  });
+
+  test("brief embeds Jira comments section with full JSON for container + each comment", () => {
+    seedBrief({ ticket: PASSING, outDir });
+    const md = readFileSync(join(outDir, "brief.md"), "utf8");
+    expect(md).toContain("### Jira comments (full REST fields)");
+    expect(md).toContain("#### Comment container (all non-`comments` fields)");
+    expect(md).toContain('"maxResults": 50');
+    expect(md).toContain("#### Comment 1 (id 10001)");
+    expect(md).toContain("LGTM on scope");
+    expect(md).toContain("#### Comment 2 (id 10002)");
+    expect(md).toContain("ADF body example");
+  });
+
+  test("brief notes when fields.comment is absent", () => {
+    const noComments: JiraIssue = {
+      ...PASSING,
+      fields: {
+        issuetype: PASSING.fields.issuetype,
+        status: PASSING.fields.status,
+        summary: PASSING.fields.summary,
+        description: PASSING.fields.description,
+      },
+    };
+    seedBrief({ ticket: noComments, outDir });
+    const md = readFileSync(join(outDir, "brief.md"), "utf8");
+    expect(md).toContain("No `fields.comment` object was supplied");
   });
 
   test("brief embeds status and issue type verbatim", () => {
@@ -124,7 +150,7 @@ describe("slugify (used by AC-11 branch naming)", () => {
   });
 
   test("caps slug length at 60 chars (deterministic truncation, no trailing dash)", () => {
-    const long = "a".repeat(80) + " end";
+    const long = `${"a".repeat(80)} end`;
     const out = slugify(long);
     expect(out.length).toBeLessThanOrEqual(60);
     expect(out.endsWith("-")).toBe(false);

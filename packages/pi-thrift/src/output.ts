@@ -13,12 +13,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
 import { Container, type SettingItem, SettingsList, Text } from "@mariozechner/pi-tui";
-import {
-  OUTPUT_LEVELS,
-  type OutputLevel,
-  type ThriftConfig,
-  saveConfig,
-} from "./config.js";
+import { OUTPUT_LEVELS, type OutputLevel, saveConfig, type ThriftConfig } from "./config.js";
 
 // ── System prompt fragments ─────────────────────────────────────────────
 
@@ -86,25 +81,29 @@ const E = "\x1b[38;5;52m";
 const X = "\x1b[0m";
 
 const FIRE_FRAMES = [
-  `${R}⠠${O}⠄${X}`, `${O}⠔${Y}⠂${X}`,
-  `${Y}⠊${W}⠑${X}`, `${W}⠑${Y}⠊${X}`,
-  `${Y}⠂${O}⠔${X}`, `${O}⠄${R}⠠${X}`,
-  `${R}⠠${E}⠄${X}`, `${E}⠔${R}⠂${X}`,
+  `${R}⠠${O}⠄${X}`,
+  `${O}⠔${Y}⠂${X}`,
+  `${Y}⠊${W}⠑${X}`,
+  `${W}⠑${Y}⠊${X}`,
+  `${Y}⠂${O}⠔${X}`,
+  `${O}⠄${R}⠠${X}`,
+  `${R}⠠${E}⠄${X}`,
+  `${E}⠔${R}⠂${X}`,
 ];
 
 const ANIMATIONS: Record<Exclude<OutputLevel, "off">, Animation> = {
-  lite:  { frames: FIRE_FRAMES, label: "LITE",  interval: 300 },
-  full:  { frames: FIRE_FRAMES, label: "FULL",  interval: 200 },
+  lite: { frames: FIRE_FRAMES, label: "LITE", interval: 300 },
+  full: { frames: FIRE_FRAMES, label: "FULL", interval: 200 },
   ultra: { frames: FIRE_FRAMES, label: "ULTRA", interval: 100 },
 };
 
 export const OUTPUT_LEVEL_OPTIONS = [
-  { value: "lite",  label: "lite",  description: "Professional, no fluff" },
-  { value: "full",  label: "full",  description: "Classic terse — fragments, short synonyms" },
+  { value: "lite", label: "lite", description: "Professional, no fluff" },
+  { value: "full", label: "full", description: "Classic terse — fragments, short synonyms" },
   { value: "ultra", label: "ultra", description: "Maximum compression — abbreviations, arrows" },
-  { value: "off",   label: "off",   description: "Disable output pruning" },
-  { value: "stop",  label: "stop",  description: "Disable output pruning" },
-  { value: "quit",  label: "quit",  description: "Disable output pruning" },
+  { value: "off", label: "off", description: "Disable output pruning" },
+  { value: "stop", label: "stop", description: "Disable output pruning" },
+  { value: "quit", label: "quit", description: "Disable output pruning" },
 ] as const;
 
 // ── Public handle (used by index.ts) ────────────────────────────────────
@@ -119,10 +118,7 @@ export interface OutputHandle {
 
 // ── Registration ────────────────────────────────────────────────────────
 
-export function registerOutputPruning(
-  pi: ExtensionAPI,
-  config: ThriftConfig,
-): OutputHandle {
+export function registerOutputPruning(pi: ExtensionAPI, config: ThriftConfig): OutputHandle {
   let level: OutputLevel = config.output.level;
   let timer: ReturnType<typeof setInterval> | null = null;
   let frameIndex = 0;
@@ -151,7 +147,7 @@ export function registerOutputPruning(
     const setFrame = (frame: string) => {
       ctx.ui.setStatus(
         "thrift-output",
-        frame + " " + theme.fg("muted", "terse ") + theme.fg("text", anim.label),
+        `${frame} ${theme.fg("muted", "terse ")}${theme.fg("text", anim.label)}`,
       );
     };
 
@@ -221,16 +217,8 @@ export function registerOutputPruning(
       ];
 
       const container = new Container();
-      container.addChild(
-        new Text(theme.fg("accent", theme.bold(" Thrift Config")), 0, 0),
-      );
-      container.addChild(
-        new Text(
-          theme.fg("dim", " Saved to ~/.pi/agent/thrift.json"),
-          0,
-          0,
-        ),
-      );
+      container.addChild(new Text(theme.fg("accent", theme.bold(" Thrift Config")), 0, 0));
+      container.addChild(new Text(theme.fg("dim", " Saved to ~/.pi/agent/thrift.json"), 0, 0));
       container.addChild(new Text("", 0, 0));
 
       const applyChange = (id: string, newValue: string) => {
@@ -239,10 +227,7 @@ export function registerOutputPruning(
           if (!config.enabled) {
             ctx.ui.setStatus("thrift", "");
           }
-        } else if (
-          id === "defaultLevel" &&
-          OUTPUT_LEVELS.includes(newValue as OutputLevel)
-        ) {
+        } else if (id === "defaultLevel" && OUTPUT_LEVELS.includes(newValue as OutputLevel)) {
           config.output.level = newValue as OutputLevel;
         } else if (id === "showStatus") {
           config.showStatus = newValue === "on";
@@ -264,11 +249,7 @@ export function registerOutputPruning(
 
       container.addChild(settingsList);
       container.addChild(
-        new Text(
-          theme.fg("dim", " ←→/hl/tab change • ↑↓/jk move • esc close"),
-          0,
-          0,
-        ),
+        new Text(theme.fg("dim", " ←→/hl/tab change • ↑↓/jk move • esc close"), 0, 0),
       );
 
       const cycleValue = (dir: -1 | 1) => {
@@ -276,8 +257,7 @@ export function registerOutputPruning(
         const item = items[idx];
         if (!item?.values?.length) return;
         const cur = item.values.indexOf(item.currentValue);
-        const next =
-          (cur + dir + item.values.length) % item.values.length;
+        const next = (cur + dir + item.values.length) % item.values.length;
         const newVal = item.values[next]!;
         item.currentValue = newVal;
         settingsList.updateValue(item.id, newVal);
@@ -294,11 +274,7 @@ export function registerOutputPruning(
             cycleValue(-1);
             _tui.requestRender();
             return;
-          } else if (
-            data === "l" ||
-            data === "\u001b[C" ||
-            data === "\t"
-          ) {
+          } else if (data === "l" || data === "\u001b[C" || data === "\t") {
             cycleValue(1);
             _tui.requestRender();
             return;

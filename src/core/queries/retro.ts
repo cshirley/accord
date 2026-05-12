@@ -76,7 +76,11 @@ export interface DevRetroResult {
   harness_sessions: number;
   outcome_counts: Record<string, number>;
   friction_counts: Record<string, number>;
-  top_shift_left: Array<{ category: ShiftLeftFinding["category"]; count: number; recommendation: string }>;
+  top_shift_left: Array<{
+    category: ShiftLeftFinding["category"];
+    count: number;
+    recommendation: string;
+  }>;
   sessions: RetroSession[];
   formatted: string;
 }
@@ -97,7 +101,8 @@ function defaultInsightsDir(): string {
 
 function listJsonFiles(dir: string): string[] {
   try {
-    return fs.readdirSync(dir)
+    return fs
+      .readdirSync(dir)
       .filter((f) => f.endsWith(".json"))
       .map((f) => path.join(dir, f));
   } catch {
@@ -131,16 +136,27 @@ function textBlob(meta: InsightMeta, cache: InsightCache | null): string {
     cache?.briefSummary,
     cache?.friction,
     ...(cache?.userInstructionsToClaude || []),
-  ].filter(Boolean).join("\n").toLowerCase();
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
 }
 
 function isLegacyHarnessSession(blob: string): boolean {
-  return /\bdev[- ]harness\b|\/skill:(accord|dev)|\/dev\b|\.tasks\/|phase-(align|spec|plan|code|verify)/i.test(blob);
+  return /\bdev[- ]harness\b|\/skill:(accord|dev)|\/dev\b|\.tasks\/|phase-(align|spec|plan|code|verify)/i.test(
+    blob,
+  );
 }
 
-function matchesWorkItemFilter(meta: InsightMeta, cache: InsightCache | null, marker: HarnessMarker | null, workItemId?: string): boolean {
+function matchesWorkItemFilter(
+  meta: InsightMeta,
+  cache: InsightCache | null,
+  marker: HarnessMarker | null,
+  workItemId?: string,
+): boolean {
   if (!workItemId) return true;
-  if (marker?.work_item_id === workItemId || marker?.harness_session_tag === workItemId) return true;
+  if (marker?.work_item_id === workItemId || marker?.harness_session_tag === workItemId)
+    return true;
   return textBlob(meta, cache).includes(workItemId.toLowerCase());
 }
 
@@ -155,7 +171,11 @@ function countFriction(total: Record<string, number>, cache: InsightCache | null
   }
 }
 
-function finding(category: ShiftLeftFinding["category"], evidence: string, recommendation: string): ShiftLeftFinding {
+function finding(
+  category: ShiftLeftFinding["category"],
+  evidence: string,
+  recommendation: string,
+): ShiftLeftFinding {
   return { category, evidence, recommendation };
 }
 
@@ -164,52 +184,80 @@ function shiftLeftFindings(meta: InsightMeta, cache: InsightCache | null): Shift
   const friction = cache?.frictionCounts || {};
   const findings: ShiftLeftFinding[] = [];
 
-  if ((friction.misunderstood_request || 0) > 0 || (friction.wrong_approach || 0) > 0 || (friction.wrong_file_or_location || 0) > 0) {
-    findings.push(finding(
-      "intent_scoping",
-      cache?.friction || "Misunderstood request, wrong approach, or wrong target location.",
-      "Shift left with dev_intent, target_paths, out_of_scope, and an escalation ceiling before bootstrapping.",
-    ));
+  if (
+    (friction.misunderstood_request || 0) > 0 ||
+    (friction.wrong_approach || 0) > 0 ||
+    (friction.wrong_file_or_location || 0) > 0
+  ) {
+    findings.push(
+      finding(
+        "intent_scoping",
+        cache?.friction || "Misunderstood request, wrong approach, or wrong target location.",
+        "Shift left with dev_intent, target_paths, out_of_scope, and an escalation ceiling before bootstrapping.",
+      ),
+    );
   }
 
-  if (/missing .*\.tasks|work artifacts?|spec\.json|plan\.json|verify preflight|\/skill:(accord|dev) verify/.test(blob)) {
-    findings.push(finding(
-      "artifact_preflight",
-      cache?.friction || "Run failed or stalled because harness artifacts were missing.",
-      "Add deterministic preflight checks that block verify/resume with exact recovery commands.",
-    ));
+  if (
+    /missing .*\.tasks|work artifacts?|spec\.json|plan\.json|verify preflight|\/skill:(accord|dev) verify/.test(
+      blob,
+    )
+  ) {
+    findings.push(
+      finding(
+        "artifact_preflight",
+        cache?.friction || "Run failed or stalled because harness artifacts were missing.",
+        "Add deterministic preflight checks that block verify/resume with exact recovery commands.",
+      ),
+    );
   }
 
-  if ((meta.toolErrors || 0) > 0 || (friction.tool_failed || 0) > 0 || /plan mode|command blocked|tool failed|bash workaround/.test(blob)) {
-    findings.push(finding(
-      "tool_environment",
-      cache?.friction || "Tools failed or execution environment blocked the intended path.",
-      "Shift left with environment capability checks, plan-mode guards, and explicit fallback prompts.",
-    ));
+  if (
+    (meta.toolErrors || 0) > 0 ||
+    (friction.tool_failed || 0) > 0 ||
+    /plan mode|command blocked|tool failed|bash workaround/.test(blob)
+  ) {
+    findings.push(
+      finding(
+        "tool_environment",
+        cache?.friction || "Tools failed or execution environment blocked the intended path.",
+        "Shift left with environment capability checks, plan-mode guards, and explicit fallback prompts.",
+      ),
+    );
   }
 
   if (/subagent|stuck|brittle|no recorded assistant outcome|review.*no .*outcome/.test(blob)) {
-    findings.push(finding(
-      "subagent_reliability",
-      cache?.friction || "Subagent or review flow left no durable outcome.",
-      "Require structured stuck/review outcome packets and promote them into work-item events.",
-    ));
+    findings.push(
+      finding(
+        "subagent_reliability",
+        cache?.friction || "Subagent or review flow left no durable outcome.",
+        "Require structured stuck/review outcome packets and promote them into work-item events.",
+      ),
+    );
   }
 
   if (["unclear", "partially_achieved", "not_achieved"].includes(cache?.outcome || "")) {
-    findings.push(finding(
-      "terminal_outcome",
-      `Outcome was ${cache?.outcome}.`,
-      "Require a terminal run summary: done, blocked, partially_achieved, or unclear with owner and next command.",
-    ));
+    findings.push(
+      finding(
+        "terminal_outcome",
+        `Outcome was ${cache?.outcome}.`,
+        "Require a terminal run summary: done, blocked, partially_achieved, or unclear with owner and next command.",
+      ),
+    );
   }
 
-  if (/vibe|post harness|manual fix|had to .*fix|missed in spec|missed .*plan|after verify|follow-up edit/.test(blob)) {
-    findings.push(finding(
-      "spec_plan_gap",
-      cache?.friction || "Post-harness coding suggests spec/plan missed implementation detail.",
-      "Feed examples into spec/plan checklists as recurring questions or acceptance criteria prompts.",
-    ));
+  if (
+    /vibe|post harness|manual fix|had to .*fix|missed in spec|missed .*plan|after verify|follow-up edit/.test(
+      blob,
+    )
+  ) {
+    findings.push(
+      finding(
+        "spec_plan_gap",
+        cache?.friction || "Post-harness coding suggests spec/plan missed implementation detail.",
+        "Feed examples into spec/plan checklists as recurring questions or acceptance criteria prompts.",
+      ),
+    );
   }
 
   return findings;
@@ -252,7 +300,9 @@ function formatRetro(result: Omit<DevRetroResult, "formatted">): string {
 
   if (Object.keys(result.friction_counts).length) {
     lines.push("Friction:");
-    for (const [k, v] of Object.entries(result.friction_counts).sort((a, b) => b[1] - a[1]).slice(0, 8)) {
+    for (const [k, v] of Object.entries(result.friction_counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)) {
       lines.push(`- ${k}: ${v}`);
     }
     lines.push("");
@@ -272,7 +322,8 @@ function formatRetro(result: Omit<DevRetroResult, "formatted">): string {
     lines.push(`- ${label} [${s.associated_by}] outcome=${s.outcome || "unknown"}`);
     if (s.first_prompt) lines.push(`  ask: ${s.first_prompt}`);
     if (s.friction) lines.push(`  friction: ${s.friction}`);
-    if (s.shift_left.length) lines.push(`  shift_left: ${s.shift_left.map((f) => f.category).join(", ")}`);
+    if (s.shift_left.length)
+      lines.push(`  shift_left: ${s.shift_left.map((f) => f.category).join(", ")}`);
   }
 
   return lines.join("\n");
@@ -302,7 +353,11 @@ export function devRetro(opts: DevRetroOptions = {}): DevRetroResult | { error: 
     const marker = readHarnessMarker(meta.path);
     if (!matchesWorkItemFilter(meta, cache, marker, opts.work_item_id)) continue;
     const blob = textBlob(meta, cache);
-    const associatedBy = marker ? "marker" : (includeLegacy && isLegacyHarnessSession(blob) ? "legacy_heuristic" : null);
+    const associatedBy = marker
+      ? "marker"
+      : includeLegacy && isLegacyHarnessSession(blob)
+        ? "legacy_heuristic"
+        : null;
     if (!associatedBy) continue;
 
     addCount(outcomeCounts, cache?.outcome || "unknown");

@@ -8,13 +8,12 @@
  */
 
 import { describe, expect, test } from "bun:test";
-
+import { MissingSecretError, requireEnv } from "../../scripts/ci/lib/env.js";
 import {
   checkCostCap,
   dispatchTerminal,
   type TerminalOpts,
 } from "../../scripts/ci/parse-phase-result.js";
-import { MissingSecretError, requireEnv } from "../../scripts/ci/lib/env.js";
 
 const OPTS: TerminalOpts = {
   ticket: "PROJ-1",
@@ -45,7 +44,12 @@ describe("AC-18 — every terminal state exits 0", () => {
   test("cost_exceeded terminal → exitCode === 0", () => {
     const r = checkCostCap(
       { id: "PROJ-1", cost_usd: 30, cost_breakdown: { spec: 30 } },
-      { maxCostUsd: 20, nextPhase: "plan", ticket: "PROJ-1", transitionOnCostExceeded: "Cost Exceeded" },
+      {
+        maxCostUsd: 20,
+        nextPhase: "plan",
+        ticket: "PROJ-1",
+        transitionOnCostExceeded: "Cost Exceeded",
+      },
     );
     expect(r.tripped).toBe(true);
     if (r.tripped) expect(r.terminal.exitCode).toBe(0);

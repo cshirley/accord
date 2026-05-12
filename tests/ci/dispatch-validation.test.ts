@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  type GithubEventPayload,
   MissingDispatchFieldError,
   readDispatch,
-  type GithubEventPayload,
 } from "../../scripts/ci/dispatch.js";
 
 describe("readDispatch (AC-1, TC-20)", () => {
@@ -118,10 +118,10 @@ describe("MissingDispatchFieldError class", () => {
 // the regression cannot recur silently.
 // -----------------------------------------------------------------------
 
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 
 function runDispatch(env: Record<string, string | undefined>): {
   stdout: string;

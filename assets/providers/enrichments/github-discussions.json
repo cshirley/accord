@@ -3,9 +3,7 @@
   "name": "github-discussions",
   "kind": "enrichment",
   "label": "GitHub Discussions",
-  "mcpTools": [
-    "mcp__github__graphql"
-  ],
+  "mcpTools": ["mcp__github__graphql"],
   "cliFallback": "gh",
   "envFallback": null,
   "promptFile": "github-discussions.md"

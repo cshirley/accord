@@ -43,11 +43,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "description",
-          "outcome"
-        ],
+        "required": ["id", "description", "outcome"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -65,19 +61,10 @@
             "type": "string"
           },
           "likelihood": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ]
+            "enum": ["high", "medium", "low"]
           },
           "outcome": {
-            "enum": [
-              "confirmed",
-              "rejected",
-              "inconclusive",
-              "not_tested"
-            ]
+            "enum": ["confirmed", "rejected", "inconclusive", "not_tested"]
           },
           "evidence": {
             "type": "string"
@@ -87,10 +74,7 @@
     },
     "conclusion": {
       "type": "object",
-      "required": [
-        "root_cause",
-        "confidence"
-      ],
+      "required": ["root_cause", "confidence"],
       "additionalProperties": false,
       "properties": {
         "root_cause": {
@@ -98,11 +82,7 @@
           "minLength": 1
         },
         "confidence": {
-          "enum": [
-            "high",
-            "medium",
-            "low"
-          ]
+          "enum": ["high", "medium", "low"]
         },
         "next_steps": {
           "type": "array",

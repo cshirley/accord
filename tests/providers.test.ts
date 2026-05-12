@@ -2,19 +2,18 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
-
+import type { DevHarnessConfig } from "../src/core/config/types.js";
+import { runGatherPreflightOnSubagentCall } from "../src/core/harness/index.js";
 import {
   checkProviderDeps,
+  type DepCheckResult,
   formatPreflightReport,
   loadAllProviders,
   loadBundledProviders,
   loadUserProviders,
   normaliseUserProvider,
-  type DepCheckResult,
   type ProviderDef,
 } from "../src/integrations/provider-deps.js";
-import { runGatherPreflightOnSubagentCall } from "../src/core/harness/index.js";
-import type { DevHarnessConfig } from "../src/core/config/types.js";
 
 const tempDirs: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
@@ -127,10 +126,10 @@ describe("normaliseUserProvider", () => {
       mcpTools: ["a", 42, "b", null, "c"],
     });
     expect(def).not.toBeNull();
-    expect(def!.label).toBe("custom");
-    expect(def!.mcpTools).toEqual(["a", "b", "c"]);
-    expect(def!.cliFallback).toBeNull();
-    expect(def!.envFallback).toBeNull();
+    expect(def?.label).toBe("custom");
+    expect(def?.mcpTools).toEqual(["a", "b", "c"]);
+    expect(def?.cliFallback).toBeNull();
+    expect(def?.envFallback).toBeNull();
   });
 
   test("expands ~/ paths to the user home directory", () => {
@@ -139,7 +138,7 @@ describe("normaliseUserProvider", () => {
       kind: "tracker",
       promptFile: "~/custom/h.md",
     });
-    expect(def!.promptFile).toBe(join(homedir(), "custom/h.md"));
+    expect(def?.promptFile).toBe(join(homedir(), "custom/h.md"));
   });
 });
 
@@ -157,9 +156,7 @@ describe("loadUserProviders + loadAllProviders", () => {
   });
 
   test("loadAllProviders merges bundled with user defs", () => {
-    const set = loadAllProviders([
-      { name: "my-tracker", kind: "tracker", promptFile: "/u/t.md" },
-    ]);
+    const set = loadAllProviders([{ name: "my-tracker", kind: "tracker", promptFile: "/u/t.md" }]);
     expect(set.trackers.has("jira")).toBe(true);
     expect(set.trackers.has("my-tracker")).toBe(true);
   });
@@ -253,10 +250,9 @@ describe("formatPreflightReport", () => {
   }
 
   test("renders header, tracker line, enrichments, and the Provider Playbooks block", () => {
-    const out = formatPreflightReport(
-      asResult(),
-      [asResult({ provider: "slack", label: "Slack", promptFile: "/abs/slack.md" })],
-    );
+    const out = formatPreflightReport(asResult(), [
+      asResult({ provider: "slack", label: "Slack", promptFile: "/abs/slack.md" }),
+    ]);
     expect(out).toContain("Gather Preflight");
     expect(out).toContain("Tracker: Jira via mcp (mcp__x)");
     expect(out).toContain("Slack via mcp (mcp__x)");

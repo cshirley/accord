@@ -92,7 +92,8 @@ export function runAgentsMdGate(repoRoot: string, cfg: GateConfig): AgentsMdGate
     return {
       ok: false,
       subCheck: "malformed JSON",
-      remediation: "add a fenced ```json block inside the `## Dev Harness` section with the harness config.",
+      remediation:
+        "add a fenced ```json block inside the `## Dev Harness` section with the harness config.",
       transition: cfg.transitionOnFailure,
     };
   }
@@ -104,7 +105,8 @@ export function runAgentsMdGate(repoRoot: string, cfg: GateConfig): AgentsMdGate
     return {
       ok: false,
       subCheck: "malformed JSON",
-      remediation: "the first ```json block inside `## Dev Harness` failed to parse — fix the JSON syntax.",
+      remediation:
+        "the first ```json block inside `## Dev Harness` failed to parse — fix the JSON syntax.",
       transition: cfg.transitionOnFailure,
     };
   }

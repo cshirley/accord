@@ -17,25 +17,84 @@
       "security_and_data": "Tokens contain user_id (PII). Current tokens stored in localStorage (XSS risk). Refresh tokens should use httpOnly cookies. SOC2 requires token rotation.",
       "infrastructure_and_deployment": "",
       "scale_and_performance": "API handles ~200 req/s. New refresh flow must not add >50ms p99 latency. Token validation is on the hot path.",
-      "constraints": ["Q3 SOC2 deadline (8 weeks)", "Backward compat with existing mobile app sessions"],
+      "constraints": [
+        "Q3 SOC2 deadline (8 weeks)",
+        "Backward compat with existing mobile app sessions"
+      ],
       "approach_direction": "",
-      "open_questions": ["Deployment strategy — rolling or feature-flagged?", "Should we migrate existing localStorage tokens to httpOnly cookies?"]
+      "open_questions": [
+        "Deployment strategy — rolling or feature-flagged?",
+        "Should we migrate existing localStorage tokens to httpOnly cookies?"
+      ]
     },
     "markers": [
-      { "id": "am-1", "claim": "Access tokens expire after 15 minutes with no client-side refresh", "status": "confirmed", "source": "user-round-1", "dimension": "problem" },
-      { "id": "am-2", "claim": "AuthService has no refresh() method — only loginWithCredentials()", "status": "confirmed", "source": "explore-findings", "dimension": "current_state" },
-      { "id": "am-3", "claim": "Sarah Chen is PO; SOC2 audit drives Q3 deadline", "status": "confirmed", "source": "user-round-1", "dimension": "stakeholders" },
-      { "id": "am-4", "claim": "Mobile team is blocked waiting for refresh flow API", "status": "proposed", "source": "gather-context", "dimension": "stakeholders" },
-      { "id": "am-5", "claim": "Refresh tokens must rotate on use (SOC2 compliance)", "status": "confirmed", "source": "user-round-1", "dimension": "security_and_data" }
+      {
+        "id": "am-1",
+        "claim": "Access tokens expire after 15 minutes with no client-side refresh",
+        "status": "confirmed",
+        "source": "user-round-1",
+        "dimension": "problem"
+      },
+      {
+        "id": "am-2",
+        "claim": "AuthService has no refresh() method — only loginWithCredentials()",
+        "status": "confirmed",
+        "source": "explore-findings",
+        "dimension": "current_state"
+      },
+      {
+        "id": "am-3",
+        "claim": "Sarah Chen is PO; SOC2 audit drives Q3 deadline",
+        "status": "confirmed",
+        "source": "user-round-1",
+        "dimension": "stakeholders"
+      },
+      {
+        "id": "am-4",
+        "claim": "Mobile team is blocked waiting for refresh flow API",
+        "status": "proposed",
+        "source": "gather-context",
+        "dimension": "stakeholders"
+      },
+      {
+        "id": "am-5",
+        "claim": "Refresh tokens must rotate on use (SOC2 compliance)",
+        "status": "confirmed",
+        "source": "user-round-1",
+        "dimension": "security_and_data"
+      }
     ],
     "reflections": [
-      { "id": "r_round2_reflect_1", "text": "We've confirmed the core problem and stakeholders. The security picture is clearer — SOC2 requires token rotation, and the current localStorage approach has XSS risk. What I'm less clear on is the deployment strategy and whether we need a migration for existing sessions.", "type": "reflection" },
-      { "id": "r_round2_probe_1", "text": "How should we deploy this — rolling release or behind a feature flag? The mobile app's existing sessions complicate a big-bang switch.", "type": "probe" },
-      { "id": "r_round2_assumption_1", "text": "I'm assuming we'll need a migration path for existing localStorage tokens — users shouldn't all be forced to re-login on deploy day.", "type": "assumption" }
+      {
+        "id": "r_round2_reflect_1",
+        "text": "We've confirmed the core problem and stakeholders. The security picture is clearer — SOC2 requires token rotation, and the current localStorage approach has XSS risk. What I'm less clear on is the deployment strategy and whether we need a migration for existing sessions.",
+        "type": "reflection"
+      },
+      {
+        "id": "r_round2_probe_1",
+        "text": "How should we deploy this — rolling release or behind a feature flag? The mobile app's existing sessions complicate a big-bang switch.",
+        "type": "probe"
+      },
+      {
+        "id": "r_round2_assumption_1",
+        "text": "I'm assuming we'll need a migration path for existing localStorage tokens — users shouldn't all be forced to re-login on deploy day.",
+        "type": "assumption"
+      }
     ],
     "convergence": {
-      "dimensions_covered": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "scale_and_performance"],
-      "dimensions_remaining": ["infrastructure_and_deployment", "constraints", "approach_direction"],
+      "dimensions_covered": [
+        "problem",
+        "stakeholders",
+        "current_state",
+        "desired_outcome",
+        "security_and_data",
+        "scale_and_performance"
+      ],
+      "dimensions_remaining": [
+        "infrastructure_and_deployment",
+        "constraints",
+        "approach_direction"
+      ],
       "markers_confirmed": 4,
       "markers_contested": 0,
       "round": 2,
@@ -47,15 +106,61 @@
     "status": "done",
     "brief_path": "docs/dev/ACCORD-1234/brief.md",
     "markers": [
-      { "id": "am-1", "claim": "Access tokens expire after 15 minutes with no client-side refresh", "status": "confirmed", "source": "user-round-1", "dimension": "problem" },
-      { "id": "am-2", "claim": "AuthService has no refresh() method", "status": "confirmed", "source": "explore-findings", "dimension": "current_state" },
-      { "id": "am-3", "claim": "Sarah Chen is PO; SOC2 audit drives Q3 deadline", "status": "confirmed", "source": "user-round-1", "dimension": "stakeholders" },
-      { "id": "am-4", "claim": "Mobile team is blocked waiting for refresh API", "status": "confirmed", "source": "user-round-2", "dimension": "stakeholders" },
-      { "id": "am-5", "claim": "SOC2 requires token rotation on refresh", "status": "confirmed", "source": "user-round-1", "dimension": "security_and_data" },
-      { "id": "am-6", "claim": "Deploy behind feature flag; migrate tokens lazily on next login", "status": "confirmed", "source": "user-round-2", "dimension": "infrastructure_and_deployment" }
+      {
+        "id": "am-1",
+        "claim": "Access tokens expire after 15 minutes with no client-side refresh",
+        "status": "confirmed",
+        "source": "user-round-1",
+        "dimension": "problem"
+      },
+      {
+        "id": "am-2",
+        "claim": "AuthService has no refresh() method",
+        "status": "confirmed",
+        "source": "explore-findings",
+        "dimension": "current_state"
+      },
+      {
+        "id": "am-3",
+        "claim": "Sarah Chen is PO; SOC2 audit drives Q3 deadline",
+        "status": "confirmed",
+        "source": "user-round-1",
+        "dimension": "stakeholders"
+      },
+      {
+        "id": "am-4",
+        "claim": "Mobile team is blocked waiting for refresh API",
+        "status": "confirmed",
+        "source": "user-round-2",
+        "dimension": "stakeholders"
+      },
+      {
+        "id": "am-5",
+        "claim": "SOC2 requires token rotation on refresh",
+        "status": "confirmed",
+        "source": "user-round-1",
+        "dimension": "security_and_data"
+      },
+      {
+        "id": "am-6",
+        "claim": "Deploy behind feature flag; migrate tokens lazily on next login",
+        "status": "confirmed",
+        "source": "user-round-2",
+        "dimension": "infrastructure_and_deployment"
+      }
     ],
     "convergence": {
-      "dimensions_covered": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "infrastructure_and_deployment", "scale_and_performance", "constraints", "approach_direction"],
+      "dimensions_covered": [
+        "problem",
+        "stakeholders",
+        "current_state",
+        "desired_outcome",
+        "security_and_data",
+        "infrastructure_and_deployment",
+        "scale_and_performance",
+        "constraints",
+        "approach_direction"
+      ],
       "dimensions_remaining": [],
       "markers_confirmed": 6,
       "markers_contested": 0,

@@ -30,16 +30,16 @@
  *   conflicts    | -       | warn "run with --force"
  */
 
+import {
+  type AccordAssetsMetadata,
+  currentAssetSignature,
+  type InstallResult,
+  installPiAssets,
+  readInstalledMetadata,
+} from "../asset-install.js";
 import { loadGlobalConfig } from "../config/global.js";
 import type { DevHarnessGlobalConfig } from "../config/types.js";
 import { createLogger } from "../logging.js";
-import {
-  currentAssetSignature,
-  installPiAssets,
-  readInstalledMetadata,
-  type AccordAssetsMetadata,
-  type InstallResult,
-} from "../asset-install.js";
 import type { HarnessHost } from "./types.js";
 
 const log = createLogger("bootstrap");
@@ -110,7 +110,9 @@ function metadataMatches(
   current: { version: string; manifest_sha256: string },
 ): boolean {
   if (!installed) return false;
-  return installed.version === current.version && installed.manifest_sha256 === current.manifest_sha256;
+  return (
+    installed.version === current.version && installed.manifest_sha256 === current.manifest_sha256
+  );
 }
 
 export interface BootstrapOptions {
@@ -167,8 +169,7 @@ export function maybeAutoInstallAssets(
       : "no install metadata at target; treating as missing",
   );
 
-  const globalConfig =
-    opts.globalConfig !== undefined ? opts.globalConfig : safeLoadGlobalConfig();
+  const globalConfig = opts.globalConfig !== undefined ? opts.globalConfig : safeLoadGlobalConfig();
   const auto = resolveAutoInstall(opts.env ?? process.env, globalConfig);
   if (!auto.enabled) {
     const suffix =
@@ -187,9 +188,7 @@ export function maybeAutoInstallAssets(
     return { status: "skipped-by-env", linked: 0, conflicts: 0, message: msg };
   }
 
-  log.debug(
-    `running installPiAssets (auto-install source=${auto.source}, reason=${reason})`,
-  );
+  log.debug(`running installPiAssets (auto-install source=${auto.source}, reason=${reason})`);
 
   let result: InstallResult;
   try {

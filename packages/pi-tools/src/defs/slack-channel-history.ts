@@ -1,22 +1,33 @@
-import { defineTool } from "../framework.js";
 import { getSlackAuth } from "../auth.js";
+import { defineTool } from "../framework.js";
 import {
-  makeSlackRequest, getTeamDomain, makePermalink,
+  getTeamDomain,
+  makePermalink,
+  makeSlackRequest,
   type SlackMessage,
 } from "../services/slack.client.js";
 
 export default defineTool<
   { channelId: string; limit?: number; oldest?: string; includeThreads?: boolean },
-  { channelId: string; messages: Array<{ user: string; text: string; ts: string; permalink: string; replyCount?: number }> }
+  {
+    channelId: string;
+    messages: Array<{
+      user: string;
+      text: string;
+      ts: string;
+      permalink: string;
+      replyCount?: number;
+    }>;
+  }
 >({
   name: "slack-getChannelHistory",
   label: "Get Channel History",
   description: "Read recent messages from a Slack channel with optional thread replies",
 
   params: {
-    channelId:      { type: "string", required: true, description: "Channel ID" },
-    limit:          { type: "number", default: 20, description: "Number of messages" },
-    oldest:         { type: "string", description: "Only messages after this timestamp" },
+    channelId: { type: "string", required: true, description: "Channel ID" },
+    limit: { type: "number", default: 20, description: "Number of messages" },
+    oldest: { type: "string", description: "Only messages after this timestamp" },
     includeThreads: { type: "boolean", default: false, description: "Fetch thread replies" },
   },
 
@@ -26,11 +37,12 @@ export default defineTool<
   async execute(p) {
     const teamDomain = await getTeamDomain();
     const hist = await makeSlackRequest("conversations.history", {
-      channel: p.channelId, limit: p.limit || 20,
+      channel: p.channelId,
+      limit: p.limit || 20,
       ...(p.oldest ? { oldest: p.oldest } : {}),
     });
 
-    let messages = (hist.messages || []) as SlackMessage[];
+    const messages = (hist.messages || []) as SlackMessage[];
 
     // Optionally fetch thread replies
     if (p.includeThreads) {
@@ -38,10 +50,14 @@ export default defineTool<
         if (msg.reply_count && msg.reply_count > 0 && msg.ts) {
           try {
             const threadResp = await makeSlackRequest("conversations.replies", {
-              channel: p.channelId, ts: msg.ts, limit: 5,
+              channel: p.channelId,
+              ts: msg.ts,
+              limit: 5,
             });
             msg.replies = threadResp.messages?.slice(1) || [];
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
       }
     }
@@ -59,9 +75,13 @@ export default defineTool<
   },
 
   format(result) {
-    const lines = result.messages.slice(0, 15).map((m) =>
-      `  • ${m.user}: "${m.text.slice(0, 120)}" — ${m.permalink}${m.replyCount ? ` [${m.replyCount} replies]` : ""}`,
-    ).join("\n");
+    const lines = result.messages
+      .slice(0, 15)
+      .map(
+        (m) =>
+          `  • ${m.user}: "${m.text.slice(0, 120)}" — ${m.permalink}${m.replyCount ? ` [${m.replyCount} replies]` : ""}`,
+      )
+      .join("\n");
     return {
       text: `${result.messages.length} messages from ${result.channelId}:\n${lines}`,
       details: result,

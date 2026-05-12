@@ -40,7 +40,11 @@ export interface ExecResult {
   readonly stderr: string;
 }
 
-export type ExecLike = (cmd: string, args: readonly string[], opts?: { cwd?: string }) => Promise<ExecResult>;
+export type ExecLike = (
+  cmd: string,
+  args: readonly string[],
+  opts?: { cwd?: string },
+) => Promise<ExecResult>;
 
 export interface PrInfo {
   readonly url: string;
@@ -49,7 +53,13 @@ export interface PrInfo {
 
 export interface GhPrApi {
   findPrByHead(payload: { head: string; base: string }): Promise<PrInfo | null>;
-  createPr(payload: { head: string; base: string; title: string; body: string; draft: boolean }): Promise<PrInfo>;
+  createPr(payload: {
+    head: string;
+    base: string;
+    title: string;
+    body: string;
+    draft: boolean;
+  }): Promise<PrInfo>;
   updatePr(payload: { number: number; body: string }): Promise<void>;
   labelExists(payload: { name: string }): Promise<boolean>;
   createLabel(payload: { name: string; color: string; description: string }): Promise<void>;
@@ -81,12 +91,12 @@ export interface RenderPrBodyOpts {
 }
 
 export function renderPrBody(opts: RenderPrBodyOpts): string {
-  const acList = opts.acIds.length > 0
-    ? opts.acIds.map((id) => `- ${id}`).join("\n")
-    : "- (no ACs cited)";
-  const scopeList = opts.scopePaths.length > 0
-    ? opts.scopePaths.map((p) => `- \`${p}\``).join("\n")
-    : "- (see Spec ACs for the scope target paths)";
+  const acList =
+    opts.acIds.length > 0 ? opts.acIds.map((id) => `- ${id}`).join("\n") : "- (no ACs cited)";
+  const scopeList =
+    opts.scopePaths.length > 0
+      ? opts.scopePaths.map((p) => `- \`${p}\``).join("\n")
+      : "- (see Spec ACs for the scope target paths)";
 
   return [
     `## Summary`,

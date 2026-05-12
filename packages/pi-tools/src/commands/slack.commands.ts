@@ -1,12 +1,15 @@
-import { defineCommands } from "../framework.js";
 import { getSlackAuth, setSlackAuth } from "../auth.js";
+import { defineCommands } from "../framework.js";
 
 export default defineCommands("slack", {
   setup: {
     description: "Configure Slack authentication (user or bot token)",
     handler: async ({ ui }) => {
       const token = await ui.input("Slack Token (xoxp- or xoxb-):", "");
-      if (!token?.trim()) { ui.notify("Cancelled", "info"); return; }
+      if (!token?.trim()) {
+        ui.notify("Cancelled", "info");
+        return;
+      }
 
       try {
         setSlackAuth(token.trim());
@@ -20,7 +23,10 @@ export default defineCommands("slack", {
           ui.notify(`Slack token invalid: ${data.error}`, "error");
         }
       } catch (error) {
-        ui.notify(`Slack setup failed: ${error instanceof Error ? error.message : String(error)}`, "error");
+        ui.notify(
+          `Slack setup failed: ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
       }
     },
   },
@@ -38,7 +44,10 @@ export default defineCommands("slack", {
         if (data.ok) return { ok: true, message: `Slack connected: ${data.user} @ ${data.team}` };
         return { ok: false, message: `Slack auth failed: ${data.error}` };
       } catch (error) {
-        return { ok: false, message: `Slack test failed: ${error instanceof Error ? error.message : String(error)}` };
+        return {
+          ok: false,
+          message: `Slack test failed: ${error instanceof Error ? error.message : String(error)}`,
+        };
       }
     },
   },

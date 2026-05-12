@@ -120,10 +120,18 @@ export async function getTeamDomain(): Promise<string> {
     if (auth.url) {
       const match = auth.url.match(/https:\/\/([^.]+)\.slack\.com/);
       const domain = match?.[1];
-      if (domain) { _teamDomain = domain; return domain; }
+      if (domain) {
+        _teamDomain = domain;
+        return domain;
+      }
     }
-    if (auth.team) { _teamDomain = auth.team as string; return _teamDomain; }
-  } catch { /* fall through */ }
+    if (auth.team) {
+      _teamDomain = auth.team as string;
+      return _teamDomain;
+    }
+  } catch {
+    /* fall through */
+  }
   _teamDomain = "app";
   return _teamDomain;
 }

@@ -19,11 +19,12 @@ import {
   detectTracker,
   findMonorepoRoot,
 } from "../src/core/config/detect/index.js";
-import { devInitDetect } from "../src/core/config/init-detect.js";
 import { mergeContextSources } from "../src/core/config/global.js";
+import { devInitDetect } from "../src/core/config/init-detect.js";
 import { checkVerifyStaleness } from "../src/core/crucible/staleness.js";
 import { notifyPendingDecisionsIfAny } from "../src/core/harness/index.js";
 import { devTasks } from "../src/core/queries/dashboard.js";
+import type { PricingConfig } from "../src/core/telemetry/usage.js";
 import {
   appendUsageLine,
   clearHarnessRunTag,
@@ -37,15 +38,14 @@ import {
   recomputeCost,
   setHarnessRunTag,
 } from "../src/core/telemetry/usage.js";
-import type { PricingConfig } from "../src/core/telemetry/usage.js";
 import {
   devCheckpointDelete,
   devCheckpointRead,
   devCheckpointWrite,
 } from "../src/core/work-items/checkpoint.js";
 import { writeJson } from "../src/core/work-items/io.js";
-import type { Checkpoint } from "../src/core/work-items/types.js";
 import { devBootstrap } from "../src/core/work-items/lifecycle.js";
+import type { Checkpoint } from "../src/core/work-items/types.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -108,7 +108,7 @@ describe("mergeContextSources", () => {
 
   test("project can add a source not present globally", () => {
     const merged = mergeContextSources([{ type: "slack" }], [{ type: "wiki", path: "/x" }]);
-    expect(merged.map(s => s.type).sort()).toEqual(["slack", "wiki"]);
+    expect(merged.map((s) => s.type).sort()).toEqual(["slack", "wiki"]);
   });
 });
 
@@ -129,12 +129,18 @@ describe("devTasks dashboard", () => {
     const wi = JSON.parse(readFileSync(wiPath, "utf8"));
     wi.task_ids = [1, 2];
     wi.decisions = [
-      { id: "d1", source: "u", status: "pending", question: "q?", asked_at: new Date().toISOString() },
+      {
+        id: "d1",
+        source: "u",
+        status: "pending",
+        question: "q?",
+        asked_at: new Date().toISOString(),
+      },
     ];
     wi.deviations = [{ task_id: 1, description: "x", reason: "y", at: new Date().toISOString() }];
     wi.cost_usd = 1.25;
     wi.updated = "2099-01-02T00:00:00.000Z";
-    writeFileSync(wiPath, JSON.stringify(wi, null, 2) + "\n");
+    writeFileSync(wiPath, `${JSON.stringify(wi, null, 2)}\n`);
 
     writeJson(join(".tasks", "DASH-1-task-1.json"), { status: "done" });
     writeJson(join(".tasks", "DASH-1-task-2.json"), { status: "blocked" });
@@ -142,7 +148,7 @@ describe("devTasks dashboard", () => {
     devBootstrap("DASH-2", "t2", "quick_fix");
     const wi2 = JSON.parse(readFileSync(join(".tasks", "DASH-2.json"), "utf8"));
     wi2.updated = "2099-01-01T00:00:00.000Z";
-    writeFileSync(join(".tasks", "DASH-2.json"), JSON.stringify(wi2, null, 2) + "\n");
+    writeFileSync(join(".tasks", "DASH-2.json"), `${JSON.stringify(wi2, null, 2)}\n`);
 
     const r = devTasks();
     expect(r.rows).toHaveLength(2);
@@ -265,12 +271,20 @@ describe("stack / monorepo / init detect", () => {
 
   test("typescript vs javascript from package.json markers", () => {
     const tsDir = tempProject();
-    writeFileSync(join(tsDir, "package.json"), JSON.stringify({ name: "x", version: "1.0.0" }), "utf8");
+    writeFileSync(
+      join(tsDir, "package.json"),
+      JSON.stringify({ name: "x", version: "1.0.0" }),
+      "utf8",
+    );
     writeFileSync(join(tsDir, "tsconfig.json"), "{}", "utf8");
     expect(detectProjectStack(tsDir)?.language).toBe("typescript");
 
     const jsDir = tempProject();
-    writeFileSync(join(jsDir, "package.json"), JSON.stringify({ name: "x", version: "1.0.0" }), "utf8");
+    writeFileSync(
+      join(jsDir, "package.json"),
+      JSON.stringify({ name: "x", version: "1.0.0" }),
+      "utf8",
+    );
     expect(detectProjectStack(jsDir)?.language).toBe("javascript");
   });
 
@@ -306,6 +320,7 @@ describe("stack / monorepo / init detect", () => {
     mkdirSync(nested, { recursive: true });
     const found = findMonorepoRoot(nested);
     expect(found?.tool).toBe("turbo");
+    expect(found?.root).toBeDefined();
     expect(resolve(found!.root)).toBe(resolve(root));
   });
 
@@ -334,7 +349,11 @@ describe("stack / monorepo / init detect", () => {
     expect(noProj.formatted_summary).toMatch(/No recognised project files/);
 
     const ts = tempProject();
-    writeFileSync(join(ts, "package.json"), JSON.stringify({ name: "x", version: "1.0.0" }), "utf8");
+    writeFileSync(
+      join(ts, "package.json"),
+      JSON.stringify({ name: "x", version: "1.0.0" }),
+      "utf8",
+    );
     writeFileSync(join(ts, "tsconfig.json"), "{}\n", "utf8");
     const det = devInitDetect(ts);
     expect(det.proposed_config?.language).toBe("typescript");
@@ -347,23 +366,23 @@ describe("stack / monorepo / init detect", () => {
     writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({ name: "x", version: "1.0.0", scripts: {} }),
-      "utf8");
+      "utf8",
+    );
     writeFileSync(join(dir, "tsconfig.json"), "{}\n", "utf8");
     writeFileSync(join(dir, "Makefile"), "test:\n\t@echo ok\n", "utf8");
     const built = buildDevHarnessConfig(dir);
     expect(built?.config.test.command).toBe("make test");
-    expect(built?.notes.some(n => n.includes("Makefile overrides"))).toBe(true);
+    expect(built?.notes.some((n) => n.includes("Makefile overrides"))).toBe(true);
   });
 });
 
 describe("usage helpers", () => {
   test("extractReturnPacket parses fenced JSON or trailing object", () => {
     expect(extractReturnPacket("")).toBeNull();
-    const fenced = "```json\n{\"status\":\"ok\"}\n```";
+    const fenced = '```json\n{"status":"ok"}\n```';
     expect(extractReturnPacket(fenced)).toEqual({ status: "ok" });
 
-    const badFenceThenBare =
-      "intro\n```json\nnot-json\n```\nmore text {\"verdict\": \"pass\"}\n";
+    const badFenceThenBare = 'intro\n```json\nnot-json\n```\nmore text {"verdict": "pass"}\n';
     expect(extractReturnPacket(badFenceThenBare)).toEqual({ verdict: "pass" });
   });
 
@@ -400,7 +419,15 @@ describe("usage helpers", () => {
         work_item_id: "x",
         subagent_type: "x",
         model: "unknown",
-        usage: { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
+        usage: {
+          input: 1_000_000,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+          cost: 0,
+          contextTokens: 0,
+          turns: 0,
+        },
       },
       pricing,
     );
@@ -464,9 +491,15 @@ describe("notify pending decisions", () => {
     const wiPath = join(".tasks", "PEND-1.json");
     const wi = JSON.parse(readFileSync(wiPath, "utf8"));
     wi.decisions = [
-      { id: "1", source: "s", status: "pending", question: "?", asked_at: new Date().toISOString() },
+      {
+        id: "1",
+        source: "s",
+        status: "pending",
+        question: "?",
+        asked_at: new Date().toISOString(),
+      },
     ];
-    writeFileSync(wiPath, JSON.stringify(wi, null, 2) + "\n");
+    writeFileSync(wiPath, `${JSON.stringify(wi, null, 2)}\n`);
 
     const one: string[] = [];
     notifyPendingDecisionsIfAny({ notify: (_l, m) => one.push(m) });
@@ -479,7 +512,7 @@ describe("notify pending decisions", () => {
       question: "?",
       asked_at: new Date().toISOString(),
     });
-    writeFileSync(wiPath, JSON.stringify(wi, null, 2) + "\n");
+    writeFileSync(wiPath, `${JSON.stringify(wi, null, 2)}\n`);
     const two: string[] = [];
     notifyPendingDecisionsIfAny({ notify: (_l, m) => two.push(m) });
     expect(two[0]).toMatch(/2 pending decisions/);

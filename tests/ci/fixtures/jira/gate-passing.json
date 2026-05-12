@@ -4,6 +4,38 @@
     "issuetype": { "name": "Story" },
     "status": { "name": "Ready for Autopilot" },
     "summary": "Add per-call rate limit on the public search endpoint",
-    "description": "## Problem\n\nWHAT: Anonymous callers hit `/v1/search` without any per-IP rate limit, which lets a single tenant exhaust the search node pool during peak hours.\n\nWHY: Last week's incident (INC-1023) traced 88% of dropped requests to one IP. We need a deterministic per-IP cap so no single caller can degrade the rest of the tenant base.\n\n## Acceptance criteria\n\n- AC1: Requests to `/v1/search` from a single IP beyond N/min (configurable, default 60) are rejected with HTTP 429 + a JSON body `{error: 'rate_limited', retry_after_seconds: <int>}`.\n- AC2: Authenticated callers (any bearer token) bypass the per-IP cap and instead enforce the existing per-token quota.\n- AC3: The limiter persists state in Redis so it survives pod restarts.\n\n## Out of scope\n\n- Refactoring the search node pool sizing.\n- Tenant-tier-specific quotas (handled by the existing per-token quota).\n\n## Target paths\n\n- `services/search-api/src/middleware/`\n- `services/search-api/src/config/`\n- `services/search-api/tests/middleware/`"
+    "description": "## Problem\n\nWHAT: Anonymous callers hit `/v1/search` without any per-IP rate limit, which lets a single tenant exhaust the search node pool during peak hours.\n\nWHY: Last week's incident (INC-1023) traced 88% of dropped requests to one IP. We need a deterministic per-IP cap so no single caller can degrade the rest of the tenant base.\n\n## Acceptance criteria\n\n- AC1: Requests to `/v1/search` from a single IP beyond N/min (configurable, default 60) are rejected with HTTP 429 + a JSON body `{error: 'rate_limited', retry_after_seconds: <int>}`.\n- AC2: Authenticated callers (any bearer token) bypass the per-IP cap and instead enforce the existing per-token quota.\n- AC3: The limiter persists state in Redis so it survives pod restarts.\n\n## Out of scope\n\n- Refactoring the search node pool sizing.\n- Tenant-tier-specific quotas (handled by the existing per-token quota).\n\n## Target paths\n\n- `services/search-api/src/middleware/`\n- `services/search-api/src/config/`\n- `services/search-api/tests/middleware/`",
+    "comment": {
+      "startAt": 0,
+      "maxResults": 50,
+      "total": 2,
+      "comments": [
+        {
+          "id": "10001",
+          "self": "https://example.atlassian.net/rest/api/3/issue/10000/comment/10001",
+          "author": {
+            "displayName": "Alex Reviewer",
+            "accountId": "712020:abc"
+          },
+          "body": "LGTM on scope — please keep the default at 60/min.",
+          "created": "2026-05-01T10:00:00.000+0000",
+          "updated": "2026-05-01T10:00:00.000+0000",
+          "visibility": null,
+          "jsdPublic": true
+        },
+        {
+          "id": "10002",
+          "author": { "displayName": "Bot", "accountId": "bot:1" },
+          "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+              { "type": "paragraph", "content": [{ "type": "text", "text": "ADF body example" }] }
+            ]
+          },
+          "created": "2026-05-02T12:00:00.000+0000"
+        }
+      ]
+    }
   }
 }

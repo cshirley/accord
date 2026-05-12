@@ -13,13 +13,8 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Type, type TSchema, type TObject } from "typebox";
-import {
-  getMcpRegistry,
-  mcpText,
-  mcpJson,
-  type McpToolResult,
-} from "./mcp-registry.js";
+import { type TObject, type TSchema, Type } from "typebox";
+import { getMcpRegistry, mcpText } from "./mcp-registry.js";
 
 // ---------------------------------------------------------------------------
 // ToolDef — what each tool definition file exports
@@ -100,16 +95,19 @@ export interface CommandSetDef {
     test: () => Promise<StatusTest>;
   };
   /** Additional named commands beyond setup/status. */
-  extra?: Record<string, {
-    description: string;
-    handler: (args: string, ctx: { ui: CommandUI }) => Promise<void>;
-  }>;
+  extra?: Record<
+    string,
+    {
+      description: string;
+      handler: (args: string, ctx: { ui: CommandUI }) => Promise<void>;
+    }
+  >;
 }
 
 interface CommandUI {
- input: (prompt: string, defaultValue?: string) => Promise<string | undefined>;
- confirm: (title: string, message: string) => Promise<boolean>;
- notify: (message: string, type?: "info" | "warning" | "error") => void;
+  input: (prompt: string, defaultValue?: string) => Promise<string | undefined>;
+  confirm: (title: string, message: string) => Promise<boolean>;
+  notify: (message: string, type?: "info" | "warning" | "error") => void;
 }
 
 export function defineCommands(
@@ -137,12 +135,24 @@ function normaliseParam(key: string, def: ParamDef | ParamType): ParamDef {
 function paramToTypeBox(def: ParamDef): TSchema {
   const desc = { description: def.description };
   switch (def.type) {
-    case "string":    return Type.String(desc);
-    case "number":    return Type.Number({ ...desc, ...(def.default !== undefined ? { default: def.default } : {}) });
-    case "boolean":   return Type.Boolean({ ...desc, ...(def.default !== undefined ? { default: def.default } : {}) });
-    case "string[]":  return Type.Array(Type.String(), desc);
-    case "number[]":  return Type.Array(Type.Number(), desc);
-    default:          return Type.String(desc);
+    case "string":
+      return Type.String(desc);
+    case "number":
+      return Type.Number({
+        ...desc,
+        ...(def.default !== undefined ? { default: def.default } : {}),
+      });
+    case "boolean":
+      return Type.Boolean({
+        ...desc,
+        ...(def.default !== undefined ? { default: def.default } : {}),
+      });
+    case "string[]":
+      return Type.Array(Type.String(), desc);
+    case "number[]":
+      return Type.Array(Type.Number(), desc);
+    default:
+      return Type.String(desc);
   }
 }
 
@@ -161,18 +171,16 @@ function schemaToTypeBox(schema: ParamSchema): TObject {
 // Provider chain types (kept internal — tool defs never import these)
 // ---------------------------------------------------------------------------
 
-interface ToolReturn {
-  content: Array<{ type: string; text: string }>;
-  details: Record<string, unknown>;
-}
-
 interface ProviderError {
   provider: string;
   error: Error;
 }
 
 class FallbackChainError extends Error {
-  constructor(strategyName: string, public readonly errors: ProviderError[]) {
+  constructor(
+    strategyName: string,
+    public readonly errors: ProviderError[],
+  ) {
     const summary = errors.map((e) => `  • ${e.provider}: ${e.error.message}`).join("\n");
     super(`[${strategyName}] all ${errors.length} providers failed:\n${summary}`);
     this.name = "FallbackChainError";
@@ -206,11 +214,7 @@ function buildProviderChain<TParams, TResult>(
       name: `mcp:${mcp.server}/${mcp.tool}`,
       isAvailable: () => getMcpRegistry().has(mcp.server),
       execute: async (params) => {
-        const result = await getMcpRegistry().call(
-          mcp.server,
-          mcp.tool,
-          mcp.mapParams(params),
-        );
+        const result = await getMcpRegistry().call(mcp.server, mcp.tool, mcp.mapParams(params));
         if (result.isError) {
           throw new Error(`MCP tool error: ${mcpText(result)}`);
         }
@@ -226,7 +230,11 @@ function buildProviderChain<TParams, TResult>(
 
 async function executeProviders<TParams, TResult>(
   name: string,
-  providers: Array<{ name: string; isAvailable?: () => boolean; execute: (p: TParams) => Promise<TResult> }>,
+  providers: Array<{
+    name: string;
+    isAvailable?: () => boolean;
+    execute: (p: TParams) => Promise<TResult>;
+  }>,
   params: TParams,
 ): Promise<TResult> {
   const errors: ProviderError[] = [];
@@ -248,10 +256,7 @@ async function executeProviders<TParams, TResult>(
   throw new FallbackChainError(name, errors);
 }
 
-function registerOneTool<TParams, TResult>(
-  pi: ExtensionAPI,
-  def: ToolDef<TParams, TResult>,
-): void {
+function registerOneTool<TParams, TResult>(pi: ExtensionAPI, def: ToolDef<TParams, TResult>): void {
   const providers = buildProviderChain(def);
   const parameters = schemaToTypeBox(def.params);
 
@@ -339,5 +344,5 @@ export function registerCommands(pi: ExtensionAPI, sets: CommandSetDef[]): void 
 // Re-exports for service/def files
 // ---------------------------------------------------------------------------
 
-export { getMcpRegistry, mcpText, mcpJson } from "./mcp-registry.js";
 export type { McpToolResult } from "./mcp-registry.js";
+export { getMcpRegistry, mcpJson, mcpText } from "./mcp-registry.js";

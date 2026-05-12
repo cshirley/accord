@@ -5,28 +5,28 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { loadDevHarnessConfig } from "../../core/config/index.js";
-import { resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import {
+  applyHarnessCostSeed,
+  createOrchestratorUsageDedup,
   formatArtifactValidationFailureMessage,
-  validateHarnessArtifactWriteIfApplicable,
   isAgentsMdPath,
+  notifyPendingDecisionsIfAny,
   prepareSubagentToolCall,
+  processOrchestratorTurnEnd,
   processSubagentToolResult,
   runGatherPreflightOnSubagentCall,
   runVerifyPreflightOnSubagentCall,
-  processOrchestratorTurnEnd,
-  createOrchestratorUsageDedup,
-  notifyPendingDecisionsIfAny,
   seedHarnessSessionCostState,
-  applyHarnessCostSeed,
+  validateHarnessArtifactWriteIfApplicable,
 } from "../../core/harness/index.js";
+import { resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import {
-  loadPricing,
-  inferWorkItemIdFromSession,
   assembleHandoffContent,
   clearHarnessRunTag,
+  inferWorkItemIdFromSession,
+  loadPricing,
 } from "../../core/telemetry/usage.js";
-import { syncHarnessRunSessionEntry, type HookState } from "./hook-state.js";
+import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
 import { isPlanModeActive, planModeSubagentBlockReason } from "./plan-mode.js";
 import { updateStatusBar } from "./status-bar.js";
 
@@ -81,10 +81,15 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
     const prep = prepareSubagentToolCall(input, state.devConfig);
     if (prep.blockReason) return { block: true, reason: prep.blockReason };
 
-    const gather = await runGatherPreflightOnSubagentCall(input, state.devConfig, availableToolNames, {
-      notify: (level, msg) => ctx.ui.notify(msg, level === "warning" ? "warning" : "info"),
-      confirm: (title, body) => ctx.ui.confirm(title, body),
-    });
+    const gather = await runGatherPreflightOnSubagentCall(
+      input,
+      state.devConfig,
+      availableToolNames,
+      {
+        notify: (level, msg) => ctx.ui.notify(msg, level === "warning" ? "warning" : "info"),
+        confirm: (title, body) => ctx.ui.confirm(title, body),
+      },
+    );
     if (gather.blockReason) return { block: true, reason: gather.blockReason };
 
     const verify = await runVerifyPreflightOnSubagentCall(input, state.devConfig);

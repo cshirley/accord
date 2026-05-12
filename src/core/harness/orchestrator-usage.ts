@@ -4,12 +4,12 @@
 
 import type { PricingConfig } from "../telemetry/usage.js";
 import {
-  type UsageLine,
   appendUsageLine,
   computeLineCost,
-  updateWorkItemCost,
-  normalizeUsageCostFields,
   ensureAutoHarnessRunMeta,
+  normalizeUsageCostFields,
+  type UsageLine,
+  updateWorkItemCost,
 } from "../telemetry/usage.js";
 import type { HarnessMutableState } from "./types.js";
 import { ORCHESTRATOR_FP_CAP, type OrchestratorUsageDedup } from "./types.js";
@@ -29,10 +29,7 @@ function isAssistantTurnMessage(m: unknown): m is {
   );
 }
 
-function orchestratorUsageFingerprint(msg: {
-  id?: string;
-  usage?: unknown;
-}): string | null {
+function orchestratorUsageFingerprint(msg: { id?: string; usage?: unknown }): string | null {
   const id = msg.id;
   if (id) return `id:${id}`;
   const u = msg.usage;

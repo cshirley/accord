@@ -8,9 +8,9 @@
  * Exit 0 = all valid, Exit 1 = validation failures
  */
 
-import { readFileSync, readdirSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCHEMAS_DIR = join(__dirname, "..");
@@ -31,13 +31,18 @@ function validateValue(value, schema, path) {
     const types = Array.isArray(schema.type) ? schema.type : [schema.type];
     const actualType = Array.isArray(value) ? "array" : value === null ? "null" : typeof value;
     // JSON has no integer type — treat integer as number for validation
-    const normalised = types.map(t => t === "integer" ? "number" : t);
+    const normalised = types.map((t) => (t === "integer" ? "number" : t));
     if (!normalised.includes(actualType)) {
       errors.push(`${path}: expected type ${types.join("|")}, got ${actualType}`);
     }
   }
 
-  if (schema.type === "object" && schema.properties && typeof value === "object" && value !== null) {
+  if (
+    schema.type === "object" &&
+    schema.properties &&
+    typeof value === "object" &&
+    value !== null
+  ) {
     // Check required fields
     if (schema.required) {
       for (const req of schema.required) {
@@ -71,7 +76,7 @@ function validateValue(value, schema, path) {
   return errors;
 }
 
-function validateExample(example, schema, label) {
+function validateExample(example, schema, _label) {
   const errors = [];
 
   // Top-level required fields (always required)
@@ -117,7 +122,9 @@ function validateExample(example, schema, label) {
         if (matches && rule.then.required) {
           for (const req of rule.then.required) {
             if (!(req in example)) {
-              errors.push(`/: conditional required field "${req}" missing (when status="${example.status || example.verdict}")`);
+              errors.push(
+                `/: conditional required field "${req}" missing (when status="${example.status || example.verdict}")`,
+              );
             }
           }
         }
@@ -128,14 +135,14 @@ function validateExample(example, schema, label) {
   return errors;
 }
 
-const exampleFiles = readdirSync(EXAMPLES_DIR).filter(f => f.endsWith(".json"));
+const exampleFiles = readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json"));
 
 for (const exampleFile of exampleFiles) {
   const schemaPath = join(RETURN_SCHEMAS_DIR, exampleFile);
   let schema;
   try {
     schema = JSON.parse(readFileSync(schemaPath, "utf8"));
-  } catch (e) {
+  } catch (_e) {
     console.error(`✗ ${exampleFile} — schema not found at return-schemas/${exampleFile}`);
     failures++;
     continue;

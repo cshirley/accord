@@ -4,7 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { WorkItem, TaskFile } from "./types.js";
+import type { TaskFile, WorkItem } from "./types.js";
 
 export const TASKS_DIR = ".tasks";
 
@@ -31,7 +31,7 @@ export function readJson<T>(filePath: string): T | null {
 export function writeJson(filePath: string, data: any): void {
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
-  const payload = JSON.stringify(data, null, 2) + "\n";
+  const payload = `${JSON.stringify(data, null, 2)}\n`;
   // Use process.pid + a counter to make collisions between concurrent
   // writers in the same process impossible.
   const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp-${process.pid}-${tmpCounter++}`);
@@ -62,7 +62,7 @@ let tmpCounter = 0;
  * `.tasks/` work-item case that's acceptable: the harness is single-writer
  * within a phase, and atomic writes prevent torn files.
  */
-export function mutateJson<T>(filePath: string, mutator: (current: T | null) => T | void): T {
+export function mutateJson<T>(filePath: string, mutator: (current: T | null) => T | undefined): T {
   const current = readJson<T>(filePath);
   const result = mutator(current);
   const next = (result === undefined ? current : result) as T;

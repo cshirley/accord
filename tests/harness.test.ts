@@ -1,34 +1,34 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { devQuickFixBrief } from "../src/core/briefing/code-brief.js";
 import { recommendIntentMode } from "../src/core/commands/intent.js";
+import type { DevHarnessConfig } from "../src/core/config/types.js";
 import {
-  normalizeHarnessRelativePath,
-  isHarnessTrackedJsonWritePath,
-  isAgentsMdPath,
-  formatArtifactValidationFailureMessage,
-  validateHarnessArtifactWriteIfApplicable,
+  applyHarnessCostSeed,
   collectSubagentEntries,
+  createOrchestratorUsageDedup,
   firstSubagentAgentName,
+  formatArtifactValidationFailureMessage,
   getPrimarySubagentEntry,
+  isAgentsMdPath,
+  isHarnessTrackedJsonWritePath,
+  normalizeHarnessRelativePath,
+  notifyPendingDecisionsIfAny,
   prepareSubagentToolCall,
+  processOrchestratorTurnEnd,
   processSubagentToolResult,
+  rememberOrchestratorFingerprint,
   runGatherPreflightOnSubagentCall,
   runVerifyPreflightOnSubagentCall,
-  createOrchestratorUsageDedup,
-  rememberOrchestratorFingerprint,
-  processOrchestratorTurnEnd,
   seedHarnessSessionCostState,
-  applyHarnessCostSeed,
-  notifyPendingDecisionsIfAny,
+  validateHarnessArtifactWriteIfApplicable,
 } from "../src/core/harness/index.js";
-import type { DevHarnessConfig } from "../src/core/config/types.js";
 import type { HarnessMutableState } from "../src/core/harness/types.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
 import { loadPricing } from "../src/core/telemetry/usage.js";
+import { devBootstrap } from "../src/core/work-items/lifecycle.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -62,7 +62,9 @@ afterEach(() => {
 describe("harness paths", () => {
   test("normalizeHarnessRelativePath strips prefix to .tasks or docs", () => {
     expect(normalizeHarnessRelativePath("/repo/.tasks/FOO-1.json")).toBe(".tasks/FOO-1.json");
-    expect(normalizeHarnessRelativePath("/repo/docs/dev/FOO-1/spec.json")).toBe("docs/dev/FOO-1/spec.json");
+    expect(normalizeHarnessRelativePath("/repo/docs/dev/FOO-1/spec.json")).toBe(
+      "docs/dev/FOO-1/spec.json",
+    );
   });
 
   test("isHarnessTrackedJsonWritePath accepts .tasks and docs/dev JSON only", () => {
@@ -96,8 +98,13 @@ describe("harness subagent-entries", () => {
 
   test("firstSubagentAgentName and getPrimarySubagentEntry", () => {
     expect(firstSubagentAgentName({ agent: "phase-code", task: "x" })).toBe("phase-code");
-    expect(firstSubagentAgentName({ chain: [{ agent: "phase-gather", task: "y" }] })).toBe("phase-gather");
-    expect(getPrimarySubagentEntry({ tasks: [{ agent: "z", task: "q" }] })).toEqual({ agent: "z", task: "q" });
+    expect(firstSubagentAgentName({ chain: [{ agent: "phase-gather", task: "y" }] })).toBe(
+      "phase-gather",
+    );
+    expect(getPrimarySubagentEntry({ tasks: [{ agent: "z", task: "q" }] })).toEqual({
+      agent: "z",
+      task: "q",
+    });
   });
 });
 
@@ -141,7 +148,9 @@ describe("harness artifact-write helper", () => {
     const project = tempProject();
     mkdirSync(join(project, ".tasks"), { recursive: true });
     writeFileSync(join(project, ".tasks", "BAD-1.json"), "{ not valid work item }\n", "utf8");
-    const res = await validateHarnessArtifactWriteIfApplicable(join(project, ".tasks", "BAD-1.json"));
+    const res = await validateHarnessArtifactWriteIfApplicable(
+      join(project, ".tasks", "BAD-1.json"),
+    );
     expect(res.skip).toBe(false);
     if (!("valid" in res) || res.skip) throw new Error("expected validation branch");
     expect(res.valid).toBe(false);
@@ -265,7 +274,9 @@ describe("harness pending decisions notify", () => {
 
 describe("harness verify preflight", () => {
   test("returns {} when agent is not phase-verify*", async () => {
-    expect(await runVerifyPreflightOnSubagentCall({ agent: "phase-code", task: "" }, null)).toEqual({});
+    expect(await runVerifyPreflightOnSubagentCall({ agent: "phase-code", task: "" }, null)).toEqual(
+      {},
+    );
   });
 
   test("blocks when spec/plan missing for work item in task", async () => {
@@ -310,9 +321,14 @@ describe("harness verify preflight", () => {
 
 describe("harness gather preflight", () => {
   test("no-op when agent is not phase-gather", async () => {
-    expect(await runGatherPreflightOnSubagentCall({ agent: "phase-code", task: "x" }, null, new Set(), {})).toEqual(
-      {},
-    );
+    expect(
+      await runGatherPreflightOnSubagentCall(
+        { agent: "phase-code", task: "x" },
+        null,
+        new Set(),
+        {},
+      ),
+    ).toEqual({});
   });
 
   test("blocks when user declines proceed on unavailable sources", async () => {

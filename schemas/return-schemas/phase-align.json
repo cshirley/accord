@@ -36,7 +36,17 @@
           "status": { "enum": ["proposed", "confirmed", "corrected", "contested"] },
           "source": { "type": "string" },
           "dimension": {
-            "enum": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "infrastructure_and_deployment", "scale_and_performance", "constraints", "approach_direction"]
+            "enum": [
+              "problem",
+              "stakeholders",
+              "current_state",
+              "desired_outcome",
+              "security_and_data",
+              "infrastructure_and_deployment",
+              "scale_and_performance",
+              "constraints",
+              "approach_direction"
+            ]
           }
         }
       }
@@ -61,11 +71,35 @@
       "properties": {
         "dimensions_covered": {
           "type": "array",
-          "items": { "enum": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "infrastructure_and_deployment", "scale_and_performance", "constraints", "approach_direction"] }
+          "items": {
+            "enum": [
+              "problem",
+              "stakeholders",
+              "current_state",
+              "desired_outcome",
+              "security_and_data",
+              "infrastructure_and_deployment",
+              "scale_and_performance",
+              "constraints",
+              "approach_direction"
+            ]
+          }
         },
         "dimensions_remaining": {
           "type": "array",
-          "items": { "enum": ["problem", "stakeholders", "current_state", "desired_outcome", "security_and_data", "infrastructure_and_deployment", "scale_and_performance", "constraints", "approach_direction"] }
+          "items": {
+            "enum": [
+              "problem",
+              "stakeholders",
+              "current_state",
+              "desired_outcome",
+              "security_and_data",
+              "infrastructure_and_deployment",
+              "scale_and_performance",
+              "constraints",
+              "approach_direction"
+            ]
+          }
         },
         "markers_confirmed": { "type": "integer", "minimum": 0 },
         "markers_contested": { "type": "integer", "minimum": 0 },

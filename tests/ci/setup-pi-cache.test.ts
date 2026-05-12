@@ -30,10 +30,17 @@ const EXPECTED_RESTORE_KEYS = [
   "accord-${{ runner.os }}-${{ inputs.pi_version }}-",
 ];
 
-const EXPECTED_PATH_ROOTS = ["~/.npm", "~/.bun/install/cache", "~/.config/pi/agent", ".accord-ci/node_modules"] as const;
+const EXPECTED_PATH_ROOTS = [
+  "~/.npm",
+  "~/.bun/install/cache",
+  "~/.config/pi/agent",
+  ".accord-ci/node_modules",
+] as const;
 
 function findCacheSteps(): Array<Record<string, unknown>> {
-  return steps.filter((s) => typeof s.uses === "string" && (s.uses as string).startsWith("actions/cache@"));
+  return steps.filter(
+    (s) => typeof s.uses === "string" && (s.uses as string).startsWith("actions/cache@"),
+  );
 }
 
 describe("setup-pi composite — single actions/cache@v4 step (AC-12)", () => {
@@ -42,7 +49,7 @@ describe("setup-pi composite — single actions/cache@v4 step (AC-12)", () => {
   });
 
   test("the cache step uses actions/cache@v4 (pinned major)", () => {
-    expect((findCacheSteps()[0]!.uses as string).startsWith("actions/cache@v4")).toBe(true);
+    expect((findCacheSteps()[0]?.uses as string).startsWith("actions/cache@v4")).toBe(true);
   });
 });
 
@@ -73,7 +80,10 @@ describe("setup-pi composite — cache paths (AC-12 + AC-13)", () => {
   test("path lines include each of the four required roots", () => {
     const pathLines =
       typeof cacheWith.path === "string"
-        ? cacheWith.path.split("\n").map((s) => s.trim()).filter(Boolean)
+        ? cacheWith.path
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
     for (const root of EXPECTED_PATH_ROOTS) {
       expect(pathLines).toContain(root);
@@ -83,7 +93,10 @@ describe("setup-pi composite — cache paths (AC-12 + AC-13)", () => {
   test("AC-13: ~/.config/pi/agent/auth.json is explicitly excluded", () => {
     const pathLines =
       typeof cacheWith.path === "string"
-        ? cacheWith.path.split("\n").map((s) => s.trim()).filter(Boolean)
+        ? cacheWith.path
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
     expect(pathLines).toContain("!~/.config/pi/agent/auth.json");
   });
@@ -91,7 +104,10 @@ describe("setup-pi composite — cache paths (AC-12 + AC-13)", () => {
   test("AC-13: ~/.config/pi/agent/sessions/** is explicitly excluded", () => {
     const pathLines =
       typeof cacheWith.path === "string"
-        ? cacheWith.path.split("\n").map((s) => s.trim()).filter(Boolean)
+        ? cacheWith.path
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
     expect(pathLines).toContain("!~/.config/pi/agent/sessions/**");
   });
@@ -112,7 +128,9 @@ describe("setup-pi composite — auth.json scrub post-step (AC-13)", () => {
       const run = (s.run as string) ?? "";
       return run.includes("rm -f ~/.config/pi/agent/auth.json");
     });
-    const cacheIdx = steps.findIndex((s) => typeof s.uses === "string" && (s.uses as string).startsWith("actions/cache@"));
+    const cacheIdx = steps.findIndex(
+      (s) => typeof s.uses === "string" && (s.uses as string).startsWith("actions/cache@"),
+    );
     expect(scrubIdx).toBeGreaterThanOrEqual(0);
     expect(cacheIdx).toBeGreaterThanOrEqual(0);
     expect(scrubIdx).toBeLessThan(cacheIdx);
@@ -123,7 +141,7 @@ describe("setup-pi composite — pi offline / skip-version-check env (TC-11)", (
   test("PI_OFFLINE=1 is exported by at least one step", () => {
     const found = steps.some((s) => {
       const env = s.env as Record<string, unknown> | undefined;
-      if (env && env.PI_OFFLINE === 1 || env?.PI_OFFLINE === "1") return true;
+      if ((env && env.PI_OFFLINE === 1) || env?.PI_OFFLINE === "1") return true;
       const run = (s.run as string) ?? "";
       return /\bPI_OFFLINE=1\b/.test(run);
     });
@@ -133,7 +151,8 @@ describe("setup-pi composite — pi offline / skip-version-check env (TC-11)", (
   test("PI_SKIP_VERSION_CHECK=1 is exported by at least one step", () => {
     const found = steps.some((s) => {
       const env = s.env as Record<string, unknown> | undefined;
-      if (env && (env.PI_SKIP_VERSION_CHECK === 1 || env.PI_SKIP_VERSION_CHECK === "1")) return true;
+      if (env && (env.PI_SKIP_VERSION_CHECK === 1 || env.PI_SKIP_VERSION_CHECK === "1"))
+        return true;
       const run = (s.run as string) ?? "";
       return /\bPI_SKIP_VERSION_CHECK=1\b/.test(run);
     });

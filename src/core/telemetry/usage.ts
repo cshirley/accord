@@ -7,9 +7,14 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { createLogger } from "../logging.js";
 import { EXT_DIR } from "../config/paths.js";
-import { WORK_ITEM_ID_PATTERN, WORK_ITEM_FILE_PATTERN, mutateJson, writeJson } from "../work-items/io.js";
+import { createLogger } from "../logging.js";
+import {
+  mutateJson,
+  WORK_ITEM_FILE_PATTERN,
+  WORK_ITEM_ID_PATTERN,
+  writeJson,
+} from "../work-items/io.js";
 
 const log = createLogger("usage");
 
@@ -82,7 +87,9 @@ function resolvePricingPath(): string | null {
   try {
     const candidate = path.join(EXT_DIR, "schemas", "model-pricing.json");
     if (fs.existsSync(candidate)) return candidate;
-  } catch { /* bundled or unavailable */ }
+  } catch {
+    /* bundled or unavailable */
+  }
   return null;
 }
 
@@ -92,12 +99,17 @@ export function readHarnessRunMeta(): HarnessRunMeta | null {
   try {
     if (!fs.existsSync(HARNESS_RUN_META_PATH)) return null;
     const raw = JSON.parse(fs.readFileSync(HARNESS_RUN_META_PATH, "utf8"));
-    if (raw && typeof raw.run_id === "string" && typeof raw.tag === "string") return raw as HarnessRunMeta;
-  } catch { /* ignore */ }
+    if (raw && typeof raw.run_id === "string" && typeof raw.tag === "string")
+      return raw as HarnessRunMeta;
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
-export function resolveHarnessRunContext(): Partial<Pick<UsageLine, "harness_run_id" | "harness_session_tag">> {
+export function resolveHarnessRunContext(): Partial<
+  Pick<UsageLine, "harness_run_id" | "harness_session_tag">
+> {
   const envTag = process.env.DEV_HARNESS_RUN_TAG?.trim();
   const envRunId = process.env.DEV_HARNESS_RUN_ID?.trim();
   const fileMeta = readHarnessRunMeta();
@@ -145,7 +157,9 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
         updated_at: new Date().toISOString(),
       };
       writeJson(HARNESS_RUN_META_PATH, meta);
-    } catch (e) { log.warn(`failed to update harness run meta: ${e}`); }
+    } catch (e) {
+      log.warn(`failed to update harness run meta: ${e}`);
+    }
     return;
   }
 
@@ -158,29 +172,35 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
       work_item_ids: [workItemId],
     };
     writeJson(HARNESS_RUN_META_PATH, meta);
-  } catch (e) { log.warn(`failed to write harness run meta: ${e}`); }
+  } catch (e) {
+    log.warn(`failed to write harness run meta: ${e}`);
+  }
 }
 
 export function clearHarnessRunTag(): void {
   try {
     if (fs.existsSync(HARNESS_RUN_META_PATH)) fs.unlinkSync(HARNESS_RUN_META_PATH);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function describeHarnessRunMeta(): string {
   const envTag = process.env.DEV_HARNESS_RUN_TAG?.trim();
   const envRunId = process.env.DEV_HARNESS_RUN_ID?.trim();
   if (envTag || envRunId) {
-    const parts = [`DEV_HARNESS_RUN_TAG=${envTag || "(unset)"}`, `DEV_HARNESS_RUN_ID=${envRunId || "(unset)"}`];
+    const parts = [
+      `DEV_HARNESS_RUN_TAG=${envTag || "(unset)"}`,
+      `DEV_HARNESS_RUN_ID=${envRunId || "(unset)"}`,
+    ];
     return `Harness run (environment overrides file):\n  ${parts.join("\n  ")}`;
   }
   const m = readHarnessRunMeta();
-  if (!m) return "No harness run tag yet - it will auto-set on first billable usage for a work item, or use `/dev tag <label>`.";
+  if (!m)
+    return "No harness run tag yet - it will auto-set on first billable usage for a work item, or use `/dev tag <label>`.";
   const prov = m.auto ? " (auto)" : "";
   const ids = m.work_item_ids ?? [m.tag];
-  const idLine = ids.length > 1
-    ? `  work_items: ${ids.join(", ")}`
-    : `  tag:    ${m.tag}`;
+  const idLine = ids.length > 1 ? `  work_items: ${ids.join(", ")}` : `  tag:    ${m.tag}`;
   return `Harness run${prov}:\n${idLine}\n  run_id: ${m.run_id}\n  updated_at: ${m.updated_at}`;
 }
 
@@ -216,7 +236,11 @@ function extractTextFromUserMessageContent(content: unknown[] | undefined): stri
   if (!content) return "";
   const parts: string[] = [];
   for (const block of content) {
-    if (typeof block === "object" && block !== null && (block as { type?: string }).type === "text") {
+    if (
+      typeof block === "object" &&
+      block !== null &&
+      (block as { type?: string }).type === "text"
+    ) {
       parts.push(String((block as { text?: string }).text ?? ""));
     }
   }
@@ -234,7 +258,9 @@ function collectUserTextsFromBranch(ctx: ExtensionContext): string[] {
       const t = extractTextFromUserMessageContent(m.content);
       if (t) out.push(t);
     }
-  } catch { /* no session */ }
+  } catch {
+    /* no session */
+  }
   return out;
 }
 
@@ -245,9 +271,12 @@ function collectUserTextsFromBranch(ctx: ExtensionContext): string[] {
  * Only accepts IDs that correspond to an actual .tasks/<ID>.json file to avoid
  * false positives from example text in tool descriptions (e.g. "ACCORD-1234").
  */
-export function inferWorkItemIdFromSession(ctx: ExtensionContext, activeWorkItem: string | null): string | null {
+export function inferWorkItemIdFromSession(
+  ctx: ExtensionContext,
+  activeWorkItem: string | null,
+): string | null {
   if (activeWorkItem) return activeWorkItem;
-  const knownIds = new Set(discoverWorkItems().map(i => i.id));
+  const knownIds = new Set(discoverWorkItems().map((i) => i.id));
   if (knownIds.size === 0) return null;
   // Before falling back to the single-item shortcut, prefer an explicit
   // mention in the user's recent messages — that handles the case where the
@@ -299,10 +328,7 @@ export function pricingFor(pricing: PricingConfig, modelId?: string): PricingEnt
  * `.tasks/<ID>.json` so attribution can't drift onto IDs that aren't real
  * work items in this project.
  */
-export function extractWorkItemId(
-  task: string,
-  opts?: { mustExist?: boolean },
-): string | null {
+export function extractWorkItemId(task: string, opts?: { mustExist?: boolean }): string | null {
   const match = task.match(WORK_ITEM_ID_PATTERN);
   if (!match) return null;
   const id = match[0];
@@ -325,8 +351,10 @@ export function appendUsageLine(workItemId: string, line: UsageLine): void {
       ...(ctx.harness_run_id ? { harness_run_id: ctx.harness_run_id } : {}),
       ...(ctx.harness_session_tag ? { harness_session_tag: ctx.harness_session_tag } : {}),
     };
-    fs.appendFileSync(jsonlPath, JSON.stringify(merged) + "\n");
-  } catch (e) { log.warn(`failed to append usage line for ${workItemId}: ${e}`); }
+    fs.appendFileSync(jsonlPath, `${JSON.stringify(merged)}\n`);
+  } catch (e) {
+    log.warn(`failed to append usage line for ${workItemId}: ${e}`);
+  }
 }
 
 export function recomputeCost(workItemId: string, pricing: PricingConfig): number {
@@ -341,7 +369,9 @@ export function recomputeCost(workItemId: string, pricing: PricingConfig): numbe
       const entry: UsageLine = JSON.parse(line);
       totalCost += computeLineCost(entry, pricing);
     }
-  } catch (e) { log.warn(`failed to recompute cost for ${workItemId}: ${e}`); }
+  } catch (e) {
+    log.warn(`failed to recompute cost for ${workItemId}: ${e}`);
+  }
   return totalCost;
 }
 
@@ -359,12 +389,14 @@ export function updateWorkItemCost(workItemId: string, cost: number): void {
   const wiPath = path.join(".tasks", `${workItemId}.json`);
   if (!fs.existsSync(wiPath)) return;
   try {
-    mutateJson<any>(wiPath, wi => {
+    mutateJson<any>(wiPath, (wi) => {
       if (!wi) return;
       wi.cost_usd = Math.round(cost * 10000) / 10000;
       wi.updated = new Date().toISOString();
     });
-  } catch (e) { log.warn(`failed to update work item cost for ${workItemId}: ${e}`); }
+  } catch (e) {
+    log.warn(`failed to update work item cost for ${workItemId}: ${e}`);
+  }
 }
 
 // ── Return packet extraction ───────────────────────────────
@@ -380,32 +412,47 @@ function findBalancedJsonRegions(text: string): string[] {
   const len = text.length;
   let i = 0;
   while (i < len) {
-    if (text.charCodeAt(i) !== 0x7b /* { */) { i++; continue; }
+    if (text.charCodeAt(i) !== 0x7b /* { */) {
+      i++;
+      continue;
+    }
     const start = i;
     let depth = 0;
     let inString = false;
-    let escape = false;
-    let j = i;
-    for (; j < len; j++) {
-      const ch = text.charCodeAt(j);
+    let nextCharEscaped = false;
+    let scanIndex = i;
+    for (; scanIndex < len; scanIndex++) {
+      const ch = text.charCodeAt(scanIndex);
       if (inString) {
-        if (escape) { escape = false; continue; }
-        if (ch === 0x5c /* \ */) { escape = true; continue; }
+        if (nextCharEscaped) {
+          nextCharEscaped = false;
+          continue;
+        }
+        if (ch === 0x5c /* \ */) {
+          nextCharEscaped = true;
+          continue;
+        }
         if (ch === 0x22 /* " */) inString = false;
         continue;
       }
-      if (ch === 0x22 /* " */) { inString = true; continue; }
-      if (ch === 0x7b /* { */) { depth++; continue; }
+      if (ch === 0x22 /* " */) {
+        inString = true;
+        continue;
+      }
+      if (ch === 0x7b /* { */) {
+        depth++;
+        continue;
+      }
       if (ch === 0x7d /* } */) {
         depth--;
         if (depth === 0) {
-          regions.push(text.slice(start, j + 1));
+          regions.push(text.slice(start, scanIndex + 1));
           break;
         }
       }
     }
-    if (depth === 0 && j < len) {
-      i = j + 1;
+    if (depth === 0 && scanIndex < len) {
+      i = scanIndex + 1;
     } else {
       // Unbalanced from this `{`; advance by one to avoid quadratic rescans.
       i = start + 1;
@@ -419,7 +466,11 @@ export function extractReturnPacket(text: string): any | null {
   // Fenced code block first; bounded match avoids any backtracking risk.
   const fencedMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
   if (fencedMatch) {
-    try { return JSON.parse(fencedMatch[1]); } catch { /* fall through */ }
+    try {
+      return JSON.parse(fencedMatch[1]);
+    } catch {
+      /* fall through */
+    }
   }
   // Walk balanced {...} regions from the end and accept the last one with
   // a recognised packet key.
@@ -430,7 +481,9 @@ export function extractReturnPacket(text: string): any | null {
       if (parsed && typeof parsed === "object" && (parsed.status || parsed.verdict)) {
         return parsed;
       }
-    } catch { /* try the next region */ }
+    } catch {
+      /* try the next region */
+    }
   }
   return null;
 }
@@ -500,7 +553,8 @@ export function assembleHandoffContent(
   if (Array.isArray(existingContent)) {
     for (const block of existingContent) {
       if (typeof block === "string") existingParts.push(block);
-      else if (block?.type === "text" && typeof block.text === "string") existingParts.push(block.text);
+      else if (block?.type === "text" && typeof block.text === "string")
+        existingParts.push(block.text);
     }
   }
   return [{ type: "text", text: existingParts.join("\n") + contentAppend }];
@@ -523,12 +577,12 @@ export function discoverWorkItems(): WorkItemSummary[] {
           phase: wi.phase,
           pattern: wi.pattern,
           cost_usd: wi.cost_usd || 0,
-          decisions_pending: (wi.decisions || []).filter(
-            (d: any) => d.status === "pending",
-          ).length,
+          decisions_pending: (wi.decisions || []).filter((d: any) => d.status === "pending").length,
         });
-      } catch { continue; }
+      } catch {}
     }
-  } catch { /* .tasks not readable */ }
+  } catch {
+    /* .tasks not readable */
+  }
   return items;
 }

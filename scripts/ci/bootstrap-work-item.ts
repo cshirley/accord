@@ -44,7 +44,7 @@ function extractTargetPaths(description: string): string[] {
   const after = description.slice(match.index + match[0].length);
   const nextHeading = /\n##\s+/.exec(after);
   const section = nextHeading ? after.slice(0, nextHeading.index) : after;
-  return Array.from(section.matchAll(/^[-*]\s+`?([^`\n]+?)`?\s*$/gm)).map((m) => m[1]!.trim());
+  return Array.from(section.matchAll(/^[-*]\s+`?([^`\n]+?)`?\s*$/gm)).map((m) => m[1]?.trim());
 }
 
 function extractOutOfScope(description: string): string[] {
@@ -54,7 +54,7 @@ function extractOutOfScope(description: string): string[] {
   const after = description.slice(match.index + match[0].length);
   const nextHeading = /\n##\s+/.exec(after);
   const section = nextHeading ? after.slice(0, nextHeading.index) : after;
-  return Array.from(section.matchAll(/^[-*]\s+(.+)$/gm)).map((m) => m[1]!.trim());
+  return Array.from(section.matchAll(/^[-*]\s+(.+)$/gm)).map((m) => m[1]?.trim());
 }
 
 export async function bootstrapWorkItem(opts: BootstrapOpts): Promise<BootstrapResult> {
@@ -70,20 +70,16 @@ export async function bootstrapWorkItem(opts: BootstrapOpts): Promise<BootstrapR
     intent_mode: "pipeline" as const,
     intent_confidence: "high" as const,
     escalation_ceiling: "pipeline_allowed",
-    target_paths: opts.intent?.target_paths?.slice() ?? extractTargetPaths(opts.ticket.fields.description),
-    out_of_scope: opts.intent?.out_of_scope?.slice() ?? extractOutOfScope(opts.ticket.fields.description),
+    target_paths:
+      opts.intent?.target_paths?.slice() ?? extractTargetPaths(opts.ticket.fields.description),
+    out_of_scope:
+      opts.intent?.out_of_scope?.slice() ?? extractOutOfScope(opts.ticket.fields.description),
     expected_finish:
       opts.intent?.expected_finish ??
       `Implement ${opts.ticket.key} acceptance criteria and land a single PR.`,
   };
 
-  devBootstrap(
-    opts.ticket.key,
-    opts.ticket.fields.summary,
-    "implement",
-    "standard",
-    intent,
-  );
+  devBootstrap(opts.ticket.key, opts.ticket.fields.summary, "implement", "standard", intent);
 
   // For implement/standard, ENTRY_PHASES points to "aligning"; the
   // autopipeline seeds the brief and skips align, so we transition forward to

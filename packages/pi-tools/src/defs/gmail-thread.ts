@@ -1,7 +1,10 @@
 import { defineTool } from "../framework.js";
 import {
-  makeGoogleRequest, hasNativeGoogleAuth, headerValue,
-  type GmailHeader, type GmailMessageSummary,
+  type GmailHeader,
+  type GmailMessageSummary,
+  hasNativeGoogleAuth,
+  headerValue,
+  makeGoogleRequest,
 } from "../services/google.client.js";
 
 export default defineTool<
@@ -20,12 +23,15 @@ export default defineTool<
   progress: (p) => `Getting thread ${p.threadId}`,
 
   async execute(p) {
-    const thread = await makeGoogleRequest(
+    const thread = (await makeGoogleRequest(
       `https://gmail.googleapis.com/gmail/v1/users/me/threads/${p.threadId}`,
       { format: "metadata", metadataHeaders: "From,Subject,Date" },
-    ) as { messages?: Array<{ id: string; snippet: string; payload: { headers: GmailHeader[] } }> };
+    )) as {
+      messages?: Array<{ id: string; snippet: string; payload: { headers: GmailHeader[] } }>;
+    };
     const messages: GmailMessageSummary[] = (thread.messages || []).map((msg) => ({
-      id: msg.id, threadId: p.threadId,
+      id: msg.id,
+      threadId: p.threadId,
       from: headerValue(msg.payload?.headers || [], "from"),
       subject: headerValue(msg.payload?.headers || [], "subject"),
       date: headerValue(msg.payload?.headers || [], "date"),
@@ -41,17 +47,21 @@ export default defineTool<
     mapResult: (raw: any) => ({
       threadId: raw.threadId ?? "",
       messages: (raw.messages || []).map((m: any) => ({
-        id: m.id ?? "", threadId: raw.threadId ?? "",
-        from: m.from ?? "", subject: m.subject ?? "",
-        date: m.date ?? "", snippet: m.snippet ?? "",
+        id: m.id ?? "",
+        threadId: raw.threadId ?? "",
+        from: m.from ?? "",
+        subject: m.subject ?? "",
+        date: m.date ?? "",
+        snippet: m.snippet ?? "",
       })),
     }),
   },
 
   format(result) {
     if (result.messages.length === 0) return { text: "Empty thread", details: result };
-    const lines = result.messages.map((m) =>
-      `${m.date?.slice(0, 16) ?? ""} | ${m.from?.slice(0, 40)} | ${m.snippet?.slice(0, 120) ?? ""}`,
+    const lines = result.messages.map(
+      (m) =>
+        `${m.date?.slice(0, 16) ?? ""} | ${m.from?.slice(0, 40)} | ${m.snippet?.slice(0, 120) ?? ""}`,
     );
     return {
       text: `Thread ${result.threadId} (${result.messages.length} messages)\n${lines.join("\n")}`,

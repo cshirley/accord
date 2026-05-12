@@ -24,13 +24,7 @@
     "created": { "type": "string" },
     "updated": { "type": "string" },
     "pattern": {
-      "enum": [
-        "implement",
-        "quick_fix",
-        "investigate",
-        "infra",
-        "analyse"
-      ]
+      "enum": ["implement", "quick_fix", "investigate", "infra", "analyse"]
     },
     "variant": { "enum": ["express", "standard", "orchestrated"] },
     "phase": { "type": "string", "minLength": 1 },
@@ -89,15 +83,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "question",
-          "context",
-          "source",
-          "phase",
-          "status",
-          "asked_at"
-        ],
+        "required": ["id", "question", "context", "source", "phase", "status", "asked_at"],
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string", "minLength": 1 },

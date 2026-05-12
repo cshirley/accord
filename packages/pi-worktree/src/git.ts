@@ -164,10 +164,7 @@ export async function pruneWorktrees(exec: Exec, cwd?: string): Promise<void> {
 /**
  * Check working tree status inside a worktree.
  */
-export async function worktreeStatus(
-  exec: Exec,
-  wtPath: string,
-): Promise<WorktreeStatus> {
+export async function worktreeStatus(exec: Exec, wtPath: string): Promise<WorktreeStatus> {
   const r = await exec("git", ["status", "--porcelain"], { cwd: wtPath });
   assertOk(r, `git status in ${wtPath}`);
   const files = r.stdout
@@ -180,10 +177,7 @@ export async function worktreeStatus(
 /**
  * Get short diffstat for a worktree (uncommitted changes).
  */
-export async function worktreeDiffStat(
-  exec: Exec,
-  wtPath: string,
-): Promise<string> {
+export async function worktreeDiffStat(exec: Exec, wtPath: string): Promise<string> {
   const r = await exec("git", ["diff", "--stat"], { cwd: wtPath });
   return r.stdout.trim();
 }
@@ -209,11 +203,7 @@ export async function aheadBehind(
 /**
  * Check whether a local branch name already exists.
  */
-export async function branchExists(
-  exec: Exec,
-  branch: string,
-  cwd?: string,
-): Promise<boolean> {
+export async function branchExists(exec: Exec, branch: string, cwd?: string): Promise<boolean> {
   const r = await exec("git", ["rev-parse", "--verify", `refs/heads/${branch}`], { cwd });
   return r.code === 0;
 }
@@ -260,11 +250,7 @@ export async function abortMerge(exec: Exec, cwd?: string): Promise<void> {
 /**
  * Checkout a branch in the given worktree (or main working tree).
  */
-export async function checkoutBranch(
-  exec: Exec,
-  branch: string,
-  cwd?: string,
-): Promise<void> {
+export async function checkoutBranch(exec: Exec, branch: string, cwd?: string): Promise<void> {
   const r = await exec("git", ["checkout", branch], { cwd });
   assertOk(r, `git checkout ${branch}`);
 }
@@ -332,7 +318,10 @@ export async function ensureGitignore(repoRoot: string): Promise<boolean> {
 
   // Append with a blank line separator if file has content
   const separator = content.length > 0 && !content.endsWith("\n") ? "\n" : "";
-  const addition = content.length > 0 ? `${separator}\n# Git worktrees (managed by pi)\n${entry}\n` : `# Git worktrees (managed by pi)\n${entry}\n`;
+  const addition =
+    content.length > 0
+      ? `${separator}\n# Git worktrees (managed by pi)\n${entry}\n`
+      : `# Git worktrees (managed by pi)\n${entry}\n`;
   fs.writeFileSync(gitignorePath, content + addition, "utf8");
   return true;
 }

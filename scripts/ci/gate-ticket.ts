@@ -9,6 +9,13 @@
  * Spec reference: docs/dev/TICKET-TO-PR-1/spec.json#AC-3.
  */
 
+/**
+ * Jira `fields.comment` as returned by issue fetch APIs (shape varies by
+ * version and `expand`). Treated as an open object so seeding can emit every
+ * key; the `comments` array holds per-comment payloads when present.
+ */
+export type JiraIssueFieldsComment = Readonly<Record<string, unknown>>;
+
 export interface JiraIssue {
   readonly key: string;
   readonly fields: {
@@ -16,6 +23,8 @@ export interface JiraIssue {
     readonly status: { readonly name: string };
     readonly summary: string;
     readonly description: string;
+    /** When present, `seedBrief` embeds every field from each comment object. */
+    readonly comment?: JiraIssueFieldsComment;
   };
 }
 
@@ -61,8 +70,8 @@ const AC_HEADING_RE = /^##\s+(acceptance criteria|acceptance criterion|ACs?)\s*$
 const OUT_OF_SCOPE_RE = /^##\s+out of scope\s*$/im;
 const TARGET_PATHS_RE = /^##\s+(target paths|paths|areas?|target area)\s*$/im;
 const LIST_ITEM_RE = /^[-*]\s+\S+/m;
-const WHAT_RE = /\bWHAT\s*[:\-]|\bwhat\b.*\?|## problem/i;
-const WHY_RE = /\bWHY\s*[:\-]|\bwhy\b.*\?|## (motivation|context|background)/i;
+const WHAT_RE = /\bWHAT\s*[:-]|\bwhat\b.*\?|## problem/i;
+const WHY_RE = /\bWHY\s*[:-]|\bwhy\b.*\?|## (motivation|context|background)/i;
 const BLOCKING_RE = /\bTBD\b|\?{2,}|\bTODO\(\?\)|<\?>|\bunclear\b.*\?/i;
 
 function checkDescriptionLength(desc: string, cfg: TicketGateConfig): TicketGateFailedCheck | null {
@@ -103,7 +112,8 @@ function checkProblemFraming(desc: string): TicketGateFailedCheck | null {
     return {
       id: "missing_problem_framing",
       field: "description",
-      remediation: "describe both WHAT is happening and WHY it matters (use explicit `WHAT:` / `WHY:` labels or `## Problem` framing).",
+      remediation:
+        "describe both WHAT is happening and WHY it matters (use explicit `WHAT:` / `WHY:` labels or `## Problem` framing).",
     };
   }
   return null;
@@ -125,7 +135,8 @@ function checkTargetPaths(desc: string): TicketGateFailedCheck | null {
     return {
       id: "missing_target_paths",
       field: "description",
-      remediation: "add a `## Target paths` (or `## Areas`) section pointing the agent at the relevant files.",
+      remediation:
+        "add a `## Target paths` (or `## Areas`) section pointing the agent at the relevant files.",
     };
   }
   return null;
@@ -136,7 +147,8 @@ function checkBlockingQuestions(desc: string): TicketGateFailedCheck | null {
     return {
       id: "blocking_question_or_tbd",
       field: "description",
-      remediation: "remove blocking markers (TBD / ??? / `<?>`) before triggering the autopipeline — resolve them with the team first.",
+      remediation:
+        "remove blocking markers (TBD / ??? / `<?>`) before triggering the autopipeline — resolve them with the team first.",
     };
   }
   return null;

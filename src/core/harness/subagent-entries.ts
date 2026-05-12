@@ -27,9 +27,7 @@ export function firstSubagentAgentName(input: Record<string, unknown>): string {
  * so the caller can mutate the entry in place. This is intentional — the
  * subagent prepare hook injects briefs by writing to entry.task.
  */
-export function getPrimarySubagentEntry(
-  input: Record<string, unknown>,
-): SubagentEntry | null {
+export function getPrimarySubagentEntry(input: Record<string, unknown>): SubagentEntry | null {
   if (input.agent) return input as SubagentEntry;
   const chain = input.chain as SubagentEntry[] | undefined;
   if (Array.isArray(chain) && chain[0]) return chain[0];

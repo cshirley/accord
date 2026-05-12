@@ -90,7 +90,12 @@ async function jiraRequest(
   method: "GET" | "POST",
   body: string | undefined,
   opts: { fetch?: FetchLike; maxRetryDelayMs?: number } = {},
-): Promise<{ ok: boolean; status: number; json: () => Promise<unknown>; text: () => Promise<string> }> {
+): Promise<{
+  ok: boolean;
+  status: number;
+  json: () => Promise<unknown>;
+  text: () => Promise<string>;
+}> {
   const fetch = opts.fetch ?? defaultFetch;
   const maxRetryDelayMs = opts.maxRetryDelayMs ?? DEFAULT_MAX_RETRY_DELAY_MS;
   const headers: Record<string, string> = {
@@ -123,7 +128,10 @@ async function jiraRequest(
   return res;
 }
 
-export async function postComment(opts: PostCommentOpts, extra: PostCommentExtra = {}): Promise<void> {
+export async function postComment(
+  opts: PostCommentOpts,
+  extra: PostCommentExtra = {},
+): Promise<void> {
   if (dryRunActive()) {
     appendDryRunLog({ action: "postComment", ticket: opts.ticket, body: opts.body });
     return;
@@ -149,7 +157,10 @@ export interface TransitionOpts {
   readonly target: string;
 }
 
-export async function transitionTicket(opts: TransitionOpts, extra: PostCommentExtra = {}): Promise<void> {
+export async function transitionTicket(
+  opts: TransitionOpts,
+  extra: PostCommentExtra = {},
+): Promise<void> {
   if (dryRunActive()) {
     appendDryRunLog({ action: "transitionTicket", ticket: opts.ticket, target: opts.target });
     return;

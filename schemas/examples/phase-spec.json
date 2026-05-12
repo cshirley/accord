@@ -7,8 +7,16 @@
       "problem_statement": "Access tokens expire silently, causing 401s with no recovery path"
     },
     "questions": [
-      { "id": "q_scope_1", "topic": "scope", "text": "What's explicitly out of scope for v1, and why?" },
-      { "id": "q_scope_2", "topic": "scope", "text": "Are there any tenants or regions we're deferring?" }
+      {
+        "id": "q_scope_1",
+        "topic": "scope",
+        "text": "What's explicitly out of scope for v1, and why?"
+      },
+      {
+        "id": "q_scope_2",
+        "topic": "scope",
+        "text": "Are there any tenants or regions we're deferring?"
+      }
     ],
     "usage": { "prompt_tokens": 6200, "completion_tokens": 900 }
   },

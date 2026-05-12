@@ -10,27 +10,27 @@ import * as path from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Type } from "typebox";
 import {
-  type Exec,
-  type Worktree,
-  gitRoot,
-  isInsideWorkTree,
-  currentBranch,
-  listWorktrees,
+  abortMerge,
   addWorktree,
-  removeWorktree,
-  pruneWorktrees,
-  worktreeStatus,
-  worktreeDiffStat,
   aheadBehind,
   branchExists,
-  mergeBranch,
-  abortMerge,
   checkoutBranch,
+  currentBranch,
   deleteBranch,
-  pushBranch,
-  logOneline,
+  type Exec,
   ensureGitignore,
+  gitRoot,
+  isInsideWorkTree,
+  listWorktrees,
+  logOneline,
+  mergeBranch,
+  pruneWorktrees,
+  pushBranch,
+  removeWorktree,
   validateName,
+  type Worktree,
+  worktreeDiffStat,
+  worktreeStatus,
 } from "./git.js";
 
 // ── Constants ──────────────────────────────────────────────
@@ -139,14 +139,18 @@ export default function (pi: ExtensionAPI) {
   async function requireGitRepo(): Promise<string> {
     const root = await gitRoot(exec);
     if (!root) throw new Error("Not inside a git repository.");
-    if (!(await isInsideWorkTree(exec))) throw new Error("Inside a bare git repository — worktrees require a working tree.");
+    if (!(await isInsideWorkTree(exec)))
+      throw new Error("Inside a bare git repository — worktrees require a working tree.");
     return root;
   }
 
-  async function resolveWorktree(name: string): Promise<{ root: string; wtPath: string; entry: WorktreeEntry }> {
+  async function resolveWorktree(
+    name: string,
+  ): Promise<{ root: string; wtPath: string; entry: WorktreeEntry }> {
     const root = await requireGitRepo();
     const entry = state.worktrees[name];
-    if (!entry) throw new Error(`No worktree named "${name}". Run wt_list to see active worktrees.`);
+    if (!entry)
+      throw new Error(`No worktree named "${name}". Run wt_list to see active worktrees.`);
     return { root, wtPath: entry.path, entry };
   }
 
@@ -156,14 +160,24 @@ export default function (pi: ExtensionAPI) {
     name: "wt_create",
     label: "Worktree Create",
     description: "Create a git worktree with its own branch for isolated parallel work.",
-    promptSnippet: "Create a git worktree — each gets its own branch and working directory for concurrent work",
+    promptSnippet:
+      "Create a git worktree — each gets its own branch and working directory for concurrent work",
     parameters: Type.Object({
-      name: Type.String({ description: "Worktree name (alphanumeric, hyphens, dots, underscores)" }),
-      base_branch: Type.Optional(Type.String({ description: "Branch to base off (default: current branch)" })),
+      name: Type.String({
+        description: "Worktree name (alphanumeric, hyphens, dots, underscores)",
+      }),
+      base_branch: Type.Optional(
+        Type.String({ description: "Branch to base off (default: current branch)" }),
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const nameErr = validateName(params.name);
-      if (nameErr) return { content: [{ type: "text", text: `Invalid name: ${nameErr}` }], details: undefined, isError: true };
+      if (nameErr)
+        return {
+          content: [{ type: "text", text: `Invalid name: ${nameErr}` }],
+          details: undefined,
+          isError: true,
+        };
 
       const root = await requireGitRepo();
       const branch = branchName(params.name);
@@ -171,10 +185,25 @@ export default function (pi: ExtensionAPI) {
 
       // Safety checks
       if (state.worktrees[params.name]) {
-        return { content: [{ type: "text", text: `Worktree "${params.name}" already exists at ${wtPath}` }], details: undefined, isError: true };
+        return {
+          content: [
+            { type: "text", text: `Worktree "${params.name}" already exists at ${wtPath}` },
+          ],
+          details: undefined,
+          isError: true,
+        };
       }
       if (await branchExists(exec, branch)) {
-        return { content: [{ type: "text", text: `Branch "${branch}" already exists. Pick a different name or delete the branch first.` }], details: undefined, isError: true };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Branch "${branch}" already exists. Pick a different name or delete the branch first.`,
+            },
+          ],
+          details: undefined,
+          isError: true,
+        };
       }
 
       const base = params.base_branch || (await currentBranch(exec)) || "HEAD";
@@ -204,7 +233,10 @@ export default function (pi: ExtensionAPI) {
       if (added) lines.push("  (.worktrees/ added to .gitignore)");
       lines.push("", `Use the subagent tool with cwd: "${wtPath}" to work in this worktree.`);
 
-      return { content: [{ type: "text", text: lines.join("\n") }], details: { name: params.name, path: wtPath, branch, base } };
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: { name: params.name, path: wtPath, branch, base },
+      };
     },
   });
 
@@ -214,13 +246,16 @@ export default function (pi: ExtensionAPI) {
     description: "List all active git worktrees with branch, path, and status.",
     promptSnippet: "List all git worktrees with their branch, path, and clean/dirty status",
     parameters: Type.Object({}),
-    async execute(_id, _params, _signal, _onUpdate, ctx) {
+    async execute(_id, _params, _signal, _onUpdate, _ctx) {
       const root = await requireGitRepo();
       const all = await listWorktrees(exec);
       const managed = managedWorktrees(all, root);
 
       if (managed.length === 0) {
-        return { content: [{ type: "text", text: "No active worktrees. Use wt_create to create one." }], details: undefined };
+        return {
+          content: [{ type: "text", text: "No active worktrees. Use wt_create to create one." }],
+          details: undefined,
+        };
       }
 
       const lines: string[] = [`${managed.length} worktree(s):\n`];
@@ -254,7 +289,10 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       name: Type.Optional(Type.String({ description: "Worktree name (omit for all)" })),
     }),
-    async execute(_id, params): Promise<{ content: { type: "text"; text: string }[]; details: unknown }> {
+    async execute(
+      _id,
+      params,
+    ): Promise<{ content: { type: "text"; text: string }[]; details: unknown }> {
       const root = await requireGitRepo();
 
       if (params.name) {
@@ -263,35 +301,51 @@ export default function (pi: ExtensionAPI) {
         const diff = status.clean ? "" : await worktreeDiffStat(exec, wtPath);
         const ab = await aheadBehind(exec, entry.branch, entry.baseBranch);
 
-        const lines = [`Worktree: ${params.name}`, `  branch: ${entry.branch}`, `  base:   ${entry.baseBranch}`];
+        const lines = [
+          `Worktree: ${params.name}`,
+          `  branch: ${entry.branch}`,
+          `  base:   ${entry.baseBranch}`,
+        ];
         lines.push(`  ahead:  ${ab.ahead} commit(s)  behind: ${ab.behind} commit(s)`);
         if (status.clean) {
           lines.push("  working tree: clean");
         } else {
           lines.push(`  working tree: ${status.files.length} changed file(s)`);
           for (const f of status.files) lines.push(`    ${f}`);
-          if (diff) { lines.push(""); lines.push(diff); }
+          if (diff) {
+            lines.push("");
+            lines.push(diff);
+          }
         }
 
-        return { content: [{ type: "text", text: lines.join("\n") }], details: { name: params.name, clean: status.clean, ahead: ab.ahead, behind: ab.behind } };
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+          details: { name: params.name, clean: status.clean, ahead: ab.ahead, behind: ab.behind },
+        };
       }
 
       // All worktrees
       const all = await listWorktrees(exec);
       const managed = managedWorktrees(all, root);
-      if (managed.length === 0) return { content: [{ type: "text", text: "No active worktrees." }], details: undefined };
+      if (managed.length === 0)
+        return { content: [{ type: "text", text: "No active worktrees." }], details: undefined };
 
       const lines: string[] = [];
       for (const wt of managed) {
         const name = path.basename(wt.path);
         const entry = state.worktrees[name];
         const status = await worktreeStatus(exec, wt.path);
-        const ab = entry ? await aheadBehind(exec, entry.branch, entry.baseBranch) : { ahead: 0, behind: 0 };
+        const ab = entry
+          ? await aheadBehind(exec, entry.branch, entry.baseBranch)
+          : { ahead: 0, behind: 0 };
         const statusStr = status.clean ? "✓ clean" : `✗ ${status.files.length} changed`;
         lines.push(`${name}  ${statusStr}  ↑${ab.ahead} ↓${ab.behind}`);
       }
 
-      return { content: [{ type: "text", text: lines.join("\n") }], details: { count: managed.length } };
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: { count: managed.length },
+      };
     },
   });
 
@@ -302,8 +356,14 @@ export default function (pi: ExtensionAPI) {
     promptSnippet: "Merge a worktree's branch back into its base and clean up the worktree",
     parameters: Type.Object({
       name: Type.String({ description: "Worktree name to merge" }),
-      into: Type.Optional(Type.String({ description: "Target branch (default: the base branch from creation)" })),
-      cleanup: Type.Optional(Type.Boolean({ description: "Remove worktree and delete branch after merge (default: true)" })),
+      into: Type.Optional(
+        Type.String({ description: "Target branch (default: the base branch from creation)" }),
+      ),
+      cleanup: Type.Optional(
+        Type.Boolean({
+          description: "Remove worktree and delete branch after merge (default: true)",
+        }),
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const { wtPath, entry } = await resolveWorktree(params.name);
@@ -314,10 +374,12 @@ export default function (pi: ExtensionAPI) {
       const status = await worktreeStatus(exec, wtPath);
       if (!status.clean) {
         return {
-          content: [{
-            type: "text",
-            text: `Worktree "${params.name}" has uncommitted changes:\n${status.files.map((f) => `  ${f}`).join("\n")}\n\nCommit or stash changes before merging.`,
-          }],
+          content: [
+            {
+              type: "text",
+              text: `Worktree "${params.name}" has uncommitted changes:\n${status.files.map((f) => `  ${f}`).join("\n")}\n\nCommit or stash changes before merging.`,
+            },
+          ],
           details: undefined,
           isError: true,
         };
@@ -344,11 +406,17 @@ export default function (pi: ExtensionAPI) {
         if (result.conflicts) {
           lines.push(`\nConflicting files (${result.conflicts.length}):`);
           for (const f of result.conflicts) lines.push(`  ${f}`);
-          lines.push("\nThe merge has been aborted. Resolve conflicts manually or use wt_exec to work in the worktree.");
+          lines.push(
+            "\nThe merge has been aborted. Resolve conflicts manually or use wt_exec to work in the worktree.",
+          );
         } else {
           lines.push(`\n${result.message}`);
         }
-        return { content: [{ type: "text", text: lines.join("\n") }], isError: true, details: { conflicts: result.conflicts } };
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+          isError: true,
+          details: { conflicts: result.conflicts },
+        };
       }
 
       const lines = [`Merged "${params.name}" (${entry.branch}) into ${target}.`];
@@ -363,7 +431,10 @@ export default function (pi: ExtensionAPI) {
       }
 
       updateStatusBar(ctx);
-      return { content: [{ type: "text", text: lines.join("\n") }], details: { merged: true, target, cleaned: cleanup } };
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: { merged: true, target, cleaned: cleanup },
+      };
     },
   });
 
@@ -374,8 +445,14 @@ export default function (pi: ExtensionAPI) {
     promptSnippet: "Remove a git worktree and optionally delete its branch (does not merge)",
     parameters: Type.Object({
       name: Type.String({ description: "Worktree name to remove" }),
-      force: Type.Optional(Type.Boolean({ description: "Force removal even with uncommitted changes (default: false)" })),
-      delete_branch: Type.Optional(Type.Boolean({ description: "Also delete the branch (default: false)" })),
+      force: Type.Optional(
+        Type.Boolean({
+          description: "Force removal even with uncommitted changes (default: false)",
+        }),
+      ),
+      delete_branch: Type.Optional(
+        Type.Boolean({ description: "Also delete the branch (default: false)" }),
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const { wtPath, entry } = await resolveWorktree(params.name);
@@ -385,10 +462,12 @@ export default function (pi: ExtensionAPI) {
         const status = await worktreeStatus(exec, wtPath);
         if (!status.clean) {
           return {
-            content: [{
-              type: "text",
-              text: `Worktree "${params.name}" has uncommitted changes:\n${status.files.map((f) => `  ${f}`).join("\n")}\n\nUse force: true to remove anyway, or commit/stash first.`,
-            }],
+            content: [
+              {
+                type: "text",
+                text: `Worktree "${params.name}" has uncommitted changes:\n${status.files.map((f) => `  ${f}`).join("\n")}\n\nUse force: true to remove anyway, or commit/stash first.`,
+              },
+            ],
             details: undefined,
             isError: true,
           };
@@ -407,7 +486,10 @@ export default function (pi: ExtensionAPI) {
       persistState();
       updateStatusBar(ctx);
 
-      return { content: [{ type: "text", text: lines.join("\n") }], details: { removed: params.name } };
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: { removed: params.name },
+      };
     },
   });
 
@@ -440,11 +522,15 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       name: Type.String({ description: "Worktree name" }),
       title: Type.Optional(Type.String({ description: "PR title (required for new PRs)" })),
-      body: Type.Optional(Type.String({ description: "PR body (auto-generated from commits if omitted)" })),
-      base: Type.Optional(Type.String({ description: "Base branch for the PR (default: worktree's base branch)" })),
+      body: Type.Optional(
+        Type.String({ description: "PR body (auto-generated from commits if omitted)" }),
+      ),
+      base: Type.Optional(
+        Type.String({ description: "Base branch for the PR (default: worktree's base branch)" }),
+      ),
       draft: Type.Optional(Type.Boolean({ description: "Open as draft PR (default: false)" })),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    async execute(_id, params, _signal, _onUpdate, _ctx) {
       const { wtPath, entry } = await resolveWorktree(params.name);
       const base = params.base || entry.baseBranch;
 
@@ -458,14 +544,22 @@ export default function (pi: ExtensionAPI) {
       // Check gh is available
       const ghCheck = await exec("gh", ["auth", "status"], { cwd: wtPath });
       if (ghCheck.code !== 0) {
-        return { content: [{ type: "text", text: "gh CLI is not authenticated. Run `gh auth login` first." }], details: undefined, isError: true };
+        return {
+          content: [
+            { type: "text", text: "gh CLI is not authenticated. Run `gh auth login` first." },
+          ],
+          details: undefined,
+          isError: true,
+        };
       }
 
       // Push the branch
       await pushBranch(exec, entry.branch, "origin", wtPath);
 
       // Check for existing PR
-      const prView = await exec("gh", ["pr", "view", "--json", "number,url,title,state"], { cwd: wtPath });
+      const prView = await exec("gh", ["pr", "view", "--json", "number,url,title,state"], {
+        cwd: wtPath,
+      });
 
       if (prView.code === 0) {
         // PR exists — just report the update
@@ -473,10 +567,20 @@ export default function (pi: ExtensionAPI) {
         try {
           pr = JSON.parse(prView.stdout);
         } catch {
-          return { content: [{ type: "text", text: "Pushed branch but could not parse existing PR info." }], details: undefined };
+          return {
+            content: [
+              { type: "text", text: "Pushed branch but could not parse existing PR info." },
+            ],
+            details: undefined,
+          };
         }
         return {
-          content: [{ type: "text", text: `${warning}Pushed ${entry.branch}.\nPR #${pr.number} updated: ${pr.url}` }],
+          content: [
+            {
+              type: "text",
+              text: `${warning}Pushed ${entry.branch}.\nPR #${pr.number} updated: ${pr.url}`,
+            },
+          ],
           details: { action: "updated", number: pr.number, url: pr.url, branch: entry.branch },
         };
       }
@@ -493,7 +597,10 @@ export default function (pi: ExtensionAPI) {
       if (!body) {
         const log = await logOneline(exec, base, entry.branch, wtPath);
         body = log
-          ? `## Changes\n\n${log.split("\n").map((l) => `- ${l}`).join("\n")}`
+          ? `## Changes\n\n${log
+              .split("\n")
+              .map((l) => `- ${l}`)
+              .join("\n")}`
           : "_(no commits yet)_";
       }
 
@@ -503,7 +610,9 @@ export default function (pi: ExtensionAPI) {
       const createResult = await exec("gh", createArgs, { cwd: wtPath });
       if (createResult.code !== 0) {
         return {
-          content: [{ type: "text", text: `Pushed branch but PR creation failed:\n${createResult.stderr}` }],
+          content: [
+            { type: "text", text: `Pushed branch but PR creation failed:\n${createResult.stderr}` },
+          ],
           details: undefined,
           isError: true,
         };
@@ -548,22 +657,39 @@ export default function (pi: ExtensionAPI) {
 
           case "create": {
             const name = parts[1];
-            if (!name) { ctx.ui.notify("Usage: /wt create <name> [base-branch]", "error"); return; }
+            if (!name) {
+              ctx.ui.notify("Usage: /wt create <name> [base-branch]", "error");
+              return;
+            }
             const nameErr = validateName(name);
-            if (nameErr) { ctx.ui.notify(`Invalid name: ${nameErr}`, "error"); return; }
+            if (nameErr) {
+              ctx.ui.notify(`Invalid name: ${nameErr}`, "error");
+              return;
+            }
 
             const root = await requireGitRepo();
             const branch = branchName(name);
             const wtPath = worktreePath(root, name);
             const base = parts[2] || (await currentBranch(exec)) || "HEAD";
 
-            if (state.worktrees[name]) { ctx.ui.notify(`Worktree "${name}" already exists.`, "error"); return; }
-            if (await branchExists(exec, branch)) { ctx.ui.notify(`Branch "${branch}" already exists.`, "error"); return; }
+            if (state.worktrees[name]) {
+              ctx.ui.notify(`Worktree "${name}" already exists.`, "error");
+              return;
+            }
+            if (await branchExists(exec, branch)) {
+              ctx.ui.notify(`Branch "${branch}" already exists.`, "error");
+              return;
+            }
 
             await ensureGitignore(root);
             await addWorktree(exec, wtPath, branch, base);
 
-            state.worktrees[name] = { path: wtPath, branch, baseBranch: base, createdAt: new Date().toISOString() };
+            state.worktrees[name] = {
+              path: wtPath,
+              branch,
+              baseBranch: base,
+              createdAt: new Date().toISOString(),
+            };
             persistState();
             updateStatusBar(ctx);
 
@@ -592,7 +718,10 @@ export default function (pi: ExtensionAPI) {
               const root = await requireGitRepo();
               const all = await listWorktrees(exec);
               const managed = managedWorktrees(all, root);
-              if (managed.length === 0) { ctx.ui.notify("No active worktrees.", "info"); return; }
+              if (managed.length === 0) {
+                ctx.ui.notify("No active worktrees.", "info");
+                return;
+              }
 
               const lines: string[] = [];
               for (const wt of managed) {
@@ -619,21 +748,31 @@ export default function (pi: ExtensionAPI) {
 
           case "merge": {
             const name = parts[1];
-            if (!name) { ctx.ui.notify("Usage: /wt merge <name> [into-branch]", "error"); return; }
+            if (!name) {
+              ctx.ui.notify("Usage: /wt merge <name> [into-branch]", "error");
+              return;
+            }
 
             const { wtPath, entry } = await resolveWorktree(name);
             const target = parts[2] || entry.baseBranch;
 
             const status = await worktreeStatus(exec, wtPath);
             if (!status.clean) {
-              ctx.ui.notify(`Worktree "${name}" has uncommitted changes — commit or stash first.`, "error");
+              ctx.ui.notify(
+                `Worktree "${name}" has uncommitted changes — commit or stash first.`,
+                "error",
+              );
               return;
             }
 
             const mainBranch = await currentBranch(exec);
             if (mainBranch !== target) await checkoutBranch(exec, target);
 
-            const result = await mergeBranch(exec, entry.branch, `Merge ${entry.branch} into ${target}`);
+            const result = await mergeBranch(
+              exec,
+              entry.branch,
+              `Merge ${entry.branch} into ${target}`,
+            );
             if (!result.success) {
               await abortMerge(exec);
               if (mainBranch && mainBranch !== target) await checkoutBranch(exec, mainBranch);
@@ -654,7 +793,10 @@ export default function (pi: ExtensionAPI) {
           case "remove":
           case "rm": {
             const name = parts[1];
-            if (!name) { ctx.ui.notify("Usage: /wt remove <name>", "error"); return; }
+            if (!name) {
+              ctx.ui.notify("Usage: /wt remove <name>", "error");
+              return;
+            }
 
             const { wtPath, entry } = await resolveWorktree(name);
             const status = await worktreeStatus(exec, wtPath);
@@ -664,7 +806,10 @@ export default function (pi: ExtensionAPI) {
                 "Uncommitted changes",
                 `Worktree "${name}" has ${status.files.length} changed file(s). Remove anyway?`,
               );
-              if (!ok) { ctx.ui.notify("Cancelled.", "info"); return; }
+              if (!ok) {
+                ctx.ui.notify("Cancelled.", "info");
+                return;
+              }
             }
 
             await removeWorktree(exec, wtPath, true);
@@ -679,7 +824,10 @@ export default function (pi: ExtensionAPI) {
 
           case "pr": {
             const name = parts[1];
-            if (!name) { ctx.ui.notify("Usage: /wt pr <name> [--draft]", "error"); return; }
+            if (!name) {
+              ctx.ui.notify("Usage: /wt pr <name> [--draft]", "error");
+              return;
+            }
 
             const { wtPath, entry } = await resolveWorktree(name);
             const draft = parts.includes("--draft");
@@ -689,7 +837,9 @@ export default function (pi: ExtensionAPI) {
             await pushBranch(exec, entry.branch, "origin", wtPath);
 
             // Check for existing PR
-            const prView = await exec("gh", ["pr", "view", "--json", "number,url"], { cwd: wtPath });
+            const prView = await exec("gh", ["pr", "view", "--json", "number,url"], {
+              cwd: wtPath,
+            });
             if (prView.code === 0) {
               const pr = JSON.parse(prView.stdout);
               ctx.ui.notify(`Pushed. PR #${pr.number} updated: ${pr.url}`, "info");
@@ -705,14 +855,20 @@ export default function (pi: ExtensionAPI) {
 
             const log = await logOneline(exec, base, entry.branch, wtPath);
             const body = log
-              ? `## Changes\n\n${log.split("\n").map((l) => `- ${l}`).join("\n")}`
+              ? `## Changes\n\n${log
+                  .split("\n")
+                  .map((l) => `- ${l}`)
+                  .join("\n")}`
               : "";
 
             const createArgs = ["pr", "create", "--title", title, "--body", body, "--base", base];
             if (draft) createArgs.push("--draft");
 
             const r = await exec("gh", createArgs, { cwd: wtPath });
-            if (r.code !== 0) { ctx.ui.notify(`PR creation failed: ${r.stderr}`, "error"); return; }
+            if (r.code !== 0) {
+              ctx.ui.notify(`PR creation failed: ${r.stderr}`, "error");
+              return;
+            }
             ctx.ui.notify(`PR created: ${r.stdout.trim()}`, "info");
             return;
           }
@@ -722,7 +878,10 @@ export default function (pi: ExtensionAPI) {
             const all = await listWorktrees(exec);
             const managed = managedWorktrees(all, root);
 
-            if (managed.length === 0) { ctx.ui.notify("No worktrees to clean up.", "info"); return; }
+            if (managed.length === 0) {
+              ctx.ui.notify("No worktrees to clean up.", "info");
+              return;
+            }
 
             if (ctx.hasUI) {
               const names = managed.map((w) => path.basename(w.path)).join(", ");
@@ -730,7 +889,10 @@ export default function (pi: ExtensionAPI) {
                 "Remove all worktrees?",
                 `This will remove ${managed.length} worktree(s): ${names}\n\nBranches will also be deleted.`,
               );
-              if (!ok) { ctx.ui.notify("Cancelled.", "info"); return; }
+              if (!ok) {
+                ctx.ui.notify("Cancelled.", "info");
+                return;
+              }
             }
 
             for (const wt of managed) {

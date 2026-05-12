@@ -12,23 +12,23 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { AutocompleteItem } from "@mariozechner/pi-tui";
-import { loadDevHarnessConfig } from "../../core/config/index.js";
-import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
-import { registerTools } from "./tools.js";
-import { registerHooks } from "./hooks.js";
-import { syncHarnessRunSessionEntry, type HookState } from "./hook-state.js";
-import { isPlanModeActive, planModeBlockMessage } from "./plan-mode.js";
 import { devDispatch, parseHarnessTagArgs } from "../../core/commands/dispatch.js";
+import { DEV_HELP_TEXT } from "../../core/commands/help.js";
+import { loadDevHarnessConfig } from "../../core/config/index.js";
 import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
+import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
+import { devTasks } from "../../core/queries/dashboard.js";
+import { devRetro } from "../../core/queries/retro.js";
 import {
   clearHarnessRunTag,
   describeHarnessRunMeta,
   setHarnessRunTag,
 } from "../../core/telemetry/usage.js";
-import { devTasks } from "../../core/queries/dashboard.js";
-import { devRetro } from "../../core/queries/retro.js";
-import { DEV_HELP_TEXT } from "../../core/commands/help.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";
+import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
+import { registerHooks } from "./hooks.js";
+import { isPlanModeActive, planModeBlockMessage } from "./plan-mode.js";
+import { registerTools } from "./tools.js";
 
 const extensionLog = createLogger("extension");
 
@@ -52,7 +52,10 @@ export default function (pi: ExtensionAPI) {
 
   // ── /dev and /accord commands (deterministic routing) ───────────────
 
-  const commandHandler = async (args: string, ctx: import("@mariozechner/pi-coding-agent").ExtensionCommandContext) => {
+  const commandHandler = async (
+    args: string,
+    ctx: import("@mariozechner/pi-coding-agent").ExtensionCommandContext,
+  ) => {
     const route = devDispatch(args);
 
     if (isPlanModeActive(ctx) && !isReadOnlyDevRoute(route)) {
@@ -62,16 +65,31 @@ export default function (pi: ExtensionAPI) {
 
     if (route.type === "empty") {
       const r = route.route;
-      if (r.route === "help") { ctx.ui.notify(DEV_HELP_TEXT, "info"); return; }
-      if (r.route === "suggest_resume") {
-        ctx.ui.notify(`Active: ${r.id} — ${r.title} (phase: ${r.phase})\n\nRun /accord resume ${r.id} to continue.`, "info");
+      if (r.route === "help") {
+        ctx.ui.notify(DEV_HELP_TEXT, "info");
         return;
       }
-      if (r.route === "dashboard") { ctx.ui.notify(r.formatted, "info"); return; }
+      if (r.route === "suggest_resume") {
+        ctx.ui.notify(
+          `Active: ${r.id} — ${r.title} (phase: ${r.phase})\n\nRun /accord resume ${r.id} to continue.`,
+          "info",
+        );
+        return;
+      }
+      if (r.route === "dashboard") {
+        ctx.ui.notify(r.formatted, "info");
+        return;
+      }
     }
 
-    if (route.type === "known" && route.subcommand === "help") { ctx.ui.notify(DEV_HELP_TEXT, "info"); return; }
-    if (route.type === "known" && route.subcommand === "tasks") { ctx.ui.notify(devTasks().formatted, "info"); return; }
+    if (route.type === "known" && route.subcommand === "help") {
+      ctx.ui.notify(DEV_HELP_TEXT, "info");
+      return;
+    }
+    if (route.type === "known" && route.subcommand === "tasks") {
+      ctx.ui.notify(devTasks().formatted, "info");
+      return;
+    }
     if (route.type === "known" && route.subcommand === "retro") {
       const result = devRetro();
       ctx.ui.notify("error" in result ? result.error : result.formatted, "info");
@@ -91,7 +109,10 @@ export default function (pi: ExtensionAPI) {
         return;
       }
       if (!parsed.label.trim()) {
-        ctx.ui.notify('Usage: `/accord tag <label>` or `/accord tag --new <label>` — label is required after `--new`.', "warning");
+        ctx.ui.notify(
+          "Usage: `/accord tag <label>` or `/accord tag --new <label>` — label is required after `--new`.",
+          "warning",
+        );
         return;
       }
       try {
@@ -99,7 +120,10 @@ export default function (pi: ExtensionAPI) {
         const meta = setHarnessRunTag(parsed.label, { newRunId: parsed.newRunId });
         syncHarnessRunSessionEntry(pi, state);
         const hint = parsed.newRunId ? "(new run_id)" : "";
-        ctx.ui.notify(`ACCORD run ${hint}\n  tag: ${meta.tag}\n  run_id: ${meta.run_id}\n\nUsage rows in .tasks/*-usage.jsonl include harness_run_id / harness_session_tag.\nPi session transcript includes a dev-harness-run marker for session review compatibility.`, "info");
+        ctx.ui.notify(
+          `ACCORD run ${hint}\n  tag: ${meta.tag}\n  run_id: ${meta.run_id}\n\nUsage rows in .tasks/*-usage.jsonl include harness_run_id / harness_session_tag.\nPi session transcript includes a dev-harness-run marker for session review compatibility.`,
+          "info",
+        );
       } catch (e: unknown) {
         ctx.ui.notify(e instanceof Error ? e.message : String(e), "error");
       }
@@ -108,7 +132,9 @@ export default function (pi: ExtensionAPI) {
 
     // Everything else → forward to the skill for LLM handling
     const trimmed = args.trim();
-    pi.sendUserMessage(trimmed ? `/skill:accord ${trimmed}` : "/skill:accord", { deliverAs: "followUp" });
+    pi.sendUserMessage(trimmed ? `/skill:accord ${trimmed}` : "/skill:accord", {
+      deliverAs: "followUp",
+    });
   };
 
   const commandCompletions = (prefix: string): AutocompleteItem[] | null => {

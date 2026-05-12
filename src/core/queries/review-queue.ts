@@ -3,8 +3,8 @@
  */
 
 import * as path from "node:path";
-import type { WorkItem, Decision, Deviation } from "../work-items/types.js";
-import { TASKS_DIR, readJson, listWorkItemFiles } from "../work-items/io.js";
+import { listWorkItemFiles, readJson, TASKS_DIR } from "../work-items/io.js";
+import type { Decision, Deviation, WorkItem } from "../work-items/types.js";
 
 export interface ReviewQueueItem {
   work_item_id: string;
@@ -26,12 +26,12 @@ export function devReviewQueue(): ReviewQueueResult {
     const wi = readJson<WorkItem>(path.join(TASKS_DIR, file));
     if (!wi) continue;
 
-    for (const d of (wi.decisions || [])) {
+    for (const d of wi.decisions || []) {
       if (d.status === "pending") {
         pendingDecisions.push({ work_item_id: wi.id, decision: d });
       }
     }
-    for (const dev of (wi.deviations || [])) {
+    for (const dev of wi.deviations || []) {
       if (!dev.status || dev.status === "pending") {
         deviations.push({ work_item_id: wi.id, deviation: dev });
       }
@@ -48,7 +48,9 @@ export function devReviewQueue(): ReviewQueueResult {
     if (pendingDecisions.length > 0) {
       lines.push(`${pendingDecisions.length} pending decision(s):\n`);
       for (const item of pendingDecisions) {
-        lines.push(`[${item.work_item_id}/${item.decision.id}] source=${item.decision.source} phase=${item.decision.phase || "—"} asked=${item.decision.asked_at}`);
+        lines.push(
+          `[${item.work_item_id}/${item.decision.id}] source=${item.decision.source} phase=${item.decision.phase || "—"} asked=${item.decision.asked_at}`,
+        );
         lines.push(`  Q: ${item.decision.question}`);
         if (item.decision.context) lines.push(`  Context: ${item.decision.context}`);
         lines.push("");

@@ -31,7 +31,12 @@ export function syncHarnessRunSessionEntry(pi: ExtensionAPI, state: HookState): 
     state.activeWorkItem ?? (items.length >= 1 ? items[0].id : null) ?? undefined;
   const work_item_ids = meta?.work_item_ids ?? (work_item_id ? [work_item_id] : []);
 
-  const fp = JSON.stringify([harness_run_id ?? null, harness_session_tag ?? null, work_item_ids, meta?.auto ? "a" : meta ? "m" : "e"]);
+  const fp = JSON.stringify([
+    harness_run_id ?? null,
+    harness_session_tag ?? null,
+    work_item_ids,
+    meta?.auto ? "a" : meta ? "m" : "e",
+  ]);
   if (fp === state._harnessSessionMarkerFp) return;
   state._harnessSessionMarkerFp = fp;
 

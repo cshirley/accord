@@ -3,18 +3,23 @@ import { Readable } from "node:stream";
 
 import { runPhase, type SpawnLike } from "../../scripts/ci/run-phase.js";
 
-function makeSpawnStub(stdoutLines: string[], opts: { closeCleanly?: boolean } = {}): {
+function makeSpawnStub(
+  stdoutLines: string[],
+  opts: { closeCleanly?: boolean } = {},
+): {
   spawn: SpawnLike;
   argvSeen: string[][];
 } {
   const argvSeen: string[][] = [];
   const spawn: SpawnLike = (cmd, argv) => {
     argvSeen.push([cmd, ...argv]);
-    const stdout = Readable.from((async function* () {
-      for (const line of stdoutLines) {
-        yield `${line}\n`;
-      }
-    })());
+    const stdout = Readable.from(
+      (async function* () {
+        for (const line of stdoutLines) {
+          yield `${line}\n`;
+        }
+      })(),
+    );
     const stderr = Readable.from((async function* () {})());
     const promise = new Promise<{ exitCode: number }>((resolve) => {
       stdout.on("end", () => resolve({ exitCode: opts.closeCleanly === false ? 137 : 0 }));
@@ -24,7 +29,13 @@ function makeSpawnStub(stdoutLines: string[], opts: { closeCleanly?: boolean } =
   return { spawn, argvSeen };
 }
 
-const SESSION_HEADER = JSON.stringify({ type: "session", version: 3, id: "u", timestamp: "", cwd: "/" });
+const SESSION_HEADER = JSON.stringify({
+  type: "session",
+  version: 3,
+  id: "u",
+  timestamp: "",
+  cwd: "/",
+});
 
 const DONE_PACKET = {
   status: "done",
@@ -39,7 +50,7 @@ function returnPacketEvent(packet: object): string {
     messages: [
       {
         role: "assistant",
-        content: [{ type: "text", text: "```json\n" + JSON.stringify(packet) + "\n```" }],
+        content: [{ type: "text", text: `\`\`\`json\n${JSON.stringify(packet)}\n\`\`\`` }],
       },
     ],
   });
@@ -50,15 +61,7 @@ describe("runPhase — argv (AC-6)", () => {
     const { spawn, argvSeen } = makeSpawnStub([SESSION_HEADER, returnPacketEvent(DONE_PACKET)]);
     await runPhase({ phase: "spec", ticket: "PROJ-1", spawn });
     expect(argvSeen).toHaveLength(1);
-    expect(argvSeen[0]).toEqual([
-      "pi",
-      "-p",
-      "--mode",
-      "json",
-      "/skill:accord",
-      "spec",
-      "PROJ-1",
-    ]);
+    expect(argvSeen[0]).toEqual(["pi", "-p", "--mode", "json", "/skill:accord", "spec", "PROJ-1"]);
   });
 
   test("supports extra allowlist flags via opts.extraArgs", async () => {
@@ -121,11 +124,7 @@ describe("runPhase — packet parsing", () => {
 
   test("multiple return packets → keeps the LAST one (convention)", async () => {
     const earlier = { status: "needs_input", questions: [{ id: "q1", topic: "t", text: "u" }] };
-    const lines = [
-      SESSION_HEADER,
-      returnPacketEvent(earlier),
-      returnPacketEvent(DONE_PACKET),
-    ];
+    const lines = [SESSION_HEADER, returnPacketEvent(earlier), returnPacketEvent(DONE_PACKET)];
     const { spawn } = makeSpawnStub(lines);
     const r = await runPhase({ phase: "spec", ticket: "PROJ-1", spawn });
     expect(r.status).toBe("done");

@@ -78,7 +78,10 @@ async function probeSocket(socketPath: string): Promise<boolean> {
   });
 }
 
-async function resolveDockerHost(): Promise<{ readonly host: string | null; readonly probes: SocketProbeResult[] }> {
+async function resolveDockerHost(): Promise<{
+  readonly host: string | null;
+  readonly probes: SocketProbeResult[];
+}> {
   const probes: SocketProbeResult[] = [];
 
   // Honour an explicit DOCKER_HOST if the caller set one.
@@ -121,7 +124,12 @@ async function resolveDockerHost(): Promise<{ readonly host: string | null; read
 
 function formatProbeTable(probes: ReadonlyArray<SocketProbeResult>): string {
   if (probes.length === 0) return "  (no probes recorded)";
-  return probes.map((p) => `  - ${p.label.padEnd(32)} ${p.path.padEnd(60)} ${p.reachable ? "OK" : `FAIL — ${p.reason ?? "unknown"}`}`).join("\n");
+  return probes
+    .map(
+      (p) =>
+        `  - ${p.label.padEnd(32)} ${p.path.padEnd(60)} ${p.reachable ? "OK" : `FAIL — ${p.reason ?? "unknown"}`}`,
+    )
+    .join("\n");
 }
 
 async function main(argv: ReadonlyArray<string>): Promise<number> {

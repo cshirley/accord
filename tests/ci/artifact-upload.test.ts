@@ -63,22 +63,26 @@ describe("AC-14 — upload-artifact step canonical config", () => {
     });
 
     test(`${label}: with.name = accord-state-\${{ inputs.ticket }}`, () => {
-      expect((step.with ?? {}).name).toBe("accord-state-${{ inputs.ticket }}");
+      expect(step.with?.name).toBe("accord-state-${{ inputs.ticket }}");
     });
 
     test(`${label}: with.overwrite = true`, () => {
-      expect((step.with ?? {}).overwrite).toBe(true);
+      expect(step.with?.overwrite).toBe(true);
     });
 
     test(`${label}: with.retention-days = 14`, () => {
-      expect((step.with ?? {})["retention-days"]).toBe(14);
+      expect(step.with?.["retention-days"]).toBe(14);
     });
 
     test(`${label}: with.path lines include both docs/dev and .tasks ticket roots`, () => {
-      const path = (step.with ?? {}).path;
-      const pathLines = typeof path === "string"
-        ? path.split("\n").map((l) => l.trim()).filter(Boolean)
-        : [];
+      const path = step.with?.path;
+      const pathLines =
+        typeof path === "string"
+          ? path
+              .split("\n")
+              .map((l) => l.trim())
+              .filter(Boolean)
+          : [];
       expect(pathLines).toContain("docs/dev/${{ inputs.ticket }}/");
       expect(pathLines).toContain(".tasks/${{ inputs.ticket }}*");
     });

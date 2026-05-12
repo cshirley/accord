@@ -1,27 +1,42 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-import { validateArtifact, validateReturn } from "../src/core/artifacts/validation.js";
 import { agentRequiresConfig } from "../src/core/agents/registry.js";
+import { validateArtifact, validateReturn } from "../src/core/artifacts/validation.js";
+import { devQuickFixBrief } from "../src/core/briefing/code-brief.js";
 import { devDispatch, parseHarnessTagArgs } from "../src/core/commands/dispatch.js";
-import { recommendIntentMode, refineWithTicketSignals, formatRefinementResult } from "../src/core/commands/intent.js";
+import {
+  formatRefinementResult,
+  recommendIntentMode,
+  refineWithTicketSignals,
+} from "../src/core/commands/intent.js";
 import { extractDevHarnessJson, loadDevHarnessConfig } from "../src/core/config/agents-md.js";
 import { devInitWrite } from "../src/core/config/init-write.js";
 import { resolveConfigLocation } from "../src/core/config/placement.js";
 import type { DevHarnessConfig } from "../src/core/config/types.js";
 import { formatConfigBrief, formatVerificationResults } from "../src/core/crucible/verification.js";
-import { devQuickFixBrief } from "../src/core/briefing/code-brief.js";
-import { createLogger, createLogContext, setLogLevel, getLogLevel, resolveLogLevel, type LogLevel } from "../src/core/logging.js";
 import {
-  extractReturnPacketFromSubagentResult,
-  formatPacketInjection,
-  formatMissingPacketWarning,
+  createLogContext,
+  createLogger,
+  getLogLevel,
+  type LogLevel,
+  resolveLogLevel,
+  setLogLevel,
+} from "../src/core/logging.js";
+import {
   assembleHandoffContent,
+  extractReturnPacketFromSubagentResult,
+  formatMissingPacketWarning,
+  formatPacketInjection,
 } from "../src/core/telemetry/usage.js";
-import { devBootstrap, devTransition, devFinalizeWorkItem, devPromoteEvents } from "../src/core/work-items/lifecycle.js";
-import { writeJson, TASKS_DIR } from "../src/core/work-items/io.js";
+import { TASKS_DIR, writeJson } from "../src/core/work-items/io.js";
+import {
+  devBootstrap,
+  devFinalizeWorkItem,
+  devPromoteEvents,
+  devTransition,
+} from "../src/core/work-items/lifecycle.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -119,11 +134,14 @@ describe("command dispatch", () => {
     const project = tempProject();
     process.chdir(project);
     mkdirSync(join(project, ".tasks"), { recursive: true });
-    writeFileSync(join(project, ".tasks", "PROJ-1.json"), JSON.stringify({
-      id: "PROJ-1",
-      title: "Test work item",
-      phase: "coding",
-    }));
+    writeFileSync(
+      join(project, ".tasks", "PROJ-1.json"),
+      JSON.stringify({
+        id: "PROJ-1",
+        title: "Test work item",
+        phase: "coding",
+      }),
+    );
 
     expect(devDispatch("")).toEqual({
       type: "empty",
@@ -157,7 +175,7 @@ describe("intent enrichment", () => {
     expect(result.refined.recommended_variant).toBe("standard");
     expect(result.refined.escalation_ceiling).toBe("pipeline_allowed");
     expect(result.refined.needs_confirmation).toBe(true);
-    expect(result.refinement_reasons.some(r => r.includes("ticket signals"))).toBe(true);
+    expect(result.refinement_reasons.some((r) => r.includes("ticket signals"))).toBe(true);
   });
 
   test("downgrades pipeline to narrow_change when ticket signals indicate small scope", () => {
@@ -180,7 +198,7 @@ describe("intent enrichment", () => {
     expect(result.refined.recommended_variant).toBeUndefined();
     expect(result.refined.escalation_ceiling).toBe("no_pipeline_without_confirmation");
     expect(result.refined.needs_confirmation).toBe(true);
-    expect(result.refinement_reasons.some(r => r.includes("ac_count"))).toBe(true);
+    expect(result.refinement_reasons.some((r) => r.includes("ac_count"))).toBe(true);
   });
 
   test("boosts confidence without changing mode when signals align", () => {
@@ -389,10 +407,20 @@ describe("quick_fix pattern contracts", () => {
     expect(existsSync(join(project, "docs", "dev", "FIX-1", "spec.json"))).toBe(true);
     expect(existsSync(join(project, "docs", "dev", "FIX-1", "plan.json"))).toBe(true);
 
-    await expect(validateArtifact(join(project, ".tasks", "FIX-1.json"))).resolves.toEqual({ valid: true, errors: [] });
-    await expect(validateArtifact(join(project, ".tasks", "FIX-1-task-1.json"))).resolves.toEqual({ valid: true, errors: [] });
-    await expect(validateArtifact(join(project, "docs", "dev", "FIX-1", "spec.json"))).resolves.toEqual({ valid: true, errors: [] });
-    await expect(validateArtifact(join(project, "docs", "dev", "FIX-1", "plan.json"))).resolves.toEqual({ valid: true, errors: [] });
+    await expect(validateArtifact(join(project, ".tasks", "FIX-1.json"))).resolves.toEqual({
+      valid: true,
+      errors: [],
+    });
+    await expect(validateArtifact(join(project, ".tasks", "FIX-1-task-1.json"))).resolves.toEqual({
+      valid: true,
+      errors: [],
+    });
+    await expect(
+      validateArtifact(join(project, "docs", "dev", "FIX-1", "spec.json")),
+    ).resolves.toEqual({ valid: true, errors: [] });
+    await expect(
+      validateArtifact(join(project, "docs", "dev", "FIX-1", "plan.json")),
+    ).resolves.toEqual({ valid: true, errors: [] });
   });
 
   test("creates a RED-test mini contract for non-mechanical quick fixes", async () => {
@@ -435,9 +463,16 @@ describe("quick_fix pattern contracts", () => {
     expect(wi.spec).toBe(join("docs", "dev", "BUG-1", "spec.json"));
     expect(wi.plan).toBe(join("docs", "dev", "BUG-1", "plan.json"));
 
-    await expect(validateArtifact(join(project, ".tasks", "BUG-1-task-1.json"))).resolves.toEqual({ valid: true, errors: [] });
-    await expect(validateArtifact(join(project, "docs", "dev", "BUG-1", "spec.json"))).resolves.toEqual({ valid: true, errors: [] });
-    await expect(validateArtifact(join(project, "docs", "dev", "BUG-1", "plan.json"))).resolves.toEqual({ valid: true, errors: [] });
+    await expect(validateArtifact(join(project, ".tasks", "BUG-1-task-1.json"))).resolves.toEqual({
+      valid: true,
+      errors: [],
+    });
+    await expect(
+      validateArtifact(join(project, "docs", "dev", "BUG-1", "spec.json")),
+    ).resolves.toEqual({ valid: true, errors: [] });
+    await expect(
+      validateArtifact(join(project, "docs", "dev", "BUG-1", "plan.json")),
+    ).resolves.toEqual({ valid: true, errors: [] });
   });
 
   test("existing_tests strategy produces phase-code brief directly", async () => {
@@ -464,9 +499,16 @@ describe("quick_fix pattern contracts", () => {
     expect(taskFile.pre_impl_gates).toBe("complete");
     expect(taskFile.quick_fix_contract.test.strategy).toBe("existing_tests");
 
-    await expect(validateArtifact(join(project, ".tasks", "REG-1-task-1.json"))).resolves.toEqual({ valid: true, errors: [] });
-    await expect(validateArtifact(join(project, "docs", "dev", "REG-1", "spec.json"))).resolves.toEqual({ valid: true, errors: [] });
-    await expect(validateArtifact(join(project, "docs", "dev", "REG-1", "plan.json"))).resolves.toEqual({ valid: true, errors: [] });
+    await expect(validateArtifact(join(project, ".tasks", "REG-1-task-1.json"))).resolves.toEqual({
+      valid: true,
+      errors: [],
+    });
+    await expect(
+      validateArtifact(join(project, "docs", "dev", "REG-1", "spec.json")),
+    ).resolves.toEqual({ valid: true, errors: [] });
+    await expect(
+      validateArtifact(join(project, "docs", "dev", "REG-1", "plan.json")),
+    ).resolves.toEqual({ valid: true, errors: [] });
   });
 
   test("dev_code_brief works for quick fixes after stubs are written", async () => {
@@ -509,7 +551,9 @@ describe("work item lifecycle", () => {
     expect(result.work_item.spec).toBe("docs/dev/LIFE-1/spec.json");
     expect(result.work_item.plan).toBeNull();
 
-    const checkpointExists = require("node:fs").existsSync(join(project, ".tasks", "LIFE-1-checkpoint.json"));
+    const checkpointExists = require("node:fs").existsSync(
+      join(project, ".tasks", "LIFE-1-checkpoint.json"),
+    );
     expect(checkpointExists).toBe(false);
   });
 
@@ -545,7 +589,7 @@ describe("work item lifecycle", () => {
     expect(result.work_item.retro?.summary).toBe("Smooth delivery");
     expect(result.work_item.retro?.ran_at).toBeTruthy();
     expect(result.work_item.shift_left_findings).toHaveLength(1);
-    expect(result.work_item.shift_left_findings![0].category).toBe("spec");
+    expect(result.work_item.shift_left_findings?.[0].category).toBe("spec");
   });
 
   test("devFinalizeWorkItem returns error for missing work item", () => {
@@ -606,7 +650,11 @@ describe("work item lifecycle", () => {
       phase: "phase-code",
       status: "done",
       events: [
-        { type: "deviation", description: "Used SQLite instead of Postgres", reason: "simpler for MVP" },
+        {
+          type: "deviation",
+          description: "Used SQLite instead of Postgres",
+          reason: "simpler for MVP",
+        },
       ],
     };
     writeJson(join(TASKS_DIR, "PROMO-2-task-2.json"), taskFile);
@@ -700,14 +748,17 @@ describe("AGENTS.md config contracts", () => {
     markGitRoot(root);
     mkdirSync(packageDir, { recursive: true });
     writeFileSync(join(root, "AGENTS.md"), agentsMdWithConfig(sampleConfig({ language: "go" })));
-    writeFileSync(join(packageDir, "AGENTS.md"), [
-      "# Package Agents",
-      "",
-      "## Dev Harness",
-      "",
-      "<!-- dev_harness_ref: ../../AGENTS.md -->",
-      "",
-    ].join("\n"));
+    writeFileSync(
+      join(packageDir, "AGENTS.md"),
+      [
+        "# Package Agents",
+        "",
+        "## Dev Harness",
+        "",
+        "<!-- dev_harness_ref: ../../AGENTS.md -->",
+        "",
+      ].join("\n"),
+    );
 
     const config = loadDevHarnessConfig(packageDir);
 
@@ -730,14 +781,17 @@ describe("AGENTS.md config contracts", () => {
   test("rejects incomplete config instead of returning a partial object", () => {
     const project = tempProject();
     markGitRoot(project);
-    writeFileSync(join(project, "AGENTS.md"), [
-      "## Dev Harness",
-      "",
-      "```json",
-      JSON.stringify({ schema_version: "1.0", language: "typescript" }),
-      "```",
-      "",
-    ].join("\n"));
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      [
+        "## Dev Harness",
+        "",
+        "```json",
+        JSON.stringify({ schema_version: "1.0", language: "typescript" }),
+        "```",
+        "",
+      ].join("\n"),
+    );
 
     expect(loadDevHarnessConfig(project)).toBeNull();
   });
@@ -774,7 +828,9 @@ describe("config placement and writes", () => {
     expect(result.ref_created).toBe(true);
     expect(result.summary).toContain("Written ACCORD config");
     expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toContain('"language": "python"');
-    expect(readFileSync(join(nested, "AGENTS.md"), "utf8")).toContain("dev_harness_ref: ../../AGENTS.md");
+    expect(readFileSync(join(nested, "AGENTS.md"), "utf8")).toContain(
+      "dev_harness_ref: ../../AGENTS.md",
+    );
   });
 
   test("link_only writes ref directive without touching root AGENTS.md", () => {
@@ -795,23 +851,28 @@ describe("config placement and writes", () => {
 
     expect(result.ref_created).toBe(true);
     expect(result.written_to).toEqual([join(nested, "AGENTS.md")]);
-    expect(readFileSync(join(nested, "AGENTS.md"), "utf8")).toContain("dev_harness_ref: ../../AGENTS.md");
+    expect(readFileSync(join(nested, "AGENTS.md"), "utf8")).toContain(
+      "dev_harness_ref: ../../AGENTS.md",
+    );
     expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(rootBefore);
   });
 
   test("replaces an existing compatibility section without touching later sections", () => {
     const project = tempProject();
-    writeFileSync(join(project, "AGENTS.md"), [
-      "# Existing",
-      "",
-      "## Dev Harness",
-      "",
-      "old config",
-      "",
-      "## Keep Me",
-      "Preserved.",
-      "",
-    ].join("\n"));
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      [
+        "# Existing",
+        "",
+        "## Dev Harness",
+        "",
+        "old config",
+        "",
+        "## Keep Me",
+        "Preserved.",
+        "",
+      ].join("\n"),
+    );
 
     devInitWrite({
       config: sampleConfig({ language: "rust" }),
@@ -828,7 +889,9 @@ describe("config placement and writes", () => {
 
 describe("validation and verification formatting", () => {
   test("validates known return packets and rejects malformed ones", async () => {
-    const valid = JSON.parse(readFileSync(join(import.meta.dir, "..", "schemas", "examples", "phase-code.json"), "utf8"))[0];
+    const valid = JSON.parse(
+      readFileSync(join(import.meta.dir, "..", "schemas", "examples", "phase-code.json"), "utf8"),
+    )[0];
 
     await expect(validateReturn("phase-code", valid)).resolves.toEqual({ valid: true, errors: [] });
 
@@ -850,10 +913,13 @@ describe("validation and verification formatting", () => {
   });
 
   test("formats verification failures with command output", () => {
-    const formatted = formatVerificationResults([
-      { command: "bun test", exitCode: 0, output: "", durationMs: 12 },
-      { command: "bun tsc", exitCode: 2, output: "type error", durationMs: 34 },
-    ], "Verification Preflight");
+    const formatted = formatVerificationResults(
+      [
+        { command: "bun test", exitCode: 0, output: "", durationMs: 12 },
+        { command: "bun tsc", exitCode: 2, output: "type error", durationMs: 34 },
+      ],
+      "Verification Preflight",
+    );
 
     expect(formatted).toContain("## Verification Preflight");
     expect(formatted).toContain("`bun tsc` → exit 2");
@@ -873,21 +939,31 @@ describe("validation and verification formatting", () => {
     const packet = { status: "done", usage: { prompt_tokens: 0, completion_tokens: 0 } };
     const fenced = `done\n\n\`\`\`json\n${JSON.stringify(packet)}\n\`\`\``;
 
-    expect(extractReturnPacketFromSubagentResult({
-      messages: [{ role: "assistant", content: [{ type: "text", text: fenced }] }],
-    })).toMatchObject({ status: "done" });
-    expect(extractReturnPacketFromSubagentResult({
-      content: [{ type: "text", text: fenced }],
-    })).toMatchObject({ status: "done" });
-    expect(extractReturnPacketFromSubagentResult({
-      output: fenced,
-    })).toMatchObject({ status: "done" });
+    expect(
+      extractReturnPacketFromSubagentResult({
+        messages: [{ role: "assistant", content: [{ type: "text", text: fenced }] }],
+      }),
+    ).toMatchObject({ status: "done" });
+    expect(
+      extractReturnPacketFromSubagentResult({
+        content: [{ type: "text", text: fenced }],
+      }),
+    ).toMatchObject({ status: "done" });
+    expect(
+      extractReturnPacketFromSubagentResult({
+        output: fenced,
+      }),
+    ).toMatchObject({ status: "done" });
   });
 });
 
 describe("subagent result handoff", () => {
   test("formatPacketInjection produces a fenced JSON block the orchestrator can parse", () => {
-    const packet = { status: "done", files: ["src/a.ts"], usage: { prompt_tokens: 100, completion_tokens: 50 } };
+    const packet = {
+      status: "done",
+      files: ["src/a.ts"],
+      usage: { prompt_tokens: 100, completion_tokens: 50 },
+    };
     const injected = formatPacketInjection("phase-gather", packet);
 
     expect(injected).toContain("## phase-gather Return Packet");
@@ -897,7 +973,8 @@ describe("subagent result handoff", () => {
     const re = /```json\s*\n([\s\S]*?)\n```/;
     const match = injected.match(re);
     expect(match).toBeTruthy();
-    const roundTripped = JSON.parse(match![1]);
+    expect(match?.[1]).toBeDefined();
+    const roundTripped = JSON.parse(match![1]!);
     expect(roundTripped).toEqual(packet);
   });
 
@@ -936,7 +1013,11 @@ describe("subagent result handoff", () => {
   });
 
   test("end-to-end: extraction + injection produces parseable handoff", () => {
-    const packet = { status: "done", context: "test", usage: { prompt_tokens: 0, completion_tokens: 0 } };
+    const packet = {
+      status: "done",
+      context: "test",
+      usage: { prompt_tokens: 0, completion_tokens: 0 },
+    };
     const fenced = `Some prose.\n\n\`\`\`json\n${JSON.stringify(packet)}\n\`\`\``;
 
     const extracted = extractReturnPacketFromSubagentResult({

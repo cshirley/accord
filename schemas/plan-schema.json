@@ -3,12 +3,7 @@
   "$id": "plan-schema.json",
   "title": "Plan",
   "type": "object",
-  "required": [
-    "schema_version",
-    "work_item_id",
-    "spec",
-    "tasks"
-  ],
+  "required": ["schema_version", "work_item_id", "spec", "tasks"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
@@ -26,10 +21,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "directive",
-          "source"
-        ],
+        "required": ["directive", "source"],
         "additionalProperties": false,
         "properties": {
           "directive": {
@@ -51,11 +43,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "symbol",
-          "file",
-          "fit"
-        ],
+        "required": ["symbol", "file", "fit"],
         "additionalProperties": false,
         "properties": {
           "symbol": {
@@ -75,14 +63,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "title",
-          "covers_ac",
-          "challenge",
-          "files",
-          "steps"
-        ],
+        "required": ["id", "title", "covers_ac", "challenge", "files", "steps"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -115,10 +96,7 @@
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": [
-                "path",
-                "action"
-              ],
+              "required": ["path", "action"],
               "additionalProperties": false,
               "properties": {
                 "path": {
@@ -126,11 +104,7 @@
                   "minLength": 1
                 },
                 "action": {
-                  "enum": [
-                    "add",
-                    "modify",
-                    "delete"
-                  ]
+                  "enum": ["add", "modify", "delete"]
                 }
               }
             }
@@ -140,18 +114,11 @@
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": [
-                "tag",
-                "description"
-              ],
+              "required": ["tag", "description"],
               "additionalProperties": false,
               "properties": {
                 "tag": {
-                  "enum": [
-                    "test",
-                    "impl",
-                    "verify"
-                  ]
+                  "enum": ["test", "impl", "verify"]
                 },
                 "description": {
                   "type": "string",

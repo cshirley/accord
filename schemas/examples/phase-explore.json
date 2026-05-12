@@ -1,7 +1,12 @@
 [
   {
     "status": "done",
-    "files": ["src/services/auth.ts", "src/middleware/auth.ts", "src/routes/auth.ts", "src/types/auth.ts"],
+    "files": [
+      "src/services/auth.ts",
+      "src/middleware/auth.ts",
+      "src/routes/auth.ts",
+      "src/types/auth.ts"
+    ],
     "symbols": [
       { "symbol": "AuthService", "file": "src/services/auth.ts", "line": 42 },
       { "symbol": "authMiddleware", "file": "src/middleware/auth.ts", "line": 8 },

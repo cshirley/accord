@@ -111,7 +111,7 @@ describe("setup-pi seed step — subagent_profile input + jq apply", () => {
   });
 
   test("seed step exports SUBAGENT_PROFILE from the action input", () => {
-    const env = seedStep!.env as Record<string, string> | undefined;
+    const env = seedStep?.env as Record<string, string> | undefined;
     expect(env?.SUBAGENT_PROFILE).toBe("${{ inputs.subagent_profile }}");
   });
 
@@ -172,8 +172,10 @@ describe("assets/ci/subagent.json — shape pi-subagent will accept", () => {
   test("accord skill namespace is pinned to a known profile", () => {
     const accord = config.skills?.accord;
     expect(accord).toBeDefined();
-    expect(accord!.profile).toBeTruthy();
-    expect(config.profiles[accord!.profile!]).toBeDefined();
+    expect(accord?.profile).toBeTruthy();
+    const profileName = accord?.profile;
+    if (!profileName) throw new Error("expected accord.profile");
+    expect(config.profiles[profileName]).toBeDefined();
   });
 });
 

@@ -197,9 +197,7 @@ describe("decideResume — opening Jira comment payload", () => {
   });
 
   test("fresh/brief_drift → comment carries 'fresh' branch + reason verbatim", () => {
-    const r = decideResume(
-      makeOpts({ freshBrief: SAMPLE_BRIEF.replace("Add", "Drift") }),
-    );
+    const r = decideResume(makeOpts({ freshBrief: SAMPLE_BRIEF.replace("Add", "Drift") }));
     expect(r.openingJiraComment.branch).toBe("fresh");
     expect(r.openingJiraComment.body).toContain("brief_drift");
   });
@@ -232,17 +230,10 @@ describe("normaliseBrief — invariants used by AC-16 hash equality", () => {
   });
 
   test("two briefs differing only by inserted blank line + different timestamp → same normalised string", () => {
-    const a = [
-      "## Gathered Context",
-      "- Generated at 2026-05-11T15:00:00.000Z",
-      "more",
-    ].join("\n");
-    const b = [
-      "## Gathered Context",
-      "",
-      "- Generated at 2026-05-12T09:30:00.000Z",
-      "more",
-    ].join("\n");
+    const a = ["## Gathered Context", "- Generated at 2026-05-11T15:00:00.000Z", "more"].join("\n");
+    const b = ["## Gathered Context", "", "- Generated at 2026-05-12T09:30:00.000Z", "more"].join(
+      "\n",
+    );
     expect(normaliseBrief(a)).toBe(normaliseBrief(b));
   });
 });

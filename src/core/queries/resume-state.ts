@@ -2,8 +2,8 @@
  * Resume state — determine where to pick up a work item.
  */
 
-import { loadWorkItem } from "../work-items/io.js";
 import { devCheckpointRead } from "../work-items/checkpoint.js";
+import { loadWorkItem } from "../work-items/io.js";
 
 export interface ResumeState {
   id: string;

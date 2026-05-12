@@ -6,11 +6,11 @@
  */
 
 import { exec as execCb } from "node:child_process";
-import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { DevHarnessConfig } from "../config/index.js";
+import { promisify } from "node:util";
 import { agentSchemas } from "../agents/registry.js";
+import type { DevHarnessConfig } from "../config/index.js";
 import { EXT_DIR } from "../config/paths.js";
 import { createLogger } from "../logging.js";
 
@@ -21,7 +21,7 @@ const log = createLogger("verify");
 export interface VerificationResult {
   command: string;
   exitCode: number;
-  output: string;   // last 40 lines of combined stdout/stderr
+  output: string; // last 40 lines of combined stdout/stderr
   durationMs: number;
 }
 
@@ -74,10 +74,12 @@ export async function runVerificationCommands(
       output = stdout + (stdout && stderr ? "\n" : "") + stderr;
       if (err.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
         exitCode = exitCode || 1;
-        output = (output || "") + "\n[verification: command exceeded 10 MB stdio buffer; output truncated]";
+        output =
+          (output || "") +
+          "\n[verification: command exceeded 10 MB stdio buffer; output truncated]";
       } else if (err.killed && err.signal === "SIGTERM") {
         exitCode = exitCode || 124;
-        output = (output || "") + `\n[verification: command timed out after ${timeout}ms]`;
+        output = `${output || ""}\n[verification: command timed out after ${timeout}ms]`;
       } else if (!output && err.message) {
         output = String(err.message);
       }
@@ -96,10 +98,7 @@ export async function runVerificationCommands(
 
 // ── Formatting ─────────────────────────────────────────────
 
-export function formatVerificationResults(
-  results: VerificationResult[],
-  label: string,
-): string {
+export function formatVerificationResults(results: VerificationResult[], label: string): string {
   const lines: string[] = [`\n## ${label}\n`];
   let allPass = true;
   for (const r of results) {
@@ -113,9 +112,11 @@ export function formatVerificationResults(
     }
   }
   lines.push("");
-  lines.push(allPass
-    ? "All verification commands passed."
-    : "⚠ Verification failures detected — fix before proceeding.");
+  lines.push(
+    allPass
+      ? "All verification commands passed."
+      : "⚠ Verification failures detected — fix before proceeding.",
+  );
   return lines.join("\n");
 }
 
@@ -154,7 +155,7 @@ export function formatSchemaBrief(agentName: string): string {
     // Derive a readable heading: "return-schemas/phase-code.json" → "return: phase-code"
     // "spec-schema.json" → "spec-schema"
     const name = rel.includes("return-schemas/")
-      ? "return: " + rel.replace("return-schemas/", "").replace(".json", "")
+      ? `return: ${rel.replace("return-schemas/", "").replace(".json", "")}`
       : rel.replace(".json", "");
     sections.push(`### ${name}`, "", "```json", content.trim(), "```", "");
 
@@ -184,17 +185,23 @@ export function formatConfigBrief(config: DevHarnessConfig): string {
     `- **Language:** ${config.language}`,
     `- **Test command:** \`${config.test.command}\``,
   ];
-  if (config.test.single_test_flag) lines.push(`- **Single test flag:** \`${config.test.single_test_flag}\``);
-  if (config.test.file_pattern) lines.push(`- **Test file pattern:** \`${config.test.file_pattern}\``);
+  if (config.test.single_test_flag)
+    lines.push(`- **Single test flag:** \`${config.test.single_test_flag}\``);
+  if (config.test.file_pattern)
+    lines.push(`- **Test file pattern:** \`${config.test.file_pattern}\``);
   if (config.test.block_markers?.length) {
-    lines.push(`- **Test block markers:** ${config.test.block_markers.map(m => `\`${m}\``).join(", ")}`);
+    lines.push(
+      `- **Test block markers:** ${config.test.block_markers.map((m) => `\`${m}\``).join(", ")}`,
+    );
   }
-  lines.push(config.type_check
-    ? `- **Type check:** \`${config.type_check}\``
-    : `- **Type check:** _(none)_`);
+  lines.push(
+    config.type_check ? `- **Type check:** \`${config.type_check}\`` : `- **Type check:** _(none)_`,
+  );
   if (config.lint) lines.push(`- **Lint:** \`${config.lint}\``);
   if (config.format) lines.push(`- **Format:** \`${config.format}\``);
-  lines.push(`- **Verification commands:** ${config.verification_commands.map(c => `\`${c}\``).join(", ")}`);
+  lines.push(
+    `- **Verification commands:** ${config.verification_commands.map((c) => `\`${c}\``).join(", ")}`,
+  );
   if (config.monorepo) {
     lines.push(`- **Monorepo:** ${config.monorepo.tool} (root: ${config.monorepo.root || "."})`);
   }

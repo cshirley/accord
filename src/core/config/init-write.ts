@@ -121,21 +121,25 @@ function upsertDevHarnessSection(filePath: string, sectionBody: string): void {
     const afterHeading = content.slice(match.index + match[0].length);
     const nextHeadingRe = /^#{1,2} /m;
     const nextMatch = nextHeadingRe.exec(afterHeading);
-    const sectionEnd = nextMatch
-      ? match.index + match[0].length + nextMatch.index
-      : content.length;
+    const sectionEnd = nextMatch ? match.index + match[0].length + nextMatch.index : content.length;
 
     // Replace the section
     content =
       content.slice(0, match.index) +
-      heading + "\n\n" + sectionBody + "\n" +
+      heading +
+      "\n\n" +
+      sectionBody +
+      "\n" +
       content.slice(sectionEnd);
   } else {
     // Append the section
-    const separator = content.length > 0 && !content.endsWith("\n\n")
-      ? (content.endsWith("\n") ? "\n" : "\n\n")
-      : "";
-    content += separator + heading + "\n\n" + sectionBody + "\n";
+    const separator =
+      content.length > 0 && !content.endsWith("\n\n")
+        ? content.endsWith("\n")
+          ? "\n"
+          : "\n\n"
+        : "";
+    content += `${separator + heading}\n\n${sectionBody}\n`;
   }
 
   fs.writeFileSync(filePath, content, "utf8");
@@ -190,7 +194,9 @@ function buildSummary(
 
   lines.push("");
   lines.push("Next: /dev <ticket-id> <description> to start work.");
-  lines.push("The harness will use these commands for verification, type checking, and test discovery.");
+  lines.push(
+    "The harness will use these commands for verification, type checking, and test discovery.",
+  );
 
   return lines.join("\n");
 }

@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import {
   DEFAULT_TICKET_GATE_CONFIG,
-  runTicketGate,
   type JiraIssue,
+  runTicketGate,
   type TicketGateConfig,
 } from "../../scripts/ci/gate-ticket.js";
 
@@ -87,10 +87,7 @@ describe("runTicketGate — eight sub-checks (AC-3)", () => {
 
   test("sub-check 4: missing out-of-scope section → failure 'missing_out_of_scope'", () => {
     const issue = makeIssue({
-      description: PASSING.fields.description.replace(
-        /## Out of scope[\s\S]*?(?=\n## |$)/i,
-        "",
-      ),
+      description: PASSING.fields.description.replace(/## Out of scope[\s\S]*?(?=\n## |$)/i, ""),
     });
     const r = runTicketGate(issue, CFG);
     expect(r.ok).toBe(false);
@@ -101,10 +98,7 @@ describe("runTicketGate — eight sub-checks (AC-3)", () => {
 
   test("sub-check 5: missing target paths → failure 'missing_target_paths'", () => {
     const issue = makeIssue({
-      description: PASSING.fields.description.replace(
-        /## Target paths[\s\S]*$/i,
-        "",
-      ),
+      description: PASSING.fields.description.replace(/## Target paths[\s\S]*$/i, ""),
     });
     const r = runTicketGate(issue, CFG);
     expect(r.ok).toBe(false);
@@ -261,7 +255,8 @@ describe("runTicketGate — adversary: false-positive guards", () => {
         "\n\n## Acceptance criteria\n- AC1: foo" +
         "\n\n## Out of scope\n- nope" +
         "\n\n## Target paths\n- foo/" +
-        "\n\n" + "padding ".repeat(50),
+        "\n\n" +
+        "padding ".repeat(50),
     });
     const r = runTicketGate(issue, CFG);
     expect(r.ok).toBe(false);

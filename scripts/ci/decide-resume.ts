@@ -63,7 +63,8 @@ export type ResumeDecision =
 
 const RESUMABLE_PHASES = new Set(["speccing", "planning", "implementing"]);
 
-const GENERATED_AT_LINE_RE = /^[\-\*\s]*Generated at \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s*$/gm;
+const GENERATED_AT_LINE_RE =
+  /^[-*\s]*Generated at \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s*$/gm;
 
 export function normaliseBrief(brief: string): string {
   return brief

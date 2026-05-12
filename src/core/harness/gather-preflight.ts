@@ -2,16 +2,16 @@
  * Before phase-gather subagent: dependency preflight + optional user confirm.
  */
 
-import { mergeContextSources, loadGlobalConfig } from "../config/index.js";
-import type { DevHarnessConfig } from "../config/index.js";
 import {
   checkProviderDeps,
+  type DepCheckResult,
   formatPreflightReport,
   loadAllProviders,
-  type DepCheckResult,
 } from "../../integrations/provider-deps.js";
+import type { DevHarnessConfig } from "../config/index.js";
+import { loadGlobalConfig, mergeContextSources } from "../config/index.js";
+import { firstSubagentAgentName, getPrimarySubagentEntry } from "./subagent-entries.js";
 import type { HarnessHost } from "./types.js";
-import { getPrimarySubagentEntry, firstSubagentAgentName } from "./subagent-entries.js";
 
 export async function runGatherPreflightOnSubagentCall(
   input: Record<string, unknown>,
@@ -29,9 +29,7 @@ export async function runGatherPreflightOnSubagentCall(
 
   const trackerType: string = devConfig?.tracker?.type || "jira";
   const trackerDef = providers.trackers.get(trackerType);
-  const trackerResult = trackerDef
-    ? checkProviderDeps(trackerDef, availableToolNames)
-    : null;
+  const trackerResult = trackerDef ? checkProviderDeps(trackerDef, availableToolNames) : null;
 
   const mergedSources = mergeContextSources(globalCfg?.context_sources, devConfig?.context_sources);
   const enrichmentResults: DepCheckResult[] = [];
@@ -43,7 +41,9 @@ export async function runGatherPreflightOnSubagentCall(
   }
 
   const report = formatPreflightReport(trackerResult, enrichmentResults);
-  const unavailableCount = [trackerResult, ...enrichmentResults].filter(r => r && !r.available).length;
+  const unavailableCount = [trackerResult, ...enrichmentResults].filter(
+    (r) => r && !r.available,
+  ).length;
 
   if (unavailableCount > 0) {
     host.notify?.(

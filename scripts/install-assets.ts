@@ -4,7 +4,7 @@
  * bootstrap can call it directly.
  */
 
-import { installPiAssets, DEFAULT_PI_AGENT_DIR } from "../src/core/asset-install.js";
+import { DEFAULT_PI_AGENT_DIR, installPiAssets } from "../src/core/asset-install.js";
 
 type Args = {
   target: string;
@@ -41,7 +41,9 @@ const args = parseArgs(process.argv.slice(2));
 const result = installPiAssets(args);
 
 if (result.conflicts.length > 0) {
-  console.error("Refusing to replace locally modified Pi assets with links. Re-run with --force to replace:");
+  console.error(
+    "Refusing to replace locally modified Pi assets with links. Re-run with --force to replace:",
+  );
   for (const file of result.conflicts) console.error(`  ${file}`);
   process.exit(1);
 }

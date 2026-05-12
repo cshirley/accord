@@ -17,7 +17,16 @@
         "properties": {
           "index": { "type": "integer", "minimum": 0 },
           "title": { "type": "string", "minLength": 1 },
-          "category": { "enum": ["missing test", "missing implementation", "partial coverage", "deferred scope", "open question", "external dependency"] },
+          "category": {
+            "enum": [
+              "missing test",
+              "missing implementation",
+              "partial coverage",
+              "deferred scope",
+              "open question",
+              "external dependency"
+            ]
+          },
           "priority": { "enum": ["High", "Medium", "Low"] },
           "detail": { "type": "string", "minLength": 1 },
           "duplicate_of": { "type": ["string", "null"] }

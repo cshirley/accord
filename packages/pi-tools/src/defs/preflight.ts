@@ -1,5 +1,5 @@
+import { getGoogleAuth, getJiraAuth, getSlackAuth, refreshGoogleToken } from "../auth.js";
 import { defineTool } from "../framework.js";
-import { getJiraAuth, getSlackAuth, getGoogleAuth, refreshGoogleToken } from "../auth.js";
 import { getMcpRegistry } from "../mcp-registry.js";
 import { hasNativeGoogleAuth } from "../services/google.client.js";
 
@@ -15,10 +15,15 @@ async function testJira(): Promise<boolean> {
     const auth = getJiraAuth();
     if (!auth) return false;
     const resp = await fetch(`${auth.baseUrl}/rest/api/3/myself`, {
-      headers: { Authorization: `Basic ${Buffer.from(`${auth.email}:${auth.apiToken}`).toString("base64")}`, Accept: "application/json" },
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${auth.email}:${auth.apiToken}`).toString("base64")}`,
+        Accept: "application/json",
+      },
     });
     return resp.ok;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 async function testSlack(): Promise<boolean> {
@@ -30,7 +35,9 @@ async function testSlack(): Promise<boolean> {
     });
     const data = await resp.json();
     return data.ok === true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 async function testGoogle(): Promise<"oauth" | "mcp" | "handoff" | false> {
@@ -43,18 +50,24 @@ async function testGoogle(): Promise<"oauth" | "mcp" | "handoff" | false> {
         });
         if (resp.ok) return "oauth";
       }
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
   try {
     if (getMcpRegistry().has("google-workspace")) {
       await getMcpRegistry().call("google-workspace", "time_getCurrentDate", {});
       return "mcp";
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   try {
     const auth = getGoogleAuth();
     if (auth && (auth as Record<string, unknown>).handoffMode) return "handoff";
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return false;
 }
 
@@ -67,7 +80,11 @@ export default defineTool<Record<string, never>, PreflightResult>({
   progress: "Testing service connections...",
 
   async execute() {
-    const results: PreflightResult = { jira: "unavailable", slack: "unavailable", google: "unavailable" };
+    const results: PreflightResult = {
+      jira: "unavailable",
+      slack: "unavailable",
+      google: "unavailable",
+    };
 
     const jiraOk = await testJira();
     results.jira = jiraOk ? "available" : "unavailable";
@@ -76,9 +93,15 @@ export default defineTool<Record<string, never>, PreflightResult>({
     results.slack = (await testSlack()) ? "available" : "unavailable";
 
     const googleBackend = await testGoogle();
-    if (googleBackend === "oauth") { results.google = "available"; results.google_backend = "oauth"; }
-    else if (googleBackend === "mcp") { results.google = "available"; results.google_backend = "mcp"; }
-    else if (googleBackend === "handoff") { results.google = "handoff_mode"; }
+    if (googleBackend === "oauth") {
+      results.google = "available";
+      results.google_backend = "oauth";
+    } else if (googleBackend === "mcp") {
+      results.google = "available";
+      results.google_backend = "mcp";
+    } else if (googleBackend === "handoff") {
+      results.google = "handoff_mode";
+    }
 
     return results;
   },

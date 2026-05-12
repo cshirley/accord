@@ -3,13 +3,7 @@
   "host": "pi",
   "package": "@clive.shirley/pi-accord",
   "assets": {
-    "skills": [
-      "accord",
-      "dev",
-      "commit",
-      "pr",
-      "review"
-    ],
+    "skills": ["accord", "dev", "commit", "pr", "review"],
     "agents": [
       "phase-align",
       "phase-code",
@@ -32,12 +26,7 @@
       "review-test"
     ],
     "providers": {
-      "trackers": [
-        "github",
-        "gitlab",
-        "jira",
-        "plain-text"
-      ],
+      "trackers": ["github", "gitlab", "jira", "plain-text"],
       "enrichments": [
         "confluence",
         "figma",
@@ -49,11 +38,7 @@
     }
   },
   "requires": {
-    "pi_extensions": [
-      "subagent"
-    ],
-    "tools": [
-      "subagent"
-    ]
+    "pi_extensions": ["subagent"],
+    "tools": ["subagent"]
   }
 }

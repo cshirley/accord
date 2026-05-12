@@ -84,7 +84,10 @@ function scrub(body: string, secrets: readonly string[]): TerminalAction | null 
   return null;
 }
 
-export function dispatchTerminal(packet: PhaseReturnPacketUnknown, opts: TerminalOpts): TerminalAction {
+export function dispatchTerminal(
+  packet: PhaseReturnPacketUnknown,
+  opts: TerminalOpts,
+): TerminalAction {
   let body = "";
   let transition: string;
 
@@ -176,10 +179,17 @@ export type CostCapResult =
   | { readonly tripped: false }
   | { readonly tripped: true; readonly terminal: TerminalAction };
 
-function renderCostBreakdown(breakdown: Readonly<Record<string, number>>, total: number, max: number, next: string): string {
+function renderCostBreakdown(
+  breakdown: Readonly<Record<string, number>>,
+  total: number,
+  max: number,
+  next: string,
+): string {
   const entries = Object.entries(breakdown);
   const lines: string[] = [];
-  lines.push(`**ACCORD autopipeline:** cost cap reached for \`${next}\` (would-have-been-next phase).`);
+  lines.push(
+    `**ACCORD autopipeline:** cost cap reached for \`${next}\` (would-have-been-next phase).`,
+  );
   lines.push("");
   if (entries.length > 0) {
     lines.push("Per-phase cost breakdown (USD):");

@@ -3,18 +3,11 @@
   "$id": "return-schemas/phase-gather.json",
   "title": "phase-gather return packet",
   "type": "object",
-  "required": [
-    "status",
-    "context",
-    "usage"
-  ],
+  "required": ["status", "context", "usage"],
   "additionalProperties": false,
   "properties": {
     "status": {
-      "enum": [
-        "done",
-        "stuck"
-      ]
+      "enum": ["done", "stuck"]
     },
     "context": {
       "type": "string",
@@ -41,10 +34,7 @@
       "description": "Lightweight references to cached enrichment content. Full content lives in cache_path files.",
       "items": {
         "type": "object",
-        "required": [
-          "source",
-          "status"
-        ],
+        "required": ["source", "status"],
         "additionalProperties": false,
         "properties": {
           "source": {
@@ -53,11 +43,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "ok",
-              "unavailable",
-              "cached"
-            ],
+            "enum": ["ok", "unavailable", "cached"],
             "description": "ok=freshly fetched, cached=reused from valid cache, unavailable=fetch failed"
           },
           "title": {
@@ -92,10 +78,7 @@
     },
     "usage": {
       "type": "object",
-      "required": [
-        "prompt_tokens",
-        "completion_tokens"
-      ],
+      "required": ["prompt_tokens", "completion_tokens"],
       "additionalProperties": false,
       "properties": {
         "prompt_tokens": {
@@ -117,15 +100,10 @@
             "const": "stuck"
           }
         },
-        "required": [
-          "status"
-        ]
+        "required": ["status"]
       },
       "then": {
-        "required": [
-          "question",
-          "context_on_stuck"
-        ]
+        "required": ["question", "context_on_stuck"]
       }
     }
   ]

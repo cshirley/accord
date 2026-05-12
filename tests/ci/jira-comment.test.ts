@@ -1,19 +1,25 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  type FetchLike,
   postComment,
   transitionTicket,
   truncateForJira,
-  type FetchLike,
 } from "../../scripts/ci/jira-comment.js";
 
 const ENV_BACKUP: Record<string, string | undefined> = {};
 
 beforeEach(() => {
-  for (const k of ["JIRA_BASE_URL", "JIRA_USER_EMAIL", "JIRA_API_TOKEN", "DRY_RUN", "JIRA_DRY_RUN_LOG"]) {
+  for (const k of [
+    "JIRA_BASE_URL",
+    "JIRA_USER_EMAIL",
+    "JIRA_API_TOKEN",
+    "DRY_RUN",
+    "JIRA_DRY_RUN_LOG",
+  ]) {
     ENV_BACKUP[k] = process.env[k];
     delete process.env[k];
   }
@@ -36,7 +42,9 @@ interface RecordedCall {
   body: string;
 }
 
-function makeFetch(responses: Array<{ status: number; body?: unknown; headers?: Record<string, string> }>): {
+function makeFetch(
+  responses: Array<{ status: number; body?: unknown; headers?: Record<string, string> }>,
+): {
   fetch: FetchLike;
   calls: RecordedCall[];
 } {
@@ -60,7 +68,7 @@ function makeFetch(responses: Array<{ status: number; body?: unknown; headers?: 
       ok: r.status >= 200 && r.status < 300,
       status: r.status,
       headers: {
-        get: (h: string) => (r.headers ? r.headers[h.toLowerCase()] ?? null : null),
+        get: (h: string) => (r.headers ? (r.headers[h.toLowerCase()] ?? null) : null),
       },
       text: async () => (typeof r.body === "string" ? r.body : JSON.stringify(r.body ?? {})),
       json: async () => r.body ?? {},
@@ -115,10 +123,7 @@ describe("postComment — 429 retry behaviour", () => {
       { status: 201 },
     ]);
     const start = Date.now();
-    await postComment(
-      { ticket: "PROJ-1", body: "hello" },
-      { fetch, maxRetryDelayMs: 50 },
-    );
+    await postComment({ ticket: "PROJ-1", body: "hello" }, { fetch, maxRetryDelayMs: 50 });
     const elapsed = Date.now() - start;
     expect(calls).toHaveLength(2);
     expect(elapsed).toBeLessThan(500);
@@ -173,8 +178,8 @@ describe("postComment — secret-value never logged on error", () => {
       err = e as Error;
     }
     expect(err).not.toBeNull();
-    expect(err!.message).not.toContain("test-api-token");
-    expect(err!.message).not.toContain("Basic ");
+    expect(err?.message).not.toContain("test-api-token");
+    expect(err?.message).not.toContain("Basic ");
   });
 });
 
@@ -206,9 +211,9 @@ describe("transitionTicket", () => {
     const { fetch } = makeFetch([
       { status: 200, body: { transitions: [{ id: "11", name: "Other" }] } },
     ]);
-    await expect(
-      transitionTicket({ ticket: "PROJ-1", target: "Nope" }, { fetch }),
-    ).rejects.toThrow(/Nope/);
+    await expect(transitionTicket({ ticket: "PROJ-1", target: "Nope" }, { fetch })).rejects.toThrow(
+      /Nope/,
+    );
   });
 });
 

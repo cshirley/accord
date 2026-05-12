@@ -11,29 +11,27 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { registerToolDefs, registerCommands } from "./framework.js";
-import { resetMcpRegistry } from "./mcp-registry.js";
-
-// Tool definitions — one per file
-import jiraSearch        from "./defs/jira-search.js";
-import jiraGet           from "./defs/jira-get.js";
-import gmailSearch       from "./defs/gmail-search.js";
-import gmailGet          from "./defs/gmail-get.js";
-import gmailThread       from "./defs/gmail-thread.js";
-import calendarEvents    from "./defs/calendar-events.js";
-import slackSearch       from "./defs/slack-search.js";
-import slackUserInfo     from "./defs/slack-user-info.js";
-import slackConversations from "./defs/slack-conversations.js";
-import slackChannelHistory from "./defs/slack-channel-history.js";
-import slackDmHistory    from "./defs/slack-dm-history.js";
-import slackUnread       from "./defs/slack-unread.js";
-import inboxUnread       from "./defs/inbox-unread.js";
-import preflight         from "./defs/preflight.js";
-
+import googleCommands from "./commands/google.commands.js";
 // Command sets — setup/status per service
-import jiraCommands      from "./commands/jira.commands.js";
-import slackCommands     from "./commands/slack.commands.js";
-import googleCommands    from "./commands/google.commands.js";
+import jiraCommands from "./commands/jira.commands.js";
+import slackCommands from "./commands/slack.commands.js";
+import calendarEvents from "./defs/calendar-events.js";
+import gmailGet from "./defs/gmail-get.js";
+import gmailSearch from "./defs/gmail-search.js";
+import gmailThread from "./defs/gmail-thread.js";
+import inboxUnread from "./defs/inbox-unread.js";
+import jiraGet from "./defs/jira-get.js";
+// Tool definitions — one per file
+import jiraSearch from "./defs/jira-search.js";
+import preflight from "./defs/preflight.js";
+import slackChannelHistory from "./defs/slack-channel-history.js";
+import slackConversations from "./defs/slack-conversations.js";
+import slackDmHistory from "./defs/slack-dm-history.js";
+import slackSearch from "./defs/slack-search.js";
+import slackUnread from "./defs/slack-unread.js";
+import slackUserInfo from "./defs/slack-user-info.js";
+import { registerCommands, registerToolDefs } from "./framework.js";
+import { resetMcpRegistry } from "./mcp-registry.js";
 
 export default function tools(pi: ExtensionAPI) {
   registerToolDefs(pi, [
@@ -58,11 +56,7 @@ export default function tools(pi: ExtensionAPI) {
     preflight,
   ]);
 
-  registerCommands(pi, [
-    jiraCommands,
-    slackCommands,
-    googleCommands,
-  ]);
+  registerCommands(pi, [jiraCommands, slackCommands, googleCommands]);
 
   pi.on("session_shutdown", () => resetMcpRegistry());
 

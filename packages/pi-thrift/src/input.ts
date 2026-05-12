@@ -44,10 +44,7 @@ export interface InputStats {
 
 // ── Registration ────────────────────────────────────────────────────────
 
-export function registerInputPruning(
-  pi: ExtensionAPI,
-  config: ThriftConfig,
-): InputStats {
+export function registerInputPruning(pi: ExtensionAPI, config: ThriftConfig): InputStats {
   const stats: InputStats = {
     sourceBytesSaved: 0,
     sourceResultsPruned: 0,
@@ -130,10 +127,7 @@ export function registerInputPruning(
     newContent[textIdx] = { type: "text" as const, text: newText };
 
     if (config.showStatus) {
-      ctx.ui.setStatus(
-        "thrift",
-        `✂ ${formatSize(stats.sourceBytesSaved)} truncated`,
-      );
+      ctx.ui.setStatus("thrift", `✂ ${formatSize(stats.sourceBytesSaved)} truncated`);
     }
 
     return { content: newContent };
@@ -175,15 +169,11 @@ export function registerInputPruning(
     // ──────────────────────────────────────────────────────────────
     const now = Date.now();
     const provider = ctx.model?.provider ?? "unknown";
-    const ttl =
-      config.input.providerTTLs[provider] ?? config.input.defaultTTL;
+    const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
     stats.cache.lastTTL = ttl;
 
     // Provider switch → the new provider has its own (empty) cache
-    if (
-      stats.cache.lastProvider !== null &&
-      stats.cache.lastProvider !== provider
-    ) {
+    if (stats.cache.lastProvider !== null && stats.cache.lastProvider !== provider) {
       stats.cache.decisions.clear();
       stats.cache.lastRequestTime = 0;
     }

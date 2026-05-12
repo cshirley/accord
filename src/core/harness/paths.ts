@@ -4,9 +4,7 @@
 
 /** Map absolute or nested paths to `.tasks/...` or `docs/...` prefix when applicable. */
 export function normalizeHarnessRelativePath(filePath: string): string {
-  return filePath
-    .replace(/^.*\/(\.tasks\/)/, "$1")
-    .replace(/^.*\/(docs\/)/, "$1");
+  return filePath.replace(/^.*\/(\.tasks\/)/, "$1").replace(/^.*\/(docs\/)/, "$1");
 }
 
 export function isHarnessTrackedJsonWritePath(filePath: string): boolean {

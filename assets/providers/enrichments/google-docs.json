@@ -3,10 +3,7 @@
   "name": "google-docs",
   "kind": "enrichment",
   "label": "Google Docs",
-  "mcpTools": [
-    "mcp__google_workspace__search_drive",
-    "mcp__google_workspace__get_doc"
-  ],
+  "mcpTools": ["mcp__google_workspace__search_drive", "mcp__google_workspace__get_doc"],
   "cliFallback": null,
   "envFallback": "GOOGLE_ACCESS_TOKEN",
   "promptFile": "google-docs.md"

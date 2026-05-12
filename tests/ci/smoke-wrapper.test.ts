@@ -62,10 +62,7 @@ describe("autopipeline-smoke wrapper", () => {
       if (typeof value !== "string") {
         throw new Error(`smoke.with.${key} must be a templated string, got ${typeof value}`);
       }
-      const calledInput = asRecord(
-        autopipelineCallInputs[key],
-        `autopipeline...inputs.${key}`,
-      );
+      const calledInput = asRecord(autopipelineCallInputs[key], `autopipeline...inputs.${key}`);
       const calledType = calledInput.type;
       if (calledType === "boolean" || calledType === "number") {
         expect(value).toMatch(/fromJSON\s*\(\s*inputs\./);

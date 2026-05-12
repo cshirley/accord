@@ -1,8 +1,11 @@
-import { defineTool } from "../framework.js";
 import { getJiraAuth } from "../auth.js";
+import { defineTool } from "../framework.js";
 import {
-  makeJiraRequest, mapDetailedIssue, DEFAULT_CLOUD_ID, DETAIL_FIELDS,
+  DEFAULT_CLOUD_ID,
+  DETAIL_FIELDS,
   type DetailedIssue,
+  makeJiraRequest,
+  mapDetailedIssue,
 } from "../services/jira.client.js";
 
 export default defineTool<{ issueKey: string; cloudId?: string }, DetailedIssue>({
@@ -12,7 +15,7 @@ export default defineTool<{ issueKey: string; cloudId?: string }, DetailedIssue>
 
   params: {
     issueKey: { type: "string", required: true, description: "Issue key (e.g., STEP-12345)" },
-    cloudId:  { type: "string", description: "Cloud ID (optional)" },
+    cloudId: { type: "string", description: "Cloud ID (optional)" },
   },
 
   auth: { check: () => !!getJiraAuth(), service: "jira" },

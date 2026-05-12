@@ -79,7 +79,9 @@ const trackerProviders = manifest.assets.providers?.trackers ?? [];
 const enrichmentProviders = manifest.assets.providers?.enrichments ?? [];
 const bundled = loadBundledProviders();
 sameList("manifest tracker providers vs sidecars", trackerProviders, [...bundled.trackers.keys()]);
-sameList("manifest enrichment providers vs sidecars", enrichmentProviders, [...bundled.enrichments.keys()]);
+sameList("manifest enrichment providers vs sidecars", enrichmentProviders, [
+  ...bundled.enrichments.keys(),
+]);
 
 for (const provider of trackerProviders) {
   const promptPath = join(root, "assets", "providers", "trackers", `${provider}.md`);
@@ -104,4 +106,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`asset validation passed (${manifest.assets.skills.length} skills, ${manifest.assets.agents.length} agents, ${trackerProviders.length + enrichmentProviders.length} providers)`);
+console.log(
+  `asset validation passed (${manifest.assets.skills.length} skills, ${manifest.assets.agents.length} agents, ${trackerProviders.length + enrichmentProviders.length} providers)`,
+);

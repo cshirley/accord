@@ -3,7 +3,7 @@
  * Pure functions — no pi dependency.
  */
 
-import { getGoogleAuth, refreshGoogleToken, createBearerAuthHeader } from "../auth.js";
+import { createBearerAuthHeader, getGoogleAuth, refreshGoogleToken } from "../auth.js";
 
 // ---------------------------------------------------------------------------
 // Types

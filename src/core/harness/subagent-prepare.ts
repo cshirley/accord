@@ -8,10 +8,10 @@
  * mutation is load-bearing.
  */
 
-import type { DevHarnessConfig } from "../config/index.js";
-import { formatIntentContractForTask } from "../briefing/intent-contract-brief.js";
-import { formatConfigBrief, formatSchemaBrief } from "../crucible/verification.js";
 import { agentDefersConfigGuard, agentRequiresConfig } from "../agents/registry.js";
+import { formatIntentContractForTask } from "../briefing/intent-contract-brief.js";
+import type { DevHarnessConfig } from "../config/index.js";
+import { formatConfigBrief, formatSchemaBrief } from "../crucible/verification.js";
 import { createLogger } from "../logging.js";
 import { collectSubagentEntries } from "./subagent-entries.js";
 
@@ -27,7 +27,8 @@ export function prepareSubagentToolCall(
     const agentName = entry.agent || "";
     if (agentRequiresConfig(agentName) && !agentDefersConfigGuard(agentName) && !devConfig) {
       return {
-        blockReason: "No ACCORD config found. Run /dev init to configure the harness for this project.",
+        blockReason:
+          "No ACCORD config found. Run /dev init to configure the harness for this project.",
       };
     }
     if (devConfig && typeof entry.task === "string") {

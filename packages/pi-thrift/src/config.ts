@@ -13,12 +13,7 @@ import { join } from "node:path";
 
 // ── Output compression levels ───────────────────────────────────────────
 
-export const OUTPUT_LEVELS = [
-  "off",
-  "lite",
-  "full",
-  "ultra",
-] as const;
+export const OUTPUT_LEVELS = ["off", "lite", "full", "ultra"] as const;
 
 export type OutputLevel = (typeof OUTPUT_LEVELS)[number];
 
@@ -117,7 +112,7 @@ export async function loadConfig(): Promise<ThriftConfig> {
 }
 
 export async function saveConfig(config: ThriftConfig): Promise<void> {
-  const json = JSON.stringify(config, null, 2) + "\n";
+  const json = `${JSON.stringify(config, null, 2)}\n`;
   saveQueue = saveQueue.then(async () => {
     await mkdir(join(homedir(), ".pi", "agent"), { recursive: true });
     await writeFile(CONFIG_PATH, json, "utf8");

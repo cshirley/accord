@@ -6,16 +6,16 @@
  * and sorts by timestamp descending.
  */
 
-import { defineTool, getMcpRegistry, mcpText } from "../framework.js";
 import { getSlackAuth } from "../auth.js";
+import { defineTool, getMcpRegistry } from "../framework.js";
 import {
-  makeSlackRequest, getTeamDomain, makePermalink,
-  type UnreadChannel,
-} from "../services/slack.client.js";
-import {
-  makeGoogleRequest, hasNativeGoogleAuth, headerValue,
-  type GmailHeader, type GmailMessageSummary,
+  type GmailHeader,
+  type GmailMessageSummary,
+  hasNativeGoogleAuth,
+  headerValue,
+  makeGoogleRequest,
 } from "../services/google.client.js";
+import { getTeamDomain, makePermalink, makeSlackRequest } from "../services/slack.client.js";
 
 // ---------------------------------------------------------------------------
 // Result types
@@ -52,7 +52,7 @@ function slackTsToEpoch(ts: string): number {
 
 function parseDateToEpoch(dateStr: string): number {
   const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? 0 : d.getTime();
+  return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
 function extractCategory(labelIds: string[]): string {
@@ -67,8 +67,11 @@ function isActionableEmail(msg: GmailMessageSummary, labelIds: string[]): boolea
   const inbox = labelIds.includes("INBOX");
   // Skip purely automated/newsletter unless marked important
   const from = msg.from.toLowerCase();
-  const isBot = from.includes("noreply") || from.includes("no-reply")
-    || from.includes("notifications@") || from.includes("mailer-daemon");
+  const isBot =
+    from.includes("noreply") ||
+    from.includes("no-reply") ||
+    from.includes("notifications@") ||
+    from.includes("mailer-daemon");
   if (isBot && !important) return false;
   return inbox;
 }
@@ -86,11 +89,12 @@ async function fetchSlackUnread(
   const teamDomain = await getTeamDomain();
   const types = "public_channel,private_channel,mpim,im";
 
-  let allChannels: any[] = [];
+  const allChannels: any[] = [];
   let cursor: string | undefined;
   do {
     const resp = await makeSlackRequest("conversations.list", {
-      types, limit: Math.min(maxChannels - allChannels.length, 200),
+      types,
+      limit: Math.min(maxChannels - allChannels.length, 200),
       exclude_archived: true,
       ...(cursor ? { cursor } : {}),
     });
@@ -98,9 +102,7 @@ async function fetchSlackUnread(
     cursor = resp.response_metadata?.next_cursor || undefined;
   } while (cursor && allChannels.length < maxChannels);
 
-  const memberChannels = allChannels.filter(
-    (ch: any) => ch.is_member || ch.is_im || ch.is_mpim,
-  );
+  const memberChannels = allChannels.filter((ch: any) => ch.is_member || ch.is_im || ch.is_mpim);
 
   const items: InboxItem[] = [];
 
@@ -111,10 +113,8 @@ async function fetchSlackUnread(
     if (userCache.has(uid)) return userCache.get(uid)!;
     try {
       const info = await makeSlackRequest("users.info", { user: uid });
-      const name = info.user?.profile?.display_name
-        || info.user?.profile?.real_name
-        || info.user?.name
-        || uid;
+      const name =
+        info.user?.profile?.display_name || info.user?.profile?.real_name || info.user?.name || uid;
       userCache.set(uid, name);
       return name;
     } catch {
@@ -130,7 +130,10 @@ async function fetchSlackUnread(
       if (!lastRead || lastRead === "0000000000.000000") continue;
 
       const hist = await makeSlackRequest("conversations.history", {
-        channel: ch.id, oldest: lastRead, limit: maxPerChannel, inclusive: false,
+        channel: ch.id,
+        oldest: lastRead,
+        limit: maxPerChannel,
+        inclusive: false,
       });
 
       const msgs = (hist.messages || []).filter((m: any) => {
@@ -141,8 +144,13 @@ async function fetchSlackUnread(
 
       if (msgs.length === 0) continue;
 
-      const channelType = ch.is_im ? "dm" : ch.is_mpim ? "group_dm"
-        : ch.is_private ? "private" : "public";
+      const channelType = ch.is_im
+        ? "dm"
+        : ch.is_mpim
+          ? "group_dm"
+          : ch.is_private
+            ? "private"
+            : "public";
 
       for (const m of msgs) {
         const fromName = await userName(m.user || "unknown");
@@ -162,7 +170,9 @@ async function fetchSlackUnread(
           },
         });
       }
-    } catch { /* skip channel */ }
+    } catch {
+      /* skip channel */
+    }
   }
 
   return { total: items.length, items };
@@ -175,28 +185,36 @@ async function fetchSlackUnread(
 async function fetchGmailUnreadNative(
   maxResults: number,
 ): Promise<{ total: number; items: InboxItem[] }> {
-  const resp = await makeGoogleRequest(
-    "https://gmail.googleapis.com/gmail/v1/users/me/messages",
-    { q: "is:unread in:inbox", maxResults },
-  ) as { messages?: Array<{ id: string }>; resultSizeEstimate?: number };
+  const resp = (await makeGoogleRequest("https://gmail.googleapis.com/gmail/v1/users/me/messages", {
+    q: "is:unread in:inbox",
+    maxResults,
+  })) as { messages?: Array<{ id: string }>; resultSizeEstimate?: number };
 
   if (!resp.messages?.length) return { total: 0, items: [] };
 
   const items: InboxItem[] = [];
   for (const { id } of resp.messages.slice(0, maxResults)) {
     try {
-      const msg = await makeGoogleRequest(
+      const msg = (await makeGoogleRequest(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}`,
         { format: "metadata", metadataHeaders: "From,Subject,Date" },
-      ) as {
-        id: string; threadId: string; snippet: string; labelIds: string[];
+      )) as {
+        id: string;
+        threadId: string;
+        snippet: string;
+        labelIds: string[];
         payload: { headers: GmailHeader[] };
       };
       const from = headerValue(msg.payload.headers, "from");
       const subject = headerValue(msg.payload.headers, "subject");
       const date = headerValue(msg.payload.headers, "date");
       const summary: GmailMessageSummary = {
-        id: msg.id, threadId: msg.threadId, from, subject, date, snippet: msg.snippet,
+        id: msg.id,
+        threadId: msg.threadId,
+        from,
+        subject,
+        date,
+        snippet: msg.snippet,
       };
       items.push({
         source: "gmail",
@@ -209,7 +227,9 @@ async function fetchGmailUnreadNative(
         actionable: isActionableEmail(summary, msg.labelIds),
         meta: { id: msg.id, threadId: msg.threadId, labelIds: msg.labelIds },
       });
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   return { total: resp.resultSizeEstimate ?? items.length, items };
@@ -229,11 +249,10 @@ async function fetchGmailUnreadMcp(
 
   // Search unread inbox
   const searchResult = await registry.call("google-workspace", "gmail_search", {
-    query: "is:unread in:inbox", maxResults,
+    query: "is:unread in:inbox",
+    maxResults,
   });
-  const searchData = JSON.parse(
-    searchResult.content.find((c) => c.type === "text")?.text || "{}",
-  );
+  const searchData = JSON.parse(searchResult.content.find((c) => c.type === "text")?.text || "{}");
   const msgIds: string[] = (searchData.messages || []).map((m: any) => m.id);
   const totalEstimate = searchData.resultSizeEstimate ?? msgIds.length;
 
@@ -244,11 +263,10 @@ async function fetchGmailUnreadMcp(
   for (const id of msgIds.slice(0, maxResults)) {
     try {
       const getResult = await registry.call("google-workspace", "gmail_get", {
-        messageId: id, format: "metadata",
+        messageId: id,
+        format: "metadata",
       });
-      const raw = JSON.parse(
-        getResult.content.find((c) => c.type === "text")?.text || "{}",
-      );
+      const raw = JSON.parse(getResult.content.find((c) => c.type === "text")?.text || "{}");
       const headers = raw.payload?.headers || [];
       const from = headers.find((h: any) => h.name.toLowerCase() === "from")?.value ?? "";
       const subject = headers.find((h: any) => h.name.toLowerCase() === "subject")?.value ?? "";
@@ -256,7 +274,12 @@ async function fetchGmailUnreadMcp(
       const labelIds: string[] = raw.labelIds || [];
       const snippet = raw.snippet || "";
       const summary: GmailMessageSummary = {
-        id, threadId: raw.threadId ?? "", from, subject, date, snippet,
+        id,
+        threadId: raw.threadId ?? "",
+        from,
+        subject,
+        date,
+        snippet,
       };
       items.push({
         source: "gmail",
@@ -269,7 +292,9 @@ async function fetchGmailUnreadMcp(
         actionable: isActionableEmail(summary, labelIds),
         meta: { id, threadId: raw.threadId, labelIds },
       });
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   return { total: totalEstimate, items };
@@ -297,15 +322,24 @@ export default defineTool<
     "needs a response (DMs, important emails, @mentions).",
 
   params: {
-    maxSlackChannels:      { type: "number", default: 50,  description: "Max Slack channels to scan" },
-    maxMessagesPerChannel: { type: "number", default: 5,   description: "Max unread messages per Slack channel" },
-    maxEmails:             { type: "number", default: 15,  description: "Max Gmail messages to fetch" },
-    actionableOnly:        { type: "boolean", default: false, description: "Only return items flagged as actionable" },
+    maxSlackChannels: { type: "number", default: 50, description: "Max Slack channels to scan" },
+    maxMessagesPerChannel: {
+      type: "number",
+      default: 5,
+      description: "Max unread messages per Slack channel",
+    },
+    maxEmails: { type: "number", default: 15, description: "Max Gmail messages to fetch" },
+    actionableOnly: {
+      type: "boolean",
+      default: false,
+      description: "Only return items flagged as actionable",
+    },
   },
 
   auth: {
     // Available if at least one source is configured
-    check: () => !!getSlackAuth() || hasNativeGoogleAuth() || getMcpRegistry().has("google-workspace"),
+    check: () =>
+      !!getSlackAuth() || hasNativeGoogleAuth() || getMcpRegistry().has("google-workspace"),
     service: "slack+google",
   },
   progress: "Scanning Slack and Gmail for unread messages...",
@@ -319,12 +353,11 @@ export default defineTool<
     // Run Slack and Gmail in parallel
     const [slackResult, gmailResult] = await Promise.allSettled([
       fetchSlackUnread(maxSlackChannels, maxPerChannel),
-      (hasNativeGoogleAuth()
+      hasNativeGoogleAuth()
         ? fetchGmailUnreadNative(maxEmails)
         : getMcpRegistry().has("google-workspace")
           ? fetchGmailUnreadMcp(maxEmails)
-          : Promise.resolve({ total: 0, items: [] as InboxItem[] })
-      ),
+          : Promise.resolve({ total: 0, items: [] as InboxItem[] }),
     ]);
 
     const slack = slackResult.status === "fulfilled" ? slackResult.value : { total: 0, items: [] };
@@ -365,8 +398,8 @@ export default defineTool<
     const lines: string[] = [];
     lines.push(
       `📬 **${result.items.length} unread** ` +
-      `(${result.slackTotal} Slack, ${result.gmailTotal} Gmail) — ` +
-      `**${actionable.length} actionable**\n`,
+        `(${result.slackTotal} Slack, ${result.gmailTotal} Gmail) — ` +
+        `**${actionable.length} actionable**\n`,
     );
 
     if (actionable.length > 0) {
@@ -374,10 +407,7 @@ export default defineTool<
       for (const item of actionable) {
         const icon = item.source === "slack" ? "💬" : "📧";
         const age = formatAge(item.timestamp);
-        lines.push(
-          `${icon} **${item.from}** — ${item.subject}` +
-          `  *(${age}, ${item.category})*`,
-        );
+        lines.push(`${icon} **${item.from}** — ${item.subject}` + `  *(${age}, ${item.category})*`);
         lines.push(`   ${item.snippet.slice(0, 140)}`);
         lines.push(`   [Open →](${item.permalink})\n`);
       }
@@ -388,10 +418,7 @@ export default defineTool<
       for (const item of fyi.slice(0, 10)) {
         const icon = item.source === "slack" ? "💬" : "📧";
         const age = formatAge(item.timestamp);
-        lines.push(
-          `${icon} **${item.from}** — ${item.subject}` +
-          `  *(${age}, ${item.category})*`,
-        );
+        lines.push(`${icon} **${item.from}** — ${item.subject}` + `  *(${age}, ${item.category})*`);
         lines.push(`   ${item.snippet.slice(0, 100)}`);
         lines.push(`   [Open →](${item.permalink})\n`);
       }

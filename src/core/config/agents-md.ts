@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { loadGlobalConfig, mergeContextSources } from "./global.js";
 import { findGitRoot } from "./git.js";
+import { loadGlobalConfig, mergeContextSources } from "./global.js";
 import type { DevHarnessConfig } from "./types.js";
 
 /**
@@ -63,10 +63,11 @@ export function extractDevHarnessJson(content: string): string | null {
   // …"); the canonical config is always the final block before the next
   // heading. The /g flag is required so exec advances past prior matches.
   const fenceRe = /```json\s*\n([\s\S]*?)\n```/g;
-  let fenceMatch: RegExpExecArray | null;
   let last: string | null = null;
-  while ((fenceMatch = fenceRe.exec(section)) !== null) {
+  let fenceMatch = fenceRe.exec(section);
+  while (fenceMatch !== null) {
     last = fenceMatch[1];
+    fenceMatch = fenceRe.exec(section);
   }
   return last;
 }
@@ -88,7 +89,11 @@ export function loadDevHarnessConfig(cwd?: string): DevHarnessConfig | null {
   if (!agentsMdPath) return null;
 
   let content: string;
-  try { content = fs.readFileSync(agentsMdPath, "utf8"); } catch { return null; }
+  try {
+    content = fs.readFileSync(agentsMdPath, "utf8");
+  } catch {
+    return null;
+  }
 
   const ref = extractDevHarnessRef(content);
   if (ref) {
@@ -97,7 +102,9 @@ export function loadDevHarnessConfig(cwd?: string): DevHarnessConfig | null {
     try {
       const refContent = fs.readFileSync(refPath, "utf8");
       return parseAndValidateConfig(refContent);
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   return parseAndValidateConfig(content);
@@ -108,7 +115,11 @@ function parseAndValidateConfig(content: string): DevHarnessConfig | null {
   if (!jsonStr) return null;
 
   let parsed: any;
-  try { parsed = JSON.parse(jsonStr); } catch { return null; }
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
 
   if (
     parsed?.schema_version !== "1.0" ||
@@ -121,14 +132,11 @@ function parseAndValidateConfig(content: string): DevHarnessConfig | null {
   }
 
   const globalCfg = loadGlobalConfig();
-  const mergedSources = mergeContextSources(
-    globalCfg?.context_sources,
-    parsed.context_sources,
-  );
+  const mergedSources = mergeContextSources(globalCfg?.context_sources, parsed.context_sources);
   if (mergedSources.length > 0) {
     parsed.context_sources = mergedSources;
   } else {
-    delete parsed.context_sources;
+    parsed.context_sources = undefined;
   }
 
   return parsed as DevHarnessConfig;

@@ -3,8 +3,8 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
-import { runVerificationCommands, formatVerificationResults } from "../crucible/verification.js";
 import { checkVerifyStaleness } from "../crucible/staleness.js";
+import { formatVerificationResults, runVerificationCommands } from "../crucible/verification.js";
 import { extractWorkItemId } from "../telemetry/usage.js";
 import { firstSubagentAgentName, getPrimarySubagentEntry } from "./subagent-entries.js";
 
@@ -17,11 +17,7 @@ export async function runVerifyPreflightOnSubagentCall(
 
   const entry = getPrimarySubagentEntry(input);
   const task: string =
-    typeof entry?.task === "string"
-      ? entry.task
-      : typeof input.task === "string"
-        ? input.task
-        : "";
+    typeof entry?.task === "string" ? entry.task : typeof input.task === "string" ? input.task : "";
   // Use the unfiltered extractor: when a phase-verify-* agent is dispatched
   // for a missing/typo'd work-item ID, the staleness check below produces a
   // clearer block message ("Spec not found: docs/dev/<ID>/spec.json") than
@@ -36,11 +32,17 @@ export async function runVerifyPreflightOnSubagentCall(
 
   if (devConfig && devConfig.verification_commands.length > 0) {
     const results = await runVerificationCommands(devConfig.verification_commands);
-    if (results.every(r => r.exitCode !== 0)) {
-      const formatted = formatVerificationResults(results, "Verify Preflight (all commands failed)");
+    if (results.every((r) => r.exitCode !== 0)) {
+      const formatted = formatVerificationResults(
+        results,
+        "Verify Preflight (all commands failed)",
+      );
       return { blockReason: `All verification commands failed.\n${formatted}` };
     }
-    const formatted = formatVerificationResults(results, "Verification Preflight (extension-triggered)");
+    const formatted = formatVerificationResults(
+      results,
+      "Verification Preflight (extension-triggered)",
+    );
     if (entry && typeof entry.task === "string") {
       entry.task += formatted;
     }

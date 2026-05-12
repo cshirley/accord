@@ -75,15 +75,20 @@ function readSidecarsFrom(dir: string, kind: ProviderKind): Map<string, Provider
     }
     if (raw?.kind !== kind || typeof raw?.name !== "string") continue;
 
-    const promptFile = typeof raw.promptFile === "string" && raw.promptFile.length > 0
-      ? (isAbsolute(raw.promptFile) ? raw.promptFile : join(dir, raw.promptFile))
-      : join(dir, `${raw.name}.md`);
+    const promptFile =
+      typeof raw.promptFile === "string" && raw.promptFile.length > 0
+        ? isAbsolute(raw.promptFile)
+          ? raw.promptFile
+          : join(dir, raw.promptFile)
+        : join(dir, `${raw.name}.md`);
 
     map.set(raw.name, {
       name: raw.name,
       kind,
       label: typeof raw.label === "string" ? raw.label : raw.name,
-      mcpTools: Array.isArray(raw.mcpTools) ? raw.mcpTools.filter((t: unknown): t is string => typeof t === "string") : [],
+      mcpTools: Array.isArray(raw.mcpTools)
+        ? raw.mcpTools.filter((t: unknown): t is string => typeof t === "string")
+        : [],
       cliFallback: typeof raw.cliFallback === "string" ? raw.cliFallback : null,
       envFallback: typeof raw.envFallback === "string" ? raw.envFallback : null,
       promptFile,
@@ -119,7 +124,9 @@ export function normaliseUserProvider(raw: unknown): ProviderDef | null {
     name: r.name,
     kind: r.kind,
     label: typeof r.label === "string" ? r.label : r.name,
-    mcpTools: Array.isArray(r.mcpTools) ? r.mcpTools.filter((t): t is string => typeof t === "string") : [],
+    mcpTools: Array.isArray(r.mcpTools)
+      ? r.mcpTools.filter((t): t is string => typeof t === "string")
+      : [],
     cliFallback: typeof r.cliFallback === "string" ? r.cliFallback : null,
     envFallback: typeof r.envFallback === "string" ? r.envFallback : null,
     promptFile: expandUserPath(r.promptFile),
@@ -163,7 +170,7 @@ export function checkProviderDeps(def: ProviderDef, allToolNames: Set<string>): 
   }
 
   // Prefer MCP
-  const mcpMatch = def.mcpTools.find(t => allToolNames.has(t));
+  const mcpMatch = def.mcpTools.find((t) => allToolNames.has(t));
   if (mcpMatch) {
     return { ...base, available: true, method: "mcp", detail: mcpMatch };
   }
@@ -173,7 +180,9 @@ export function checkProviderDeps(def: ProviderDef, allToolNames: Set<string>): 
     try {
       execSync(`which ${def.cliFallback}`, { stdio: "ignore", timeout: 2000 });
       return { ...base, available: true, method: "cli", detail: def.cliFallback };
-    } catch { /* not found or timed out */ }
+    } catch {
+      /* not found or timed out */
+    }
   }
 
   // Env-var fallback
@@ -191,12 +200,17 @@ export function checkProviderDeps(def: ProviderDef, allToolNames: Set<string>): 
 
 // ── Preflight report formatting ────────────────────────────
 
-export function formatPreflightReport(tracker: DepCheckResult | null, enrichments: DepCheckResult[]): string {
+export function formatPreflightReport(
+  tracker: DepCheckResult | null,
+  enrichments: DepCheckResult[],
+): string {
   const lines: string[] = ["\n── Gather Preflight ─ Source Availability ─────────────"];
 
   if (tracker) {
     const icon = tracker.available ? "✓" : "✗";
-    const via = tracker.available ? ` via ${tracker.method} (${tracker.detail})` : ` — UNAVAILABLE (tried: ${tracker.detail})`;
+    const via = tracker.available
+      ? ` via ${tracker.method} (${tracker.detail})`
+      : ` — UNAVAILABLE (tried: ${tracker.detail})`;
     lines.push(`  ${icon} Tracker: ${tracker.label}${via}`);
   }
 
@@ -204,15 +218,19 @@ export function formatPreflightReport(tracker: DepCheckResult | null, enrichment
     lines.push("  Enrichments:");
     for (const e of enrichments) {
       const icon = e.available ? "✓" : "✗";
-      const via = e.available ? ` via ${e.method} (${e.detail})` : ` — UNAVAILABLE (tried: ${e.detail})`;
+      const via = e.available
+        ? ` via ${e.method} (${e.detail})`
+        : ` — UNAVAILABLE (tried: ${e.detail})`;
       lines.push(`    ${icon} ${e.label}${via}`);
     }
   }
 
-  const unavailable = [tracker, ...enrichments].filter(r => r && !r.available);
+  const unavailable = [tracker, ...enrichments].filter((r) => r && !r.available);
   if (unavailable.length > 0) {
     lines.push("");
-    lines.push(`  ⚠ ${unavailable.length} source(s) unavailable — gather will skip these or use degraded fallbacks.`);
+    lines.push(
+      `  ⚠ ${unavailable.length} source(s) unavailable — gather will skip these or use degraded fallbacks.`,
+    );
   } else {
     lines.push("");
     lines.push("  ✓ All configured sources available.");
@@ -222,8 +240,10 @@ export function formatPreflightReport(tracker: DepCheckResult | null, enrichment
   // user-supplied providers (with paths outside the bundled tree)
   // work without prompt edits.
   const playbooks: { kind: string; provider: string; path: string }[] = [];
-  if (tracker) playbooks.push({ kind: "Tracker", provider: tracker.provider, path: tracker.promptFile });
-  for (const e of enrichments) playbooks.push({ kind: "Enrichment", provider: e.provider, path: e.promptFile });
+  if (tracker)
+    playbooks.push({ kind: "Tracker", provider: tracker.provider, path: tracker.promptFile });
+  for (const e of enrichments)
+    playbooks.push({ kind: "Enrichment", provider: e.provider, path: e.promptFile });
   if (playbooks.length > 0) {
     lines.push("");
     lines.push("  Provider Playbooks (read from these absolute paths):");

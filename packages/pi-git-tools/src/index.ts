@@ -13,6 +13,6 @@ import { registerCommitTools } from "./commit.js";
 import { registerPrTools } from "./pr.js";
 
 export default function (pi: ExtensionAPI) {
-	registerCommitTools(pi);
-	registerPrTools(pi);
+  registerCommitTools(pi);
+  registerPrTools(pi);
 }

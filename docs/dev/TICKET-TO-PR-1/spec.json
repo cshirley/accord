@@ -175,15 +175,42 @@
       "Pi env wiring (`PI_OFFLINE=1`, `PI_SKIP_VERSION_CHECK=1`) in the `setup-pi` composite and the minimum workflow `permissions:` block (contents/pull-requests/issues: write)."
     ],
     "out": [
-      { "item": "`phase-gaps` auto-creation of follow-up Jira tickets when `finish` returns `gaps`.", "reason": "Deferred to v1.1; in v1 the workflow only writes the structured gaps payload into a Jira comment (AC-10)." },
-      { "item": "Per-consumer prompt-level customisation of phase agents (e.g. swapping `phase-code` for a custom variant).", "reason": "v2 candidate; v1 configuration surface is locked to AGENTS.md + accord-config.json (see constraints)." },
-      { "item": "PR auto-merge.", "reason": "Human review is required by compliance / SRE for autonomous-agent commits." },
-      { "item": "Multi-base-branch matrices (parallel runs against `main` and `develop`, etc.).", "reason": "Single-base-branch assumption pinned in constraints; matrix support is a v2 candidate." },
-      { "item": "Pi SDK-based phase orchestration.", "reason": "Increases owned-code surface in unattended CI (~2x); CLI subprocesses are sufficient for v1. Re-evaluate for v2 if SDK-only features are required." },
-      { "item": "Self-hosted webhook receiver for Jira events.", "reason": "Atlassian Automation already supports `POST /dispatches`; running our own receiver adds operational burden with no behavioural benefit." },
-      { "item": "Mid-run writes to Jira (comments, status transitions, edits made while a phase is executing).", "reason": "Violates the headless-agent contract — only terminal-state writes are permitted." },
-      { "item": "Auto `dev_init` in the consumer repo when `AGENTS.md` is missing or malformed.", "reason": "AC-2 mandates a strict hard-fail with a sub-check-specific Jira comment in v1; auto-init is deferred." },
-      { "item": "Local-developer auth model (a `local_auth_mode` value).", "reason": "The new code is a CI-only subsystem under `scripts/ci/` and `.github/`; there is no local app dev surface that needs auth, and test fixtures cover all local execution paths." }
+      {
+        "item": "`phase-gaps` auto-creation of follow-up Jira tickets when `finish` returns `gaps`.",
+        "reason": "Deferred to v1.1; in v1 the workflow only writes the structured gaps payload into a Jira comment (AC-10)."
+      },
+      {
+        "item": "Per-consumer prompt-level customisation of phase agents (e.g. swapping `phase-code` for a custom variant).",
+        "reason": "v2 candidate; v1 configuration surface is locked to AGENTS.md + accord-config.json (see constraints)."
+      },
+      {
+        "item": "PR auto-merge.",
+        "reason": "Human review is required by compliance / SRE for autonomous-agent commits."
+      },
+      {
+        "item": "Multi-base-branch matrices (parallel runs against `main` and `develop`, etc.).",
+        "reason": "Single-base-branch assumption pinned in constraints; matrix support is a v2 candidate."
+      },
+      {
+        "item": "Pi SDK-based phase orchestration.",
+        "reason": "Increases owned-code surface in unattended CI (~2x); CLI subprocesses are sufficient for v1. Re-evaluate for v2 if SDK-only features are required."
+      },
+      {
+        "item": "Self-hosted webhook receiver for Jira events.",
+        "reason": "Atlassian Automation already supports `POST /dispatches`; running our own receiver adds operational burden with no behavioural benefit."
+      },
+      {
+        "item": "Mid-run writes to Jira (comments, status transitions, edits made while a phase is executing).",
+        "reason": "Violates the headless-agent contract — only terminal-state writes are permitted."
+      },
+      {
+        "item": "Auto `dev_init` in the consumer repo when `AGENTS.md` is missing or malformed.",
+        "reason": "AC-2 mandates a strict hard-fail with a sub-check-specific Jira comment in v1; auto-init is deferred."
+      },
+      {
+        "item": "Local-developer auth model (a `local_auth_mode` value).",
+        "reason": "The new code is a CI-only subsystem under `scripts/ci/` and `.github/`; there is no local app dev surface that needs auth, and test fixtures cover all local execution paths."
+      }
     ]
   },
   "verification": {
@@ -347,21 +374,49 @@
     "coverage_threshold": "none",
     "ci_in_v1": true,
     "ci_platform": "github_actions",
-    "required_workflows": [
-      ".github/workflows/test-autopipeline.yml"
-    ]
+    "required_workflows": [".github/workflows/test-autopipeline.yml"]
   },
   "security_topology": {
     "secrets": [
-      { "name": "ANTHROPIC_API_KEY", "tier": "server-only", "owner": "consumer", "rotation_window": "90d" },
-      { "name": "JIRA_BASE_URL", "tier": "server-only", "owner": "consumer", "rotation_window": "n/a" },
-      { "name": "JIRA_USER_EMAIL", "tier": "server-only", "owner": "consumer", "rotation_window": "n/a" },
-      { "name": "JIRA_API_TOKEN", "tier": "server-only", "owner": "consumer", "rotation_window": "90d" },
+      {
+        "name": "ANTHROPIC_API_KEY",
+        "tier": "server-only",
+        "owner": "consumer",
+        "rotation_window": "90d"
+      },
+      {
+        "name": "JIRA_BASE_URL",
+        "tier": "server-only",
+        "owner": "consumer",
+        "rotation_window": "n/a"
+      },
+      {
+        "name": "JIRA_USER_EMAIL",
+        "tier": "server-only",
+        "owner": "consumer",
+        "rotation_window": "n/a"
+      },
+      {
+        "name": "JIRA_API_TOKEN",
+        "tier": "server-only",
+        "owner": "consumer",
+        "rotation_window": "90d"
+      },
       { "name": "GH_PAT_PR", "tier": "server-only", "owner": "consumer", "rotation_window": "90d" },
-      { "name": "GITHUB_TOKEN", "tier": "server-only", "owner": "runner", "rotation_window": "per-run" }
+      {
+        "name": "GITHUB_TOKEN",
+        "tier": "server-only",
+        "owner": "runner",
+        "rotation_window": "per-run"
+      }
     ],
     "registry_auth": [
-      { "name": "npm_public", "credential": "none", "tier": "ci-only", "scope": "Public read of @mariozechner/pi-coding-agent and @clive.shirley/pi-accord; no credential required." }
+      {
+        "name": "npm_public",
+        "credential": "none",
+        "tier": "ci-only",
+        "scope": "Public read of @mariozechner/pi-coding-agent and @clive.shirley/pi-accord; no credential required."
+      }
     ]
   },
   "dev_ergonomics": {
@@ -414,27 +469,84 @@
     "Clock skew between the runner and the Jira tenant could mis-order status-transition timestamps; Jira's server timestamp is treated as authoritative for transition ordering and the runner uses UTC for all log/artifact filenames."
   ],
   "rejected_alternatives": [
-    { "name": "Pi SDK-based phase orchestration", "reason": "Roughly 2x the owned-code surface in unattended CI (session lifecycle, abort, signal handling, runtime/factory creation, bindExtensions) for a small set of benefits (type-safe events, custom CI tools). CLI subprocesses against the stable `pi -p --mode json` surface are sufficient for v1." },
-    { "name": "GitHub App distribution", "reason": "Heavy install ceremony per consumer org; requires us to operate a hosted backend or webhook receiver. Reusable workflow plus composite gives consumers a 10-line opt-in with no central infrastructure on our side." },
-    { "name": "Docker action distribution", "reason": "Slower cold-start (image pull); harder to debug (consumers can't easily re-run the same command in a local shell); worse iteration loop for us. The composite-action plus scripts/ci/* approach is functionally equivalent and operationally cheaper." },
-    { "name": "Self-hosted webhook receiver for Jira events", "reason": "Atlassian Automation natively supports `POST /repos/<owner>/<repo>/dispatches`. Running our own receiver adds operational burden, an attack surface, and a single point of failure with zero behavioural benefit." },
-    { "name": "Auto `phase-gaps` with follow-up Jira-ticket creation when `finish` returns `gaps`", "reason": "Deferred to v1.1 per scope.out; v1 only writes the structured gaps payload to a Jira comment so authors can decide whether to spawn follow-ups manually." },
-    { "name": "Mid-run writes to Jira (per-phase progress comments, status transitions during execution)", "reason": "Violates the headless-agent contract — the harness has always been designed for terminal-only writes, and mid-run writes would dilute the signal that a Jira comment carries (terminal report)." },
-    { "name": "Per-consumer prompt-level customisation of phase agents (swappable `phase-code` variants)", "reason": "Out for v1 to keep the customisation surface narrow (AGENTS.md plus accord-config.json only); revisit for v2 once we have data on which agent prompts consumers most want to override." },
-    { "name": "PR auto-merge after CI green", "reason": "Compliance and SRE explicitly require human approval before an autonomous-agent commit lands on `main`. Auto-merge would change the trust contract; reviewers must remain in the loop." }
+    {
+      "name": "Pi SDK-based phase orchestration",
+      "reason": "Roughly 2x the owned-code surface in unattended CI (session lifecycle, abort, signal handling, runtime/factory creation, bindExtensions) for a small set of benefits (type-safe events, custom CI tools). CLI subprocesses against the stable `pi -p --mode json` surface are sufficient for v1."
+    },
+    {
+      "name": "GitHub App distribution",
+      "reason": "Heavy install ceremony per consumer org; requires us to operate a hosted backend or webhook receiver. Reusable workflow plus composite gives consumers a 10-line opt-in with no central infrastructure on our side."
+    },
+    {
+      "name": "Docker action distribution",
+      "reason": "Slower cold-start (image pull); harder to debug (consumers can't easily re-run the same command in a local shell); worse iteration loop for us. The composite-action plus scripts/ci/* approach is functionally equivalent and operationally cheaper."
+    },
+    {
+      "name": "Self-hosted webhook receiver for Jira events",
+      "reason": "Atlassian Automation natively supports `POST /repos/<owner>/<repo>/dispatches`. Running our own receiver adds operational burden, an attack surface, and a single point of failure with zero behavioural benefit."
+    },
+    {
+      "name": "Auto `phase-gaps` with follow-up Jira-ticket creation when `finish` returns `gaps`",
+      "reason": "Deferred to v1.1 per scope.out; v1 only writes the structured gaps payload to a Jira comment so authors can decide whether to spawn follow-ups manually."
+    },
+    {
+      "name": "Mid-run writes to Jira (per-phase progress comments, status transitions during execution)",
+      "reason": "Violates the headless-agent contract — the harness has always been designed for terminal-only writes, and mid-run writes would dilute the signal that a Jira comment carries (terminal report)."
+    },
+    {
+      "name": "Per-consumer prompt-level customisation of phase agents (swappable `phase-code` variants)",
+      "reason": "Out for v1 to keep the customisation surface narrow (AGENTS.md plus accord-config.json only); revisit for v2 once we have data on which agent prompts consumers most want to override."
+    },
+    {
+      "name": "PR auto-merge after CI green",
+      "reason": "Compliance and SRE explicitly require human approval before an autonomous-agent commit lands on `main`. Auto-merge would change the trust contract; reviewers must remain in the loop."
+    }
   ],
   "resolved_questions": [
-    { "question": "Default `max_runtime_minutes` for the reusable workflow?", "answer": "90 minutes, exposed as an input override (`inputs.max_runtime_minutes`)." },
-    { "question": "Default `max_cost_usd` for the reusable workflow?", "answer": "$20, exposed as an input override (`inputs.max_cost_usd`)." },
-    { "question": "If `AGENTS.md` is missing or malformed on the consumer repo, auto-init or hard-fail?", "answer": "Hard-fail with a structured Jira comment that names the specific sub-check that failed (missing file / missing section / malformed JSON / missing `test.command`). No auto `dev_init` in v1." },
-    { "question": "How are autopilot-authored PRs marked so reviewers can distinguish them from human-driven PRs?", "answer": "Body trailer `pi.dev/autopilot: v1` plus the label `autopilot/v1` (created idempotently if absent). No PR title prefix." },
-    { "question": "Should `phase-gaps` auto-create follow-up Jira tickets when `finish` returns `gaps`?", "answer": "No — out of scope for v1. The structured gaps payload is written into a single Jira comment (AC-10); follow-up creation is a v1.1 candidate." },
-    { "question": "Single base branch vs multi-branch matrix?", "answer": "Single base branch per call, configurable via `inputs.base_branch` (default `main`). Multi-branch matrices are a v2 candidate." },
-    { "question": "Pi SDK or `pi -p --mode json` CLI for phase orchestration?", "answer": "CLI subprocesses against the stable `pi -p --mode json` surface for v1. SDK is re-evaluated for v2 if a feature requires SDK-only capabilities." },
-    { "question": "How strict is the AGENTS.md sub-gate — section presence only, or also validate the JSON block?", "answer": "Strict three-sub-check pattern: file exists, contains the literal `## Dev Harness` section header, and the first fenced JSON block in that section parses with a non-null string `test.command`. Each failure mode gets its own sub-check-specific remediation in the Jira comment." },
-    { "question": "On re-run, should we force-push-with-lease over the existing branch or stack a new commit on top?", "answer": "Force-push-with-lease. Clean PR history is the priority; the per-run artifact upload preserves the per-run state for forensic review without polluting PR history." },
-    { "question": "Does the self-test corpus need to cover resume and brief-drift and cost-cap scenarios in addition to gate / phase-return outcomes?", "answer": "Yes — the corpus covers all ten scenarios listed in AC-17 (passing-gate, the 8 gate-failing sub-fixtures, the 3 AGENTS.md sub-failures, needs_input, blocked, gaps, complete, decide-resume → resume, decide-resume → fresh-due-to-drift, between-phases cost-cap breach), each with its own expected-jira-comments golden." },
-    { "question": "How is secret leak prevention enforced given the agent runs against the consumer's source?", "answer": "All listed secrets are tier `server-only`; the workflow YAML registers them with GitHub's secret-mask via `secrets:` inheritance, the composite `setup-pi` sets `PI_OFFLINE=1` and `PI_SKIP_VERSION_CHECK=1`, and AC-8's PR-body invariant plus the parse-phase-result helper both scan their outputs for any of the secret values before posting. There is no client-side code in this subsystem so client-safe leak patterns do not apply." }
+    {
+      "question": "Default `max_runtime_minutes` for the reusable workflow?",
+      "answer": "90 minutes, exposed as an input override (`inputs.max_runtime_minutes`)."
+    },
+    {
+      "question": "Default `max_cost_usd` for the reusable workflow?",
+      "answer": "$20, exposed as an input override (`inputs.max_cost_usd`)."
+    },
+    {
+      "question": "If `AGENTS.md` is missing or malformed on the consumer repo, auto-init or hard-fail?",
+      "answer": "Hard-fail with a structured Jira comment that names the specific sub-check that failed (missing file / missing section / malformed JSON / missing `test.command`). No auto `dev_init` in v1."
+    },
+    {
+      "question": "How are autopilot-authored PRs marked so reviewers can distinguish them from human-driven PRs?",
+      "answer": "Body trailer `pi.dev/autopilot: v1` plus the label `autopilot/v1` (created idempotently if absent). No PR title prefix."
+    },
+    {
+      "question": "Should `phase-gaps` auto-create follow-up Jira tickets when `finish` returns `gaps`?",
+      "answer": "No — out of scope for v1. The structured gaps payload is written into a single Jira comment (AC-10); follow-up creation is a v1.1 candidate."
+    },
+    {
+      "question": "Single base branch vs multi-branch matrix?",
+      "answer": "Single base branch per call, configurable via `inputs.base_branch` (default `main`). Multi-branch matrices are a v2 candidate."
+    },
+    {
+      "question": "Pi SDK or `pi -p --mode json` CLI for phase orchestration?",
+      "answer": "CLI subprocesses against the stable `pi -p --mode json` surface for v1. SDK is re-evaluated for v2 if a feature requires SDK-only capabilities."
+    },
+    {
+      "question": "How strict is the AGENTS.md sub-gate — section presence only, or also validate the JSON block?",
+      "answer": "Strict three-sub-check pattern: file exists, contains the literal `## Dev Harness` section header, and the first fenced JSON block in that section parses with a non-null string `test.command`. Each failure mode gets its own sub-check-specific remediation in the Jira comment."
+    },
+    {
+      "question": "On re-run, should we force-push-with-lease over the existing branch or stack a new commit on top?",
+      "answer": "Force-push-with-lease. Clean PR history is the priority; the per-run artifact upload preserves the per-run state for forensic review without polluting PR history."
+    },
+    {
+      "question": "Does the self-test corpus need to cover resume and brief-drift and cost-cap scenarios in addition to gate / phase-return outcomes?",
+      "answer": "Yes — the corpus covers all ten scenarios listed in AC-17 (passing-gate, the 8 gate-failing sub-fixtures, the 3 AGENTS.md sub-failures, needs_input, blocked, gaps, complete, decide-resume → resume, decide-resume → fresh-due-to-drift, between-phases cost-cap breach), each with its own expected-jira-comments golden."
+    },
+    {
+      "question": "How is secret leak prevention enforced given the agent runs against the consumer's source?",
+      "answer": "All listed secrets are tier `server-only`; the workflow YAML registers them with GitHub's secret-mask via `secrets:` inheritance, the composite `setup-pi` sets `PI_OFFLINE=1` and `PI_SKIP_VERSION_CHECK=1`, and AC-8's PR-body invariant plus the parse-phase-result helper both scan their outputs for any of the secret values before posting. There is no client-side code in this subsystem so client-safe leak patterns do not apply."
+    }
   ],
   "deployment": {
     "dark_deploy": false

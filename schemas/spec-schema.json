@@ -43,37 +43,22 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "requirement",
-          "type"
-        ],
+        "required": ["id", "requirement", "type"],
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^AC-\\d+$"
           },
           "requirement": {
-            "enum": [
-              "MUST",
-              "SHOULD",
-              "MAY"
-            ]
+            "enum": ["MUST", "SHOULD", "MAY"]
           },
           "type": {
-            "enum": [
-              "scenario",
-              "constraint",
-              "architectural",
-              "property"
-            ]
+            "enum": ["scenario", "constraint", "architectural", "property"]
           }
         },
         "oneOf": [
           {
-            "required": [
-              "scenario"
-            ],
+            "required": ["scenario"],
             "properties": {
               "type": {
                 "const": "scenario"
@@ -85,9 +70,7 @@
             }
           },
           {
-            "required": [
-              "criterion"
-            ],
+            "required": ["criterion"],
             "properties": {
               "type": {
                 "const": "constraint"
@@ -99,10 +82,7 @@
             }
           },
           {
-            "required": [
-              "criterion",
-              "enforcement"
-            ],
+            "required": ["criterion", "enforcement"],
             "properties": {
               "type": {
                 "const": "architectural"
@@ -118,9 +98,7 @@
             }
           },
           {
-            "required": [
-              "criterion"
-            ],
+            "required": ["criterion"],
             "properties": {
               "type": {
                 "const": "property"
@@ -136,10 +114,7 @@
     },
     "scope": {
       "type": "object",
-      "required": [
-        "in",
-        "out"
-      ],
+      "required": ["in", "out"],
       "additionalProperties": false,
       "properties": {
         "in": {
@@ -152,10 +127,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "item",
-              "reason"
-            ],
+            "required": ["item", "reason"],
             "additionalProperties": false,
             "properties": {
               "item": {
@@ -171,10 +143,7 @@
     },
     "verification": {
       "type": "object",
-      "required": [
-        "commands",
-        "test_cases"
-      ],
+      "required": ["commands", "test_cases"],
       "additionalProperties": false,
       "properties": {
         "commands": {
@@ -188,11 +157,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "id",
-              "covers",
-              "scenario"
-            ],
+            "required": ["id", "covers", "scenario"],
             "additionalProperties": false,
             "properties": {
               "id": {
@@ -208,11 +173,7 @@
                 "minLength": 1
               },
               "tier": {
-                "enum": [
-                  "unit",
-                  "integration",
-                  "e2e"
-                ]
+                "enum": ["unit", "integration", "e2e"]
               },
               "test_name_glob": {
                 "type": "string",
@@ -271,10 +232,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "name",
-              "tier"
-            ],
+            "required": ["name", "tier"],
             "additionalProperties": false,
             "properties": {
               "name": {
@@ -282,11 +240,7 @@
                 "minLength": 1
               },
               "tier": {
-                "enum": [
-                  "server-only",
-                  "client-safe",
-                  "public"
-                ]
+                "enum": ["server-only", "client-safe", "public"]
               },
               "owner": {
                 "type": "string"
@@ -302,11 +256,7 @@
           "description": "Private package/artifact registries the install or build depends on — each a credential surface that new contributors and CI must provision.",
           "items": {
             "type": "object",
-            "required": [
-              "name",
-              "credential",
-              "tier"
-            ],
+            "required": ["name", "credential", "tier"],
             "additionalProperties": false,
             "properties": {
               "name": {
@@ -320,11 +270,7 @@
                 "description": "Env var or file providing access — e.g. GITHUB_TOKEN, NPM_TOKEN, GOOGLE_APPLICATION_CREDENTIALS."
               },
               "tier": {
-                "enum": [
-                  "server-only",
-                  "ci-only",
-                  "developer"
-                ],
+                "enum": ["server-only", "ci-only", "developer"],
                 "description": "Where the credential lives. 'developer' means every contributor provisions locally."
               },
               "scope": {
@@ -350,10 +296,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "command",
-              "env_mode"
-            ],
+            "required": ["command", "env_mode"],
             "additionalProperties": false,
             "properties": {
               "command": {
@@ -386,11 +329,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "date",
-          "reason",
-          "summary"
-        ],
+        "required": ["date", "reason", "summary"],
         "additionalProperties": false,
         "properties": {
           "date": {
@@ -424,10 +363,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "name",
-          "reason"
-        ],
+        "required": ["name", "reason"],
         "additionalProperties": false,
         "properties": {
           "name": {
@@ -443,10 +379,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "question",
-          "answer"
-        ],
+        "required": ["question", "answer"],
         "additionalProperties": false,
         "properties": {
           "question": {
@@ -462,10 +395,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "symbol",
-          "description"
-        ],
+        "required": ["symbol", "description"],
         "additionalProperties": false,
         "properties": {
           "symbol": {

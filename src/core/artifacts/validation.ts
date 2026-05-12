@@ -30,16 +30,13 @@ async function getAjv(): Promise<any> {
   if (ajvInstance) return ajvInstance;
   try {
     // Try bundled ajv in hooks/node_modules, then fall back to global
-    const candidates = [
-      join(EXT_DIR, "node_modules", "ajv"),
-      "ajv",
-    ];
+    const candidates = [join(EXT_DIR, "node_modules", "ajv"), "ajv"];
     for (const candidate of candidates) {
       try {
         const Ajv = (await import(candidate)).default;
         ajvInstance = new Ajv({ allErrors: true, strict: false });
         return ajvInstance;
-      } catch { continue; }
+      } catch {}
     }
     return null;
   } catch {
@@ -129,7 +126,8 @@ export async function validateArtifact(filePath: string): Promise<ValidationResu
   if (valid) return { valid: true, errors: [] };
 
   const errors = (validate.errors || []).map(
-    (e: any) => `${e.instancePath || "/"} ${e.message}${e.params ? ` (${JSON.stringify(e.params)})` : ""}`,
+    (e: any) =>
+      `${e.instancePath || "/"} ${e.message}${e.params ? ` (${JSON.stringify(e.params)})` : ""}`,
   );
   return { valid: false, errors };
 }
@@ -154,10 +152,7 @@ function normaliseReviewFindings(data: any): void {
   }
 }
 
-export async function validateReturn(
-  agentType: string,
-  data: any,
-): Promise<ValidationResult> {
+export async function validateReturn(agentType: string, data: any): Promise<ValidationResult> {
   const schemaFile = returnSchemaFor(agentType);
   const schemaPath = join(RETURN_SCHEMAS, schemaFile);
 
@@ -188,7 +183,8 @@ export async function validateReturn(
   if (valid) return { valid: true, errors: [] };
 
   const errors = (validate.errors || []).map(
-    (e: any) => `${e.instancePath || "/"} ${e.message}${e.params ? ` (${JSON.stringify(e.params)})` : ""}`,
+    (e: any) =>
+      `${e.instancePath || "/"} ${e.message}${e.params ? ` (${JSON.stringify(e.params)})` : ""}`,
   );
   return { valid: false, errors };
 }

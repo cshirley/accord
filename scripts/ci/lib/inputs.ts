@@ -74,7 +74,8 @@ export const INPUTS = [
     type: "boolean",
     required: false,
     default: false,
-    description: "When true, runs the pipeline without pushing branches, opening PRs, or commenting on Jira.",
+    description:
+      "When true, runs the pipeline without pushing branches, opening PRs, or commenting on Jira.",
   },
   {
     name: "runner",

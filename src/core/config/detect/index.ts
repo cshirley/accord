@@ -1,8 +1,8 @@
+import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execSync } from "node:child_process";
-import { loadGlobalConfig, mergeContextSources } from "../global.js";
 import { findGitRoot } from "../git.js";
+import { loadGlobalConfig, mergeContextSources } from "../global.js";
 import { LANG_PROFILES_DIR } from "../paths.js";
 import type { BuildResult, DevHarnessConfig, LangProfile, TrackerType } from "../types.js";
 
@@ -33,9 +33,7 @@ const MARKER_MAP: [string, string][] = [
   ["package.json", "typescript"],
 ];
 
-export function detectProjectStack(
-  dir: string,
-): { language: string; detect_file: string } | null {
+export function detectProjectStack(dir: string): { language: string; detect_file: string } | null {
   // .csproj / .sln (glob-like)
   try {
     for (const f of fs.readdirSync(dir)) {
@@ -43,7 +41,9 @@ export function detectProjectStack(
         return { language: "csharp", detect_file: f };
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   for (const [marker, lang] of MARKER_MAP) {
     if (!fs.existsSync(path.join(dir, marker))) continue;
@@ -53,7 +53,9 @@ export function detectProjectStack(
       try {
         const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
         hasTsDep = !!(pkg.devDependencies?.typescript || pkg.dependencies?.typescript);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return {
         language: hasTsConfig || hasTsDep ? "typescript" : "javascript",
         detect_file: marker,
@@ -75,7 +77,11 @@ const MONOREPO_MARKERS: [string, string][] = [
 ];
 
 const MONOREPO_ROOT_MARKERS = [
-  "nx.json", "turbo.json", "lerna.json", "pnpm-workspace.yaml", "go.work",
+  "nx.json",
+  "turbo.json",
+  "lerna.json",
+  "pnpm-workspace.yaml",
+  "go.work",
 ];
 
 const MONOREPO_MARKER_TO_TOOL: Record<string, string> = {
@@ -86,9 +92,7 @@ const MONOREPO_MARKER_TO_TOOL: Record<string, string> = {
   "go.work": "go workspaces",
 };
 
-export function detectMonorepo(
-  dir: string,
-): { tool: string; root: string } | null {
+export function detectMonorepo(dir: string): { tool: string; root: string } | null {
   for (const [file, tool] of MONOREPO_MARKERS) {
     if (fs.existsSync(path.join(dir, file))) return { tool, root: "." };
   }
@@ -99,7 +103,9 @@ export function detectMonorepo(
       if (/\[workspace\]/.test(fs.readFileSync(cargoToml, "utf8"))) {
         return { tool: "cargo workspaces", root: "." };
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
   // npm/yarn workspaces
   const pkgPath = path.join(dir, "package.json");
@@ -108,7 +114,9 @@ export function detectMonorepo(
       if (JSON.parse(fs.readFileSync(pkgPath, "utf8")).workspaces) {
         return { tool: "npm/yarn workspaces", root: "." };
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
   return null;
 }
@@ -135,7 +143,9 @@ export function findMonorepoRoot(from: string): { root: string; tool: string } |
         if (/\[workspace\]/.test(fs.readFileSync(cargoToml, "utf8"))) {
           return { root: dir, tool: "cargo workspaces" };
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     // npm/yarn workspaces in package.json
     const pkgPath = path.join(dir, "package.json");
@@ -144,7 +154,9 @@ export function findMonorepoRoot(from: string): { root: string; tool: string } |
         if (JSON.parse(fs.readFileSync(pkgPath, "utf8")).workspaces) {
           return { root: dir, tool: "npm/yarn workspaces" };
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     if (stopAt && dir === stopAt) break;
@@ -161,17 +173,19 @@ export function findMonorepoRoot(from: string): { root: string; tool: string } |
  * Detect the issue tracker from git remote URL and project signals.
  * Returns null if detection is ambiguous (the /dev init flow will ask the user).
  */
-export function detectTracker(
-  dir: string,
-): { type: TrackerType; project_prefix?: string } | null {
+export function detectTracker(dir: string): { type: TrackerType; project_prefix?: string } | null {
   // Try reading git remote origin URL
   let remoteUrl = "";
   try {
     remoteUrl = execSync("git config --get remote.origin.url", {
       cwd: dir,
       stdio: ["pipe", "pipe", "ignore"],
-    }).toString().trim();
-  } catch { /* not a git repo or no remote */ }
+    })
+      .toString()
+      .trim();
+  } catch {
+    /* not a git repo or no remote */
+  }
 
   if (remoteUrl) {
     if (remoteUrl.includes("github.com")) return { type: "github" };
@@ -185,13 +199,15 @@ export function detectTracker(
   const tasksDir = path.join(dir, ".tasks");
   if (fs.existsSync(tasksDir)) {
     try {
-      const files = fs.readdirSync(tasksDir).filter(f => f.endsWith(".json") && !f.includes("-"));
+      const files = fs.readdirSync(tasksDir).filter((f) => f.endsWith(".json") && !f.includes("-"));
       for (const file of files) {
         const content = fs.readFileSync(path.join(tasksDir, file), "utf8");
         const match = content.match(/"id"\s*:\s*"([A-Z]+(?:-[A-Z]+)*)-\d+"/);
         if (match) return { type: "jira", project_prefix: match[1] };
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   return null;
@@ -255,20 +271,27 @@ function inferNodeProject(
   const pkgPath = path.join(dir, "package.json");
   if (!fs.existsSync(pkgPath)) return;
   let pkg: any;
-  try { pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")); } catch { return; }
+  try {
+    pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+  } catch {
+    return;
+  }
   const scripts = pkg.scripts || {};
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-  const pmCmd = fs.existsSync(path.join(dir, "pnpm-lock.yaml")) ? "pnpm"
-    : fs.existsSync(path.join(dir, "yarn.lock")) ? "yarn"
-    : fs.existsSync(path.join(dir, "bun.lockb")) || fs.existsSync(path.join(dir, "bun.lock")) ? "bun"
-    : "npm";
+  const pmCmd = fs.existsSync(path.join(dir, "pnpm-lock.yaml"))
+    ? "pnpm"
+    : fs.existsSync(path.join(dir, "yarn.lock"))
+      ? "yarn"
+      : fs.existsSync(path.join(dir, "bun.lockb")) || fs.existsSync(path.join(dir, "bun.lock"))
+        ? "bun"
+        : "npm";
   const run = pmCmd === "npm" ? "npm run" : pmCmd;
   notes.push(`Package manager: ${pmCmd} (lockfile)`);
 
   // Test
-  const runner = deps["vitest"] ? "vitest" : deps["jest"] ? "jest" : deps["mocha"] ? "mocha" : null;
-  if (scripts["test"]) {
+  const runner = deps.vitest ? "vitest" : deps.jest ? "jest" : deps.mocha ? "mocha" : null;
+  if (scripts.test) {
     config.test = { command: `${run} test` };
     notes.push(`Test: '${run} test' (from scripts.test)`);
   } else if (runner) {
@@ -281,7 +304,7 @@ function inferNodeProject(
   }
 
   // Type check
-  const tcScript = ["typecheck", "type-check", "types", "tsc"].find(s => scripts[s]);
+  const tcScript = ["typecheck", "type-check", "types", "tsc"].find((s) => scripts[s]);
   if (tcScript) {
     config.type_check = `${run} ${tcScript}`;
     notes.push(`Type check: '${run} ${tcScript}' (from scripts.${tcScript})`);
@@ -291,33 +314,33 @@ function inferNodeProject(
   }
 
   // Lint
-  const lintScript = ["lint", "lint:check"].find(s => scripts[s]);
+  const lintScript = ["lint", "lint:check", "check:biome"].find((s) => scripts[s]);
   if (lintScript) {
     config.lint = `${run} ${lintScript}`;
     notes.push(`Lint: '${run} ${lintScript}' (from scripts.${lintScript})`);
-  } else if (deps["biome"] || deps["@biomejs/biome"]) {
+  } else if (deps.biome || deps["@biomejs/biome"]) {
     config.lint = "npx biome check";
     notes.push("Lint: 'npx biome check' (biome in deps, no lint script)");
-  } else if (deps["eslint"]) {
+  } else if (deps.eslint) {
     config.lint = "npx eslint .";
     notes.push("Lint: 'npx eslint .' (eslint in deps, no lint script)");
   }
 
   // Format
-  const fmtScript = ["format", "format:check"].find(s => scripts[s]);
+  const fmtScript = ["format", "format:check"].find((s) => scripts[s]);
   if (fmtScript) {
     config.format = `${run} ${fmtScript}`;
     notes.push(`Format: '${run} ${fmtScript}' (from scripts.${fmtScript})`);
-  } else if (deps["biome"] || deps["@biomejs/biome"]) {
+  } else if (deps.biome || deps["@biomejs/biome"]) {
     config.format = "npx biome format --check";
     notes.push("Format: 'npx biome format --check' (biome in deps)");
-  } else if (deps["prettier"]) {
+  } else if (deps.prettier) {
     config.format = "npx prettier --check .";
     notes.push("Format: 'npx prettier --check .' (prettier in deps)");
   }
 }
 
-function inferGoProject(dir: string, config: Partial<DevHarnessConfig>, notes: string[]): void {
+function inferGoProject(_dir: string, config: Partial<DevHarnessConfig>, notes: string[]): void {
   config.test = { command: "go test ./...", single_test_flag: "-run" };
   config.type_check = "go vet ./...";
   notes.push("Test: 'go test ./...' (Go default)");
@@ -345,9 +368,17 @@ function inferRustProject(config: Partial<DevHarnessConfig>, notes: string[]): v
 
 function inferPythonProject(dir: string, config: Partial<DevHarnessConfig>, notes: string[]): void {
   let pyproject = "";
-  try { pyproject = fs.readFileSync(path.join(dir, "pyproject.toml"), "utf8"); } catch { /* ok */ }
+  try {
+    pyproject = fs.readFileSync(path.join(dir, "pyproject.toml"), "utf8");
+  } catch {
+    /* ok */
+  }
 
-  if (pyproject.includes("[tool.pytest") || fs.existsSync(path.join(dir, "pytest.ini")) || hasBinary("pytest")) {
+  if (
+    pyproject.includes("[tool.pytest") ||
+    fs.existsSync(path.join(dir, "pytest.ini")) ||
+    hasBinary("pytest")
+  ) {
     config.test = { command: "pytest", single_test_flag: "-k" };
     notes.push("Test: 'pytest' (pytest config or binary found)");
   }
@@ -355,7 +386,10 @@ function inferPythonProject(dir: string, config: Partial<DevHarnessConfig>, note
   if (pyproject.includes("[tool.mypy") || fs.existsSync(path.join(dir, "mypy.ini"))) {
     config.type_check = "mypy .";
     notes.push("Type check: 'mypy .' (mypy config found)");
-  } else if (pyproject.includes("[tool.pyright") || fs.existsSync(path.join(dir, "pyrightconfig.json"))) {
+  } else if (
+    pyproject.includes("[tool.pyright") ||
+    fs.existsSync(path.join(dir, "pyrightconfig.json"))
+  ) {
     config.type_check = "pyright";
     notes.push("Type check: 'pyright' (pyright config found)");
   } else if (hasBinary("mypy")) {
@@ -378,7 +412,9 @@ function inferRubyProject(dir: string, config: Partial<DevHarnessConfig>, notes:
   config.test = hasRspec
     ? { command: "bundle exec rspec", single_test_flag: "-e" }
     : { command: "bundle exec rake test" };
-  notes.push(`Test: '${config.test.command}' (${hasRspec ? ".rspec/spec found" : "rake fallback"})`);
+  notes.push(
+    `Test: '${config.test.command}' (${hasRspec ? ".rspec/spec found" : "rake fallback"})`,
+  );
   if (hasBinary("rubocop")) {
     config.lint = "rubocop";
     config.format = "rubocop --auto-correct-all --fail-level error";
@@ -400,7 +436,10 @@ function inferJavaProject(dir: string, config: Partial<DevHarnessConfig>, notes:
   } else if (fs.existsSync(path.join(dir, "pom.xml"))) {
     config.test = { command: "mvn test", single_test_flag: "-Dtest=" };
     notes.push("Test: 'mvn test' (pom.xml found)");
-  } else if (fs.existsSync(path.join(dir, "build.gradle")) || fs.existsSync(path.join(dir, "build.gradle.kts"))) {
+  } else if (
+    fs.existsSync(path.join(dir, "build.gradle")) ||
+    fs.existsSync(path.join(dir, "build.gradle.kts"))
+  ) {
     config.test = { command: "gradle test", single_test_flag: "--tests" };
     notes.push("Test: 'gradle test' (build.gradle found, no wrapper)");
   }
@@ -413,18 +452,31 @@ function inferCsharpProject(config: Partial<DevHarnessConfig>, notes: string[]):
   notes.push(".NET project — using dotnet defaults (test/build/format)");
 }
 
-function applyMakefileOverrides(dir: string, config: Partial<DevHarnessConfig>, notes: string[]): void {
+function applyMakefileOverrides(
+  dir: string,
+  config: Partial<DevHarnessConfig>,
+  notes: string[],
+): void {
   const makefilePath = path.join(dir, "Makefile");
   if (!fs.existsSync(makefilePath)) return;
   try {
     const makefile = fs.readFileSync(makefilePath, "utf8");
     const targets = new Set(
-      [...makefile.matchAll(/^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:/gm)].map(m => m[1]),
+      [...makefile.matchAll(/^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:/gm)].map((m) => m[1]),
     );
     const overrides: string[] = [];
-    if (targets.has("test")) { config.test = { ...config.test, command: "make test" } as any; overrides.push("test"); }
-    if (targets.has("lint")) { config.lint = "make lint"; overrides.push("lint"); }
-    if (targets.has("check") && !config.type_check) { config.type_check = "make check"; overrides.push("check"); }
+    if (targets.has("test")) {
+      config.test = { ...config.test, command: "make test" } as any;
+      overrides.push("test");
+    }
+    if (targets.has("lint")) {
+      config.lint = "make lint";
+      overrides.push("lint");
+    }
+    if (targets.has("check") && !config.type_check) {
+      config.type_check = "make check";
+      overrides.push("check");
+    }
     if (targets.has("fmt") || targets.has("format")) {
       config.format = targets.has("fmt") ? "make fmt" : "make format";
       overrides.push("format");
@@ -432,7 +484,9 @@ function applyMakefileOverrides(dir: string, config: Partial<DevHarnessConfig>, 
     if (overrides.length > 0) {
       notes.push(`Makefile overrides: ${overrides.join(", ")}`);
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // ── Config builder ─────────────────────────────────────────
@@ -457,12 +511,14 @@ export function buildDevHarnessConfig(dir: string): BuildResult | null {
   const profile = loadLangProfile(language);
   if (profile) notes.push(`Loaded lang-profile: ${language}.json`);
 
-  const mono = detectMonorepo(dir) ?? (() => {
-    const found = findMonorepoRoot(dir);
-    if (!found) return null;
-    const rel = path.relative(dir, found.root);
-    return { tool: found.tool, root: rel || "." };
-  })();
+  const mono =
+    detectMonorepo(dir) ??
+    (() => {
+      const found = findMonorepoRoot(dir);
+      if (!found) return null;
+      const rel = path.relative(dir, found.root);
+      return { tool: found.tool, root: rel || "." };
+    })();
   if (mono) notes.push(`Monorepo: ${mono.tool} (root: ${mono.root ?? "."})`);
 
   const test: DevHarnessConfig["test"] = {
@@ -480,21 +536,31 @@ export function buildDevHarnessConfig(dir: string): BuildResult | null {
     notes.push(`file_pattern: '${profile.test_meta.file_pattern}' (from lang-profile)`);
   }
 
-  const type_check = inferred.type_check !== undefined ? inferred.type_check : (profile?.checks?.type_check ?? null);
+  const type_check =
+    inferred.type_check !== undefined ? inferred.type_check : (profile?.checks?.type_check ?? null);
   const lint = inferred.lint !== undefined ? inferred.lint : (profile?.checks?.lint ?? null);
-  const format = inferred.format !== undefined ? inferred.format : (profile?.checks?.format ?? null);
+  const format =
+    inferred.format !== undefined ? inferred.format : (profile?.checks?.format ?? null);
 
   const verification_commands: string[] = inferred.verification_commands ?? [];
   if (verification_commands.length === 0) {
     if (type_check) verification_commands.push(type_check);
     if (lint) verification_commands.push(lint);
     verification_commands.push(test.command);
-    notes.push(`verification_commands: composed from type_check + lint + test (${verification_commands.length} commands)`);
+    notes.push(
+      `verification_commands: composed from type_check + lint + test (${verification_commands.length} commands)`,
+    );
   }
 
   const config: DevHarnessConfig = {
-    schema_version: "1.0", language, detect_file, test,
-    type_check, lint, format, verification_commands,
+    schema_version: "1.0",
+    language,
+    detect_file,
+    test,
+    type_check,
+    lint,
+    format,
+    verification_commands,
   };
   if (mono) config.monorepo = mono;
 
@@ -515,9 +581,9 @@ export function buildDevHarnessConfig(dir: string): BuildResult | null {
   if (mergedSources.length > 0) config.context_sources = mergedSources;
 
   // Strip undefined optional fields
-  if (!config.test.single_test_flag) delete (config.test as any).single_test_flag;
-  if (!config.test.file_pattern) delete (config.test as any).file_pattern;
-  if (!config.test.block_markers) delete (config.test as any).block_markers;
+  if (!config.test.single_test_flag) (config.test as any).single_test_flag = undefined;
+  if (!config.test.file_pattern) (config.test as any).file_pattern = undefined;
+  if (!config.test.block_markers) (config.test as any).block_markers = undefined;
 
   return { config, notes };
 }

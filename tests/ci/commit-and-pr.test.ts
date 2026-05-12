@@ -4,11 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
-  commitAndPr,
-  renderPrBody,
   type CommitAndPrOpts,
+  commitAndPr,
   type ExecLike,
   type GhPrApi,
+  renderPrBody,
 } from "../../scripts/ci/commit-and-pr.js";
 
 let repo: string;
@@ -259,10 +259,7 @@ describe("commitAndPr — secret-value scrubbing (AC-8)", () => {
       "# Verify report\n\nLeaked: sk-very-secret-value",
     );
     await expect(
-      commitAndPr(
-        defaultOpts(repo, { secrets: ["sk-very-secret-value"] }),
-        { exec, gh },
-      ),
+      commitAndPr(defaultOpts(repo, { secrets: ["sk-very-secret-value"] }), { exec, gh }),
     ).rejects.toThrow(/secret/i);
   });
 });

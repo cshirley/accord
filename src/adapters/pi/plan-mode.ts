@@ -1,4 +1,6 @@
-export function isPlanModeActive(ctx: { sessionManager?: { getEntries?: () => unknown[] } }): boolean {
+export function isPlanModeActive(ctx: {
+  sessionManager?: { getEntries?: () => unknown[] };
+}): boolean {
   const entries = ctx.sessionManager?.getEntries?.() || [];
   const planModeEntry = entries
     .filter((e) => {

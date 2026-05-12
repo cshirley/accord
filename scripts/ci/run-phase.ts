@@ -39,7 +39,10 @@ export interface PhaseReturnPacket {
 }
 
 export type RunPhaseResult =
-  | { readonly status: "done" | "needs_input" | "blocked" | "gaps"; readonly packet: PhaseReturnPacket }
+  | {
+      readonly status: "done" | "needs_input" | "blocked" | "gaps";
+      readonly packet: PhaseReturnPacket;
+    }
   | { readonly status: "stuck"; readonly reason: string; readonly detail?: string };
 
 const defaultSpawn: SpawnLike = (cmd, argv) => {
@@ -81,7 +84,11 @@ function extractFromAgentEnd(event: Record<string, unknown>): PhaseReturnPacket 
   // Search blocks back-to-front for the latest packet.
   for (let i = content.length - 1; i >= 0; i--) {
     const block = content[i];
-    if (block !== null && typeof block === "object" && (block as Record<string, unknown>).type === "text") {
+    if (
+      block !== null &&
+      typeof block === "object" &&
+      (block as Record<string, unknown>).type === "text"
+    ) {
       const text = (block as Record<string, unknown>).text;
       if (typeof text === "string") {
         const parsed = tryParseReturnPacket(text);
@@ -110,7 +117,15 @@ const TERMINAL_STATUSES = new Set(["done", "needs_input", "blocked", "gaps"]);
 
 export async function runPhase(opts: RunPhaseOpts): Promise<RunPhaseResult> {
   const spawn = opts.spawn ?? defaultSpawn;
-  const argv = ["-p", "--mode", "json", "/skill:accord", opts.phase, opts.ticket, ...(opts.extraArgs ?? [])];
+  const argv = [
+    "-p",
+    "--mode",
+    "json",
+    "/skill:accord",
+    opts.phase,
+    opts.ticket,
+    ...(opts.extraArgs ?? []),
+  ];
   const child = spawn("pi", argv);
 
   let latestPacket: PhaseReturnPacket | null = null;

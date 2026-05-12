@@ -7,9 +7,7 @@
     "component": "TRIGGER",
     "type": "jira.issue.event.transitioned",
     "value": {
-      "criteria": [
-        { "key": "TO_STATUS", "value": "Ready for Autopilot" }
-      ]
+      "criteria": [{ "key": "TO_STATUS", "value": "Ready for Autopilot" }]
     }
   },
   "components": [

@@ -1,7 +1,9 @@
-import { defineTool } from "../framework.js";
 import { getSlackAuth } from "../auth.js";
+import { defineTool } from "../framework.js";
 import {
-  makeSlackRequest, getTeamDomain, makePermalink,
+  getTeamDomain,
+  makePermalink,
+  makeSlackRequest,
   type UnreadChannel,
 } from "../services/slack.client.js";
 
@@ -11,13 +13,22 @@ export default defineTool<
 >({
   name: "slack-getUnread",
   label: "Get Unread Slack Messages",
-  description: "Find channels and DMs with unread messages. Returns unread messages with links. Requires user token (xoxp-).",
+  description:
+    "Find channels and DMs with unread messages. Returns unread messages with links. Requires user token (xoxp-).",
 
   params: {
-    types:                 { type: "string", default: "public_channel,private_channel,mpim,im", description: "Channel types to check" },
-    limit:                 { type: "number", default: 50, description: "Max channels to scan" },
-    maxMessagesPerChannel: { type: "number", default: 10, description: "Max unread messages per channel" },
-    excludeBots:           { type: "boolean", default: true, description: "Exclude bot messages" },
+    types: {
+      type: "string",
+      default: "public_channel,private_channel,mpim,im",
+      description: "Channel types to check",
+    },
+    limit: { type: "number", default: 50, description: "Max channels to scan" },
+    maxMessagesPerChannel: {
+      type: "number",
+      default: 10,
+      description: "Max unread messages per channel",
+    },
+    excludeBots: { type: "boolean", default: true, description: "Exclude bot messages" },
   },
 
   auth: { check: () => !!getSlackAuth(), service: "slack" },
@@ -30,13 +41,15 @@ export default defineTool<
     const teamDomain = await getTeamDomain();
 
     // Paginate conversations.list
-    let allFetched: any[] = [];
+    const allFetched: any[] = [];
     let cursor: string | undefined;
     const maxChannels = p.limit || 50;
 
     do {
       const convResp = await makeSlackRequest("conversations.list", {
-        types, limit: Math.min(maxChannels - allFetched.length, 200), exclude_archived: true,
+        types,
+        limit: Math.min(maxChannels - allFetched.length, 200),
+        exclude_archived: true,
         ...(cursor ? { cursor } : {}),
       });
       allFetched.push(...(convResp.channels || []));
@@ -53,7 +66,10 @@ export default defineTool<
         if (!lastRead || lastRead === "0000000000.000000") continue;
 
         const hist = await makeSlackRequest("conversations.history", {
-          channel: ch.id, oldest: lastRead, limit: maxPerChannel, inclusive: false,
+          channel: ch.id,
+          oldest: lastRead,
+          limit: maxPerChannel,
+          inclusive: false,
         });
 
         const msgs = (hist.messages || []).filter((m: any) => {
@@ -64,7 +80,13 @@ export default defineTool<
 
         if (msgs.length === 0) continue;
 
-        const channelType = ch.is_im ? "dm" : ch.is_mpim ? "group_dm" : ch.is_private ? "private" : "public";
+        const channelType = ch.is_im
+          ? "dm"
+          : ch.is_mpim
+            ? "group_dm"
+            : ch.is_private
+              ? "private"
+              : "public";
 
         unreadChannels.push({
           channelId: ch.id,
@@ -80,7 +102,9 @@ export default defineTool<
             ...(m.reply_count ? { replyCount: m.reply_count } : {}),
           })),
         });
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
 
     unreadChannels.sort((a, b) => b.unreadCount - a.unreadCount);
@@ -94,13 +118,16 @@ export default defineTool<
       return { text: "No unread messages across any channels or DMs.", details: result };
     }
 
-    const lines = result.channels.map((ch) => {
-      const header = `**${ch.channelName}** (${ch.channelType}) — ${ch.unreadCount} unread`;
-      const msgs = ch.messages.slice(0, 5).map((m) =>
-        `    • ${m.user}: "${m.text.slice(0, 120)}" — ${m.permalink}`,
-      ).join("\n");
-      return `  ${header}\n${msgs}`;
-    }).join("\n\n");
+    const lines = result.channels
+      .map((ch) => {
+        const header = `**${ch.channelName}** (${ch.channelType}) — ${ch.unreadCount} unread`;
+        const msgs = ch.messages
+          .slice(0, 5)
+          .map((m) => `    • ${m.user}: "${m.text.slice(0, 120)}" — ${m.permalink}`)
+          .join("\n");
+        return `  ${header}\n${msgs}`;
+      })
+      .join("\n\n");
 
     return {
       text: `${result.totalUnread} unread messages across ${result.channels.length} conversations:\n\n${lines}`,

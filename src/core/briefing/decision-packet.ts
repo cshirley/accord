@@ -9,7 +9,7 @@ export function devDecisionPacket(
   opts: { state_label: string; fields: Record<string, string>; next_action: string },
 ): string {
   const wi = loadWorkItem(workItemId);
-  const pendingCount = (wi?.decisions || []).filter(d => d.status === "pending").length;
+  const pendingCount = (wi?.decisions || []).filter((d) => d.status === "pending").length;
 
   const lines: string[] = [];
   lines.push(`${(wi?.pattern || "").toUpperCase()} ${opts.state_label}`);

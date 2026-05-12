@@ -24,16 +24,10 @@
  *   /thrift config           Interactive settings dialog
  */
 
-import type { AutocompleteItem } from "@mariozechner/pi-tui";
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { formatSize } from "@mariozechner/pi-coding-agent";
-import {
-  OUTPUT_LEVELS,
-  type OutputLevel,
-  STOP_ALIASES,
-  loadConfig,
-  saveConfig,
-} from "./config.js";
+import type { AutocompleteItem } from "@mariozechner/pi-tui";
+import { loadConfig, OUTPUT_LEVELS, type OutputLevel, STOP_ALIASES, saveConfig } from "./config.js";
 import { registerInputPruning } from "./input.js";
 import { OUTPUT_LEVEL_OPTIONS, registerOutputPruning } from "./output.js";
 
@@ -45,12 +39,12 @@ const LEGACY_OUTPUT_LEVEL_ENTRY = "tp-output-level";
 // ── Subcommand routing ──────────────────────────────────────────────────
 
 const SUBCOMMANDS: AutocompleteItem[] = [
-  { value: "on",     label: "on",     description: "Enable the extension" },
-  { value: "off",    label: "off",    description: "Disable the extension entirely" },
-  { value: "stats",  label: "stats",  description: "Show pruning statistics" },
+  { value: "on", label: "on", description: "Enable the extension" },
+  { value: "off", label: "off", description: "Disable the extension entirely" },
+  { value: "stats", label: "stats", description: "Show pruning statistics" },
   { value: "output", label: "output", description: "Set output compression level" },
-  { value: "input",  label: "input",  description: "Toggle input pruning (on/off)" },
-  { value: "ttl",    label: "ttl",    description: "Inspect/override cache-aware TTL" },
+  { value: "input", label: "input", description: "Toggle input pruning (on/off)" },
+  { value: "ttl", label: "ttl", description: "Inspect/override cache-aware TTL" },
   { value: "config", label: "config", description: "Open settings dialog" },
 ];
 
@@ -70,11 +64,16 @@ function parseDuration(s: string): number | null {
   if (!m) return null;
   const n = parseFloat(m[1]!);
   switch (m[2]) {
-    case "h": return n * 3_600_000;
-    case "m": return n * 60_000;
-    case "s": return n * 1_000;
-    case "ms": return n;
-    default: return n; // bare number = ms
+    case "h":
+      return n * 3_600_000;
+    case "m":
+      return n * 60_000;
+    case "s":
+      return n * 1_000;
+    case "ms":
+      return n;
+    default:
+      return n; // bare number = ms
   }
 }
 
@@ -121,8 +120,7 @@ export default async function (pi: ExtensionAPI) {
     for (const entry of ctx.sessionManager.getEntries()) {
       if (
         entry.type === "custom" &&
-        (entry.customType === OUTPUT_LEVEL_ENTRY ||
-          entry.customType === LEGACY_OUTPUT_LEVEL_ENTRY)
+        (entry.customType === OUTPUT_LEVEL_ENTRY || entry.customType === LEGACY_OUTPUT_LEVEL_ENTRY)
       ) {
         restoredLevel = (entry.data as { level?: string })?.level ?? null;
       }
@@ -150,20 +148,19 @@ export default async function (pi: ExtensionAPI) {
 
         // First word: subcommand
         if (parts.length <= 1) {
-          const filtered = SUBCOMMANDS.filter((s) =>
-            s.value.startsWith(parts[0] ?? ""),
-          );
+          const filtered = SUBCOMMANDS.filter((s) => s.value.startsWith(parts[0] ?? ""));
           return filtered.length > 0 ? filtered : null;
         }
 
         // Second word: subcommand-specific values
-        const sub = parts[0]!.toLowerCase();
+        const sub = parts[0]?.toLowerCase();
 
         if (sub === "output") {
           const p = parts[1] ?? "";
-          const items = OUTPUT_LEVEL_OPTIONS
-            .filter((o) => o.value.startsWith(p))
-            .map((o) => ({ ...o, value: `output ${o.value}` }));
+          const items = OUTPUT_LEVEL_OPTIONS.filter((o) => o.value.startsWith(p)).map((o) => ({
+            ...o,
+            value: `output ${o.value}`,
+          }));
           return items.length > 0 ? items : null;
         }
 
@@ -210,9 +207,7 @@ export default async function (pi: ExtensionAPI) {
             output.syncStatus(ctx);
           }
           ctx.ui.notify(
-            config.enabled
-              ? "Thrift enabled."
-              : "Thrift disabled — all pruning suspended.",
+            config.enabled ? "Thrift enabled." : "Thrift disabled — all pruning suspended.",
             "info",
           );
           return;
@@ -224,8 +219,7 @@ export default async function (pi: ExtensionAPI) {
           const inputStatus = config.input.enabled ? "on" : "off";
           const outputLevel = output.getLevel();
           const provider = ctx.model?.provider ?? "unknown";
-          const ttl =
-            config.input.providerTTLs[provider] ?? config.input.defaultTTL;
+          const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
           const cacheLine = !config.input.cacheAware
             ? "off"
             : ttl <= 0
@@ -255,20 +249,18 @@ export default async function (pi: ExtensionAPI) {
             .join(", ");
 
           const provider = ctx.model?.provider ?? "unknown";
-          const ttl =
-            config.input.providerTTLs[provider] ?? config.input.defaultTTL;
+          const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
           const lastReq = inputStats.cache.lastRequestTime;
           const sinceMs = lastReq > 0 ? Date.now() - lastReq : -1;
-          const cacheLine =
-            !config.input.cacheAware
-              ? "off (decisions recomputed every call)"
-              : ttl <= 0
-                ? `n/a (no cache TTL configured for ${provider})`
-                : lastReq === 0
-                  ? `cold (no requests yet, TTL ${formatDuration(ttl)})`
-                  : sinceMs < ttl
-                    ? `🔥 warm (${formatDuration(sinceMs)} since last req, TTL ${formatDuration(ttl)})`
-                    : `❄ expired (${formatDuration(sinceMs)} since last req, TTL ${formatDuration(ttl)})`;
+          const cacheLine = !config.input.cacheAware
+            ? "off (decisions recomputed every call)"
+            : ttl <= 0
+              ? `n/a (no cache TTL configured for ${provider})`
+              : lastReq === 0
+                ? `cold (no requests yet, TTL ${formatDuration(ttl)})`
+                : sinceMs < ttl
+                  ? `🔥 warm (${formatDuration(sinceMs)} since last req, TTL ${formatDuration(ttl)})`
+                  : `❄ expired (${formatDuration(sinceMs)} since last req, TTL ${formatDuration(ttl)})`;
 
           ctx.ui.notify(
             [
@@ -304,8 +296,7 @@ export default async function (pi: ExtensionAPI) {
         // ── ttl [on|off|<duration>] ────────────────────────────────
         if (sub === "ttl") {
           const provider = ctx.model?.provider ?? "unknown";
-          const ttl =
-            config.input.providerTTLs[provider] ?? config.input.defaultTTL;
+          const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
           const lastReq = inputStats.cache.lastRequestTime;
           const sinceMs = lastReq > 0 ? Date.now() - lastReq : -1;
 
@@ -375,10 +366,7 @@ export default async function (pi: ExtensionAPI) {
           } else if (OUTPUT_LEVELS.includes(arg as OutputLevel)) {
             newLevel = arg as OutputLevel;
           } else {
-            ctx.ui.notify(
-              `Unknown level: "${arg}". Use: ${OUTPUT_LEVELS.join(", ")}`,
-              "error",
-            );
+            ctx.ui.notify(`Unknown level: "${arg}". Use: ${OUTPUT_LEVELS.join(", ")}`, "error");
             return;
           }
 
@@ -387,9 +375,7 @@ export default async function (pi: ExtensionAPI) {
           output.syncStatus(ctx);
 
           ctx.ui.notify(
-            newLevel === "off"
-              ? "Output pruning off."
-              : `Output: terse ${newLevel}`,
+            newLevel === "off" ? "Output pruning off." : `Output: terse ${newLevel}`,
             "info",
           );
           return;
@@ -412,10 +398,7 @@ export default async function (pi: ExtensionAPI) {
             ctx.ui.setStatus("thrift", "");
           }
 
-          ctx.ui.notify(
-            `Input pruning ${config.input.enabled ? "on" : "off"}.`,
-            "info",
-          );
+          ctx.ui.notify(`Input pruning ${config.input.enabled ? "on" : "off"}.`, "info");
           return;
         }
 

@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-import { maybeAutoInstallAssets } from "../src/core/harness/asset-bootstrap.js";
 import {
   currentAssetSignature,
   installPiAssets,
@@ -14,6 +20,7 @@ import {
   seedGlobalConfigFile,
   stripJsonComments,
 } from "../src/core/config/global.js";
+import { maybeAutoInstallAssets } from "../src/core/harness/asset-bootstrap.js";
 
 const tempDirs: string[] = [];
 
@@ -26,7 +33,9 @@ function tempPiAgent(): string {
 function captureNotifies() {
   const events: { level: "info" | "warning"; message: string }[] = [];
   return {
-    host: { notify: (level: "info" | "warning", message: string) => events.push({ level, message }) },
+    host: {
+      notify: (level: "info" | "warning", message: string) => events.push({ level, message }),
+    },
     events,
   };
 }
@@ -240,18 +249,20 @@ describe("maybeAutoInstallAssets", () => {
     expect(existsSync(join(target, ".accord-assets.json"))).toBe(false);
   });
 
-  test.each(["FALSE", "0", "no", "off"])(
-    "ACCORD_AUTO_INSTALL_ASSETS=%s also disables auto-install",
-    value => {
-      const target = tempPiAgent();
-      const { host } = captureNotifies();
-      const r = maybeAutoInstallAssets(host, {
-        target,
-        env: { ACCORD_AUTO_INSTALL_ASSETS: value },
-      });
-      expect(r.status).toBe("skipped-by-env");
-    },
-  );
+  test.each([
+    "FALSE",
+    "0",
+    "no",
+    "off",
+  ])("ACCORD_AUTO_INSTALL_ASSETS=%s also disables auto-install", (value) => {
+    const target = tempPiAgent();
+    const { host } = captureNotifies();
+    const r = maybeAutoInstallAssets(host, {
+      target,
+      env: { ACCORD_AUTO_INSTALL_ASSETS: value },
+    });
+    expect(r.status).toBe("skipped-by-env");
+  });
 
   test("global config asset_bootstrap.auto_install=false disables install", () => {
     const target = tempPiAgent();

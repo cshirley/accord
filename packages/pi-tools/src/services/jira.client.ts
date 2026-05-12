@@ -3,14 +3,14 @@
  * Pure functions — no pi dependency.
  */
 
-import { getJiraAuth, createBasicAuthHeader } from "../auth.js";
+import { createBasicAuthHeader, getJiraAuth } from "../auth.js";
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
-export const DEFAULT_CLOUD_ID = process.env.ATLASSIAN_CLOUD_ID
-  ?? "33ab726a-af2c-42a0-a6cf-17182f6e6a5f";
+export const DEFAULT_CLOUD_ID =
+  process.env.ATLASSIAN_CLOUD_ID ?? "33ab726a-af2c-42a0-a6cf-17182f6e6a5f";
 
 export const DEFAULT_FIELDS = "summary,status,priority,issuetype,project,updated,assignee";
 
@@ -111,7 +111,8 @@ function adfToText(node: any): string {
   return "";
 }
 
-export const DETAIL_FIELDS = "summary,status,priority,issuetype,project,updated,assignee,description,comment";
+export const DETAIL_FIELDS =
+  "summary,status,priority,issuetype,project,updated,assignee,description,comment";
 
 export function mapDetailedIssue(issue: any): DetailedIssue {
   const f = issue.fields ?? {};

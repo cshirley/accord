@@ -14,8 +14,8 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   readlinkSync,
   rmSync,
   statSync,
@@ -24,8 +24,8 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
+import { type SeedGlobalConfigStatus, seedGlobalConfigFile } from "./config/global.js";
 import { EXT_DIR } from "./config/paths.js";
-import { seedGlobalConfigFile, type SeedGlobalConfigStatus } from "./config/global.js";
 
 type Manifest = {
   package: string;
@@ -260,7 +260,9 @@ export function installPiAssets(opts: InstallOptions = {}): InstallResult {
  * Read the metadata recorded by a previous install, if present. Used
  * by the auto-install bootstrap to decide whether assets are out of date.
  */
-export function readInstalledMetadata(target: string = DEFAULT_PI_AGENT_DIR): AccordAssetsMetadata | null {
+export function readInstalledMetadata(
+  target: string = DEFAULT_PI_AGENT_DIR,
+): AccordAssetsMetadata | null {
   const path = join(target, ".accord-assets.json");
   if (!existsSync(path)) return null;
   try {
@@ -275,7 +277,10 @@ export function readInstalledMetadata(target: string = DEFAULT_PI_AGENT_DIR): Ac
  * anything. Lets the bootstrap compare current state against
  * `readInstalledMetadata()` cheaply.
  */
-export function currentAssetSignature(packageRoot: string = EXT_DIR): { version: string; manifest_sha256: string } {
+export function currentAssetSignature(packageRoot: string = EXT_DIR): {
+  version: string;
+  manifest_sha256: string;
+} {
   const manifestPath = join(packageRoot, "assets", "manifest.json");
   const packagePath = join(packageRoot, "package.json");
   const pkg = JSON.parse(readFileSync(packagePath, "utf8")) as { version?: string };

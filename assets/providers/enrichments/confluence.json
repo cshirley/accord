@@ -3,10 +3,7 @@
   "name": "confluence",
   "kind": "enrichment",
   "label": "Confluence",
-  "mcpTools": [
-    "mcp__atlassian__confluence_search",
-    "mcp__claude_ai_Atlassian__searchConfluence"
-  ],
+  "mcpTools": ["mcp__atlassian__confluence_search", "mcp__claude_ai_Atlassian__searchConfluence"],
   "cliFallback": null,
   "envFallback": "ATLASSIAN_API_TOKEN",
   "promptFile": "confluence.md"

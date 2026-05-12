@@ -44,6 +44,9 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 
 ## Development Notes
 
+- Prefer `const` over `let` for bindings that are never reassigned; use `let` only when the reference is updated after initialization. Agents and contributors should default to `const` so intent stays obvious and matches common ESLint `prefer-const` style.
+- Prefer descriptive loop and index names (`commentIndex`, `tokenOffset`) over single letters (`i`, `j`, `k`). Reserve short indices only for truly generic numeric ranges where a longer name adds no meaning (e.g. a tiny mathematical inner product).
+- **Biome** (`biome.json`) is the JS/TS/JSON formatter and linter: `bun run lint` or `bun run check:biome` (stricter than `recommended` alone — see rules in config). CI runs this via `npm run check`. Apply fixes with `bun run check:biome:fix` (add `--unsafe` locally when you accept those fixes).
 - Diagnostic logging is off by default (level `error`). Set `"log_level": "debug"` in the `## Dev Harness` JSON block, or export `ACCORD_LOG_LEVEL=debug`, to see all internal traces on stderr. Levels: `debug`, `info`, `warn`, `error`, `silent`.
 - Use Bun for local execution: `bun test`, `bun run validate:schemas`, `bun run validate:assets`, `bun run check:types`, `bun run check:bundle`, and `bun run check:runtime`.
 - Use `bun run install:assets --dry-run` to preview linking bundled skills and agents into `~/.config/pi/agent`.
@@ -67,13 +70,14 @@ Do not treat this package as a standalone workflow engine. The extension supplie
     "file_pattern": "**/*.test.ts"
   },
   "type_check": "bun run check:types",
-  "lint": "bun run validate:schemas && bun run validate:assets",
+  "lint": "bun run check:biome && bun run validate:schemas && bun run validate:assets",
   "format": null,
   "tracker": {
     "type": "github"
   },
   "verification_commands": [
     "bun test",
+    "bun run check:biome",
     "bun run validate:schemas",
     "bun run validate:assets",
     "bun run check:types",

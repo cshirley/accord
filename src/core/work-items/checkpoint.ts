@@ -4,9 +4,9 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { Checkpoint } from "./types.js";
-import { TASKS_DIR, readJson, writeJson } from "./io.js";
 import { createLogger } from "../logging.js";
+import { readJson, TASKS_DIR, writeJson } from "./io.js";
+import type { Checkpoint } from "./types.js";
 
 const log = createLogger("checkpoint");
 

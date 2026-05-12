@@ -4,10 +4,10 @@
  * orchestrator's context window.
  */
 
-import * as path from "node:path";
 import { randomBytes } from "node:crypto";
+import * as path from "node:path";
 import type { DevHarnessConfig } from "../config/index.js";
-import { TASKS_DIR, readJson, loadWorkItem, writeJson, now } from "../work-items/io.js";
+import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
 
 export function devCodeBrief(
   workItemId: string,
@@ -46,7 +46,13 @@ export function devCodeBrief(
   if (wi.brief) s.push(`**brief_path:** ${wi.brief}`);
   s.push("");
 
-  if (wi.intent_mode || wi.escalation_ceiling || wi.target_paths?.length || wi.out_of_scope?.length || wi.expected_finish) {
+  if (
+    wi.intent_mode ||
+    wi.escalation_ceiling ||
+    wi.target_paths?.length ||
+    wi.out_of_scope?.length ||
+    wi.expected_finish
+  ) {
     s.push("### Intent Contract");
     s.push("");
     if (wi.intent_mode) s.push(`- intent_mode: ${wi.intent_mode}`);
@@ -72,28 +78,32 @@ export function devCodeBrief(
   if (spec.constraints?.length) {
     s.push("### Constraints");
     s.push("");
-    for (const c of spec.constraints) s.push(`- ${typeof c === "string" ? c : c.constraint || JSON.stringify(c)}`);
+    for (const c of spec.constraints)
+      s.push(`- ${typeof c === "string" ? c : c.constraint || JSON.stringify(c)}`);
     s.push("");
   }
 
   if (spec.resolved_questions?.length) {
     s.push("### Resolved Questions");
     s.push("");
-    for (const q of spec.resolved_questions) s.push(`- **${q.question || q.id}**: ${q.answer || q.resolution}`);
+    for (const q of spec.resolved_questions)
+      s.push(`- **${q.question || q.id}**: ${q.answer || q.resolution}`);
     s.push("");
   }
 
   if (spec.scope?.in?.length) {
     s.push("### Scope In");
     s.push("");
-    for (const si of spec.scope.in) s.push(`- ${typeof si === "string" ? si : si.item || JSON.stringify(si)}`);
+    for (const si of spec.scope.in)
+      s.push(`- ${typeof si === "string" ? si : si.item || JSON.stringify(si)}`);
     s.push("");
   }
 
   if (spec.scope?.out?.length) {
     s.push("### Scope Out");
     s.push("");
-    for (const so of spec.scope.out) s.push(`- ${typeof so === "string" ? so : `${so.item}: ${so.reason}`}`);
+    for (const so of spec.scope.out)
+      s.push(`- ${typeof so === "string" ? so : `${so.item}: ${so.reason}`}`);
     s.push("");
   }
 
@@ -114,7 +124,8 @@ export function devCodeBrief(
   if (plan.reuse_candidates?.length) {
     s.push("### Reuse Candidates");
     s.push("");
-    for (const rc of plan.reuse_candidates) s.push(`- ${rc.path || rc.symbol}: ${rc.reason || rc.note}`);
+    for (const rc of plan.reuse_candidates)
+      s.push(`- ${rc.path || rc.symbol}: ${rc.reason || rc.note}`);
     s.push("");
   }
 
@@ -157,10 +168,9 @@ function writeQuickFixStubs(
   config: DevHarnessConfig | null,
 ): { specPath: string; planPath: string } {
   const today = new Date().toISOString().split("T")[0];
-  const verificationCommands = config?.verification_commands ?? [
-    config?.type_check,
-    config?.test?.command,
-  ].filter(Boolean) as string[];
+  const verificationCommands =
+    config?.verification_commands ??
+    ([config?.type_check, config?.test?.command].filter(Boolean) as string[]);
 
   const specPath = path.join("docs", "dev", workItemId, "spec.json");
   const planPath = path.join("docs", "dev", workItemId, "plan.json");
@@ -181,9 +191,7 @@ function writeQuickFixStubs(
       },
     ],
     scope: {
-      in: contract.plan.target_paths.length > 0
-        ? contract.plan.target_paths
-        : [wi.title],
+      in: contract.plan.target_paths.length > 0 ? contract.plan.target_paths : [wi.title],
       out: contract.plan.out_of_scope.map((item) => ({
         item,
         reason: "Out of scope for this quick fix",
@@ -191,14 +199,17 @@ function writeQuickFixStubs(
     },
     verification: {
       commands: verificationCommands,
-      test_cases: contract.test.strategy === "no_test" ? [] : [
-        {
-          id: "TC-1",
-          covers: "AC-1",
-          scenario: contract.plan.expected_finish,
-          tier: "unit" as const,
-        },
-      ],
+      test_cases:
+        contract.test.strategy === "no_test"
+          ? []
+          : [
+              {
+                id: "TC-1",
+                covers: "AC-1",
+                scenario: contract.plan.expected_finish,
+                tier: "unit" as const,
+              },
+            ],
     },
   };
 
@@ -217,9 +228,7 @@ function writeQuickFixStubs(
         title: wi.title,
         covers_ac: ["AC-1"],
         challenge: false,
-        files: targetFiles.length > 0
-          ? targetFiles
-          : [{ path: "TBD", action: "modify" as const }],
+        files: targetFiles.length > 0 ? targetFiles : [{ path: "TBD", action: "modify" as const }],
         steps: [
           {
             tag: "impl" as const,
@@ -235,11 +244,31 @@ function writeQuickFixStubs(
   return { specPath, planPath };
 }
 
-function quickFixContract(workItem: { title: string; expected_finish?: string; target_paths?: string[]; out_of_scope?: string[] }, config: DevHarnessConfig | null): QuickFixContract {
-  const text = `${workItem.title} ${workItem.expected_finish ?? ""} ${(workItem.target_paths ?? []).join(" ")}`.toLowerCase();
-  const testCommand = config?.test?.command ?? config?.verification_commands?.find((cmd) => /\b(test|spec|pytest|go test|cargo test|bun test|npm test)\b/i.test(cmd));
-  const docsOnly = (workItem.target_paths ?? []).length > 0 && (workItem.target_paths ?? []).every((p) => /\.(md|mdx|txt|adoc|rst)$/i.test(p) || /(^|\/)(readme|docs?)\//i.test(p));
-  const mechanical = /\b(typo|wording|copy|comment|comments|docs?|readme|prompt|skill text|agent text|formatting)\b/.test(text);
+function quickFixContract(
+  workItem: {
+    title: string;
+    expected_finish?: string;
+    target_paths?: string[];
+    out_of_scope?: string[];
+  },
+  config: DevHarnessConfig | null,
+): QuickFixContract {
+  const text =
+    `${workItem.title} ${workItem.expected_finish ?? ""} ${(workItem.target_paths ?? []).join(" ")}`.toLowerCase();
+  const testCommand =
+    config?.test?.command ??
+    config?.verification_commands?.find((cmd) =>
+      /\b(test|spec|pytest|go test|cargo test|bun test|npm test)\b/i.test(cmd),
+    );
+  const docsOnly =
+    (workItem.target_paths ?? []).length > 0 &&
+    (workItem.target_paths ?? []).every(
+      (p) => /\.(md|mdx|txt|adoc|rst)$/i.test(p) || /(^|\/)(readme|docs?)\//i.test(p),
+    );
+  const mechanical =
+    /\b(typo|wording|copy|comment|comments|docs?|readme|prompt|skill text|agent text|formatting)\b/.test(
+      text,
+    );
 
   let strategy: QuickFixTestStrategy = "new_red_test";
   let reason: string | undefined;
@@ -249,7 +278,9 @@ function quickFixContract(workItem: { title: string; expected_finish?: string; t
   } else if (docsOnly || mechanical) {
     strategy = "no_test";
     reason = docsOnly ? "Documentation-only quick fix." : "Mechanical or content-only quick fix.";
-  } else if (/\b(existing test|failing test|test failure|make tests pass|red already)\b/.test(text)) {
+  } else if (
+    /\b(existing test|failing test|test failure|make tests pass|red already)\b/.test(text)
+  ) {
     strategy = "existing_tests";
     reason = "The request appears to target an existing failing test or regression.";
   }
@@ -273,10 +304,18 @@ function quickFixContract(workItem: { title: string; expected_finish?: string; t
 export function devQuickFixBrief(
   workItemId: string,
   config: DevHarnessConfig | null,
-): { brief: string; task_file_path: string; task_id: string; brief_type: "phase-test" | "phase-code" } | { error: string } {
+):
+  | {
+      brief: string;
+      task_file_path: string;
+      task_id: string;
+      brief_type: "phase-test" | "phase-code";
+    }
+  | { error: string } {
   const wi = loadWorkItem(workItemId);
   if (!wi) return { error: `Work item not found: ${workItemId}` };
-  if (wi.pattern !== "quick_fix") return { error: `Work item ${workItemId} is not a quick_fix item` };
+  if (wi.pattern !== "quick_fix")
+    return { error: `Work item ${workItemId} is not a quick_fix item` };
 
   const taskId = "1";
   const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
@@ -311,10 +350,9 @@ export function devQuickFixBrief(
   wi.updated = now();
   writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
 
-  const verificationCommands = config?.verification_commands ?? [
-    config?.type_check,
-    config?.test?.command,
-  ].filter(Boolean) as string[];
+  const _verificationCommands =
+    config?.verification_commands ??
+    ([config?.type_check, config?.test?.command].filter(Boolean) as string[]);
 
   const s: string[] = [];
 
@@ -329,7 +367,9 @@ export function devQuickFixBrief(
     s.push("### Context");
     s.push("");
     s.push("This is a quick_fix item with auto-generated spec/plan stubs.");
-    s.push(`Write one narrow regression test that demonstrates the bug or missing behaviour described by \`expected_finish\`.`);
+    s.push(
+      `Write one narrow regression test that demonstrates the bug or missing behaviour described by \`expected_finish\`.`,
+    );
     s.push("Confirm the test is RED (fails) before implementation.");
     s.push("");
     s.push("### Covered Acceptance Criteria");
@@ -363,11 +403,15 @@ export function devQuickFixBrief(
     s.push("");
     s.push("### Quick Fix Rules");
     s.push("");
-    s.push("- This quick_fix item skips the full spec/plan agents. The spec and plan are auto-generated stubs.");
+    s.push(
+      "- This quick_fix item skips the full spec/plan agents. The spec and plan are auto-generated stubs.",
+    );
     s.push("- Read `quick_fix_contract` from the per-task file before editing.");
     s.push("- Modify only the contract target paths when target_paths are provided.");
     s.push("- Use `quick_fix_contract.plan.expected_finish` as the definition of done.");
-    s.push("- Follow `quick_fix_contract.test.strategy` exactly and keep the per-task file schema-valid.");
+    s.push(
+      "- Follow `quick_fix_contract.test.strategy` exactly and keep the per-task file schema-valid.",
+    );
     s.push("");
     s.push("### Quick Fix Contract");
     s.push("");
@@ -377,5 +421,10 @@ export function devQuickFixBrief(
     s.push("");
   }
 
-  return { brief: s.join("\n"), task_file_path: taskFilePath, task_id: taskId, brief_type: needsTestPhase ? "phase-test" : "phase-code" };
+  return {
+    brief: s.join("\n"),
+    task_file_path: taskFilePath,
+    task_id: taskId,
+    brief_type: needsTestPhase ? "phase-test" : "phase-code",
+  };
 }

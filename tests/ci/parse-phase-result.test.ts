@@ -51,10 +51,7 @@ describe("dispatchTerminal — blocked (AC-10)", () => {
     const r = dispatchTerminal(
       {
         status: "blocked",
-        blockers: [
-          { reason: "external service down" },
-          { reason: "dependency unmerged: PROJ-99" },
-        ],
+        blockers: [{ reason: "external service down" }, { reason: "dependency unmerged: PROJ-99" }],
       },
       OPTS,
     );

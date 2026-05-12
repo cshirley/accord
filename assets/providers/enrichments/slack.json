@@ -3,9 +3,7 @@
   "name": "slack",
   "kind": "enrichment",
   "label": "Slack",
-  "mcpTools": [
-    "mcp__slack__search_messages"
-  ],
+  "mcpTools": ["mcp__slack__search_messages"],
   "cliFallback": null,
   "envFallback": "SLACK_BOT_TOKEN",
   "promptFile": "slack.md"

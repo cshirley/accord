@@ -1,5 +1,5 @@
-import { defineTool } from "../framework.js";
 import { getSlackAuth } from "../auth.js";
+import { defineTool } from "../framework.js";
 import { makeSlackRequest, type SlackChannel } from "../services/slack.client.js";
 
 export default defineTool<
@@ -11,7 +11,11 @@ export default defineTool<
   description: "List Slack channels and conversations the user is in",
 
   params: {
-    types: { type: "string", default: "public_channel,private_channel,mpim,im", description: "Channel types" },
+    types: {
+      type: "string",
+      default: "public_channel,private_channel,mpim,im",
+      description: "Channel types",
+    },
     limit: { type: "number", default: 100, description: "Maximum channels to return" },
   },
 

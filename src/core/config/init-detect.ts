@@ -7,16 +7,14 @@
  */
 
 import * as fs from "node:fs";
-import * as path from "node:path";
 
 import {
-  type DevHarnessConfig,
-  type ContextSourceConfig,
-  type BuildResult,
   buildDevHarnessConfig,
-  resolveConfigLocation,
-  loadGlobalConfig,
+  type ContextSourceConfig,
+  type DevHarnessConfig,
   extractDevHarnessJson,
+  loadGlobalConfig,
+  resolveConfigLocation,
 } from "./index.js";
 
 // ── Types ──────────────────────────────────────────────────
@@ -105,7 +103,9 @@ function resolveConfigPlacement(dir: string): ConfigPlacement {
       if (jsonStr) {
         placement.existing_root_config = JSON.parse(jsonStr);
       }
-    } catch { /* ignore parse errors */ }
+    } catch {
+      /* ignore parse errors */
+    }
   }
 
   return placement;
@@ -119,10 +119,14 @@ function addPlacementNotes(placement: ConfigPlacement, notes: string[]): void {
       notes.push("Config placement: at git root (standard)");
       break;
     case "root_exists":
-      notes.push("Config placement: sub-directory of git root — root AGENTS.md already has ACCORD config");
+      notes.push(
+        "Config placement: sub-directory of git root — root AGENTS.md already has ACCORD config",
+      );
       break;
     case "root_no_config":
-      notes.push("Config placement: sub-directory of git root — root AGENTS.md exists but has no ACCORD compatibility section");
+      notes.push(
+        "Config placement: sub-directory of git root — root AGENTS.md exists but has no ACCORD compatibility section",
+      );
       break;
     case "root_no_agents":
       notes.push("Config placement: sub-directory of git root — no root AGENTS.md found");
@@ -134,7 +138,7 @@ function addPlacementNotes(placement: ConfigPlacement, notes: string[]): void {
 
 function loadGlobalContextSources(): ContextSourceConfig[] {
   const globalCfg = loadGlobalConfig();
-  return globalCfg?.context_sources?.filter(s => s.enabled !== false) ?? [];
+  return globalCfg?.context_sources?.filter((s) => s.enabled !== false) ?? [];
 }
 
 // ── Formatted summary ──────────────────────────────────────
@@ -155,7 +159,9 @@ function formatSummary(
   lines.push(`  format:     ${config.format ?? "(none)"}`);
 
   if (config.tracker) {
-    const prefix = config.tracker.project_prefix ? ` (prefix: ${config.tracker.project_prefix})` : "";
+    const prefix = config.tracker.project_prefix
+      ? ` (prefix: ${config.tracker.project_prefix})`
+      : "";
     lines.push(`  tracker:    ${config.tracker.type}${prefix}`);
   } else {
     lines.push("  tracker:    (not detected — will ask)");
@@ -168,9 +174,9 @@ function formatSummary(
   }
 
   // Context sources
-  const sourceNames = globalSources.map(s => s.type).join(", ");
+  const sourceNames = globalSources.map((s) => s.type).join(", ");
   if (config.context_sources?.length) {
-    const projectScoped = config.context_sources.map(s => {
+    const projectScoped = config.context_sources.map((s) => {
       const parts: string[] = [s.type];
       if (s.channels?.length) parts.push(`(${s.channels.join(", ")})`);
       if (s.space) parts.push(`(${s.space})`);
@@ -241,7 +247,9 @@ function diffConfigs(existing: DevHarnessConfig, proposed: DevHarnessConfig): st
     diffs.push(`test.command: ${existing.test.command} → ${proposed.test.command}`);
   }
   if (existing.type_check !== proposed.type_check) {
-    diffs.push(`type_check: ${existing.type_check ?? "(none)"} → ${proposed.type_check ?? "(none)"}`);
+    diffs.push(
+      `type_check: ${existing.type_check ?? "(none)"} → ${proposed.type_check ?? "(none)"}`,
+    );
   }
   if (existing.lint !== proposed.lint) {
     diffs.push(`lint: ${existing.lint ?? "(none)"} → ${proposed.lint ?? "(none)"}`);
@@ -250,10 +258,14 @@ function diffConfigs(existing: DevHarnessConfig, proposed: DevHarnessConfig): st
     diffs.push(`format: ${existing.format ?? "(none)"} → ${proposed.format ?? "(none)"}`);
   }
   if (existing.monorepo?.tool !== proposed.monorepo?.tool) {
-    diffs.push(`monorepo.tool: ${existing.monorepo?.tool ?? "(none)"} → ${proposed.monorepo?.tool ?? "(none)"}`);
+    diffs.push(
+      `monorepo.tool: ${existing.monorepo?.tool ?? "(none)"} → ${proposed.monorepo?.tool ?? "(none)"}`,
+    );
   }
   if (existing.tracker?.type !== proposed.tracker?.type) {
-    diffs.push(`tracker.type: ${existing.tracker?.type ?? "(none)"} → ${proposed.tracker?.type ?? "(none)"}`);
+    diffs.push(
+      `tracker.type: ${existing.tracker?.type ?? "(none)"} → ${proposed.tracker?.type ?? "(none)"}`,
+    );
   }
 
   const existingVc = (existing.verification_commands ?? []).join(", ");

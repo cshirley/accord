@@ -8,12 +8,12 @@
  * No dependency on pi's extension API.
  */
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
-const AUTH_FILE = process.env.AI_TOOLS_AUTH_PATH
-  ?? join(homedir(), ".pi", "agent", "service-auth.json");
+const AUTH_FILE =
+  process.env.AI_TOOLS_AUTH_PATH ?? join(homedir(), ".pi", "agent", "service-auth.json");
 
 interface AuthStore {
   jira?: { email: string; apiToken: string; baseUrl: string };
@@ -34,13 +34,19 @@ interface AuthStore {
 
 export function loadAuth(): AuthStore {
   if (!existsSync(AUTH_FILE)) return {};
-  try { return JSON.parse(readFileSync(AUTH_FILE, "utf-8")); }
-  catch { return {}; }
+  try {
+    return JSON.parse(readFileSync(AUTH_FILE, "utf-8"));
+  } catch {
+    return {};
+  }
 }
 
 export function saveAuth(auth: AuthStore): void {
-  try { writeFileSync(AUTH_FILE, JSON.stringify(auth, null, 2)); }
-  catch (e) { console.error("Failed to save auth file:", e); }
+  try {
+    writeFileSync(AUTH_FILE, JSON.stringify(auth, null, 2));
+  } catch (e) {
+    console.error("Failed to save auth file:", e);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -53,7 +59,11 @@ export function getJiraAuth(): { email: string; apiToken: string; baseUrl: strin
   const email = process.env.JIRA_EMAIL;
   const apiToken = process.env.JIRA_API_KEY;
   if (email && apiToken) {
-    return { email, apiToken, baseUrl: process.env.JIRA_BASE_URL ?? "https://babylonpartners.atlassian.net" };
+    return {
+      email,
+      apiToken,
+      baseUrl: process.env.JIRA_BASE_URL ?? "https://babylonpartners.atlassian.net",
+    };
   }
   return null;
 }
@@ -92,11 +102,20 @@ export function getGoogleAuth() {
 }
 
 export function setGoogleAuth(
-  accessToken: string, refreshToken: string, expiresIn: number,
-  clientId: string, clientSecret: string,
+  accessToken: string,
+  refreshToken: string,
+  expiresIn: number,
+  clientId: string,
+  clientSecret: string,
 ): void {
   const auth = loadAuth();
-  auth.google = { accessToken, refreshToken, expiresAt: Date.now() + expiresIn * 1000, clientId, clientSecret };
+  auth.google = {
+    accessToken,
+    refreshToken,
+    expiresAt: Date.now() + expiresIn * 1000,
+    clientId,
+    clientSecret,
+  };
   saveAuth(auth);
 }
 
@@ -110,15 +129,25 @@ export async function refreshGoogleToken(): Promise<string | null> {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: auth.clientId, client_secret: auth.clientSecret,
-        refresh_token: auth.refreshToken, grant_type: "refresh_token",
+        client_id: auth.clientId,
+        client_secret: auth.clientSecret,
+        refresh_token: auth.refreshToken,
+        grant_type: "refresh_token",
       }),
     });
     if (!response.ok) return null;
-    const data = await response.json() as { access_token: string; expires_in: number };
-    setGoogleAuth(data.access_token, auth.refreshToken, data.expires_in, auth.clientId, auth.clientSecret);
+    const data = (await response.json()) as { access_token: string; expires_in: number };
+    setGoogleAuth(
+      data.access_token,
+      auth.refreshToken,
+      data.expires_in,
+      auth.clientId,
+      auth.clientSecret,
+    );
     return data.access_token;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------

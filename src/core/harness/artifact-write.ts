@@ -3,9 +3,12 @@ import { isHarnessTrackedJsonWritePath } from "./paths.js";
 
 /** User-facing block message when validation fails (host maps to tool_result shape). */
 export function formatArtifactValidationFailureMessage(filePath: string, errors: string[]): string {
-  return [`Schema validation failed for ${filePath}:`, ...errors.map(e => `  • ${e}`), "", "Fix the JSON shape and retry."].join(
-    "\n",
-  );
+  return [
+    `Schema validation failed for ${filePath}:`,
+    ...errors.map((e) => `  • ${e}`),
+    "",
+    "Fix the JSON shape and retry.",
+  ].join("\n");
 }
 
 /**

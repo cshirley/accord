@@ -3,10 +3,16 @@
  */
 
 import * as path from "node:path";
-import type { IntentConfidence, IntentMode, ShiftLeftFinding, WorkItemPattern, WorkItem } from "./types.js";
-import { TASKS_DIR, loadWorkItem, loadTaskFile, writeJson, mutateJson, now } from "./io.js";
-import { devCheckpointDelete } from "./checkpoint.js";
 import { createLogger } from "../logging.js";
+import { devCheckpointDelete } from "./checkpoint.js";
+import { loadTaskFile, loadWorkItem, now, TASKS_DIR, writeJson } from "./io.js";
+import type {
+  IntentConfidence,
+  IntentMode,
+  ShiftLeftFinding,
+  WorkItem,
+  WorkItemPattern,
+} from "./types.js";
 
 const log = createLogger("work-items");
 
@@ -75,7 +81,7 @@ export function devBootstrap(
   if (intent?.out_of_scope?.length) wi.out_of_scope = intent.out_of_scope;
   if (intent?.expected_finish) wi.expected_finish = intent.expected_finish;
 
-  if (!wi.variant) delete wi.variant;
+  if (!wi.variant) wi.variant = undefined;
 
   const wiPath = path.join(TASKS_DIR, `${id}.json`);
   writeJson(wiPath, wi);
@@ -148,11 +154,13 @@ export interface PromotionResult {
   review_agents: string[];
 }
 
-export function devPromoteEvents(
-  workItemId: string,
-  taskId: string,
-): PromotionResult {
-  const empty: PromotionResult = { escalations_added: 0, deviations_added: 0, review_requested: false, review_agents: [] };
+export function devPromoteEvents(workItemId: string, taskId: string): PromotionResult {
+  const empty: PromotionResult = {
+    escalations_added: 0,
+    deviations_added: 0,
+    review_requested: false,
+    review_agents: [],
+  };
 
   const tf = loadTaskFile(workItemId, taskId);
   if (!tf) return empty;
@@ -164,7 +172,7 @@ export function devPromoteEvents(
   let devs = 0;
   let reviewRequested = false;
   const reviewAgents: string[] = [];
-  const existingDecisionIds = new Set((wi.decisions || []).map(d => d.id));
+  const existingDecisionIds = new Set((wi.decisions || []).map((d) => d.id));
 
   // Decision IDs encode the per-task event index so re-running promotion on
   // a task with new escalations doesn't collide with previously-promoted IDs.
@@ -192,11 +200,13 @@ export function devPromoteEvents(
       }
       case "deviation": {
         if (numericTaskId === null) {
-          log.warn(`devPromoteEvents: skipping deviation for non-numeric taskId="${taskId}" on ${workItemId}`);
+          log.warn(
+            `devPromoteEvents: skipping deviation for non-numeric taskId="${taskId}" on ${workItemId}`,
+          );
           continue;
         }
         const alreadyExists = wi.deviations.some(
-          d => d.task_id === numericTaskId && d.description === event.description,
+          (d) => d.task_id === numericTaskId && d.description === event.description,
         );
         if (alreadyExists) continue;
         wi.deviations.push({
@@ -212,14 +222,14 @@ export function devPromoteEvents(
         reviewRequested = true;
         reviewAgents.push("review-code");
         const files: string[] = event.files || [];
-        const hasTestFiles = files.some(f =>
-          /\.test\.|\.spec\.|_test\.(go|rs)|test_.*\.py|_spec\.rb|Test\.java|Tests\.cs/i.test(f) ||
-          /\/(test|__tests__|tests|spec)\//.test(f),
+        const hasTestFiles = files.some(
+          (f) =>
+            /\.test\.|\.spec\.|_test\.(go|rs)|test_.*\.py|_spec\.rb|Test\.java|Tests\.cs/i.test(
+              f,
+            ) || /\/(test|__tests__|tests|spec)\//.test(f),
         );
         if (hasTestFiles) reviewAgents.push("review-test");
-        const hasSecurityFiles = files.some(f =>
-          /(auth|payment|api|public.?api)/i.test(f),
-        );
+        const hasSecurityFiles = files.some((f) => /(auth|payment|api|public.?api)/i.test(f));
         if (hasSecurityFiles) reviewAgents.push("review-security");
         break;
       }
@@ -231,7 +241,12 @@ export function devPromoteEvents(
     writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
   }
 
-  return { escalations_added: escalations, deviations_added: devs, review_requested: reviewRequested, review_agents: reviewAgents };
+  return {
+    escalations_added: escalations,
+    deviations_added: devs,
+    review_requested: reviewRequested,
+    review_agents: reviewAgents,
+  };
 }
 
 // ── Preflight receipt ──────────────────────────────────────

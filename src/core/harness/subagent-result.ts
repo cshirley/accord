@@ -2,27 +2,23 @@
  * After subagent tool completes: usage, return packets, post-code verification.
  */
 
-import type { DevHarnessConfig } from "../config/index.js";
-import type { PricingConfig } from "../telemetry/usage.js";
+import { agentRequiresVerification, agentSchemas } from "../agents/registry.js";
 import { validateReturn } from "../artifacts/validation.js";
-import { runVerificationCommands, formatVerificationResults } from "../crucible/verification.js";
+import { formatVerificationResults, runVerificationCommands } from "../crucible/verification.js";
+import { createLogger } from "../logging.js";
+import type { PricingConfig } from "../telemetry/usage.js";
 import {
-  agentRequiresVerification,
-  agentSchemas,
-} from "../agents/registry.js";
-import {
-  type UsageLine,
-  extractWorkItemId,
   appendUsageLine,
   computeLineCost,
-  updateWorkItemCost,
-  extractReturnPacketFromSubagentResult,
-  formatPacketInjection,
-  formatMissingPacketWarning,
   ensureAutoHarnessRunMeta,
+  extractReturnPacketFromSubagentResult,
+  extractWorkItemId,
+  formatMissingPacketWarning,
+  formatPacketInjection,
   normalizeUsageCostFields,
+  type UsageLine,
+  updateWorkItemCost,
 } from "../telemetry/usage.js";
-import { createLogger } from "../logging.js";
 import type { HarnessMutableState } from "./types.js";
 
 const log = createLogger("harness");
@@ -69,7 +65,11 @@ export async function processSubagentToolResult(
     if (workItemId && result.usage) {
       const normalized = normalizeUsageCostFields(result.usage as any);
       const billable =
-        normalized.input + normalized.output + normalized.cost + normalized.cacheRead + normalized.cacheWrite;
+        normalized.input +
+        normalized.output +
+        normalized.cost +
+        normalized.cacheRead +
+        normalized.cacheWrite;
       if (billable > 0) {
         ensureAutoHarnessRunMeta(workItemId);
         host?.syncHarnessRunMeta?.();
@@ -97,8 +97,7 @@ export async function processSubagentToolResult(
     const hasContent = Array.isArray(lastContent) ? lastContent.length > 0 : !!lastContent;
 
     if (agentName && !hasContent) {
-      const stderrTail =
-        typeof result.stderr === "string" ? result.stderr.slice(-300).trim() : "";
+      const stderrTail = typeof result.stderr === "string" ? result.stderr.slice(-300).trim() : "";
       log.error(
         `agent=${agentName} EMPTY RESPONSE stopReason=${result.stopReason} exitCode=${result.exitCode} model=${result.model}`,
       );
@@ -138,9 +137,16 @@ export async function processSubagentToolResult(
 
       const validation = await validateReturn(agentName, packet);
       if (!validation.valid) {
-        contentAppend += [`\n⚠ Return packet validation failed for ${agentName}:`, ...validation.errors.map(e => `  • ${e}`)].join("\n");
+        contentAppend += [
+          `\n⚠ Return packet validation failed for ${agentName}:`,
+          ...validation.errors.map((e) => `  • ${e}`),
+        ].join("\n");
       }
-    } else if (!packet && agentName && agentSchemas(agentName).some(s => s.startsWith("return-schemas/"))) {
+    } else if (
+      !packet &&
+      agentName &&
+      agentSchemas(agentName).some((s) => s.startsWith("return-schemas/"))
+    ) {
       contentAppend += formatMissingPacketWarning(agentName, Object.keys(result || {}));
     }
 
@@ -157,13 +163,17 @@ export async function processSubagentToolResult(
 
       if (commands.length > 0) {
         const vResults = await runVerificationCommands(commands);
-        contentAppend += formatVerificationResults(vResults, "Post-Code Verification (extension-triggered)");
+        contentAppend += formatVerificationResults(
+          vResults,
+          "Post-Code Verification (extension-triggered)",
+        );
 
         if (
           state.devConfig.type_check &&
-          vResults.find(r => r.command === state.devConfig!.type_check && r.exitCode !== 0)
+          vResults.find((r) => r.command === state.devConfig?.type_check && r.exitCode !== 0)
         ) {
-          contentAppend += "\n\n❌ **Type check failed — this is a hard gate.** Fix the errors shown above.\n";
+          contentAppend +=
+            "\n\n❌ **Type check failed — this is a hard gate.** Fix the errors shown above.\n";
         }
       }
     }

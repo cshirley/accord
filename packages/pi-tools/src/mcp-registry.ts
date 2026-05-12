@@ -11,11 +11,11 @@
  *   }
  */
 
-import { spawn, type ChildProcess } from "child_process";
-import { createInterface, type Interface } from "readline";
-import { readFileSync, existsSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
+import { type ChildProcess, spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { createInterface, type Interface } from "node:readline";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,9 +63,7 @@ function expandEnvValue(value: string): string {
   });
 }
 
-function resolveEnv(
-  declared?: Record<string, string>,
-): Record<string, string> {
+function resolveEnv(declared?: Record<string, string>): Record<string, string> {
   const base = { ...process.env } as Record<string, string>;
   if (!declared) return base;
   for (const [key, value] of Object.entries(declared)) {
@@ -166,8 +164,8 @@ export class McpClient {
           this.initialised = true;
 
           // Send the required "initialized" notification (no id, no response)
-          this.process!.stdin!.write(
-            JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n",
+          this.process?.stdin?.write(
+            `${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`,
           );
 
           settle(resolve);
@@ -180,15 +178,12 @@ export class McpClient {
         timer,
       });
 
-      this.process.stdin!.write(initPayload + "\n");
+      this.process.stdin?.write(`${initPayload}\n`);
     });
   }
 
   /** Call an MCP tool by name. */
-  async callTool(
-    toolName: string,
-    args: Record<string, unknown> = {},
-  ): Promise<McpToolResult> {
+  async callTool(toolName: string, args: Record<string, unknown> = {}): Promise<McpToolResult> {
     await this.ensureReady();
     if (this.dead) throw new Error(`MCP server '${this.name}' is no longer running`);
     return this.rpc("tools/call", { name: toolName, arguments: args });
@@ -218,7 +213,11 @@ export class McpClient {
 
       // Force-kill after grace period if still running
       const forceKill = setTimeout(() => {
-        try { proc.kill("SIGKILL"); } catch { /* already dead */ }
+        try {
+          proc.kill("SIGKILL");
+        } catch {
+          /* already dead */
+        }
       }, GRACEFUL_KILL_MS);
 
       proc.on("exit", () => clearTimeout(forceKill));
@@ -235,7 +234,9 @@ export class McpClient {
     return new Promise<McpToolResult>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.settlePending(id);
-        reject(new Error(`MCP call '${method}' on '${this.name}' timed out after ${this.timeoutMs}ms`));
+        reject(
+          new Error(`MCP call '${method}' on '${this.name}' timed out after ${this.timeoutMs}ms`),
+        );
       }, this.timeoutMs);
 
       this.pending.set(id, {
@@ -250,7 +251,7 @@ export class McpClient {
         },
         timer,
       });
-      this.process!.stdin!.write(payload + "\n");
+      this.process?.stdin?.write(`${payload}\n`);
     });
   }
 
@@ -265,9 +266,7 @@ export class McpClient {
       if (!pending || pending.settled) return;
 
       if (msg.error) {
-        pending.reject(
-          new Error(`MCP error ${msg.error.code}: ${msg.error.message}`),
-        );
+        pending.reject(new Error(`MCP error ${msg.error.code}: ${msg.error.message}`));
         return;
       }
 
@@ -306,7 +305,7 @@ export class McpClient {
 
   /** Reject all pending requests that haven't already settled. */
   private rejectAllPending(err: Error): void {
-    for (const [id, pending] of this.pending) {
+    for (const [_id, pending] of this.pending) {
       if (!pending.settled) {
         pending.settled = true;
         clearTimeout(pending.timer);
@@ -366,7 +365,7 @@ export class McpRegistry {
   /** Get or lazily create a client for the given server. */
   getClient(serverName: string): McpClient {
     const existing = this.clients.get(serverName);
-    if (existing && existing.isAlive) return existing;
+    if (existing?.isAlive) return existing;
 
     const config = this.configs[serverName];
     if (!config) {

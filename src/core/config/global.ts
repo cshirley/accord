@@ -37,12 +37,26 @@ export function stripTrailingCommas(input: string): string {
     const c = input[i];
     if (inString) {
       out += c;
-      if (escaped) { escaped = false; continue; }
-      if (c === "\\") { escaped = true; continue; }
-      if (c === stringChar) { inString = false; stringChar = ""; }
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (c === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (c === stringChar) {
+        inString = false;
+        stringChar = "";
+      }
       continue;
     }
-    if (c === '"' || c === "'") { inString = true; stringChar = c; out += c; continue; }
+    if (c === '"' || c === "'") {
+      inString = true;
+      stringChar = c;
+      out += c;
+      continue;
+    }
     if (c === ",") {
       let j = i + 1;
       while (j < input.length && /\s/.test(input[j])) j++;
@@ -208,9 +222,7 @@ export interface SeedGlobalConfigResult {
  * failure as non-fatal.
  */
 export function seedGlobalConfigFile(opts: SeedGlobalConfigOptions = {}): SeedGlobalConfigResult {
-  const filePath = opts.target
-    ? path.join(opts.target, "accord.json")
-    : GLOBAL_CONFIG_PATH;
+  const filePath = opts.target ? path.join(opts.target, "accord.json") : GLOBAL_CONFIG_PATH;
 
   if (fs.existsSync(filePath)) {
     return { status: "exists", path: filePath };
@@ -244,8 +256,8 @@ export function mergeContextSources(
   project: ContextSourceConfig[] | undefined,
 ): ContextSourceConfig[] {
   if (!global?.length && !project?.length) return [];
-  if (!project?.length) return (global ?? []).filter(s => s.enabled !== false);
-  if (!global?.length) return project.filter(s => s.enabled !== false);
+  if (!project?.length) return (global ?? []).filter((s) => s.enabled !== false);
+  if (!global?.length) return project.filter((s) => s.enabled !== false);
 
   const merged = new Map<string, ContextSourceConfig>();
 
@@ -262,5 +274,5 @@ export function mergeContextSources(
     }
   }
 
-  return [...merged.values()].filter(s => s.enabled !== false);
+  return [...merged.values()].filter((s) => s.enabled !== false);
 }

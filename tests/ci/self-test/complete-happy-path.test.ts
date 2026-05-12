@@ -12,12 +12,14 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { commitAndPr, renderPrBody, type ExecLike, type GhPrApi } from "../../../scripts/ci/commit-and-pr.js";
-import { runAgentsMdGate } from "../../../scripts/ci/gate-agents-md.js";
 import {
-  DEFAULT_TICKET_GATE_CONFIG,
-  runTicketGate,
-} from "../../../scripts/ci/gate-ticket.js";
+  commitAndPr,
+  type ExecLike,
+  type GhPrApi,
+  renderPrBody,
+} from "../../../scripts/ci/commit-and-pr.js";
+import { runAgentsMdGate } from "../../../scripts/ci/gate-agents-md.js";
+import { DEFAULT_TICKET_GATE_CONFIG, runTicketGate } from "../../../scripts/ci/gate-ticket.js";
 import { seedBrief } from "../../../scripts/ci/seed-brief.js";
 
 let repo: string;
@@ -65,19 +67,22 @@ const PASSING_TICKET = {
     issuetype: { name: "Story" },
     status: { name: "Ready for Autopilot" },
     summary: "Add rate limit on /v1/search",
-    description: [
-      "## Problem",
-      "WHAT: pool exhaustion. WHY: incident INC-1023.",
-      "",
-      "## Acceptance criteria",
-      "- AC1: limiter at 60 req/min/IP",
-      "",
-      "## Out of scope",
-      "- pool sizing",
-      "",
-      "## Target paths",
-      "- services/search-api/",
-    ].join("\n") + "\n\n" + "padding ".repeat(50),
+    description:
+      [
+        "## Problem",
+        "WHAT: pool exhaustion. WHY: incident INC-1023.",
+        "",
+        "## Acceptance criteria",
+        "- AC1: limiter at 60 req/min/IP",
+        "",
+        "## Out of scope",
+        "- pool sizing",
+        "",
+        "## Target paths",
+        "- services/search-api/",
+      ].join("\n") +
+      "\n\n" +
+      "padding ".repeat(50),
   },
 } as const;
 
@@ -121,7 +126,9 @@ describe("complete-happy-path — PR body satisfies AC-5 / AC-8 / AC-9", () => {
     expect(body).toContain("AC-2");
     expect(body).toContain("All ACs satisfied (2/2)");
     expect(body).toContain("pi.dev/autopilot: v1");
-    expect(body).toMatch(/## Summary[\s\S]*## Scope[\s\S]*## Verify report[\s\S]*## Spec ACs[\s\S]*## Cost/);
+    expect(body).toMatch(
+      /## Summary[\s\S]*## Scope[\s\S]*## Verify report[\s\S]*## Spec ACs[\s\S]*## Cost/,
+    );
     expect(body).toContain("9.42");
   });
 });

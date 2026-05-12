@@ -128,9 +128,7 @@ describe("AC-1: dispatch event-name canonicalisation (real-runner contract)", ()
     const env = asRecord(step.env);
     const expr = env.ACCORD_DISPATCH_KIND;
     if (typeof expr !== "string") {
-      throw new Error(
-        `ACCORD_DISPATCH_KIND must be a templated expression, got ${typeof expr}`,
-      );
+      throw new Error(`ACCORD_DISPATCH_KIND must be a templated expression, got ${typeof expr}`);
     }
     // Must short-circuit on repository_dispatch and fall through to workflow_call.
     expect(expr).toMatch(/github\.event_name\s*==\s*'repository_dispatch'/);

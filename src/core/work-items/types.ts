@@ -3,7 +3,13 @@
  */
 
 export type WorkItemPattern = "implement" | "quick_fix" | "investigate" | "infra" | "analyse";
-export type IntentMode = "narrow_change" | "pipeline" | "review" | "commit" | "explain" | "investigate";
+export type IntentMode =
+  | "narrow_change"
+  | "pipeline"
+  | "review"
+  | "commit"
+  | "explain"
+  | "investigate";
 export type IntentConfidence = "high" | "medium" | "low";
 
 export interface WorkItem {

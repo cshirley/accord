@@ -1,7 +1,9 @@
 import { defineTool } from "../framework.js";
 import {
-  makeGoogleRequest, hasNativeGoogleAuth, filterCalendarEvents,
   type CalendarEvent,
+  filterCalendarEvents,
+  hasNativeGoogleAuth,
+  makeGoogleRequest,
 } from "../services/google.client.js";
 
 export default defineTool<
@@ -14,9 +16,9 @@ export default defineTool<
 
   params: {
     calendarId: { type: "string", default: "primary", description: "Calendar ID" },
-    date:       { type: "string", description: "Date in YYYY-MM-DD format (defaults to today)" },
-    timeMin:    { type: "string", description: "Start time (RFC3339)" },
-    timeMax:    { type: "string", description: "End time (RFC3339)" },
+    date: { type: "string", description: "Date in YYYY-MM-DD format (defaults to today)" },
+    timeMin: { type: "string", description: "Start time (RFC3339)" },
+    timeMax: { type: "string", description: "End time (RFC3339)" },
     maxResults: { type: "number", default: 50, description: "Max results" },
   },
 
@@ -25,14 +27,22 @@ export default defineTool<
 
   async execute(p) {
     const now = new Date();
-    const timeMin = p.timeMin || new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const timeMax = p.timeMax || new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+    const timeMin =
+      p.timeMin || new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const timeMax =
+      p.timeMax || new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
     const calendarId = p.calendarId || "primary";
 
-    const resp = await makeGoogleRequest(
+    const resp = (await makeGoogleRequest(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-      { timeMin, timeMax, maxResults: p.maxResults || 50, singleEvents: true, orderBy: "startTime" },
-    ) as { items?: CalendarEvent[] };
+      {
+        timeMin,
+        timeMax,
+        maxResults: p.maxResults || 50,
+        singleEvents: true,
+        orderBy: "startTime",
+      },
+    )) as { items?: CalendarEvent[] };
 
     return filterCalendarEvents(resp.items || []);
   },

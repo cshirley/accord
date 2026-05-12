@@ -62,10 +62,14 @@ export function assertAccordDevToolSurfaceParity(mcpSrc: string, piSrc: string):
   for (let i = 0; i < EXPECTED.length; i++) {
     const exp = EXPECTED[i]!;
     if (mcpNames[i] !== exp) {
-      throw new Error(`MCP adapter dev_* order mismatch at index ${i}: got ${mcpNames[i]}, expected ${exp}`);
+      throw new Error(
+        `MCP adapter dev_* order mismatch at index ${i}: got ${mcpNames[i]}, expected ${exp}`,
+      );
     }
     if (piNames[i] !== exp) {
-      throw new Error(`Pi adapter dev_* order mismatch at index ${i}: got ${piNames[i]}, expected ${exp}`);
+      throw new Error(
+        `Pi adapter dev_* order mismatch at index ${i}: got ${piNames[i]}, expected ${exp}`,
+      );
     }
   }
 }
