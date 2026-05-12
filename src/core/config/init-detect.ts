@@ -34,7 +34,7 @@ export interface InitDetectResult {
   proposed_config: DevHarnessConfig | null;
   /** Where the config should live and what already exists. */
   placement: ConfigPlacement;
-  /** Global context sources from ~/.config/pi/agent/accord-config.json */
+  /** Global context sources from ~/.config/pi/agent/accord.json */
   global_context_sources: ContextSourceConfig[];
   /** Human-readable notes explaining what was detected and why. */
   detection_notes: string[];

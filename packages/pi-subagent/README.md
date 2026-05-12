@@ -26,7 +26,7 @@ Per-task **`cwd`** runs the child `pi` process with that working directory — u
 
 ## Configuration
 
-Model and provider defaults for subagents are driven by **`subagent-config.json`** next to the discovered agent roots, with fallbacks documented in `src/agents.ts` (profiles, tiers, skill-namespace overrides). Agent markdown may pin a model in frontmatter.
+Model and provider defaults for subagents are driven by **`subagent.json`** next to the discovered agent roots, with fallbacks documented in `src/agents.ts` (profiles, tiers, skill-namespace overrides). Agent markdown may pin a model in frontmatter.
 
 ## Limits (sensible defaults)
 
@@ -48,7 +48,7 @@ pi -e "$(pwd)/packages/pi-subagent/src/index.ts"
 flowchart TB
   P["packages/pi-subagent/"]
   P --> idx["src/index.ts — subagent tool, spawn, TUI"]
-  P --> ag["src/agents.ts — discovery, subagent-config.json, models"]
+  P --> ag["src/agents.ts — discovery, subagent.json, models"]
   P --> R["README.md"]
 ```
 

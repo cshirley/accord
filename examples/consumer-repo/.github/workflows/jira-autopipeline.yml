@@ -34,6 +34,13 @@ jobs:
       max_cost_usd: 20
       base_branch: main
       branch_prefix: accord/
+      # subagent_profile: anthropic-direct
+      # The autopipeline seeds a minimal subagent.json on the runner with one
+      # `anthropic-direct` profile (Opus reasoning, Sonnet workhorse, Haiku lightweight).
+      # To run against a different provider, commit your own ci/subagent.json,
+      # add a step that copies it over ~/.config/pi/agent/subagent.json after
+      # the setup-pi composite, then set subagent_profile to the matching profile name.
+      # See docs/ci/consumer-quickstart.md §6.
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}

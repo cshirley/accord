@@ -238,7 +238,7 @@ Call the `dev_init_detect` tool (no args — it uses cwd). It returns:
 |---|---|
 | `proposed_config` | Full `DevHarnessConfig` inferred from project files. `null` if no project found. |
 | `placement` | Config placement resolution: `at_root`, `root_exists`, `root_no_config`, or `root_no_agents`. Includes `git_root`, `root_agents_md`, and `existing_root_config` (when root already has config). |
-| `global_context_sources` | Enabled sources from `~/.config/pi/agent/accord-config.json`. |
+| `global_context_sources` | Enabled sources from `~/.config/pi/agent/accord.json`. |
 | `detection_notes` | Human-readable list of what was detected and why. |
 | `formatted_summary` | Pre-rendered summary ready to show the user (includes placement options + diff against existing root config). |
 

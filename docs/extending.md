@@ -28,7 +28,7 @@
 ### User-supplied provider (project-local, no package edit)
 
 1. Write a fetch playbook somewhere convenient (e.g. `~/.config/accord/providers/my-jira.md`).
-2. Add an entry to your project's `accord-config.json` `providers` array:
+2. Add an entry to your project's `accord.json` `providers` array:
    ```json
    {
      "providers": [

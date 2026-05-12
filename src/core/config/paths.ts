@@ -13,4 +13,4 @@ export const LANG_PROFILES_DIR = path.join(EXT_DIR, "assets", "lang-profiles");
 export const PI_AGENT_DIR =
   process.env.ACCORD_PI_AGENT_DIR ?? path.join(homedir(), ".config", "pi", "agent");
 
-export const GLOBAL_CONFIG_PATH = path.join(PI_AGENT_DIR, "accord-config.json");
+export const GLOBAL_CONFIG_PATH = path.join(PI_AGENT_DIR, "accord.json");

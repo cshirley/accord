@@ -7,7 +7,7 @@ Lives in the project's `AGENTS.md` under the compatibility heading `## Dev Harne
 3. Falls back to `assets/lang-profiles/<lang>.json` for gaps
 4. User confirms, then writes
 
-The block is validated against `schemas/accord-config-schema.json`. See [`docs/extending.md`](extending.md) for how to add custom providers in this same JSON block.
+The block is validated against `schemas/accord-schema.json`. See [`docs/extending.md`](extending.md) for how to add custom providers in this same JSON block.
 
 ## Supported stacks
 

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "provider-schema.json",
   "title": "ACCORD Provider Definition",
-  "description": "Connectivity declaration sidecar for a tracker or enrichment provider. Each provider in assets/providers/{trackers,enrichments}/ has a paired <name>.md (fetch playbook) and <name>.json (this schema). User-supplied providers can also be declared inline in accord-config.json under the providers field.",
+  "description": "Connectivity declaration sidecar for a tracker or enrichment provider. Each provider in assets/providers/{trackers,enrichments}/ has a paired <name>.md (fetch playbook) and <name>.json (this schema). User-supplied providers can also be declared inline in accord.json under the providers field.",
   "type": "object",
   "required": ["name", "kind", "label", "promptFile"],
   "additionalProperties": false,
@@ -41,7 +41,7 @@
     "promptFile": {
       "type": "string",
       "minLength": 1,
-      "description": "Path to the fetch playbook markdown file. For bundled providers this is a sibling filename (e.g. \"jira.md\"). For user-supplied providers in accord-config.json this can be an absolute or tilde-prefixed path."
+      "description": "Path to the fetch playbook markdown file. For bundled providers this is a sibling filename (e.g. \"jira.md\"). For user-supplied providers in accord.json this can be an absolute or tilde-prefixed path."
     }
   }
 }

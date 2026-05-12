@@ -26,7 +26,7 @@ export interface DevHarnessConfig {
    * by name) a tracker or enrichment provider. Bundled providers from
    * assets/providers/ are always available; entries here let projects
    * swap a playbook, point at a custom MCP/CLI/env tool, or add an
-   * entirely new provider. Validated against schemas/accord-config-schema.json
+   * entirely new provider. Validated against schemas/accord-schema.json
    * (`providers` field) and normalised by integrations/provider-deps.ts.
    */
   providers?: UserProviderDef[];
@@ -70,7 +70,7 @@ export interface DevHarnessGlobalConfig {
   /**
    * Per-developer-machine extension bootstrap preferences. Read by
    * core/harness/asset-bootstrap.ts at Pi session_start. Only valid in
-   * the global ~/.config/pi/agent/accord-config.json — projects cannot
+   * the global ~/.config/pi/agent/accord.json — projects cannot
    * influence the bootstrap because their AGENTS.md is loaded after
    * the bootstrap runs.
    */

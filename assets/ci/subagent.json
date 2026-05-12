@@ -1,0 +1,27 @@
+{
+  "defaultProfile": "anthropic-direct",
+  "activeProfile": "anthropic-direct",
+  "skills": {
+    "accord": { "profile": "anthropic-direct" }
+  },
+  "profiles": {
+    "anthropic-direct": {
+      "provider": "anthropic",
+      "thinkingMode": "flag",
+      "tiers": {
+        "reasoning": {
+          "model": "claude-opus-4-7",
+          "thinking": "medium"
+        },
+        "workhorse": {
+          "model": "claude-sonnet-4-6",
+          "thinking": "low"
+        },
+        "lightweight": {
+          "model": "claude-haiku-4-5",
+          "thinking": "off"
+        }
+      }
+    }
+  }
+}

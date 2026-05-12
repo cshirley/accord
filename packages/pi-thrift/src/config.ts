@@ -100,37 +100,20 @@ export const DEFAULT_CONFIG: ThriftConfig = {
 // ── Persistence ─────────────────────────────────────────────────────────
 
 const CONFIG_PATH = join(homedir(), ".pi", "agent", "thrift.json");
-/** Legacy path — read once for migration if the new path is missing. */
-const LEGACY_CONFIG_PATH = join(
-  homedir(),
-  ".pi",
-  "agent",
-  "token-pruner.json",
-);
 let saveQueue: Promise<void> = Promise.resolve();
 
 export async function loadConfig(): Promise<ThriftConfig> {
-  // Try the canonical path first; fall back to the legacy path so users
-  // who haven’t yet migrated retain their settings on first load.
-  for (const path of [CONFIG_PATH, LEGACY_CONFIG_PATH]) {
-    try {
-      const raw = await readFile(path, "utf8");
-      const parsed = JSON.parse(raw);
-      const config = merge(DEFAULT_CONFIG, parsed);
-      if (!OUTPUT_LEVELS.includes(config.output.level)) {
-        config.output.level = DEFAULT_CONFIG.output.level;
-      }
-      // If we read from the legacy path, persist immediately at the new
-      // path so subsequent saves don’t resurrect the old file.
-      if (path === LEGACY_CONFIG_PATH) {
-        void saveConfig(config);
-      }
-      return config;
-    } catch {
-      // try next path
+  try {
+    const raw = await readFile(CONFIG_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    const config = merge(DEFAULT_CONFIG, parsed);
+    if (!OUTPUT_LEVELS.includes(config.output.level)) {
+      config.output.level = DEFAULT_CONFIG.output.level;
     }
+    return config;
+  } catch {
+    return structuredClone(DEFAULT_CONFIG);
   }
-  return structuredClone(DEFAULT_CONFIG);
 }
 
 export async function saveConfig(config: ThriftConfig): Promise<void> {

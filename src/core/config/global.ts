@@ -4,7 +4,7 @@ import { GLOBAL_CONFIG_PATH } from "./paths.js";
 import type { ContextSourceConfig, DevHarnessGlobalConfig } from "./types.js";
 
 /**
- * Load the global accord-config.json from ~/.config/pi/agent/.
+ * Load the global accord.json from ~/.config/pi/agent/.
  * Returns null if not found or invalid.
  *
  * The seeded file (see `seedGlobalConfigFile`) contains JSONC-style
@@ -123,7 +123,7 @@ export function stripJsonComments(input: string): string {
 }
 
 /**
- * Default JSONC content seeded into a fresh `accord-config.json`. All
+ * Default JSONC content seeded into a fresh `accord.json`. All
  * configuration is commented out so the runtime sees an empty object
  * (the safe default) until the user opts in. The block-comment header
  * documents the file's purpose; line comments inside the object give
@@ -131,11 +131,11 @@ export function stripJsonComments(input: string): string {
  */
 export function defaultGlobalConfigTemplate(): string {
   return `// ACCORD global configuration. Applies across every project that
-// uses /dev. Loaded from ~/.config/pi/agent/accord-config.json at
+// uses /dev. Loaded from ~/.config/pi/agent/accord.json at
 // extension start. Edit freely — // and /* ... */ comments are
 // preserved on disk and stripped by the loader at runtime.
 //
-// Schema: schemas/accord-config-schema.json (in the pi-accord repo).
+// Schema: schemas/accord-schema.json (in the pi-accord repo).
 // All keys are optional; with everything commented out ACCORD uses
 // its built-in defaults (auto-install on, no extra context sources,
 // no user-defined providers).
@@ -152,7 +152,7 @@ export function defaultGlobalConfigTemplate(): string {
 
   // ── Context sources ──────────────────────────────────────────────
   // Global enrichment sources surfaced to phase-gather. Project-level
-  // accord-config.json entries (under the ## Dev Harness JSON block)
+  // accord.json entries (under the ## Dev Harness JSON block)
   // are merged on top of these — matched by "type", project fields
   // override globals, and { "enabled": false } disables a source for
   // a single project. Bundled enrichments: slack, google-docs,
@@ -201,7 +201,7 @@ export interface SeedGlobalConfigResult {
 }
 
 /**
- * Write a stub accord-config.json with commented-out examples if one
+ * Write a stub accord.json with commented-out examples if one
  * does not already exist at the target. Idempotent: never overwrites
  * a user-edited file. Failures are reported via the result, not
  * thrown — callers (the asset installer, the bootstrap) treat a seed
@@ -209,7 +209,7 @@ export interface SeedGlobalConfigResult {
  */
 export function seedGlobalConfigFile(opts: SeedGlobalConfigOptions = {}): SeedGlobalConfigResult {
   const filePath = opts.target
-    ? path.join(opts.target, "accord-config.json")
+    ? path.join(opts.target, "accord.json")
     : GLOBAL_CONFIG_PATH;
 
   if (fs.existsSync(filePath)) {

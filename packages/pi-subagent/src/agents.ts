@@ -16,7 +16,7 @@
  *   │ ↓ if missing, borrow whole tier recipe from   │
  *   │   defaultProfile (provider+thinkingMode+model)│
  *   ├───────────────────────────────────────────────┤
- *   │ subagent-config.json missing/corrupt → in-code│
+ *   │ subagent.json missing/corrupt → in-code       │
  *   │ DEFAULT_CONFIG (Anthropic-direct only)        │
  *   └───────────────────────────────────────────────┘
  *
@@ -88,7 +88,7 @@ export interface AgentConfig {
 const DEFAULT_TIER: ModelTier = "workhorse";
 
 /**
- * Last-resort in-code config used only when `subagent-config.json` cannot be
+ * Last-resort in-code config used only when `subagent.json` cannot be
  * read or is structurally invalid. Intentionally minimal: one profile, the
  * safest direct provider, full tier coverage.
  */
@@ -130,7 +130,7 @@ function isValidConfig(parsed: unknown): parsed is SubagentConfig {
 }
 
 function loadConfig(): SubagentConfig {
-	const configPath = path.join(getAgentDir(), "subagent-config.json");
+	const configPath = path.join(getAgentDir(), "subagent.json");
 	if (_configCache && _configCachePath === configPath) return _configCache;
 
 	const cacheAndReturn = (cfg: SubagentConfig): SubagentConfig => {
@@ -146,12 +146,12 @@ function loadConfig(): SubagentConfig {
 		// File missing — write the in-code default so the user can edit it.
 		try {
 			fs.writeFileSync(configPath, `${JSON.stringify(DEFAULT_CONFIG, null, 2)}\n`, "utf-8");
-			console.error(`[subagent] Created default subagent-config.json at ${configPath}`);
+			console.error(`[subagent] Created default subagent.json at ${configPath}`);
 			return cacheAndReturn(DEFAULT_CONFIG);
 		} catch {
 			if (!_configWarned) {
 				console.error(
-					`[subagent] Could not read or create subagent-config.json at ${configPath}. Using in-code defaults.`,
+					`[subagent] Could not read or create subagent.json at ${configPath}. Using in-code defaults.`,
 				);
 				_configWarned = true;
 			}
@@ -164,7 +164,7 @@ function loadConfig(): SubagentConfig {
 		parsed = JSON.parse(raw);
 	} catch (err) {
 		if (!_configWarned) {
-			console.error(`[subagent] subagent-config.json is not valid JSON: ${(err as Error).message}. Using in-code defaults.`);
+			console.error(`[subagent] subagent.json is not valid JSON: ${(err as Error).message}. Using in-code defaults.`);
 			_configWarned = true;
 		}
 		return cacheAndReturn(DEFAULT_CONFIG);
@@ -176,7 +176,7 @@ function loadConfig(): SubagentConfig {
 	if (parsed && typeof parsed === "object" && "tiers" in parsed && !("profiles" in parsed)) {
 		if (!_configWarned) {
 			console.error(
-				`[subagent] subagent-config.json uses the legacy 'tiers' shape. ` +
+				`[subagent] subagent.json uses the legacy 'tiers' shape. ` +
 					`Migrate to defaultProfile/activeProfile/profiles (see docs/agent-refactor/brief.md). ` +
 					`Falling back to in-code defaults until then.`,
 			);
@@ -188,7 +188,7 @@ function loadConfig(): SubagentConfig {
 	if (!isValidConfig(parsed)) {
 		if (!_configWarned) {
 			console.error(
-				`[subagent] subagent-config.json is missing required fields (defaultProfile, profiles, or profiles[defaultProfile]). Using in-code defaults.`,
+				`[subagent] subagent.json is missing required fields (defaultProfile, profiles, or profiles[defaultProfile]). Using in-code defaults.`,
 			);
 			_configWarned = true;
 		}
@@ -199,7 +199,7 @@ function loadConfig(): SubagentConfig {
 	return cacheAndReturn(parsed);
 }
 
-/** Invalidate the config cache (e.g. after editing subagent-config.json). */
+/** Invalidate the config cache (e.g. after editing subagent.json). */
 export function invalidateConfigCache(): void {
 	_configCache = null;
 	_configCachePath = null;

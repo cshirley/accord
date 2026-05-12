@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "accord-config-schema.json",
+  "$id": "accord-schema.json",
   "title": "ACCORD Project Configuration",
   "description": "Stack-specific configuration for the /dev ACCORD workflow, embedded in a project's AGENTS.md under the ## Dev Harness compatibility heading as a fenced JSON block.",
   "type": "object",
@@ -112,7 +112,7 @@
     },
     "context_sources": {
       "type": "array",
-      "description": "Project-level enrichment source overrides. Merged on top of global accord-config.json sources (matched by type). Use enabled:false to disable a global source for this project.",
+      "description": "Project-level enrichment source overrides. Merged on top of global accord.json sources (matched by type). Use enabled:false to disable a global source for this project.",
       "items": {
         "type": "object",
         "required": ["type"],

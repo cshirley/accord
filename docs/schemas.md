@@ -13,7 +13,7 @@ Source of truth for all artifact shapes. Located in `schemas/`.
 | `plan-schema.json` | `docs/dev/<ID>/plan.json` | `work_item_id` |
 | `verify-schema.json` | `docs/dev/<ID>/verify.json` | `work_item_id` |
 | `investigation-schema.json` | `.tasks/<ID>-investigation.json` | `work_item_id` |
-| `accord-config-schema.json` | `## Dev Harness` compatibility config block in AGENTS.md | `schema_version` |
+| `accord-schema.json` | `## Dev Harness` compatibility config block in AGENTS.md | `schema_version` |
 | `provider-schema.json` | `assets/providers/{trackers,enrichments}/<name>.json` connectivity sidecars | `name` |
 | `model-pricing.json` | Token pricing lookup for cost tracking | — |
 

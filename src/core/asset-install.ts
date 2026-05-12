@@ -61,7 +61,7 @@ export interface InstallResult {
   metadataPath: string;
   metadata: AccordAssetsMetadata;
   /**
-   * Outcome of the global accord-config.json seed step. "created"
+   * Outcome of the global accord.json seed step. "created"
    * means a stub with commented examples was just written;
    * "exists" means we left a user file alone; "error" means the seed
    * failed (non-fatal — the install itself still succeeded). Always
@@ -234,7 +234,7 @@ export function installPiAssets(opts: InstallOptions = {}): InstallResult {
   };
 
   const metadataPath = join(target, ".accord-assets.json");
-  const globalConfigPath = join(target, "accord-config.json");
+  const globalConfigPath = join(target, "accord.json");
   let globalConfigSeed: SeedGlobalConfigStatus = "exists";
   if (!dryRun && conflicts.length === 0) {
     mkdirSync(target, { recursive: true });

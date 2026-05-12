@@ -11,7 +11,7 @@
  *
  * Opt-out precedence (first match wins):
  *   1. `ACCORD_AUTO_INSTALL_ASSETS` env var: false/0/no/off → disabled.
- *   2. Global `~/.config/pi/agent/accord-config.json`:
+ *   2. Global `~/.config/pi/agent/accord.json`:
  *      `asset_bootstrap.auto_install: false` → disabled.
  *   3. Default: enabled.
  *
@@ -122,7 +122,7 @@ export interface BootstrapOptions {
   env?: NodeJS.ProcessEnv;
   /**
    * Override the global config (mainly for tests). When undefined, the
-   * bootstrap reads `~/.config/pi/agent/accord-config.json` via
+   * bootstrap reads `~/.config/pi/agent/accord.json` via
    * `loadGlobalConfig()`.
    */
   globalConfig?: DevHarnessGlobalConfig | null;
@@ -173,7 +173,7 @@ export function maybeAutoInstallAssets(
   if (!auto.enabled) {
     const suffix =
       auto.source === "config"
-        ? " (disabled by accord-config.json)"
+        ? " (disabled by accord.json)"
         : auto.source === "env"
           ? " (disabled by ACCORD_AUTO_INSTALL_ASSETS)"
           : "";

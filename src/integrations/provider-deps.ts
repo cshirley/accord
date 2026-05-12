@@ -5,7 +5,7 @@
  *
  * Bundled providers are loaded from `assets/providers/{trackers,enrichments}/*.json`
  * sidecars (paired with their `<name>.md` playbook). User-supplied
- * providers are declared inline in `accord-config.json` under the
+ * providers are declared inline in `accord.json` under the
  * top-level `providers` array.
  *
  * Used by gather-preflight to check availability before dispatching
@@ -101,7 +101,7 @@ export function loadBundledProviders(): ProviderSet {
   return _bundled;
 }
 
-// ── User-supplied providers (accord-config.json `providers`) ────
+// ── User-supplied providers (accord.json `providers`) ────
 
 function expandUserPath(p: string): string {
   if (p.startsWith("~/")) return join(homedir(), p.slice(2));

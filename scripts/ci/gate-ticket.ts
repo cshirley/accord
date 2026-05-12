@@ -147,7 +147,7 @@ function checkIssueType(issue: JiraIssue, cfg: TicketGateConfig): TicketGateFail
     return {
       id: "issue_type_not_allowed",
       field: "issuetype.name",
-      remediation: `issue type "${issue.fields.issuetype.name}" is not in the allow-list [${cfg.allowedIssueTypes.join(", ")}]; convert the ticket or extend allowedIssueTypes in accord-config.json.`,
+      remediation: `issue type "${issue.fields.issuetype.name}" is not in the allow-list [${cfg.allowedIssueTypes.join(", ")}]; convert the ticket or extend allowedIssueTypes in accord.json.`,
     };
   }
   return null;

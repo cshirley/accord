@@ -83,6 +83,14 @@ export const INPUTS = [
     default: "ubuntu-latest",
     description: "GitHub-hosted runner label or self-hosted runner group.",
   },
+  {
+    name: "subagent_profile",
+    type: "string",
+    required: false,
+    default: "anthropic-direct",
+    description:
+      "Name of the profile inside subagent.json to mark as activeProfile before any phase runs. The bundled CI template ships with one profile (anthropic-direct). Set this when consuming a checked-in custom subagent.json that defines additional profiles (e.g. cursor-claude, openai-direct).",
+  },
 ] as const satisfies readonly WorkflowInputSpec[];
 
 export type InputName = (typeof INPUTS)[number]["name"];
@@ -102,6 +110,7 @@ export interface Inputs {
   branch_prefix: string;
   dry_run: boolean;
   runner: string;
+  subagent_profile: string;
 }
 
 /** AC-15 required-secret list — mirrored in scripts/ci/lib/env.ts SECRET_NAMES (minus the optional GH_PAT_PR). */

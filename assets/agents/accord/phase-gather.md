@@ -15,7 +15,7 @@ Produce the factual baseline every other phase builds on. Keep the return packet
 - `work_item_id` (e.g. `ACCORD-1234`, `#42`, `ENG-789`). Format depends on the tracker provider.
 - `tracker` (optional) — object with `type` and optional `project_prefix`. If omitted, infer from the ID format or default to `jira`.
 - `description` (optional) — inline text from the user. Used as the sole source for `plain-text` provider, or as supplementary context for other providers.
-- `context_sources` (optional) — array of enrichment source configs, pre-merged by the orchestrator from global `accord-config.json` + project AGENTS.md `context_sources`. Each entry has `type`, `enabled`, and source-specific scoping fields.
+- `context_sources` (optional) — array of enrichment source configs, pre-merged by the orchestrator from global `accord.json` + project AGENTS.md `context_sources`. Each entry has `type`, `enabled`, and source-specific scoping fields.
 - `fresh` (optional, default false) — if true, bypass cache and re-fetch all enrichments.
 
 ## Step 1 — Resolve the primary provider

@@ -5,9 +5,6 @@ the conversation — fewer tokens in, fewer tokens out. Cache-aware: monotonic
 stubbing keeps the prefix byte-identical within the provider's prompt-cache
 TTL window so cache hits compound.
 
-> Renamed from `token-pruner`. Legacy config at `~/.pi/agent/token-pruner.json`
-> is auto-migrated on first load.
-
 ## How it works
 
 ```mermaid

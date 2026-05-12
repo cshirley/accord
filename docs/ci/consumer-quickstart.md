@@ -66,3 +66,37 @@ see a `ACCORD autopipeline (<TICKET>)` workflow start in your GitHub
 Actions tab within ~10s.
 
 If nothing happens, see `docs/ci/troubleshooting.md`.
+
+## 6 — (Optional) Override the subagent model profile
+
+By default the autopipeline runs against Anthropic (Opus reasoning,
+Sonnet workhorse, Haiku lightweight — see
+`assets/ci/subagent.json` in the pi-accord repo). To run against
+a different provider or tighter model choices:
+
+1. Commit a `ci/subagent.json` into **your** repo with the
+   profiles you want — see `assets/ci/subagent.json` for the
+   shape and `packages/pi-subagent/src/agents.ts` for the resolution
+   rules.
+2. Add the matching API key as a repository secret (e.g. `OPENAI_API_KEY`).
+3. In your wrapper workflow, add a step that overrides the seeded
+   template **after** `setup-pi` runs, and pass `subagent_profile`:
+
+   ```yaml
+   jobs:
+     autopipeline:
+       uses: cshirley/accord/.github/workflows/autopipeline.yml@v1
+       with:
+         ticket: ${{ inputs.ticket || github.event.client_payload.ticket }}
+         subagent_profile: openai-direct
+       secrets: inherit
+   ```
+
+   (Plus a `pre-run` step that copies the override into
+   `~/.config/pi/agent/subagent.json` — see
+   `docs/ci/autopipeline.md#consumer-override-pattern` for the full
+   pattern.)
+
+If the named profile is missing from the resulting JSON the workflow
+fails fast with `::error:: subagent_profile '<name>' is not defined in
+…` listing the profiles it found — no silent fallback.

@@ -37,7 +37,7 @@ If you maintain additional Pi package checkouts (for example `guardrail/`, `jour
 3. **Start pi.dev.** The extension's `session_start` hook detects that no `~/.config/pi/agent/.accord-assets.json` exists, runs the installer in-process, and notifies:
    > *ACCORD: linked N bundled asset(s) (vX.Y.Z) — restart pi to activate.*
 
-   The same install also seeds `~/.config/pi/agent/accord-config.json` — a JSONC stub with every supported field commented out and documented inline. Edit it whenever you want to set global `context_sources`, `providers`, or `asset_bootstrap.auto_install`. The seed step is idempotent: if the file already exists it's left untouched, so you can always recreate a fresh stub by deleting it and re-running `bun run install:assets`.
+   The same install also seeds `~/.config/pi/agent/accord.json` — a JSONC stub with every supported field commented out and documented inline. Edit it whenever you want to set global `context_sources`, `providers`, or `asset_bootstrap.auto_install`. The seed step is idempotent: if the file already exists it's left untouched, so you can always recreate a fresh stub by deleting it and re-running `bun run install:assets`.
 
 4. **Restart pi.dev once more.** This time Pi's startup scan picks up the freshly linked skills/agents/providers and `/dev` is fully functional.
 
@@ -63,13 +63,13 @@ You can disable auto-install (e.g. you maintain hand-edited copies under `~/.con
 | Source | Where | Notes |
 |---|---|---|
 | `ACCORD_AUTO_INSTALL_ASSETS` env var | shell / `~/.zshrc` | Accepts `false`/`0`/`no`/`off` (disable) and `true`/`1`/`yes`/`on` (enable). Set this for one-off overrides; takes precedence over the config file. |
-| `asset_bootstrap.auto_install` | `~/.config/pi/agent/accord-config.json` (global only) | Boolean. Persists across shells without touching your shell rc. The project-level `## Dev Harness` block intentionally does **not** support this field — auto-install is a developer-machine concern. |
+| `asset_bootstrap.auto_install` | `~/.config/pi/agent/accord.json` (global only) | Boolean. Persists across shells without touching your shell rc. The project-level `## Dev Harness` block intentionally does **not** support this field — auto-install is a developer-machine concern. |
 | (default) | — | Auto-install is **on**. |
 
 Example global config:
 
 ```jsonc
-// ~/.config/pi/agent/accord-config.json
+// ~/.config/pi/agent/accord.json
 {
   "asset_bootstrap": {
     "auto_install": false
@@ -90,7 +90,7 @@ bun run install:assets              # link (skipping locally modified files)
 bun run install:assets --force      # overwrite locally modified files
 ```
 
-The script writes `~/.config/pi/agent/.accord-assets.json` with the package version and manifest checksum and (the first time it runs into a fresh Pi config dir) seeds `~/.config/pi/agent/accord-config.json` with a commented-out template. The auto-install bootstrap reads the metadata file to decide whether work is needed, so manual and automatic installs interoperate cleanly.
+The script writes `~/.config/pi/agent/.accord-assets.json` with the package version and manifest checksum and (the first time it runs into a fresh Pi config dir) seeds `~/.config/pi/agent/accord.json` with a commented-out template. The auto-install bootstrap reads the metadata file to decide whether work is needed, so manual and automatic installs interoperate cleanly.
 
 ## Verifying the install
 
@@ -105,7 +105,7 @@ If pi loads but `/dev` is missing, check:
 - `jq '.packages' ~/.config/pi/agent/settings.json` — should include the **real path** to this checkout (and any other roots you added with further **`pi install`** runs). Plain strings are local package roots; `npm:…` entries are unrelated npm Pi packages.
 - From the repo: `jq '.pi.extensions' package.json` — should list the six `./packages/.../src/index.ts` entries and `./src/index.ts`.
 - `ls ~/.config/pi/agent/skills/accord ~/.config/pi/agent/agents/accord ~/.config/pi/agent/providers` — all three should resolve (from auto-install / `install:assets`).
-- `cat ~/.config/pi/agent/.accord-assets.json` — confirms the bootstrap ran. If absent, the auto-install was either disabled (check `ACCORD_AUTO_INSTALL_ASSETS` and `asset_bootstrap.auto_install` in `~/.config/pi/agent/accord-config.json`) or failed silently — check the Pi notifications log.
+- `cat ~/.config/pi/agent/.accord-assets.json` — confirms the bootstrap ran. If absent, the auto-install was either disabled (check `ACCORD_AUTO_INSTALL_ASSETS` and `asset_bootstrap.auto_install` in `~/.config/pi/agent/accord.json`) or failed silently — check the Pi notifications log.
 
 ## Edit-test loop
 

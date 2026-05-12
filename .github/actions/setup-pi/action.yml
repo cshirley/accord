@@ -8,6 +8,17 @@
 # ~/.config/pi/agent/auth.json BEFORE the cache save step so a credential
 # never lands inside the published cache artifact, regardless of whether the
 # cache step ran to completion.
+#
+# Runtime seed configs: pi-subagent reads `subagent.json` and
+# pi-thrift reads `thrift.json` from the Pi agent directory. Neither file
+# exists on a fresh runner. The "Seed runtime configs" step below copies
+# CI-tuned templates from `assets/ci/` into the agent directory using
+# `cp -n` (no-clobber) so a restored cache version always wins.
+#
+# pi-thrift hard-codes `homedir()/.pi/agent` whereas pi-coding-agent on
+# Linux uses `~/.config/pi/agent`. We make `~/.pi` a symlink to
+# `~/.config/pi` so both modules end up reading and writing the same
+# directory (matches the local-developer layout on macOS).
 
 name: Setup pi + ACCORD
 description: Install pi-coding-agent + pi-accord with cache-friendly layout (AC-12 / AC-13).
@@ -21,6 +32,13 @@ inputs:
     description: Tag/branch of pi-accord asset bundle to install.
     required: false
     default: v1
+  subagent_profile:
+    description: |
+      Profile name to mark as activeProfile inside ~/.config/pi/agent/subagent.json.
+      Applied after the seed copy step (or to whatever consumer config is in the cache),
+      via jq.  Defaults to the only profile shipped in the bundled CI template.
+    required: false
+    default: anthropic-direct
 
 runs:
   using: composite
@@ -81,6 +99,51 @@ runs:
       run: |
         pi install $(pwd)
         bun run install:assets
+
+    - name: Seed runtime configs for pi-subagent and pi-thrift
+      shell: bash
+      env:
+        SUBAGENT_PROFILE: ${{ inputs.subagent_profile }}
+      run: |
+        set -euo pipefail
+        # Ensure pi-thrift's `homedir()/.pi/agent` path resolves to the same
+        # directory pi-coding-agent uses on Linux (`~/.config/pi/agent`),
+        # mirroring the local-developer layout on macOS.
+        mkdir -p "$HOME/.config/pi"
+        if [ ! -e "$HOME/.pi" ]; then
+          ln -s "$HOME/.config/pi" "$HOME/.pi"
+        fi
+        mkdir -p "$HOME/.config/pi/agent"
+
+        SUBAGENT_DST="$HOME/.config/pi/agent/subagent.json"
+        THRIFT_DST="$HOME/.config/pi/agent/thrift.json"
+
+        # Seed CI-tuned configs only if they don't already exist (cache wins).
+        cp -n .accord-ci/assets/ci/subagent.json "$SUBAGENT_DST" || true
+        cp -n .accord-ci/assets/ci/thrift.json   "$THRIFT_DST"   || true
+
+        # Apply the requested activeProfile. We fail fast if the named profile
+        # is not present in the resulting JSON — better than letting pi-subagent
+        # silently fall back to in-code defaults at the first phase invocation.
+        if [ -f "$SUBAGENT_DST" ]; then
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "::error::jq is required to apply subagent_profile but was not found on the runner."
+            exit 1
+          fi
+          if ! jq -e --arg p "$SUBAGENT_PROFILE" '.profiles[$p]' "$SUBAGENT_DST" >/dev/null; then
+            echo "::error::subagent_profile '$SUBAGENT_PROFILE' is not defined in $SUBAGENT_DST. Available profiles:"
+            jq -r '.profiles | keys[]' "$SUBAGENT_DST" || true
+            exit 1
+          fi
+          tmp="$(mktemp)"
+          jq --arg p "$SUBAGENT_PROFILE" '.activeProfile = $p' "$SUBAGENT_DST" > "$tmp"
+          mv "$tmp" "$SUBAGENT_DST"
+          echo "Set activeProfile to '$SUBAGENT_PROFILE' in $SUBAGENT_DST"
+        fi
+
+        echo "::group::Seeded pi agent dir"
+        ls -la "$HOME/.config/pi/agent/"
+        echo "::endgroup::"
 
     - name: Export PI flags to subsequent steps
       shell: bash

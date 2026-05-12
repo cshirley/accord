@@ -62,6 +62,16 @@ on:
         type: string
         required: false
         default: ubuntu-latest
+      subagent_profile:
+        description: |
+          Name of the profile inside subagent.json to mark as
+          activeProfile before any phase runs. The bundled CI template
+          ships with one profile (anthropic-direct). Set this when
+          consuming a checked-in custom subagent.json that defines
+          additional profiles (e.g. cursor-claude, openai-direct).
+        type: string
+        required: false
+        default: anthropic-direct
     secrets:
       ANTHROPIC_API_KEY:
         required: true
@@ -110,6 +120,7 @@ jobs:
         with:
           pi_version: ${{ inputs.pi_version }}
           accord_ref: ${{ inputs.accord_ref }}
+          subagent_profile: ${{ inputs.subagent_profile }}
 
       - name: Validate dispatch payload (AC-1)
         id: dispatch

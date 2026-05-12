@@ -1,0 +1,32 @@
+{
+  "enabled": true,
+  "input": {
+    "enabled": true,
+    "maxResultBytes": {
+      "bash": 10000,
+      "read": 40000,
+      "grep": 5000,
+      "find": 5000,
+      "ls": 5000
+    },
+    "maxResultLines": 500,
+    "keepRecentTurns": 3,
+    "stubThresholdBytes": 200,
+    "cacheAware": true,
+    "providerTTLs": {
+      "anthropic": 300000,
+      "openai": 600000,
+      "google": 0,
+      "groq": 0,
+      "cerebras": 0,
+      "xai": 0,
+      "openrouter": 300000,
+      "local-openai": 0
+    },
+    "defaultTTL": 300000
+  },
+  "output": {
+    "level": "lite"
+  },
+  "showStatus": false
+}

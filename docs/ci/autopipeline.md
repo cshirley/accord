@@ -25,6 +25,7 @@ The reusable workflow declares the following surface — see
 | `branch_prefix` | string | no | `accord/` | Prefix for the working branch. |
 | `dry_run` | boolean | no | `false` | Skip git push / PR open / Jira write. |
 | `runner` | string | no | `ubuntu-latest` | GH-hosted runner label or self-hosted group. |
+| `subagent_profile` | string | no | `anthropic-direct` | Name of the profile to mark as `activeProfile` inside the runner's `subagent.json` before any phase runs. See [Runtime configs and profiles](#runtime-configs-and-profiles) below. |
 
 ### Secrets
 
@@ -81,6 +82,63 @@ when ALL THREE conditions hold simultaneously:
 Otherwise the workflow cleans `.tasks/<ticket>*` and starts fresh, with
 the reason (`no_prior_state` / `phase_non_resumable` / `brief_drift` /
 `cost_cap_breached`) written verbatim into the run-opening Jira comment.
+
+## Runtime configs and profiles
+
+Two pi-extension configs are normally written to `~/.config/pi/agent/` on
+a developer's laptop but **do not exist on a fresh GitHub runner**:
+
+| File | Reader | Effect when missing |
+|---|---|---|
+| `subagent.json` | `packages/pi-subagent/src/agents.ts` | Falls back to an in-code default profile (works but logs a warning, can't be tuned per-phase). |
+| `thrift.json` | `packages/pi-thrift/src/config.ts` | Loads in-code defaults (`output.level: "full"`, `showStatus: true`). |
+
+The `setup-pi` composite (`.github/actions/setup-pi/action.yml`) seeds
+both files from `assets/ci/*.json` after `pi install pi-accord` has run.
+It uses `cp -n` so a cache-restored version always wins over the
+template. It also creates a `~/.pi → ~/.config/pi` symlink because
+`pi-thrift` hard-codes `homedir()/.pi/agent` whereas `pi-coding-agent`
+uses `~/.config/pi/agent` on Linux.
+
+### Selecting a profile per-call
+
+The bundled CI template ships a single profile named `anthropic-direct`
+(the only provider keyed in CI by default). The workflow's
+`subagent_profile` input is applied **after** the seed copy step via
+`jq`, mutating only `activeProfile` (not `defaultProfile`, which would
+change cache semantics across runs). If the named profile is absent
+from the resulting JSON the step fails with an `::error::` line listing
+the available profile names — better than letting `pi-subagent` silently
+fall back to in-code defaults.
+
+### Consumer override pattern
+
+Consumers who want a richer profile set (e.g. an `openai-direct` tier
+ladder or a `cursor-claude` mirror of their laptop config) commit a
+custom `subagent.json` into their repo and copy it over the
+seeded template in their wrapper workflow, **after** the `setup-pi`
+action:
+
+```yaml
+- name: Override CI subagent profile
+  shell: bash
+  run: cp ci/subagent.json ~/.config/pi/agent/subagent.json
+
+- name: phase-spec
+  uses: cshirley/accord/.github/actions/run-accord-phase@v1
+  with:
+    phase: spec
+    ticket: ${{ inputs.ticket }}
+```
+
+The custom file is then mutated by `subagent_profile` exactly the same
+way the bundled template is — so the workflow input `subagent_profile:
+openai-direct` will pick the consumer's `openai-direct` profile out of
+their file. (Don't forget to plumb the required API key as a secret on
+top of the four standard ones — see the secrets table.)
+
+The seeded `thrift.json` is rarely worth overriding — its defaults are
+already tuned for non-interactive runs.
 
 ## Architectural constraints (AC-6)
 

@@ -76,12 +76,12 @@ describe("installPiAssets", () => {
     expect(existsSync(result.metadataPath)).toBe(false);
   });
 
-  test("seeds accord-config.json on first install with commented examples", () => {
+  test("seeds accord.json on first install with commented examples", () => {
     const target = tempPiAgent();
     const result = installPiAssets({ target });
 
     expect(result.globalConfigSeed).toBe("created");
-    const configPath = join(target, "accord-config.json");
+    const configPath = join(target, "accord.json");
     expect(existsSync(configPath)).toBe(true);
 
     const raw = readFileSync(configPath, "utf8");
@@ -93,11 +93,11 @@ describe("installPiAssets", () => {
     expect(JSON.parse(stripJsonComments(raw))).toEqual({});
   });
 
-  test("a second install does not overwrite a user-edited accord-config.json", () => {
+  test("a second install does not overwrite a user-edited accord.json", () => {
     const target = tempPiAgent();
     installPiAssets({ target });
 
-    const configPath = join(target, "accord-config.json");
+    const configPath = join(target, "accord.json");
     const userContent = '{ "asset_bootstrap": { "auto_install": false } }\n';
     writeFileSync(configPath, userContent, "utf8");
 
@@ -110,7 +110,7 @@ describe("installPiAssets", () => {
     const target = tempPiAgent();
     const result = installPiAssets({ target, dryRun: true });
     expect(result.globalConfigSeed).toBe("exists");
-    expect(existsSync(join(target, "accord-config.json"))).toBe(false);
+    expect(existsSync(join(target, "accord.json"))).toBe(false);
   });
 
   test("reports conflicts when a target exists with different content and force is false", () => {
@@ -266,7 +266,7 @@ describe("maybeAutoInstallAssets", () => {
     expect(r.status).toBe("skipped-by-env");
     expect(r.linked).toBe(0);
     expect(events).toHaveLength(1);
-    expect(events[0].message).toMatch(/accord-config\.json/);
+    expect(events[0].message).toMatch(/accord\.json/);
     expect(events[0].message).toMatch(/install:assets/);
   });
 
@@ -349,7 +349,7 @@ describe("maybeAutoInstallAssets", () => {
     });
 
     expect(r.status).toBe("skipped-by-env");
-    expect(events[0].message).toMatch(/accord-config\.json/);
+    expect(events[0].message).toMatch(/accord\.json/);
   });
 
   test("conflicts → warns with --force hint, status conflicts", () => {
@@ -400,26 +400,26 @@ describe("maybeAutoInstallAssets", () => {
     expect(linkTarget).toContain("assets/skills/accord");
   });
 
-  test("first install via the bootstrap also seeds accord-config.json", () => {
+  test("first install via the bootstrap also seeds accord.json", () => {
     const target = tempPiAgent();
     maybeAutoInstallAssets({ notify: () => {} }, { target, env: {} });
-    expect(existsSync(join(target, "accord-config.json"))).toBe(true);
+    expect(existsSync(join(target, "accord.json"))).toBe(true);
   });
 
-  test("opt-out (env=false) does not seed accord-config.json", () => {
+  test("opt-out (env=false) does not seed accord.json", () => {
     const target = tempPiAgent();
     maybeAutoInstallAssets(
       { notify: () => {} },
       { target, env: { ACCORD_AUTO_INSTALL_ASSETS: "false" } },
     );
-    expect(existsSync(join(target, "accord-config.json"))).toBe(false);
+    expect(existsSync(join(target, "accord.json"))).toBe(false);
   });
 });
 
 // ── Global config seed + JSONC stripping ────────────────────
 
 describe("seedGlobalConfigFile", () => {
-  test("creates accord-config.json with commented examples in a fresh target", () => {
+  test("creates accord.json with commented examples in a fresh target", () => {
     const target = tempPiAgent();
     const result = seedGlobalConfigFile({ target });
 
@@ -436,7 +436,7 @@ describe("seedGlobalConfigFile", () => {
 
   test("does not overwrite an existing config", () => {
     const target = tempPiAgent();
-    const path = join(target, "accord-config.json");
+    const path = join(target, "accord.json");
     mkdirSync(target, { recursive: true });
     writeFileSync(path, '{ "context_sources": [] }', "utf8");
 

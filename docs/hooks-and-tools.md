@@ -25,7 +25,7 @@ Fires before every subagent spawn. Two responsibilities:
 
 ### Gather preflight (tool_call → subagent phase-gather)
 
-Before `phase-gather` runs, checks availability of configured sources (Jira, Slack, Confluence, Google Docs). Loads the bundled provider sidecars from `assets/providers/{trackers,enrichments}/*.json` and merges any user-defined providers from `accord-config.json`. Prompts the user to confirm if sources are unavailable. Injects a preflight report into the gather brief that includes a **Provider Playbooks** block with absolute paths to each active provider's markdown playbook, so user-supplied providers work without prompt edits.
+Before `phase-gather` runs, checks availability of configured sources (Jira, Slack, Confluence, Google Docs). Loads the bundled provider sidecars from `assets/providers/{trackers,enrichments}/*.json` and merges any user-defined providers from `accord.json`. Prompts the user to confirm if sources are unavailable. Injects a preflight report into the gather brief that includes a **Provider Playbooks** block with absolute paths to each active provider's markdown playbook, so user-supplied providers work without prompt edits.
 
 ### Subagent result processing (tool_result → subagent)
 

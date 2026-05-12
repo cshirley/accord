@@ -242,7 +242,7 @@ type OnUpdateCallback = (partial: AgentToolResult<SubagentDetails>) => void;
  *   - Model already contains "/": treat as fully-qualified `provider/model` and pass through.
  *   - Otherwise: prefix with `${provider}/`.
  *
- * Provider comes from the resolved profile in `subagent-config.json`, not from
+ * Provider comes from the resolved profile in `subagent.json`, not from
  * the session's current provider. That decoupling is what stops profile
  * switching from emitting nonsense ids like `openai/claude-opus-4-7`.
  */
