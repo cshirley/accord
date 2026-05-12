@@ -63,7 +63,7 @@ export async function processSubagentToolResult(
     const workItemId = extractWorkItemId(task, { mustExist: true });
 
     if (workItemId && result.usage) {
-      const normalized = normalizeUsageCostFields(result.usage as any);
+      const normalized = normalizeUsageCostFields(result.usage);
       const billable =
         normalized.input +
         normalized.output +
@@ -91,7 +91,9 @@ export async function processSubagentToolResult(
     }
 
     const msgs = Array.isArray(result.messages) ? result.messages : [];
-    const assistantMsgs = msgs.filter((m: any) => m?.role === "assistant");
+    const assistantMsgs = msgs.filter(
+      (m: unknown) => (m as { role?: string }).role === "assistant",
+    );
     const lastAssistant = assistantMsgs[assistantMsgs.length - 1];
     const lastContent = lastAssistant?.content as unknown;
     const hasContent = Array.isArray(lastContent) ? lastContent.length > 0 : !!lastContent;
@@ -120,12 +122,17 @@ export async function processSubagentToolResult(
       continue;
     }
 
-    const packet = agentName ? extractReturnPacketFromSubagentResult(result as any) : null;
+    const packet = agentName ? extractReturnPacketFromSubagentResult(result) : null;
     if (packet) {
       log.info(`agent=${agentName} packet=found status=${(packet as { status?: string }).status}`);
     } else if (agentName) {
       const blockTypes = Array.isArray(lastContent)
-        ? lastContent.map((b: any) => b?.type ?? typeof b).join(", ")
+        ? lastContent
+            .map((b: unknown) => {
+              const block = b as Record<string, unknown>;
+              return block?.type ?? typeof b;
+            })
+            .join(", ")
         : typeof lastContent;
       log.warn(
         `agent=${agentName} packet=MISSING stopReason=${result.stopReason} blocks=[${blockTypes}] totalMsgs=${msgs.length}`,

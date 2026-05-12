@@ -57,8 +57,9 @@ export default defineTool<
       ...(p.timeMax && { timeMax: p.timeMax }),
       maxResults: p.maxResults || 50,
     }),
-    mapResult: (raw: any) => {
-      const events: CalendarEvent[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    mapResult: (raw: unknown) => {
+      const r = raw as CalendarEvent[] | { items?: CalendarEvent[] };
+      const events: CalendarEvent[] = Array.isArray(r) ? r : (r.items ?? []);
       const targetDate = new Date().toISOString().slice(0, 10);
       return filterCalendarEvents(events).filter((ev) => {
         const startDt = ev.start?.dateTime || "";

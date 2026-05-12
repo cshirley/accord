@@ -12,7 +12,7 @@
  * onUpdate progress, executeChain wiring, auth gating, error aggregation.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { type TObject, type TSchema, Type } from "typebox";
 import { getMcpRegistry, mcpText } from "./mcp-registry.js";
 
@@ -265,11 +265,16 @@ function registerOneTool<TParams, TResult>(pi: ExtensionAPI, def: ToolDef<TParam
     label: def.label,
     description: def.description,
     parameters,
-    async execute(_toolCallId: string, params: TParams, _signal: unknown, onUpdate: any) {
+    async execute(
+      _toolCallId: string,
+      params: TParams,
+      _signal: unknown,
+      onUpdate?: (partial: AgentToolResult<unknown>) => void,
+    ) {
       // Progress
       if (def.progress) {
         const msg = typeof def.progress === "function" ? def.progress(params) : def.progress;
-        onUpdate?.({ content: [{ type: "text", text: msg }] });
+        onUpdate?.({ content: [{ type: "text", text: msg }], details: undefined });
       }
 
       // Execute provider chain → domain result
@@ -290,9 +295,9 @@ function registerOneTool<TParams, TResult>(pi: ExtensionAPI, def: ToolDef<TParam
 // ---------------------------------------------------------------------------
 
 /** Register an array of ToolDef objects with pi. */
-export function registerToolDefs(pi: ExtensionAPI, defs: ToolDef<any, any>[]): void {
+export function registerToolDefs(pi: ExtensionAPI, defs: readonly unknown[]): void {
   for (const def of defs) {
-    registerOneTool(pi, def);
+    registerOneTool(pi, def as ToolDef);
   }
 }
 

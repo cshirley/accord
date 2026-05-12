@@ -100,8 +100,8 @@ let saveQueue: Promise<void> = Promise.resolve();
 export async function loadConfig(): Promise<ThriftConfig> {
   try {
     const raw = await readFile(CONFIG_PATH, "utf8");
-    const parsed = JSON.parse(raw);
-    const config = merge(DEFAULT_CONFIG, parsed);
+    const parsed: unknown = JSON.parse(raw);
+    const config = merge(DEFAULT_CONFIG, parsed) as ThriftConfig;
     if (!OUTPUT_LEVELS.includes(config.output.level)) {
       config.output.level = DEFAULT_CONFIG.output.level;
     }
@@ -122,19 +122,25 @@ export async function saveConfig(config: ThriftConfig): Promise<void> {
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function merge(defaults: any, overrides: any): any {
-  if (typeof defaults !== "object" || defaults === null || Array.isArray(defaults)) {
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function merge(defaults: unknown, overrides: unknown): unknown {
+  if (!isPlainObject(defaults)) {
     return overrides !== undefined ? overrides : defaults;
   }
-  if (typeof overrides !== "object" || overrides === null || Array.isArray(overrides)) {
+  if (!isPlainObject(overrides)) {
     return structuredClone(defaults);
   }
-  const out: any = { ...structuredClone(defaults) };
+  const out: Record<string, unknown> = { ...structuredClone(defaults) };
   for (const key of Object.keys(overrides)) {
-    if (key in defaults && typeof defaults[key] === "object" && !Array.isArray(defaults[key])) {
-      out[key] = merge(defaults[key], overrides[key]);
+    const defVal = defaults[key];
+    const overVal = overrides[key];
+    if (key in defaults && isPlainObject(defVal)) {
+      out[key] = merge(defVal, overVal);
     } else {
-      out[key] = overrides[key];
+      out[key] = overVal;
     }
   }
   return out;

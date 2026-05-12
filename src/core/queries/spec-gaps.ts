@@ -45,12 +45,18 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
       error: `Spec not found for ${id}. Tried wi.spec, docs/dev/${id}/spec.json, docs/specs/${id}-spec.json.`,
     };
   }
-  const spec = readJson<any>(specPath);
+  const spec = readJson<Record<string, unknown>>(specPath);
   if (!spec) return { error: `Spec not readable: ${specPath}` };
 
   const results: SpecGapResult[] = [];
-  const scopeOut = (spec.scope?.out || []).map((e: any) =>
-    typeof e === "string" ? e.toLowerCase() : (e.item || e.reason || "").toLowerCase(),
+  const scopeOut = (
+    ((spec.scope as Record<string, unknown> | undefined)?.out as unknown[] | undefined) ?? []
+  ).map((e: unknown) =>
+    typeof e === "string"
+      ? e.toLowerCase()
+      : String(
+          (e as Record<string, unknown>).item || (e as Record<string, unknown>).reason || "",
+        ).toLowerCase(),
   );
   // Word-boundary match so e.g. keyword "ci" does not falsely match
   // "specific" or "explicit" inside a scope.out item.
@@ -59,11 +65,14 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
     return scopeOut.some((s: string) => re.test(s));
   };
 
-  const infra = spec.infra_and_tooling || {};
-  const security = spec.security_topology || {};
-  const devErgo = spec.dev_ergonomics || {};
-  const testTopo = spec.test_topology || {};
-  const verification = spec.verification || {};
+  const infra = (spec.infra_and_tooling as Record<string, unknown> | undefined) ?? {};
+  const security = (spec.security_topology as Record<string, unknown> | undefined) ?? {};
+  const devErgo = (spec.dev_ergonomics as Record<string, unknown> | undefined) ?? {};
+  const testTopo = (spec.test_topology as Record<string, unknown> | undefined) ?? {};
+  const verification = (spec.verification as Record<string, unknown> | undefined) ?? {};
+  const secrets = (security.secrets as unknown[] | undefined) ?? [];
+  const commands = (verification.commands as string[] | undefined) ?? [];
+  const testCases = (verification.test_cases as unknown[] | undefined) ?? [];
 
   // 1. Monorepo scaffolding
   if (infra.monorepo_scaffold) {
@@ -114,12 +123,13 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   }
 
   // 3. CI workflow
-  if (infra.ci_platform && (infra.required_workflows || []).length > 0) {
+  const requiredWorkflows = (infra.required_workflows as unknown[] | undefined) ?? [];
+  if (infra.ci_platform && requiredWorkflows.length > 0) {
     results.push({
       check: "CI workflow",
       layer: "infra",
       status: "covered",
-      detail: `${infra.ci_platform}, ${(infra.required_workflows || []).length} workflows`,
+      detail: `${infra.ci_platform}, ${requiredWorkflows.length} workflows`,
     });
   } else if (infra.ci_in_v1 === false) {
     const outEntry = scopeOut.find((s: string) => s.includes("ci"));
@@ -146,13 +156,13 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   }
 
   // 4. Secret topology
-  if ((security.secrets || []).length > 0) {
-    const tiers = (security.secrets || []).map((s: any) => s.tier).join(", ");
+  if (secrets.length > 0) {
+    const tiers = secrets.map((s) => String((s as Record<string, unknown>).tier)).join(", ");
     results.push({
       check: "Secret topology",
       layer: "security",
       status: "covered",
-      detail: `${security.secrets.length} secrets (${tiers})`,
+      detail: `${secrets.length} secrets (${tiers})`,
     });
   } else if (hasScope("secret") || hasScope("env var")) {
     results.push({
@@ -171,11 +181,15 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   }
 
   // 5. Startup-failure ACs
-  const requiredEnvVars = (security.secrets || []).filter((s: any) => s.tier === "server-only");
-  const constraintACs = (spec.acceptance_criteria || []).filter(
-    (ac: any) =>
-      ac.type === "constraint" &&
-      /fail.*start|required.*env|must.*set|missing.*env/i.test(ac.criterion || ""),
+  const requiredEnvVars = secrets.filter(
+    (s) => (s as Record<string, unknown>).tier === "server-only",
+  );
+  const constraintACs = ((spec.acceptance_criteria as unknown[] | undefined) ?? []).filter(
+    (ac) =>
+      (ac as Record<string, unknown>).type === "constraint" &&
+      /fail.*start|required.*env|must.*set|missing.*env/i.test(
+        String((ac as Record<string, unknown>).criterion || ""),
+      ),
   );
   if (requiredEnvVars.length === 0 || constraintACs.length >= requiredEnvVars.length) {
     results.push({
@@ -194,12 +208,17 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   }
 
   // 6. Client-bundle discipline
-  const clientUnsafe = (security.secrets || []).filter(
-    (s: any) => s.tier !== "server-only" && s.tier !== "ci-only",
+  const clientUnsafe = secrets.filter(
+    (s) =>
+      (s as Record<string, unknown>).tier !== "server-only" &&
+      (s as Record<string, unknown>).tier !== "ci-only",
   );
-  const archACs = (spec.acceptance_criteria || []).filter(
-    (ac: any) =>
-      ac.type === "architectural" && /client|bundle|NEXT_PUBLIC|browser/i.test(ac.criterion || ""),
+  const archACs = ((spec.acceptance_criteria as unknown[] | undefined) ?? []).filter(
+    (ac) =>
+      (ac as Record<string, unknown>).type === "architectural" &&
+      /client|bundle|NEXT_PUBLIC|browser/i.test(
+        String((ac as Record<string, unknown>).criterion || ""),
+      ),
   );
   if (clientUnsafe.length === 0 || archACs.length > 0) {
     results.push({
@@ -283,8 +302,6 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   }
 
   // 9. verification.commands ↔ TC coverage
-  const commands = verification.commands || [];
-  const testCases = verification.test_cases || [];
   if (commands.length === 0 || testCases.length === 0) {
     results.push({
       check: "verification.commands ↔ TC coverage",
@@ -297,9 +314,14 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
     // Check each command has at least one TC with a matching tier
     const e2ePattern = /playwright|cypress|selenium|puppeteer/i;
     const unmatchedCmds = commands.filter((cmd: string) => {
-      if (e2ePattern.test(cmd)) return !testCases.some((tc: any) => tc.tier === "e2e");
+      if (e2ePattern.test(cmd))
+        return !testCases.some((tc) => (tc as Record<string, unknown>).tier === "e2e");
       // Non-e2e commands match if any unit or integration TC exists
-      return !testCases.some((tc: any) => tc.tier === "unit" || tc.tier === "integration");
+      return !testCases.some(
+        (tc) =>
+          (tc as Record<string, unknown>).tier === "unit" ||
+          (tc as Record<string, unknown>).tier === "integration",
+      );
     });
     if (unmatchedCmds.length === 0) {
       results.push({
@@ -322,7 +344,7 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   const hasE2ECmd = commands.some((cmd: string) =>
     /playwright|cypress|selenium|puppeteer/i.test(cmd),
   );
-  const hasE2ETc = testCases.some((tc: any) => tc.tier === "e2e");
+  const hasE2ETc = testCases.some((tc) => (tc as Record<string, unknown>).tier === "e2e");
   if (!hasE2ECmd) {
     results.push({
       check: "E2E scenario ACs",

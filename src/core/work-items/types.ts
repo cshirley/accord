@@ -35,7 +35,7 @@ export interface WorkItem {
     verify_verdict?: string;
     post_run_rework_detected?: boolean;
     summary?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   shift_left_findings?: ShiftLeftFinding[];
   spec: string | null;
@@ -46,7 +46,7 @@ export interface WorkItem {
   decisions: Decision[];
   deviations: Deviation[];
   cost_usd: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Decision {
@@ -85,7 +85,7 @@ export interface TaskFile {
   status: string;
   quick_fix_contract?: QuickFixContract;
   events: TaskEvent[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface QuickFixContract {
@@ -111,14 +111,14 @@ export interface TaskEvent {
   description?: string;
   reason?: string;
   files?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Checkpoint {
   schema_version: string;
   work_item_id: string;
   phase: string;
-  draft: any;
+  draft: unknown;
   answered: string[];
   pending: string[];
 }

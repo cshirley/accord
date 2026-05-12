@@ -84,7 +84,8 @@ function splitByFile(diff: string): Map<string, string> {
   for (const part of parts) {
     if (!part.startsWith("diff --git")) continue;
     const match = part.match(/^diff --git a\/.+ b\/(.+)$/m);
-    if (match) result.set(match[1]!, part);
+    const path = match?.[1];
+    if (path) result.set(path, part);
   }
   return result;
 }

@@ -28,7 +28,7 @@ export function readJson<T>(filePath: string): T | null {
  * see the previous value or the new one — never a partial write — even if
  * the process is killed mid-write.
  */
-export function writeJson(filePath: string, data: any): void {
+export function writeJson(filePath: string, data: unknown): void {
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
   const payload = `${JSON.stringify(data, null, 2)}\n`;

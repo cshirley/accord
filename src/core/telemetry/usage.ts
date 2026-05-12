@@ -15,6 +15,7 @@ import {
   WORK_ITEM_ID_PATTERN,
   writeJson,
 } from "../work-items/io.js";
+import type { WorkItem } from "../work-items/types.js";
 
 const log = createLogger("usage");
 
@@ -389,7 +390,7 @@ export function updateWorkItemCost(workItemId: string, cost: number): void {
   const wiPath = path.join(".tasks", `${workItemId}.json`);
   if (!fs.existsSync(wiPath)) return;
   try {
-    mutateJson<any>(wiPath, (wi) => {
+    mutateJson<WorkItem>(wiPath, (wi) => {
       if (!wi) return;
       wi.cost_usd = Math.round(cost * 10000) / 10000;
       wi.updated = new Date().toISOString();
@@ -461,25 +462,33 @@ function findBalancedJsonRegions(text: string): string[] {
   return regions;
 }
 
-export function extractReturnPacket(text: string): any | null {
+export function extractReturnPacket(text: string): Record<string, unknown> | null {
   if (!text) return null;
   // Fenced code block first; bounded match avoids any backtracking risk.
   const fencedMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
   if (fencedMatch) {
-    try {
-      return JSON.parse(fencedMatch[1]);
-    } catch {
-      /* fall through */
+    const body = fencedMatch[1];
+    if (body !== undefined) {
+      try {
+        const parsed: unknown = JSON.parse(body);
+        if (parsed && typeof parsed === "object") {
+          return parsed as Record<string, unknown>;
+        }
+      } catch {
+        /* fall through */
+      }
     }
   }
   // Walk balanced {...} regions from the end and accept the last one with
   // a recognised packet key.
   const regions = findBalancedJsonRegions(text);
   for (let i = regions.length - 1; i >= 0; i--) {
+    const region = regions[i];
+    if (region === undefined) continue;
     try {
-      const parsed = JSON.parse(regions[i]);
-      if (parsed && typeof parsed === "object" && (parsed.status || parsed.verdict)) {
-        return parsed;
+      const parsed: unknown = JSON.parse(region);
+      if (parsed && typeof parsed === "object" && ("status" in parsed || "verdict" in parsed)) {
+        return parsed as Record<string, unknown>;
       }
     } catch {
       /* try the next region */
@@ -488,35 +497,39 @@ export function extractReturnPacket(text: string): any | null {
   return null;
 }
 
-function contentBlocksToText(content: any): string {
+function contentBlocksToText(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   return content
-    .map((part) => {
+    .map((part: unknown) => {
       if (typeof part === "string") return part;
-      if (part?.type === "text" && typeof part.text === "string") return part.text;
-      if (typeof part?.text === "string") return part.text;
+      const p = part as Record<string, unknown>;
+      if (p.type === "text" && typeof p.text === "string") return p.text;
+      if (typeof p.text === "string") return p.text;
       return "";
     })
     .filter(Boolean)
     .join("\n");
 }
 
-export function extractReturnPacketFromSubagentResult(result: any): any | null {
+export function extractReturnPacketFromSubagentResult(
+  result: unknown,
+): Record<string, unknown> | null {
   const candidates: string[] = [];
+  const r = result as Record<string, unknown>;
 
-  if (Array.isArray(result?.messages)) {
-    const assistantMessages = [...result.messages]
+  if (Array.isArray(r.messages)) {
+    const assistantMessages = [...r.messages]
       .reverse()
-      .filter((m: any) => m?.role === "assistant");
+      .filter((m: unknown) => (m as { role?: string }).role === "assistant");
     for (const msg of assistantMessages) {
-      const text = contentBlocksToText(msg.content);
+      const text = contentBlocksToText((msg as { content?: unknown }).content);
       if (text) candidates.push(text);
     }
   }
 
   for (const key of ["content", "output", "text", "response", "result", "final", "finalResponse"]) {
-    const value = result?.[key];
+    const value = r[key];
     if (typeof value === "string") candidates.push(value);
     else {
       const text = contentBlocksToText(value);
@@ -524,7 +537,8 @@ export function extractReturnPacketFromSubagentResult(result: any): any | null {
     }
   }
 
-  const messageText = contentBlocksToText(result?.message?.content);
+  const message = r.message as { content?: unknown } | undefined;
+  const messageText = contentBlocksToText(message?.content);
   if (messageText) candidates.push(messageText);
 
   for (const text of candidates) {
@@ -536,7 +550,7 @@ export function extractReturnPacketFromSubagentResult(result: any): any | null {
 
 // ── Subagent result handoff formatting ─────────────────────
 
-export function formatPacketInjection(agentName: string, packet: any): string {
+export function formatPacketInjection(agentName: string, packet: unknown): string {
   return `\n\n## ${agentName} Return Packet\n\n\`\`\`json\n${JSON.stringify(packet, null, 2)}\n\`\`\`\n`;
 }
 
@@ -546,15 +560,17 @@ export function formatMissingPacketWarning(agentName: string, resultKeys: string
 }
 
 export function assembleHandoffContent(
-  existingContent: any[] | undefined,
+  existingContent: unknown[] | undefined,
   contentAppend: string,
 ): { type: "text"; text: string }[] {
   const existingParts: string[] = [];
   if (Array.isArray(existingContent)) {
     for (const block of existingContent) {
       if (typeof block === "string") existingParts.push(block);
-      else if (block?.type === "text" && typeof block.text === "string")
-        existingParts.push(block.text);
+      else {
+        const b = block as Record<string, unknown>;
+        if (b.type === "text" && typeof b.text === "string") existingParts.push(b.text);
+      }
     }
   }
   return [{ type: "text", text: existingParts.join("\n") + contentAppend }];
@@ -577,7 +593,9 @@ export function discoverWorkItems(): WorkItemSummary[] {
           phase: wi.phase,
           pattern: wi.pattern,
           cost_usd: wi.cost_usd || 0,
-          decisions_pending: (wi.decisions || []).filter((d: any) => d.status === "pending").length,
+          decisions_pending: (wi.decisions || []).filter(
+            (d: unknown) => (d as { status?: string }).status === "pending",
+          ).length,
         });
       } catch {}
     }

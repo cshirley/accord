@@ -63,16 +63,24 @@ export default defineTool<
     server: "google-workspace",
     tool: "gmail_search",
     mapParams: (p) => ({ query: p.query, maxResults: p.maxResults || 25 }),
-    mapResult: (raw: any) => {
-      const messages = (raw.messages || []).map((m: any) => ({
-        id: m.id ?? "",
-        threadId: m.threadId ?? "",
-        from: m.from ?? "",
-        subject: m.subject ?? "",
-        date: m.date ?? "",
-        snippet: m.snippet ?? "",
-      }));
-      return { total: raw.resultSizeEstimate ?? messages.length, messages };
+    mapResult: (raw: unknown) => {
+      const r = raw as Record<string, unknown>;
+      const rawMsgs = (r.messages as unknown[] | undefined) ?? [];
+      const messages = rawMsgs.map((m) => {
+        const x = m as Record<string, unknown>;
+        return {
+          id: String(x.id ?? ""),
+          threadId: String(x.threadId ?? ""),
+          from: String(x.from ?? ""),
+          subject: String(x.subject ?? ""),
+          date: String(x.date ?? ""),
+          snippet: String(x.snippet ?? ""),
+        };
+      });
+      return {
+        total: (r.resultSizeEstimate as number | undefined) ?? messages.length,
+        messages,
+      };
     },
   },
 

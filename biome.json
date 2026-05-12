@@ -43,7 +43,10 @@
       "linter": {
         "rules": {
           "style": { "noNonNullAssertion": "off" },
-          "suspicious": { "noExplicitAny": "off" }
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noTemplateCurlyInString": "off"
+          }
         }
       }
     }

@@ -44,17 +44,25 @@ export default defineTool<
     server: "google-workspace",
     tool: "gmail_get",
     mapParams: (p) => ({ messageId: p.threadId }),
-    mapResult: (raw: any) => ({
-      threadId: raw.threadId ?? "",
-      messages: (raw.messages || []).map((m: any) => ({
-        id: m.id ?? "",
-        threadId: raw.threadId ?? "",
-        from: m.from ?? "",
-        subject: m.subject ?? "",
-        date: m.date ?? "",
-        snippet: m.snippet ?? "",
-      })),
-    }),
+    mapResult: (raw: unknown) => {
+      const r = raw as Record<string, unknown>;
+      const tid = String(r.threadId ?? "");
+      const rawMsgs = (r.messages as unknown[] | undefined) ?? [];
+      return {
+        threadId: tid,
+        messages: rawMsgs.map((m) => {
+          const x = m as Record<string, unknown>;
+          return {
+            id: String(x.id ?? ""),
+            threadId: tid,
+            from: String(x.from ?? ""),
+            subject: String(x.subject ?? ""),
+            date: String(x.date ?? ""),
+            snippet: String(x.snippet ?? ""),
+          };
+        }),
+      };
+    },
   },
 
   format(result) {

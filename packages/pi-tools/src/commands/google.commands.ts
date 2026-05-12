@@ -35,7 +35,7 @@ export default defineCommands("google", {
           expiresAt: 0,
           clientId: "",
           clientSecret: "",
-        } as any;
+        };
         saveAuth(auth);
         ui.notify("🔄 Google handoff mode enabled.", "info");
         return;

@@ -4,6 +4,7 @@ import {
   getTeamDomain,
   makePermalink,
   makeSlackRequest,
+  type SlackConversationsHistoryResult,
   type SlackMessage,
 } from "../services/slack.client.js";
 
@@ -36,7 +37,7 @@ export default defineTool<
 
   async execute(p) {
     const teamDomain = await getTeamDomain();
-    const hist = await makeSlackRequest("conversations.history", {
+    const hist = await makeSlackRequest<SlackConversationsHistoryResult>("conversations.history", {
       channel: p.channelId,
       limit: p.limit || 20,
       ...(p.oldest ? { oldest: p.oldest } : {}),
@@ -49,11 +50,14 @@ export default defineTool<
       for (const msg of messages) {
         if (msg.reply_count && msg.reply_count > 0 && msg.ts) {
           try {
-            const threadResp = await makeSlackRequest("conversations.replies", {
-              channel: p.channelId,
-              ts: msg.ts,
-              limit: 5,
-            });
+            const threadResp = await makeSlackRequest<SlackConversationsHistoryResult>(
+              "conversations.replies",
+              {
+                channel: p.channelId,
+                ts: msg.ts,
+                limit: 5,
+              },
+            );
             msg.replies = threadResp.messages?.slice(1) || [];
           } catch {
             /* skip */

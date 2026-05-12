@@ -62,8 +62,10 @@ function parseDuration(s: string): number | null {
   // Accept: "5m", "300s", "30000", "1h", "0" (disable)
   const m = s.trim().match(/^(\d+(?:\.\d+)?)(ms|s|m|h)?$/);
   if (!m) return null;
-  const n = parseFloat(m[1]!);
-  switch (m[2]) {
+  const [, numStr, unit] = m;
+  if (numStr === undefined) return null;
+  const n = Number.parseFloat(numStr);
+  switch (unit) {
     case "h":
       return n * 3_600_000;
     case "m":

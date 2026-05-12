@@ -1,6 +1,6 @@
 import { getSlackAuth } from "../auth.js";
 import { defineTool } from "../framework.js";
-import { makeSlackRequest, type SlackChannel } from "../services/slack.client.js";
+import { makeSlackRequest, type SlackConversationsListResult } from "../services/slack.client.js";
 
 export default defineTool<
   { types?: string; limit?: number },
@@ -23,13 +23,13 @@ export default defineTool<
   progress: "Getting conversations...",
 
   async execute(p) {
-    const resp = await makeSlackRequest("conversations.list", {
+    const resp = await makeSlackRequest<SlackConversationsListResult>("conversations.list", {
       types: p.types || "public_channel,private_channel,mpim,im",
       limit: p.limit || 100,
       exclude_archived: true,
     });
 
-    const channels = (resp.channels || []).map((ch: SlackChannel) => ({
+    const channels = (resp.channels || []).map((ch) => ({
       id: ch.id,
       name: ch.name || ch.id,
       type: ch.is_im ? "dm" : ch.is_mpim ? "group_dm" : ch.is_private ? "private" : "public",

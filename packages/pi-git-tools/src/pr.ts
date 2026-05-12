@@ -167,8 +167,13 @@ export function registerPrTools(pi: ExtensionAPI): void {
 
       try {
         await git(["push", "--set-upstream", "origin", "HEAD"], cwd, signal);
-      } catch (err: any) {
-        const msg = err?.stderr ?? err?.message ?? String(err);
+      } catch (err: unknown) {
+        const msg =
+          typeof err === "object" && err !== null && "stderr" in err
+            ? String((err as { stderr?: unknown }).stderr)
+            : err instanceof Error
+              ? err.message
+              : String(err);
         if (msg.includes("non-fast-forward") || msg.includes("rejected")) {
           throw new Error(`Push rejected (non-fast-forward). Pull or rebase first.\n${msg}`);
         }

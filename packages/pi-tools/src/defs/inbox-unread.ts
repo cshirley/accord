@@ -15,7 +15,17 @@ import {
   headerValue,
   makeGoogleRequest,
 } from "../services/google.client.js";
-import { getTeamDomain, makePermalink, makeSlackRequest } from "../services/slack.client.js";
+import {
+  getTeamDomain,
+  makePermalink,
+  makeSlackRequest,
+  type SlackChannel,
+  type SlackConversationsHistoryResult,
+  type SlackConversationsInfoResult,
+  type SlackConversationsListResult,
+  type SlackMessage,
+  type SlackUsersInfoResult,
+} from "../services/slack.client.js";
 
 // ---------------------------------------------------------------------------
 // Result types
@@ -89,10 +99,10 @@ async function fetchSlackUnread(
   const teamDomain = await getTeamDomain();
   const types = "public_channel,private_channel,mpim,im";
 
-  const allChannels: any[] = [];
+  const allChannels: SlackChannel[] = [];
   let cursor: string | undefined;
   do {
-    const resp = await makeSlackRequest("conversations.list", {
+    const resp = await makeSlackRequest<SlackConversationsListResult>("conversations.list", {
       types,
       limit: Math.min(maxChannels - allChannels.length, 200),
       exclude_archived: true,
@@ -102,7 +112,9 @@ async function fetchSlackUnread(
     cursor = resp.response_metadata?.next_cursor || undefined;
   } while (cursor && allChannels.length < maxChannels);
 
-  const memberChannels = allChannels.filter((ch: any) => ch.is_member || ch.is_im || ch.is_mpim);
+  const memberChannels = allChannels.filter((ch) =>
+    Boolean(ch.is_member || ch.is_im || ch.is_mpim),
+  );
 
   const items: InboxItem[] = [];
 
@@ -110,9 +122,10 @@ async function fetchSlackUnread(
   const userCache = new Map<string, string>();
   async function userName(uid: string): Promise<string> {
     if (!uid || uid === "unknown") return uid;
-    if (userCache.has(uid)) return userCache.get(uid)!;
+    const cached = userCache.get(uid);
+    if (cached !== undefined) return cached;
     try {
-      const info = await makeSlackRequest("users.info", { user: uid });
+      const info = await makeSlackRequest<SlackUsersInfoResult>("users.info", { user: uid });
       const name =
         info.user?.profile?.display_name || info.user?.profile?.real_name || info.user?.name || uid;
       userCache.set(uid, name);
@@ -125,18 +138,23 @@ async function fetchSlackUnread(
 
   for (const ch of memberChannels) {
     try {
-      const info = await makeSlackRequest("conversations.info", { channel: ch.id });
+      const info = await makeSlackRequest<SlackConversationsInfoResult>("conversations.info", {
+        channel: String(ch.id),
+      });
       const lastRead = info.channel?.last_read;
       if (!lastRead || lastRead === "0000000000.000000") continue;
 
-      const hist = await makeSlackRequest("conversations.history", {
-        channel: ch.id,
-        oldest: lastRead,
-        limit: maxPerChannel,
-        inclusive: false,
-      });
+      const hist = await makeSlackRequest<SlackConversationsHistoryResult>(
+        "conversations.history",
+        {
+          channel: String(ch.id),
+          oldest: lastRead,
+          limit: maxPerChannel,
+          inclusive: false,
+        },
+      );
 
-      const msgs = (hist.messages || []).filter((m: any) => {
+      const msgs = (hist.messages || []).filter((m: SlackMessage) => {
         if (m.subtype === "channel_join" || m.subtype === "channel_leave") return false;
         if (m.bot_id || m.subtype === "bot_message") return false;
         return true;
@@ -153,20 +171,20 @@ async function fetchSlackUnread(
             : "public";
 
       for (const m of msgs) {
-        const fromName = await userName(m.user || "unknown");
+        const fromName = await userName(String(m.user ?? "unknown"));
         items.push({
           source: "slack",
           timestamp: slackTsToEpoch(m.ts),
           from: fromName,
           subject: ch.name || ch.id,
           snippet: (m.text || "").slice(0, 200),
-          permalink: makePermalink(teamDomain, ch.id, m.ts),
+          permalink: makePermalink(teamDomain, String(ch.id), m.ts),
           category: channelType,
           actionable: channelType === "dm" || channelType === "group_dm",
           meta: {
-            channelId: ch.id,
-            ...(m.thread_ts && m.thread_ts !== m.ts ? { threadTs: m.thread_ts } : {}),
-            ...(m.reply_count ? { replyCount: m.reply_count } : {}),
+            channelId: String(ch.id),
+            ...(m.thread_ts && m.thread_ts !== m.ts ? { threadTs: String(m.thread_ts) } : {}),
+            ...(m.reply_count ? { replyCount: Number(m.reply_count) } : {}),
           },
         });
       }
@@ -253,7 +271,9 @@ async function fetchGmailUnreadMcp(
     maxResults,
   });
   const searchData = JSON.parse(searchResult.content.find((c) => c.type === "text")?.text || "{}");
-  const msgIds: string[] = (searchData.messages || []).map((m: any) => m.id);
+  const msgIds: string[] = ((searchData.messages as unknown[] | undefined) ?? []).map((m) =>
+    String((m as Record<string, unknown>).id ?? ""),
+  );
   const totalEstimate = searchData.resultSizeEstimate ?? msgIds.length;
 
   if (msgIds.length === 0) return { total: 0, items: [] };
@@ -266,16 +286,25 @@ async function fetchGmailUnreadMcp(
         messageId: id,
         format: "metadata",
       });
-      const raw = JSON.parse(getResult.content.find((c) => c.type === "text")?.text || "{}");
-      const headers = raw.payload?.headers || [];
-      const from = headers.find((h: any) => h.name.toLowerCase() === "from")?.value ?? "";
-      const subject = headers.find((h: any) => h.name.toLowerCase() === "subject")?.value ?? "";
-      const date = headers.find((h: any) => h.name.toLowerCase() === "date")?.value ?? "";
-      const labelIds: string[] = raw.labelIds || [];
-      const snippet = raw.snippet || "";
+      const raw = JSON.parse(
+        getResult.content.find((c) => c.type === "text")?.text || "{}",
+      ) as Record<string, unknown>;
+      const headers =
+        (raw.payload as { headers?: Record<string, unknown>[] } | undefined)?.headers || [];
+      const from = String(
+        headers.find((h) => String(h.name ?? "").toLowerCase() === "from")?.value ?? "",
+      );
+      const subject = String(
+        headers.find((h) => String(h.name ?? "").toLowerCase() === "subject")?.value ?? "",
+      );
+      const date = String(
+        headers.find((h) => String(h.name ?? "").toLowerCase() === "date")?.value ?? "",
+      );
+      const labelIds: string[] = (raw.labelIds as string[] | undefined) || [];
+      const snippet = String(raw.snippet ?? "");
       const summary: GmailMessageSummary = {
         id,
-        threadId: raw.threadId ?? "",
+        threadId: String(raw.threadId ?? ""),
         from,
         subject,
         date,
@@ -287,10 +316,10 @@ async function fetchGmailUnreadMcp(
         from,
         subject,
         snippet,
-        permalink: `https://mail.google.com/mail/u/0/#inbox/${raw.threadId || id}`,
+        permalink: `https://mail.google.com/mail/u/0/#inbox/${String(raw.threadId || id)}`,
         category: extractCategory(labelIds),
         actionable: isActionableEmail(summary, labelIds),
-        meta: { id, threadId: raw.threadId, labelIds },
+        meta: { id, threadId: raw.threadId as string | undefined, labelIds },
       });
     } catch {
       /* skip */

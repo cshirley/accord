@@ -270,14 +270,24 @@ function inferNodeProject(
 ): void {
   const pkgPath = path.join(dir, "package.json");
   if (!fs.existsSync(pkgPath)) return;
-  let pkg: any;
+  let pkg: Record<string, unknown>;
   try {
-    pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
   } catch {
     return;
   }
-  const scripts = pkg.scripts || {};
-  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  const scripts =
+    typeof pkg.scripts === "object" && pkg.scripts !== null
+      ? (pkg.scripts as Record<string, unknown>)
+      : {};
+  const deps = {
+    ...(typeof pkg.dependencies === "object" && pkg.dependencies !== null
+      ? (pkg.dependencies as Record<string, unknown>)
+      : {}),
+    ...(typeof pkg.devDependencies === "object" && pkg.devDependencies !== null
+      ? (pkg.devDependencies as Record<string, unknown>)
+      : {}),
+  };
 
   const pmCmd = fs.existsSync(path.join(dir, "pnpm-lock.yaml"))
     ? "pnpm"
@@ -466,7 +476,7 @@ function applyMakefileOverrides(
     );
     const overrides: string[] = [];
     if (targets.has("test")) {
-      config.test = { ...config.test, command: "make test" } as any;
+      config.test = { ...(config.test ?? {}), command: "make test" };
       overrides.push("test");
     }
     if (targets.has("lint")) {
@@ -581,9 +591,13 @@ export function buildDevHarnessConfig(dir: string): BuildResult | null {
   if (mergedSources.length > 0) config.context_sources = mergedSources;
 
   // Strip undefined optional fields
-  if (!config.test.single_test_flag) (config.test as any).single_test_flag = undefined;
-  if (!config.test.file_pattern) (config.test as any).file_pattern = undefined;
-  if (!config.test.block_markers) (config.test as any).block_markers = undefined;
+  if (config.test) {
+    const t: DevHarnessConfig["test"] = { ...config.test };
+    if (!t.single_test_flag) t.single_test_flag = undefined;
+    if (!t.file_pattern) t.file_pattern = undefined;
+    if (!t.block_markers) t.block_markers = undefined;
+    config.test = t;
+  }
 
   return { config, notes };
 }

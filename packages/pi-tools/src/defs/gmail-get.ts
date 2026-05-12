@@ -64,17 +64,20 @@ export default defineTool<{ messageId: string; format?: string }, GmailMessageDe
     server: "google-workspace",
     tool: "gmail_get",
     mapParams: (p) => ({ messageId: p.messageId }),
-    mapResult: (raw: any) => ({
-      id: raw.id ?? "",
-      threadId: raw.threadId ?? "",
-      from: raw.from ?? "",
-      to: raw.to ?? "",
-      subject: raw.subject ?? "",
-      date: raw.date ?? "",
-      snippet: raw.snippet ?? "",
-      labelIds: raw.labelIds ?? [],
-      body: raw.body ?? raw.payload ?? null,
-    }),
+    mapResult: (raw: unknown) => {
+      const r = raw as Record<string, unknown>;
+      return {
+        id: String(r.id ?? ""),
+        threadId: String(r.threadId ?? ""),
+        from: String(r.from ?? ""),
+        to: String(r.to ?? ""),
+        subject: String(r.subject ?? ""),
+        date: String(r.date ?? ""),
+        snippet: String(r.snippet ?? ""),
+        labelIds: (r.labelIds as string[] | undefined) ?? [],
+        body: r.body ?? r.payload ?? null,
+      };
+    },
   },
 
   format(msg) {

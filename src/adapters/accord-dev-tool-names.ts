@@ -31,12 +31,16 @@ const EXPECTED = [...ACCORD_DEV_TOOL_NAMES_ORDERED];
 
 /** Tool names registered on the MCP server (`mcp.registerTool("dev_*", ...)`) */
 export function devToolNamesFromMcpAdapterSource(src: string): string[] {
-  return [...src.matchAll(/mcp\.registerTool\(\s*"(dev_[^"]+)"/g)].map((m) => m[1]!);
+  return [...src.matchAll(/mcp\.registerTool\(\s*"(dev_[^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((name): name is string => typeof name === "string");
 }
 
 /** Tool names registered for Pi (`pi.registerTool({ ... name: "dev_*", ...)`) */
 export function devToolNamesFromPiAdapterSource(src: string): string[] {
-  return [...src.matchAll(/pi\.registerTool\(\{\s*name:\s*"(dev_[^"]+)"/g)].map((m) => m[1]!);
+  return [...src.matchAll(/pi\.registerTool\(\{\s*name:\s*"(dev_[^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((name): name is string => typeof name === "string");
 }
 
 /** Throws with a clear message if MCP/Pi sources disagree with {@link ACCORD_DEV_TOOL_NAMES_ORDERED}. */
@@ -60,7 +64,8 @@ export function assertAccordDevToolSurfaceParity(mcpSrc: string, piSrc: string):
     );
   }
   for (let i = 0; i < EXPECTED.length; i++) {
-    const exp = EXPECTED[i]!;
+    const exp = EXPECTED[i];
+    if (exp === undefined) continue;
     if (mcpNames[i] !== exp) {
       throw new Error(
         `MCP adapter dev_* order mismatch at index ${i}: got ${mcpNames[i]}, expected ${exp}`,

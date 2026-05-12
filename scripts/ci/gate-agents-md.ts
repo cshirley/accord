@@ -63,7 +63,8 @@ const FIRST_JSON_FENCE_RE = /```json\s*\n([\s\S]*?)```/;
 
 function extractFirstJsonBlock(section: string): string | null {
   const match = FIRST_JSON_FENCE_RE.exec(section);
-  return match ? match[1]! : null;
+  const cap = match?.[1];
+  return cap ?? null;
 }
 
 export function runAgentsMdGate(repoRoot: string, cfg: GateConfig): AgentsMdGateResult {

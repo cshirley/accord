@@ -36,12 +36,13 @@ import {
   devPromoteEvents,
   devTransition,
 } from "../../core/work-items/lifecycle.js";
+import type { Checkpoint } from "../../core/work-items/types.js";
 
-function ok(text: string, details?: any): AgentToolResult<any> {
+function ok(text: string, details?: unknown): AgentToolResult<unknown> {
   return { content: [{ type: "text", text }], details };
 }
 
-function err(text: string): AgentToolResult<any> {
+function err(text: string): AgentToolResult<unknown> {
   return { content: [{ type: "text", text: `⚠ ${text}` }], details: undefined };
 }
 
@@ -225,7 +226,7 @@ export function registerTools(pi: ExtensionAPI, getConfig: () => DevHarnessConfi
         if (!params.data || typeof params.data !== "object") {
           return err("dev_checkpoint write requires a 'data' object");
         }
-        const result = devCheckpointWrite(params.id, params.data as any);
+        const result = devCheckpointWrite(params.id, params.data as Checkpoint);
         return ok(`Checkpoint written: ${result.path}`);
       }
       const deleted = devCheckpointDelete(params.id);
@@ -560,14 +561,14 @@ export function registerTools(pi: ExtensionAPI, getConfig: () => DevHarnessConfi
     async execute(_id, params) {
       try {
         const result = devInitWrite({
-          config: params.config as any,
+          config: params.config as DevHarnessConfig,
           target: params.target as WriteTarget,
           cwd: params.cwd ?? process.cwd(),
           git_root: params.git_root,
         });
         return ok(result.summary, result);
-      } catch (e: any) {
-        return err(`Error: ${e.message}`);
+      } catch (e: unknown) {
+        return err(`Error: ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });

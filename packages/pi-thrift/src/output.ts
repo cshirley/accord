@@ -152,12 +152,16 @@ export function registerOutputPruning(pi: ExtensionAPI, config: ThriftConfig): O
     };
 
     if (!isActive) {
-      setFrame(anim.frames[0]!);
+      const frame0 = anim.frames[0];
+      if (frame0 !== undefined) setFrame(frame0);
       return;
     }
 
     const renderFrame = () => {
-      setFrame(anim.frames[frameIndex % anim.frames.length]!);
+      const len = anim.frames.length;
+      if (len === 0) return;
+      const frame = anim.frames[frameIndex % len];
+      if (frame !== undefined) setFrame(frame);
       frameIndex++;
     };
     renderFrame();
@@ -253,12 +257,15 @@ export function registerOutputPruning(pi: ExtensionAPI, config: ThriftConfig): O
       );
 
       const cycleValue = (dir: -1 | 1) => {
-        const idx = (settingsList as any).selectedIndex as number;
+        const rawList = settingsList as unknown as Record<string, unknown>;
+        const idx = rawList.selectedIndex;
+        if (typeof idx !== "number") return;
         const item = items[idx];
         if (!item?.values?.length) return;
         const cur = item.values.indexOf(item.currentValue);
         const next = (cur + dir + item.values.length) % item.values.length;
-        const newVal = item.values[next]!;
+        const newVal = item.values[next];
+        if (newVal === undefined) return;
         item.currentValue = newVal;
         settingsList.updateValue(item.id, newVal);
         applyChange(item.id, newVal);

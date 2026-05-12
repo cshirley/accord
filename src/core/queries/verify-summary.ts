@@ -40,24 +40,25 @@ function markdownPathFor(verifyPath: string): string {
     : path.join(path.dirname(verifyPath), "verify.md");
 }
 
-function formatEvidence(evidence: any): string {
+function formatEvidence(evidence: unknown): string {
   if (typeof evidence === "string") return oneLine(evidence);
   if (!evidence || typeof evidence !== "object") return "Unknown evidence";
 
-  const type = oneLine(evidence.type || "evidence");
-  const name = oneLine(evidence.name || evidence.description || "unnamed evidence");
-  const location = evidence.file
-    ? `${evidence.file}${evidence.line ? `:${evidence.line}` : evidence.line_range ? `:${evidence.line_range}` : ""}`
+  const ev = evidence as Record<string, unknown>;
+  const type = oneLine(ev.type || "evidence");
+  const name = oneLine(ev.name || ev.description || "unnamed evidence");
+  const location = ev.file
+    ? `${ev.file}${ev.line ? `:${ev.line}` : ev.line_range ? `:${ev.line_range}` : ""}`
     : "";
-  const runLog = evidence.run_log ? ` - ${oneLine(evidence.run_log)}` : "";
+  const runLog = ev.run_log ? ` - ${oneLine(ev.run_log)}` : "";
 
   return `${type}: ${name}${location ? ` (${location})` : ""}${runLog}`;
 }
 
 function renderMarkdownReport(
   id: string,
-  wi: any,
-  report: any,
+  wi: Record<string, unknown>,
+  report: Record<string, unknown>,
   verifyPath: string,
   summary: {
     pass: number;
@@ -105,12 +106,13 @@ function renderMarkdownReport(
     "",
   );
 
-  for (const criterion of report.criteria || []) {
-    const acId = oneLine(criterion.ac_id || criterion.id || "unknown");
-    const status = oneLine(criterion.status || criterion.verdict || "unknown");
+  for (const criterion of (report.criteria as unknown[] | undefined) ?? []) {
+    const c = criterion as Record<string, unknown>;
+    const acId = oneLine(c.ac_id || c.id || "unknown");
+    const status = oneLine(c.status || c.verdict || "unknown");
     lines.push(`### ${acId} - ${titleCaseStatus(status)}`, "");
 
-    const evidence = Array.isArray(criterion.evidence) ? criterion.evidence : [];
+    const evidence = Array.isArray(c.evidence) ? c.evidence : [];
     if (evidence.length > 0) {
       lines.push("Evidence:");
       for (const item of evidence) {
@@ -122,9 +124,9 @@ function renderMarkdownReport(
     }
 
     if (status !== "pass") {
-      lines.push(`Gap: ${oneLine(criterion.gap || "No gap recorded.")}`);
+      lines.push(`Gap: ${oneLine(String(c.gap || "No gap recorded."))}`);
       lines.push(
-        `Suggested action: ${oneLine(criterion.suggested_action || "No suggested action recorded.")}`,
+        `Suggested action: ${oneLine(String(c.suggested_action || "No suggested action recorded."))}`,
       );
       lines.push("");
     }
@@ -156,12 +158,12 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
 
   const seen = new Set<string>();
   let verifyPath = "";
-  let report: any = null;
+  let report: Record<string, unknown> | null = null;
   for (const candidate of candidates) {
     if (seen.has(candidate)) continue;
     seen.add(candidate);
     if (!fs.existsSync(candidate)) continue;
-    report = readJson<any>(candidate);
+    report = readJson<Record<string, unknown>>(candidate);
     if (report) {
       verifyPath = candidate;
       break;
@@ -175,8 +177,9 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
     notVerified = 0;
   const gaps: VerifySummary["gaps"] = [];
 
-  for (const c of report.criteria || []) {
-    const status = c.status || c.verdict;
+  for (const c of (report.criteria as unknown[] | undefined) ?? []) {
+    const row = c as Record<string, unknown>;
+    const status = row.status || row.verdict;
     switch (status) {
       case "pass":
         pass++;
@@ -191,17 +194,17 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
         notVerified++;
         break;
     }
-    if (status !== "pass" && (c.gap || c.suggested_action)) {
+    if (status !== "pass" && (row.gap || row.suggested_action)) {
       gaps.push({
-        ac_id: c.ac_id || c.id,
-        gap: c.gap || "",
-        suggested_action: c.suggested_action || "",
+        ac_id: String(row.ac_id || row.id || ""),
+        gap: String(row.gap || ""),
+        suggested_action: String(row.suggested_action || ""),
       });
     }
   }
 
   const lines: string[] = [
-    `Verdict: ${report.verdict}`,
+    `Verdict: ${String(report.verdict)}`,
     `Verify: ${verifyPath}`,
     `  pass=${pass}  fail=${fail}  partial=${partial}  not_verified=${notVerified}`,
   ];
@@ -216,7 +219,7 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
   fs.mkdirSync(path.dirname(markdownPath), { recursive: true });
   fs.writeFileSync(
     markdownPath,
-    renderMarkdownReport(id, wi, report, verifyPath, {
+    renderMarkdownReport(id, (wi ?? {}) as Record<string, unknown>, report, verifyPath, {
       pass,
       fail,
       partial,
@@ -229,7 +232,7 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
   lines.push("", report.verdict === "pass" ? "Next: /commit → /pr" : `Next: /dev gaps ${id}`);
 
   return {
-    verdict: report.verdict,
+    verdict: String(report.verdict),
     verify_path: verifyPath,
     markdown_path: markdownPath,
     pass,

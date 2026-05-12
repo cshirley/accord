@@ -21,12 +21,23 @@ const log = createLogger("validation");
 const SCHEMAS = join(EXT_DIR, "schemas");
 const RETURN_SCHEMAS = join(SCHEMAS, "return-schemas");
 
+type AjvCompatible = {
+  compile: (schema: unknown) => ValidateFn;
+};
+
+type ValidateFn = {
+  (data: unknown): boolean;
+  errors?: Array<{ instancePath?: string; message?: string; params?: unknown }> | null;
+};
+
+type AjvError = NonNullable<ValidateFn["errors"]>[number];
+
 // --- ajv lazy init (local dev dependency, then host/global fallback) ---
 
-let ajvInstance: any = null;
-const validatorCache = new Map<string, any>();
+let ajvInstance: AjvCompatible | null = null;
+const validatorCache = new Map<string, ValidateFn>();
 
-async function getAjv(): Promise<any> {
+async function getAjv(): Promise<AjvCompatible | null> {
   if (ajvInstance) return ajvInstance;
   try {
     // Try bundled ajv in hooks/node_modules, then fall back to global
@@ -34,7 +45,7 @@ async function getAjv(): Promise<any> {
     for (const candidate of candidates) {
       try {
         const Ajv = (await import(candidate)).default;
-        ajvInstance = new Ajv({ allErrors: true, strict: false });
+        ajvInstance = new Ajv({ allErrors: true, strict: false }) as AjvCompatible;
         return ajvInstance;
       } catch {}
     }
@@ -44,7 +55,7 @@ async function getAjv(): Promise<any> {
   }
 }
 
-function compileValidator(ajv: any, schemaPath: string, schema: any): any {
+function compileValidator(ajv: AjvCompatible, schemaPath: string, schema: unknown): ValidateFn {
   const cached = validatorCache.get(schemaPath);
   if (cached) return cached;
   const validate = ajv.compile(schema);
@@ -93,30 +104,36 @@ export async function validateArtifact(filePath: string): Promise<ValidationResu
     return { valid: true, errors: ["ajv not available — skipping validation"] };
   }
 
-  let data: any;
+  let data: unknown;
   try {
     const raw = readFileSync(filePath, "utf8");
     data = JSON.parse(stripJsonc(raw));
-  } catch (e: any) {
-    log.warn(`JSON parse error in ${filePath}: ${e.message}`);
-    return { valid: false, errors: [`JSON parse error: ${e.message}`] };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.warn(`JSON parse error in ${filePath}: ${msg}`);
+    return { valid: false, errors: [`JSON parse error: ${msg}`] };
   }
 
-  let schema: any;
+  let schema: unknown;
   try {
     schema = JSON.parse(readFileSync(schemaPath, "utf8"));
-  } catch (e: any) {
-    log.error(`schema load failed: ${schemaPath}: ${e.message}`);
-    return { valid: true, errors: [`Schema parse error: ${e.message}`] };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.error(`schema load failed: ${schemaPath}: ${msg}`);
+    return { valid: true, errors: [`Schema parse error: ${msg}`] };
   }
 
   // Check schema_version mismatch (friendly message before ajv)
-  const expectedVersion = schema?.properties?.schema_version?.const;
-  if (expectedVersion && data.schema_version !== expectedVersion) {
+  const schemaRec = schema as Record<string, unknown> | null;
+  const props = schemaRec?.properties as Record<string, unknown> | undefined;
+  const schemaVersionProp = props?.schema_version as Record<string, unknown> | undefined;
+  const expectedVersion = schemaVersionProp?.const;
+  const dataRec = data as Record<string, unknown>;
+  if (expectedVersion !== undefined && dataRec.schema_version !== expectedVersion) {
     return {
       valid: false,
       errors: [
-        `schema_version mismatch: file has "${data.schema_version}", schema requires "${expectedVersion}"`,
+        `schema_version mismatch: file has "${String(dataRec.schema_version)}", schema requires "${String(expectedVersion)}"`,
       ],
     };
   }
@@ -126,7 +143,7 @@ export async function validateArtifact(filePath: string): Promise<ValidationResu
   if (valid) return { valid: true, errors: [] };
 
   const errors = (validate.errors || []).map(
-    (e: any) =>
+    (e: AjvError) =>
       `${e.instancePath || "/"} ${e.message}${e.params ? ` (${JSON.stringify(e.params)})` : ""}`,
   );
   return { valid: false, errors };
@@ -143,16 +160,21 @@ function returnSchemaFor(agentType: string): string {
  * Auto-downgrade review findings without file+line to severity=suggestion,
  * matching the behaviour of validate-return.mjs.
  */
-function normaliseReviewFindings(data: any): void {
-  if (!Array.isArray(data?.findings)) return;
-  for (const f of data.findings) {
+function normaliseReviewFindings(data: unknown): void {
+  if (!data || typeof data !== "object") return;
+  const rec = data as Record<string, unknown>;
+  const findings = rec.findings;
+  if (!Array.isArray(findings)) return;
+  for (const item of findings) {
+    if (!item || typeof item !== "object") continue;
+    const f = item as Record<string, unknown>;
     if (f.severity !== "suggestion" && (!f.file || !f.line)) {
       f.severity = "suggestion";
     }
   }
 }
 
-export async function validateReturn(agentType: string, data: any): Promise<ValidationResult> {
+export async function validateReturn(agentType: string, data: unknown): Promise<ValidationResult> {
   const schemaFile = returnSchemaFor(agentType);
   const schemaPath = join(RETURN_SCHEMAS, schemaFile);
 
@@ -170,12 +192,13 @@ export async function validateReturn(agentType: string, data: any): Promise<Vali
     normaliseReviewFindings(data);
   }
 
-  let schema: any;
+  let schema: unknown;
   try {
     schema = JSON.parse(readFileSync(schemaPath, "utf8"));
-  } catch (e: any) {
-    log.error(`return schema load failed: ${schemaPath}: ${e.message}`);
-    return { valid: true, errors: [`Schema parse error: ${e.message}`] };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.error(`return schema load failed: ${schemaPath}: ${msg}`);
+    return { valid: true, errors: [`Schema parse error: ${msg}`] };
   }
 
   const validate = compileValidator(ajv, schemaPath, schema);
@@ -183,7 +206,7 @@ export async function validateReturn(agentType: string, data: any): Promise<Vali
   if (valid) return { valid: true, errors: [] };
 
   const errors = (validate.errors || []).map(
-    (e: any) =>
+    (e: AjvError) =>
       `${e.instancePath || "/"} ${e.message}${e.params ? ` (${JSON.stringify(e.params)})` : ""}`,
   );
   return { valid: false, errors };

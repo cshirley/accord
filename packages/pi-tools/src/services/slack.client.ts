@@ -30,6 +30,7 @@ export interface SlackMessage {
   thread_ts?: string;
   reply_count?: number;
   replies?: unknown[];
+  reactions?: Array<{ users?: string[] }>;
 }
 
 export interface SlackChannel {
@@ -40,6 +41,37 @@ export interface SlackChannel {
   is_mpim?: boolean;
   is_private?: boolean;
 }
+
+/** `conversations.list` API shape (subset). */
+export type SlackConversationsListResult = {
+  channels?: SlackChannel[];
+  response_metadata?: { next_cursor?: string };
+};
+
+/** `conversations.info` API shape (subset). */
+export type SlackConversationsInfoResult = {
+  channel?: { last_read?: string };
+};
+
+/** `conversations.history` / `conversations.replies` API shape (subset). */
+export type SlackConversationsHistoryResult = {
+  messages?: SlackMessage[];
+};
+
+/** `users.info` API shape (subset). */
+export type SlackUsersInfoResult = {
+  user?: {
+    profile?: {
+      display_name?: string;
+      real_name?: string;
+      email?: string;
+      title?: string;
+      status_text?: string;
+    };
+    real_name?: string;
+    name?: string;
+  };
+};
 
 export interface GmailMessageSummary {
   id: string;
@@ -77,10 +109,10 @@ export interface UnansweredDM {
 // HTTP helper
 // ---------------------------------------------------------------------------
 
-export async function makeSlackRequest(
+export async function makeSlackRequest<T = Record<string, unknown>>(
   endpoint: string,
   params?: Record<string, unknown>,
-): Promise<any> {
+): Promise<T> {
   const auth = getSlackAuth();
   if (!auth) throw new Error("Slack not configured. Use /slack-setup first.");
 
@@ -99,12 +131,12 @@ export async function makeSlackRequest(
     throw new Error(`Slack API HTTP error (${response.status})`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as Record<string, unknown> & { ok: boolean; error?: string };
   if (!data.ok) {
     throw new Error(`Slack API error: ${data.error || "unknown"}`);
   }
 
-  return data;
+  return data as T;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,7 +148,7 @@ let _teamDomain: string | undefined;
 export async function getTeamDomain(): Promise<string> {
   if (_teamDomain) return _teamDomain;
   try {
-    const auth = await makeSlackRequest("auth.test");
+    const auth = await makeSlackRequest<{ url?: string; team?: string }>("auth.test");
     if (auth.url) {
       const match = auth.url.match(/https:\/\/([^.]+)\.slack\.com/);
       const domain = match?.[1];

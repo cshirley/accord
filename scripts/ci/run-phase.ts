@@ -57,7 +57,7 @@ const FENCED_JSON_RE = /```json\s*\n([\s\S]*?)```/;
 
 function tryParseReturnPacket(text: string): PhaseReturnPacket | null {
   const match = FENCED_JSON_RE.exec(text);
-  const raw = match ? match[1]! : text;
+  const raw = match?.[1] ?? text;
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (

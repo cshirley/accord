@@ -103,34 +103,42 @@ export function mapIssue(issue: JiraIssue): MappedIssue {
 }
 
 /** Extract plain text from ADF (Atlassian Document Format) node tree. */
-function adfToText(node: any): string {
+function adfToText(node: unknown): string {
   if (!node) return "";
   if (typeof node === "string") return node;
-  if (node.type === "text") return node.text ?? "";
-  if (Array.isArray(node.content)) return node.content.map(adfToText).join("");
+  const n = node as Record<string, unknown>;
+  if (n.type === "text") return String(n.text ?? "");
+  if (Array.isArray(n.content)) return (n.content as unknown[]).map(adfToText).join("");
   return "";
 }
 
 export const DETAIL_FIELDS =
   "summary,status,priority,issuetype,project,updated,assignee,description,comment";
 
-export function mapDetailedIssue(issue: any): DetailedIssue {
-  const f = issue.fields ?? {};
-  const rawComments: any[] = f.comment?.comments ?? [];
+export function mapDetailedIssue(issue: unknown): DetailedIssue {
+  const i = issue as { key?: string; fields?: Record<string, unknown> };
+  const f = i.fields ?? {};
+  const commentBlock = f.comment as { comments?: unknown[] } | undefined;
+  const rawComments: unknown[] = commentBlock?.comments ?? [];
   return {
-    key: issue.key,
-    summary: f.summary ?? "",
-    status: f.status?.name ?? "",
-    priority: f.priority?.name ?? "",
-    type: f.issuetype?.name ?? "",
-    project: f.project?.name ?? "",
-    assignee: f.assignee?.displayName,
-    updated: f.updated?.slice(0, 10) ?? "",
+    key: String(i.key ?? ""),
+    summary: String(f.summary ?? ""),
+    status: String((f.status as { name?: string } | undefined)?.name ?? ""),
+    priority: String((f.priority as { name?: string } | undefined)?.name ?? ""),
+    type: String((f.issuetype as { name?: string } | undefined)?.name ?? ""),
+    project: String((f.project as { name?: string } | undefined)?.name ?? ""),
+    assignee: (f.assignee as { displayName?: string } | undefined)?.displayName,
+    updated: String((f.updated as string | undefined)?.slice(0, 10) ?? ""),
     description: adfToText(f.description)?.slice(0, 2000) || "(none)",
-    comments: rawComments.slice(-10).map((c: any) => ({
-      author: c.author?.displayName ?? "unknown",
-      created: c.created?.slice(0, 10) ?? "",
-      body: adfToText(c.body)?.slice(0, 500) || "",
-    })),
+    comments: rawComments.slice(-10).map((c) => {
+      const comment = c as Record<string, unknown>;
+      return {
+        author: String(
+          (comment.author as { displayName?: string } | undefined)?.displayName ?? "unknown",
+        ),
+        created: String((comment.created as string | undefined)?.slice(0, 10) ?? ""),
+        body: adfToText(comment.body)?.slice(0, 500) || "",
+      };
+    }),
   };
 }

@@ -1,6 +1,6 @@
 import { getSlackAuth } from "../auth.js";
 import { defineTool } from "../framework.js";
-import { makeSlackRequest } from "../services/slack.client.js";
+import { makeSlackRequest, type SlackUsersInfoResult } from "../services/slack.client.js";
 
 export default defineTool<
   { userId: string },
@@ -18,14 +18,16 @@ export default defineTool<
   progress: (p) => `Looking up user ${p.userId}`,
 
   async execute(p) {
-    const resp = await makeSlackRequest("users.info", { user: p.userId });
+    const resp = await makeSlackRequest<SlackUsersInfoResult>("users.info", { user: p.userId });
     const u = resp.user;
+    const displayName = u?.profile?.display_name || u?.real_name || u?.name || p.userId;
+    const realName = u?.real_name || u?.name || p.userId;
     return {
-      displayName: u.profile?.display_name || u.real_name || u.name,
-      realName: u.real_name || u.name,
-      email: u.profile?.email,
-      title: u.profile?.title,
-      statusText: u.profile?.status_text,
+      displayName,
+      realName,
+      email: u?.profile?.email,
+      title: u?.profile?.title,
+      statusText: u?.profile?.status_text,
     };
   },
 

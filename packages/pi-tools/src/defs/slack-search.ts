@@ -29,7 +29,7 @@ export default defineTool<
   progress: (p) => `Searching Slack: ${p.query}`,
 
   async execute(p) {
-    const resp: SlackSearchResponse = await makeSlackRequest("search.messages", {
+    const resp = await makeSlackRequest<SlackSearchResponse>("search.messages", {
       query: p.query,
       sort: p.sort || "timestamp",
       sort_dir: p.sort_dir || "desc",

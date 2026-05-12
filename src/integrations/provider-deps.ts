@@ -67,30 +67,32 @@ function readSidecarsFrom(dir: string, kind: ProviderKind): Map<string, Provider
   for (const file of entries) {
     if (!file.endsWith(".json")) continue;
     const filePath = join(dir, file);
-    let raw: any;
+    let raw: unknown;
     try {
       raw = JSON.parse(readFileSync(filePath, "utf8"));
     } catch {
       continue;
     }
-    if (raw?.kind !== kind || typeof raw?.name !== "string") continue;
+    if (typeof raw !== "object" || raw === null) continue;
+    const r = raw as Record<string, unknown>;
+    if (r.kind !== kind || typeof r.name !== "string") continue;
 
     const promptFile =
-      typeof raw.promptFile === "string" && raw.promptFile.length > 0
-        ? isAbsolute(raw.promptFile)
-          ? raw.promptFile
-          : join(dir, raw.promptFile)
-        : join(dir, `${raw.name}.md`);
+      typeof r.promptFile === "string" && r.promptFile.length > 0
+        ? isAbsolute(r.promptFile)
+          ? r.promptFile
+          : join(dir, r.promptFile)
+        : join(dir, `${r.name}.md`);
 
-    map.set(raw.name, {
-      name: raw.name,
+    map.set(r.name, {
+      name: r.name,
       kind,
-      label: typeof raw.label === "string" ? raw.label : raw.name,
-      mcpTools: Array.isArray(raw.mcpTools)
-        ? raw.mcpTools.filter((t: unknown): t is string => typeof t === "string")
+      label: typeof r.label === "string" ? r.label : r.name,
+      mcpTools: Array.isArray(r.mcpTools)
+        ? r.mcpTools.filter((t: unknown): t is string => typeof t === "string")
         : [],
-      cliFallback: typeof raw.cliFallback === "string" ? raw.cliFallback : null,
-      envFallback: typeof raw.envFallback === "string" ? raw.envFallback : null,
+      cliFallback: typeof r.cliFallback === "string" ? r.cliFallback : null,
+      envFallback: typeof r.envFallback === "string" ? r.envFallback : null,
       promptFile,
     });
   }

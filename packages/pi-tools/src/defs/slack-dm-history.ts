@@ -4,6 +4,8 @@ import {
   getTeamDomain,
   makePermalink,
   makeSlackRequest,
+  type SlackConversationsHistoryResult,
+  type SlackConversationsListResult,
   type UnansweredDM,
 } from "../services/slack.client.js";
 
@@ -23,7 +25,7 @@ export default defineTool<{ userId: string; limit?: number; oldest?: string }, U
 
   async execute(p) {
     const teamDomain = await getTeamDomain();
-    const convResp = await makeSlackRequest("conversations.list", {
+    const convResp = await makeSlackRequest<SlackConversationsListResult>("conversations.list", {
       types: "im",
       limit: p.limit || 10,
       exclude_archived: true,
@@ -33,21 +35,24 @@ export default defineTool<{ userId: string; limit?: number; oldest?: string }, U
 
     for (const ch of (convResp.channels || []).slice(0, p.limit || 10)) {
       try {
-        const hist = await makeSlackRequest("conversations.history", {
-          channel: ch.id,
-          limit: 1,
-          ...(p.oldest ? { oldest: p.oldest } : {}),
-        });
+        const hist = await makeSlackRequest<SlackConversationsHistoryResult>(
+          "conversations.history",
+          {
+            channel: ch.id,
+            limit: 1,
+            ...(p.oldest ? { oldest: p.oldest } : {}),
+          },
+        );
         const lastMsg = hist.messages?.[0];
         if (lastMsg && lastMsg.user !== p.userId && !lastMsg.subtype) {
           // Skip if you've reacted to the message (emoji = acknowledgement)
-          const youReacted = (lastMsg.reactions || []).some((r: any) =>
+          const youReacted = (lastMsg.reactions ?? []).some((r) =>
             (r.users || []).includes(p.userId),
           );
           if (!youReacted) {
             unanswered.push({
               channel: ch.id,
-              user: lastMsg.user,
+              user: String(lastMsg.user ?? ""),
               lastMessage: (lastMsg.text || "").slice(0, 200),
               ts: lastMsg.ts,
               permalink: makePermalink(teamDomain, ch.id, lastMsg.ts),

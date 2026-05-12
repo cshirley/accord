@@ -21,17 +21,20 @@ export function devCodeBrief(
   const planPath = wi.plan;
   if (!specPath || !planPath) return { error: `Spec or plan not set on work item ${workItemId}` };
 
-  const spec = readJson<any>(specPath);
-  const plan = readJson<any>(planPath);
+  const spec = readJson<Record<string, unknown>>(specPath);
+  const plan = readJson<Record<string, unknown>>(planPath);
   if (!spec) return { error: `Cannot read spec: ${specPath}` };
   if (!plan) return { error: `Cannot read plan: ${planPath}` };
 
-  const task = (plan.tasks || []).find((t: any) => String(t.id) === String(taskId));
-  if (!task) return { error: `Task ${taskId} not found in plan` };
+  const tasks = (plan.tasks as unknown[] | undefined) ?? [];
+  const taskRaw = tasks.find((t) => String((t as Record<string, unknown>).id) === String(taskId));
+  if (!taskRaw) return { error: `Task ${taskId} not found in plan` };
+  const task = taskRaw as Record<string, unknown>;
 
-  const coveredAcIds = task.covers_ac || [];
-  const coveredAcs = (spec.acceptance_criteria || []).filter((ac: any) =>
-    coveredAcIds.includes(ac.id),
+  const coveredAcIds = (task.covers_ac as string[] | undefined) ?? [];
+  const criteria = (spec.acceptance_criteria as unknown[] | undefined) ?? [];
+  const coveredAcs = criteria.filter((ac) =>
+    coveredAcIds.includes(String((ac as Record<string, unknown>).id)),
   );
 
   const nonce = randomBytes(3).toString("hex");
@@ -72,64 +75,93 @@ export function devCodeBrief(
 
   s.push("### Covered Acceptance Criteria");
   s.push("");
-  for (const ac of coveredAcs) s.push(`- **${ac.id}** (${ac.type}): ${ac.criterion}`);
+  for (const ac of coveredAcs) {
+    const a = ac as Record<string, unknown>;
+    s.push(`- **${a.id}** (${a.type}): ${a.criterion}`);
+  }
   s.push("");
 
-  if (spec.constraints?.length) {
+  const constraints = (spec.constraints as unknown[] | undefined) ?? [];
+  if (constraints.length) {
     s.push("### Constraints");
     s.push("");
-    for (const c of spec.constraints)
-      s.push(`- ${typeof c === "string" ? c : c.constraint || JSON.stringify(c)}`);
+    for (const c of constraints)
+      s.push(
+        `- ${typeof c === "string" ? c : String((c as Record<string, unknown>).constraint || JSON.stringify(c))}`,
+      );
     s.push("");
   }
 
-  if (spec.resolved_questions?.length) {
+  const resolvedQuestions = (spec.resolved_questions as unknown[] | undefined) ?? [];
+  if (resolvedQuestions.length) {
     s.push("### Resolved Questions");
     s.push("");
-    for (const q of spec.resolved_questions)
-      s.push(`- **${q.question || q.id}**: ${q.answer || q.resolution}`);
+    for (const q of resolvedQuestions) {
+      const qr = q as Record<string, unknown>;
+      s.push(`- **${qr.question || qr.id}**: ${qr.answer || qr.resolution}`);
+    }
     s.push("");
   }
 
-  if (spec.scope?.in?.length) {
+  const scope = spec.scope as Record<string, unknown> | undefined;
+  const scopeIn = (scope?.in as unknown[] | undefined) ?? [];
+  if (scopeIn.length) {
     s.push("### Scope In");
     s.push("");
-    for (const si of spec.scope.in)
-      s.push(`- ${typeof si === "string" ? si : si.item || JSON.stringify(si)}`);
+    for (const si of scopeIn)
+      s.push(
+        `- ${typeof si === "string" ? si : String((si as Record<string, unknown>).item || JSON.stringify(si))}`,
+      );
     s.push("");
   }
 
-  if (spec.scope?.out?.length) {
+  const scopeOutItems = (scope?.out as unknown[] | undefined) ?? [];
+  if (scopeOutItems.length) {
     s.push("### Scope Out");
     s.push("");
-    for (const so of spec.scope.out)
-      s.push(`- ${typeof so === "string" ? so : `${so.item}: ${so.reason}`}`);
+    for (const so of scopeOutItems) {
+      const sor = so as Record<string, unknown>;
+      s.push(`- ${typeof so === "string" ? so : `${sor.item}: ${sor.reason}`}`);
+    }
     s.push("");
   }
 
-  if (spec.rejected_alternatives?.length) {
+  const rejectedAlternatives = (spec.rejected_alternatives as unknown[] | undefined) ?? [];
+  if (rejectedAlternatives.length) {
     s.push("### Rejected Alternatives");
     s.push("");
-    for (const ra of spec.rejected_alternatives) s.push(`- **${ra.name}**: ${ra.reason}`);
+    for (const ra of rejectedAlternatives) {
+      const r = ra as Record<string, unknown>;
+      s.push(`- **${r.name}**: ${r.reason}`);
+    }
     s.push("");
   }
 
-  if (plan.guidance?.length) {
+  const guidance = (plan.guidance as unknown[] | undefined) ?? [];
+  if (guidance.length) {
     s.push("### Plan Guidance");
     s.push("");
-    for (const g of plan.guidance) s.push(`- [${g.source}] ${g.directive}`);
+    for (const g of guidance) {
+      const gr = g as Record<string, unknown>;
+      s.push(`- [${gr.source}] ${gr.directive}`);
+    }
     s.push("");
   }
 
-  if (plan.reuse_candidates?.length) {
+  const reuseCandidates = (plan.reuse_candidates as unknown[] | undefined) ?? [];
+  if (reuseCandidates.length) {
     s.push("### Reuse Candidates");
     s.push("");
-    for (const rc of plan.reuse_candidates)
-      s.push(`- ${rc.path || rc.symbol}: ${rc.reason || rc.note}`);
+    for (const rc of reuseCandidates) {
+      const r = rc as Record<string, unknown>;
+      s.push(`- ${r.path || r.symbol}: ${r.reason || r.note}`);
+    }
     s.push("");
   }
 
-  const verCmds = spec.verification?.commands || config?.verification_commands || [];
+  const verification = spec.verification as Record<string, unknown> | undefined;
+  const verCmds =
+    (verification?.commands as string[] | undefined) ?? config?.verification_commands ?? [];
   if (verCmds.length) {
     s.push("### Verification Commands");
     s.push("");
@@ -319,10 +351,10 @@ export function devQuickFixBrief(
 
   const taskId = "1";
   const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
-  const existingTask = readJson<any>(taskFilePath);
-  const ownerNonce = /^[0-9a-f]{6}$/.test(existingTask?.owner_nonce || "")
-    ? existingTask.owner_nonce
-    : devNonce();
+  const existingTask = readJson<Record<string, unknown>>(taskFilePath);
+  const rawNonce =
+    existingTask && typeof existingTask.owner_nonce === "string" ? existingTask.owner_nonce : "";
+  const ownerNonce = /^[0-9a-f]{6}$/.test(rawNonce) ? rawNonce : devNonce();
   const contract = quickFixContract(wi, config);
   const needsTestPhase = contract.test.strategy === "new_red_test";
 

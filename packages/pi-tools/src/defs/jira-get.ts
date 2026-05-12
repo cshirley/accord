@@ -30,7 +30,7 @@ export default defineTool<{ issueKey: string; cloudId?: string }, DetailedIssue>
     server: "atlassian",
     tool: "getJiraIssue",
     mapParams: (p) => ({ cloudId: p.cloudId || DEFAULT_CLOUD_ID, issueIdOrKey: p.issueKey }),
-    mapResult: (raw: any) => mapDetailedIssue(raw),
+    mapResult: (raw: unknown) => mapDetailedIssue(raw),
   },
 
   format(issue) {

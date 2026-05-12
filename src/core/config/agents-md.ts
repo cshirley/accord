@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { findGitRoot } from "./git.js";
 import { loadGlobalConfig, mergeContextSources } from "./global.js";
-import type { DevHarnessConfig } from "./types.js";
+import type { ContextSourceConfig, DevHarnessConfig } from "./types.js";
 
 /**
  * Check whether an AGENTS.md file contains a `dev_harness_ref` directive
@@ -114,30 +114,36 @@ function parseAndValidateConfig(content: string): DevHarnessConfig | null {
   const jsonStr = extractDevHarnessJson(content);
   if (!jsonStr) return null;
 
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(jsonStr);
   } catch {
     return null;
   }
 
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const p = parsed as Record<string, unknown>;
+  const testBlock = p.test as Record<string, unknown> | undefined;
   if (
-    parsed?.schema_version !== "1.0" ||
-    typeof parsed?.language !== "string" ||
-    typeof parsed?.test?.command !== "string" ||
-    !Array.isArray(parsed?.verification_commands) ||
-    parsed.verification_commands.length === 0
+    p.schema_version !== "1.0" ||
+    typeof p.language !== "string" ||
+    typeof testBlock?.command !== "string" ||
+    !Array.isArray(p.verification_commands) ||
+    p.verification_commands.length === 0
   ) {
     return null;
   }
 
   const globalCfg = loadGlobalConfig();
-  const mergedSources = mergeContextSources(globalCfg?.context_sources, parsed.context_sources);
+  const mergedSources = mergeContextSources(
+    globalCfg?.context_sources,
+    p.context_sources as ContextSourceConfig[] | undefined,
+  );
   if (mergedSources.length > 0) {
-    parsed.context_sources = mergedSources;
+    p.context_sources = mergedSources;
   } else {
-    parsed.context_sources = undefined;
+    p.context_sources = undefined;
   }
 
-  return parsed as DevHarnessConfig;
+  return p as unknown as DevHarnessConfig;
 }

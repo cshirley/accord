@@ -121,7 +121,7 @@ export interface FinalizeWorkItemInput {
     verify_verdict?: string;
     post_run_rework_detected?: boolean;
     summary?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   shift_left_findings?: ShiftLeftFinding[];
 }

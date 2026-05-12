@@ -111,10 +111,15 @@ export class McpClient {
 
     return new Promise<void>((resolve, reject) => {
       let settled = false;
-      const settle = (fn: typeof resolve | typeof reject, value?: unknown) => {
+      const finishResolve = () => {
         if (settled) return;
         settled = true;
-        (fn as Function)(value);
+        resolve();
+      };
+      const finishReject = (reason: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(reason instanceof Error ? reason : new Error(String(reason)));
       };
 
       this.process = spawn(command, args, {
@@ -125,17 +130,22 @@ export class McpClient {
 
       this.process.on("error", (err) => {
         this.dead = true;
-        settle(reject, new Error(`MCP server '${this.name}' failed to start: ${err.message}`));
+        finishReject(new Error(`MCP server '${this.name}' failed to start: ${err.message}`));
       });
 
       this.process.on("exit", (code) => {
         this.dead = true;
         const exitErr = new Error(`MCP server '${this.name}' exited with code ${code}`);
         this.rejectAllPending(exitErr);
-        settle(reject, exitErr);
+        finishReject(exitErr);
       });
 
-      this.readline = createInterface({ input: this.process.stdout! });
+      const stdout = this.process.stdout;
+      if (!stdout) {
+        finishReject(new Error(`MCP server '${this.name}' has no stdout stream`));
+        return;
+      }
+      this.readline = createInterface({ input: stdout });
       this.readline.on("line", (line) => this.handleLine(line));
 
       // JSON-RPC initialize
@@ -153,7 +163,7 @@ export class McpClient {
 
       const timer = setTimeout(() => {
         this.settlePending(initId);
-        settle(reject, new Error(`MCP server '${this.name}' initialize timed out`));
+        finishReject(new Error(`MCP server '${this.name}' initialize timed out`));
       }, INIT_TIMEOUT_MS);
 
       this.pending.set(initId, {
@@ -168,12 +178,12 @@ export class McpClient {
             `${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`,
           );
 
-          settle(resolve);
+          finishResolve();
         },
         reject: (err) => {
           this.settlePending(initId);
           clearTimeout(timer);
-          settle(reject, err);
+          finishReject(err);
         },
         timer,
       });

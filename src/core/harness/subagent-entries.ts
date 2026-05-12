@@ -16,9 +16,17 @@ export function collectSubagentEntries(input: Record<string, unknown>): Subagent
 export function firstSubagentAgentName(input: Record<string, unknown>): string {
   if (typeof input.agent === "string") return input.agent;
   const chain = input.chain as SubagentEntry[] | undefined;
-  if (Array.isArray(chain) && chain[0]?.agent) return chain[0].agent!;
+  if (Array.isArray(chain)) {
+    const first = chain[0];
+    const agent = first?.agent;
+    if (typeof agent === "string") return agent;
+  }
   const tasks = input.tasks as SubagentEntry[] | undefined;
-  if (Array.isArray(tasks) && tasks[0]?.agent) return tasks[0].agent!;
+  if (Array.isArray(tasks)) {
+    const first = tasks[0];
+    const agent = first?.agent;
+    if (typeof agent === "string") return agent;
+  }
   return "";
 }
 

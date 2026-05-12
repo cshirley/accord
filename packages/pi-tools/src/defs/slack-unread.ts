@@ -4,6 +4,11 @@ import {
   getTeamDomain,
   makePermalink,
   makeSlackRequest,
+  type SlackChannel,
+  type SlackConversationsHistoryResult,
+  type SlackConversationsInfoResult,
+  type SlackConversationsListResult,
+  type SlackMessage,
   type UnreadChannel,
 } from "../services/slack.client.js";
 
@@ -41,12 +46,12 @@ export default defineTool<
     const teamDomain = await getTeamDomain();
 
     // Paginate conversations.list
-    const allFetched: any[] = [];
+    const allFetched: SlackChannel[] = [];
     let cursor: string | undefined;
     const maxChannels = p.limit || 50;
 
     do {
-      const convResp = await makeSlackRequest("conversations.list", {
+      const convResp = await makeSlackRequest<SlackConversationsListResult>("conversations.list", {
         types,
         limit: Math.min(maxChannels - allFetched.length, 200),
         exclude_archived: true,
@@ -56,23 +61,28 @@ export default defineTool<
       cursor = convResp.response_metadata?.next_cursor || undefined;
     } while (cursor && allFetched.length < maxChannels);
 
-    const channels = allFetched.filter((ch: any) => ch.is_member || ch.is_im || ch.is_mpim);
+    const channels = allFetched.filter((ch) => Boolean(ch.is_member || ch.is_im || ch.is_mpim));
     const unreadChannels: UnreadChannel[] = [];
 
     for (const ch of channels) {
       try {
-        const info = await makeSlackRequest("conversations.info", { channel: ch.id });
+        const info = await makeSlackRequest<SlackConversationsInfoResult>("conversations.info", {
+          channel: String(ch.id),
+        });
         const lastRead = info.channel?.last_read;
         if (!lastRead || lastRead === "0000000000.000000") continue;
 
-        const hist = await makeSlackRequest("conversations.history", {
-          channel: ch.id,
-          oldest: lastRead,
-          limit: maxPerChannel,
-          inclusive: false,
-        });
+        const hist = await makeSlackRequest<SlackConversationsHistoryResult>(
+          "conversations.history",
+          {
+            channel: String(ch.id),
+            oldest: lastRead,
+            limit: maxPerChannel,
+            inclusive: false,
+          },
+        );
 
-        const msgs = (hist.messages || []).filter((m: any) => {
+        const msgs = (hist.messages || []).filter((m: SlackMessage) => {
           if (m.subtype === "channel_join" || m.subtype === "channel_leave") return false;
           if (excludeBots && (m.bot_id || m.subtype === "bot_message")) return false;
           return true;
@@ -89,17 +99,17 @@ export default defineTool<
               : "public";
 
         unreadChannels.push({
-          channelId: ch.id,
-          channelName: ch.name || ch.id,
+          channelId: String(ch.id),
+          channelName: String(ch.name || ch.id),
           channelType,
           unreadCount: msgs.length,
-          messages: msgs.map((m: any) => ({
-            user: m.user || m.bot_id || "unknown",
-            text: (m.text || "").slice(0, 300),
-            ts: m.ts,
-            permalink: makePermalink(teamDomain, ch.id, m.ts),
-            ...(m.thread_ts && m.thread_ts !== m.ts ? { threadTs: m.thread_ts } : {}),
-            ...(m.reply_count ? { replyCount: m.reply_count } : {}),
+          messages: msgs.map((m: SlackMessage) => ({
+            user: String(m.user || m.bot_id || "unknown"),
+            text: String(m.text || "").slice(0, 300),
+            ts: String(m.ts),
+            permalink: makePermalink(teamDomain, String(ch.id), String(m.ts)),
+            ...(m.thread_ts && m.thread_ts !== m.ts ? { threadTs: String(m.thread_ts) } : {}),
+            ...(m.reply_count ? { replyCount: Number(m.reply_count) } : {}),
           })),
         });
       } catch {

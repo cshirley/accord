@@ -34,7 +34,7 @@ function orchestratorUsageFingerprint(msg: { id?: string; usage?: unknown }): st
   if (id) return `id:${id}`;
   const u = msg.usage;
   if (!u) return null;
-  const norm = normalizeUsageCostFields(u as any);
+  const norm = normalizeUsageCostFields(u);
   const billable = norm.input + norm.output + norm.cost + norm.cacheRead + norm.cacheWrite;
   if (billable === 0) return null;
   return `tok:${norm.input}:${norm.output}:${norm.cost}:${norm.cacheRead}:${norm.cacheWrite}`;
@@ -48,8 +48,10 @@ export function rememberOrchestratorFingerprint(
   dedup.seen.add(fp);
   dedup.queue.push(fp);
   if (dedup.queue.length > ORCHESTRATOR_FP_CAP) {
-    const old = dedup.queue.shift()!;
-    dedup.seen.delete(old);
+    const old = dedup.queue.shift();
+    if (old !== undefined) {
+      dedup.seen.delete(old);
+    }
   }
   return true;
 }
@@ -73,7 +75,7 @@ export function processOrchestratorTurnEnd(params: ProcessOrchestratorTurnParams
   if (!isAssistantTurnMessage(message)) return false;
   const msg = message;
   if (!msg.usage) return false;
-  const norm = normalizeUsageCostFields(msg.usage as any);
+  const norm = normalizeUsageCostFields(msg.usage);
   if (norm.input + norm.output + norm.cost + norm.cacheRead + norm.cacheWrite === 0) return false;
 
   const fp = orchestratorUsageFingerprint(msg);

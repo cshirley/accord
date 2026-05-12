@@ -44,7 +44,7 @@ export default defineTool<
       jql: p.jql,
       maxResults: p.maxResults || 15,
     }),
-    mapResult: (raw: any) => (raw.issues ?? []).map(mapIssue),
+    mapResult: (raw: unknown) => ((raw as JiraSearchResponse).issues ?? []).map(mapIssue),
   },
 
   format(issues) {
