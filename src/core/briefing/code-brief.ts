@@ -7,28 +7,30 @@
 import { randomBytes } from "node:crypto";
 import * as path from "node:path";
 import type { DevHarnessConfig } from "../config/index.js";
+import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
+import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
 
 export function devCodeBrief(
   workItemId: string,
   taskId: string,
   config: DevHarnessConfig | null,
-): { brief: string } | { error: string } {
+): Result<{ brief: string }> {
   const wi = loadWorkItem(workItemId);
-  if (!wi) return { error: `Work item not found: ${workItemId}` };
+  if (!wi) return err(`Work item not found: ${workItemId}`);
 
   const specPath = wi.spec;
   const planPath = wi.plan;
-  if (!specPath || !planPath) return { error: `Spec or plan not set on work item ${workItemId}` };
+  if (!specPath || !planPath) return err(`Spec or plan not set on work item ${workItemId}`);
 
   const spec = readJson<Record<string, unknown>>(specPath);
   const plan = readJson<Record<string, unknown>>(planPath);
-  if (!spec) return { error: `Cannot read spec: ${specPath}` };
-  if (!plan) return { error: `Cannot read plan: ${planPath}` };
+  if (!spec) return err(`Cannot read spec: ${specPath}`);
+  if (!plan) return err(`Cannot read plan: ${planPath}`);
 
   const tasks = (plan.tasks as unknown[] | undefined) ?? [];
   const taskRaw = tasks.find((t) => String((t as Record<string, unknown>).id) === String(taskId));
-  if (!taskRaw) return { error: `Task ${taskId} not found in plan` };
+  if (!taskRaw) return err(`Task ${taskId} not found in plan`);
   const task = taskRaw as Record<string, unknown>;
 
   const coveredAcIds = (task.covers_ac as string[] | undefined) ?? [];
@@ -169,7 +171,7 @@ export function devCodeBrief(
     s.push("");
   }
 
-  return { brief: s.join("\n") };
+  return ok({ brief: s.join("\n") });
 }
 
 export function devNonce(): string {
@@ -333,21 +335,20 @@ function quickFixContract(
   };
 }
 
+export interface QuickFixBrief {
+  brief: string;
+  task_file_path: string;
+  task_id: string;
+  brief_type: "phase-test" | "phase-code";
+}
+
 export function devQuickFixBrief(
   workItemId: string,
   config: DevHarnessConfig | null,
-):
-  | {
-      brief: string;
-      task_file_path: string;
-      task_id: string;
-      brief_type: "phase-test" | "phase-code";
-    }
-  | { error: string } {
+): Result<QuickFixBrief> {
   const wi = loadWorkItem(workItemId);
-  if (!wi) return { error: `Work item not found: ${workItemId}` };
-  if (wi.pattern !== "quick_fix")
-    return { error: `Work item ${workItemId} is not a quick_fix item` };
+  if (!wi) return err(`Work item not found: ${workItemId}`);
+  if (wi.pattern !== "quick_fix") return err(`Work item ${workItemId} is not a quick_fix item`);
 
   const taskId = "1";
   const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
@@ -360,6 +361,12 @@ export function devQuickFixBrief(
 
   const { specPath, planPath } = writeQuickFixStubs(workItemId, wi, contract, config);
 
+  const loopCounters = readQuickFixLoopCounters(
+    existingTask && typeof existingTask === "object"
+      ? (existingTask as Record<string, unknown>)
+      : {},
+  );
+
   const taskFile = {
     schema_version: "1.0",
     work_item_id: workItemId,
@@ -370,6 +377,7 @@ export function devQuickFixBrief(
     pre_impl_gates: needsTestPhase ? "pending" : "complete",
     test_files: Array.isArray(existingTask?.test_files) ? existingTask.test_files : [],
     red_confirmed: existingTask?.red_confirmed === true,
+    quick_fix_loop: { test_review_cycles_used: loopCounters.test_review_cycles_used },
     quick_fix_contract: contract,
     events: Array.isArray(existingTask?.events) ? existingTask.events : [],
   };
@@ -429,9 +437,9 @@ export function devQuickFixBrief(
     }
   } else {
     const codeBrief = devCodeBrief(workItemId, taskId, config);
-    if ("error" in codeBrief) return codeBrief;
+    if (!codeBrief.ok) return codeBrief;
 
-    s.push(codeBrief.brief);
+    s.push(codeBrief.value.brief);
     s.push("");
     s.push("### Quick Fix Rules");
     s.push("");
@@ -453,10 +461,10 @@ export function devQuickFixBrief(
     s.push("");
   }
 
-  return {
+  return ok({
     brief: s.join("\n"),
     task_file_path: taskFilePath,
     task_id: taskId,
     brief_type: needsTestPhase ? "phase-test" : "phase-code",
-  };
+  });
 }

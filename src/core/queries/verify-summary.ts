@@ -4,6 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, readJson } from "../work-items/io.js";
 
 export interface VerifySummary {
@@ -147,7 +148,7 @@ function renderMarkdownReport(
   return `${lines.join("\n").replace(/\n{3,}/g, "\n\n")}\n`;
 }
 
-export function devVerifySummary(id: string): VerifySummary | { error: string } {
+export function devVerifySummary(id: string): Result<VerifySummary> {
   const wi = loadWorkItem(id);
   const candidates = [
     wi?.verify,
@@ -169,7 +170,7 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
       break;
     }
   }
-  if (!report) return { error: `Verify report not found. Tried: ${Array.from(seen).join(", ")}` };
+  if (!report) return err(`Verify report not found. Tried: ${Array.from(seen).join(", ")}`);
 
   let pass = 0,
     fail = 0,
@@ -231,7 +232,7 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
   lines.push(`Markdown: ${markdownPath}`);
   lines.push("", report.verdict === "pass" ? "Next: /commit → /pr" : `Next: /dev gaps ${id}`);
 
-  return {
+  return ok({
     verdict: String(report.verdict),
     verify_path: verifyPath,
     markdown_path: markdownPath,
@@ -241,5 +242,5 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
     not_verified: notVerified,
     gaps,
     formatted: lines.join("\n"),
-  };
+  });
 }

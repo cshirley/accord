@@ -52,6 +52,66 @@ function sampleConfig(overrides: Partial<DevHarnessConfig> = {}): DevHarnessConf
   };
 }
 
+function emptyHarnessState(devConfig: DevHarnessConfig | null = null): HarnessMutableState {
+  return {
+    devConfig,
+    costCache: new Map(),
+    sessionCost: 0,
+    activeWorkItem: null,
+  };
+}
+
+function fencedJsonAssistantBody(payload: unknown): string {
+  return `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``;
+}
+
+function quickFixContractFixture(
+  testStrategy: "existing_tests" | "new_red_test",
+): Record<string, unknown> {
+  return {
+    plan: {
+      summary: "s",
+      target_paths: [],
+      out_of_scope: [],
+      expected_finish: "done",
+    },
+    test: {
+      strategy: testStrategy,
+      red_required: testStrategy === "new_red_test",
+      command: "bun test",
+      reason: "r",
+    },
+  };
+}
+
+function persistPrimaryTaskId(project: string, workItemId: string): void {
+  const wiPath = join(project, ".tasks", `${workItemId}.json`);
+  const wi = JSON.parse(readFileSync(wiPath, "utf8")) as { task_ids: number[] };
+  wi.task_ids = [1];
+  writeFileSync(wiPath, `${JSON.stringify(wi, null, 2)}\n`, "utf8");
+}
+
+async function processSingleSubagentAssistantText(
+  agent: string,
+  task: string,
+  assistantText: string,
+  state: HarnessMutableState,
+): Promise<string> {
+  return processSubagentToolResult({
+    details: {
+      results: [
+        {
+          agent,
+          task,
+          messages: [{ role: "assistant", content: [{ type: "text", text: assistantText }] }],
+        },
+      ],
+    },
+    state,
+    pricing: loadPricing(),
+  });
+}
+
 afterEach(() => {
   process.chdir(originalCwd);
   while (tempDirs.length) {
@@ -167,12 +227,7 @@ describe("harness orchestrator usage", () => {
   });
 
   test("processOrchestratorTurnEnd is a no-op without billable usage", () => {
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
+    const state = emptyHarnessState();
     const dedup = createOrchestratorUsageDedup();
     const msg = { role: "assistant", content: [], usage: { input: 0, output: 0 } };
     expect(
@@ -191,12 +246,7 @@ describe("harness orchestrator usage", () => {
     process.chdir(project);
     devBootstrap("USD-1", "usage test", "quick_fix");
 
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
+    const state = emptyHarnessState();
     const dedup = createOrchestratorUsageDedup();
     const msg = {
       role: "assistant",
@@ -238,12 +288,7 @@ describe("harness session cost seed", () => {
     expect(seed.activeWorkItem).toBe("SEED-1");
     expect(seed.sessionCost).toBe(seed.costCache.get("SEED-1") ?? -1);
 
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
+    const state = emptyHarnessState();
     applyHarnessCostSeed(state, seed);
     expect(state.activeWorkItem).toBe("SEED-1");
   });
@@ -305,7 +350,7 @@ describe("harness verify preflight", () => {
     });
     const cfg = sampleConfig({ verification_commands: ["true"] });
     const qf = devQuickFixBrief("VFY-OK-1", cfg);
-    if ("error" in qf) throw new Error(qf.error);
+    if (!qf.ok) throw new Error(qf.error);
 
     const input: Record<string, unknown> = {
       agent: "phase-verify-acceptance",
@@ -357,22 +402,6 @@ describe("harness gather preflight", () => {
 });
 
 describe("harness processSubagentToolResult", () => {
-  test("returns empty string when details.results missing", async () => {
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
-    expect(
-      await processSubagentToolResult({
-        details: {},
-        state,
-        pricing: loadPricing(),
-      }),
-    ).toBe("");
-  });
-
   function quickFixIntent() {
     const recommendation = recommendIntentMode("fix @src/x.ts typo");
     return {
@@ -394,31 +423,28 @@ describe("harness processSubagentToolResult", () => {
     usage: { prompt_tokens: 1, completion_tokens: 1 },
   };
 
+  test("returns empty string when details.results missing", async () => {
+    expect(
+      await processSubagentToolResult({
+        details: {},
+        state: emptyHarnessState(),
+        pricing: loadPricing(),
+      }),
+    ).toBe("");
+  });
+
   test("injects validated phase-code return packet from assistant fenced JSON", async () => {
     const project = tempProject();
     process.chdir(project);
     devBootstrap("PKP-1", "Packet test", "quick_fix", undefined, quickFixIntent());
 
-    const body = `Summary\n\`\`\`json\n${JSON.stringify(validPhaseCodePacket, null, 2)}\n\`\`\``;
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
-    const out = await processSubagentToolResult({
-      details: {
-        results: [
-          {
-            agent: "phase-code",
-            task: "Implement PKP-1",
-            messages: [{ role: "assistant", content: [{ type: "text", text: body }] }],
-          },
-        ],
-      },
-      state,
-      pricing: loadPricing(),
-    });
+    const body = `Summary\n${fencedJsonAssistantBody(validPhaseCodePacket)}`;
+    const out = await processSingleSubagentAssistantText(
+      "phase-code",
+      "Implement PKP-1",
+      body,
+      emptyHarnessState(),
+    );
     expect(out).toContain("phase-code Return Packet");
     expect(out).toContain('"status": "done"');
     expect(out).not.toContain("Return packet validation failed");
@@ -435,36 +461,16 @@ describe("harness processSubagentToolResult", () => {
       tests_passing: true,
       usage: { prompt_tokens: 1, completion_tokens: 1 },
     };
-    const body = `\`\`\`json\n${JSON.stringify(badPacket, null, 2)}\n\`\`\``;
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
-    const out = await processSubagentToolResult({
-      details: {
-        results: [
-          {
-            agent: "phase-code",
-            task: "PKP-INV-1",
-            messages: [{ role: "assistant", content: [{ type: "text", text: body }] }],
-          },
-        ],
-      },
-      state,
-      pricing: loadPricing(),
-    });
+    const out = await processSingleSubagentAssistantText(
+      "phase-code",
+      "PKP-INV-1",
+      fencedJsonAssistantBody(badPacket),
+      emptyHarnessState(),
+    );
     expect(out).toContain("Return packet validation failed");
   });
 
   test("detects empty assistant response for a phase agent", async () => {
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
     const out = await processSubagentToolResult({
       details: {
         results: [
@@ -478,7 +484,7 @@ describe("harness processSubagentToolResult", () => {
           },
         ],
       },
-      state,
+      state: emptyHarnessState(),
       pricing: loadPricing(),
     });
     expect(out).toContain("empty response");
@@ -495,28 +501,254 @@ describe("harness processSubagentToolResult", () => {
       test: { command: "   ", file_pattern: "*.ts" },
       verification_commands: ["true"],
     });
-    const body = `\`\`\`json\n${JSON.stringify(validPhaseCodePacket, null, 2)}\n\`\`\``;
-    const state: HarnessMutableState = {
-      devConfig: cfg,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
-    const out = await processSubagentToolResult({
-      details: {
-        results: [
-          {
-            agent: "phase-code",
-            task: "PKP-PC-1",
-            messages: [{ role: "assistant", content: [{ type: "text", text: body }] }],
-          },
-        ],
-      },
-      state,
-      pricing: loadPricing(),
-    });
+    const out = await processSingleSubagentAssistantText(
+      "phase-code",
+      "PKP-PC-1",
+      fencedJsonAssistantBody(validPhaseCodePacket),
+      emptyHarnessState(cfg),
+    );
     expect(out).toContain("Post-Code Verification");
     expect(out).toMatch(/exit 0/);
+  });
+
+  test("applies quick_fix task updates after validated review-test packet", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("QRT-1", "quick fix review apply", "quick_fix", undefined, quickFixIntent());
+    persistPrimaryTaskId(project, "QRT-1");
+    writeFileSync(
+      join(project, ".tasks", "QRT-1-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "QRT-1",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "phase-code",
+        status: "pending",
+        pre_impl_gates: "pending",
+        quick_fix_loop: { test_review_cycles_used: 0 },
+        quick_fix_contract: quickFixContractFixture("existing_tests"),
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const reviewPacket = { verdict: "clean" as const, findings: [] };
+    const out = await processSingleSubagentAssistantText(
+      "review-test",
+      "Run review-test for harness item QRT-1",
+      fencedJsonAssistantBody(reviewPacket),
+      emptyHarnessState(),
+    );
+    expect(out).toContain("Quick-fix (review-test)");
+    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-1-task-1.json"), "utf8")) as {
+      phase: string;
+    };
+    expect(task.phase).toBe("phase-code");
+  });
+
+  test("applies quick_fix phase-test → review-test handoff after validated phase-test packet", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("QPT-1", "quick fix phase test apply", "quick_fix", undefined, quickFixIntent());
+    persistPrimaryTaskId(project, "QPT-1");
+    writeFileSync(
+      join(project, ".tasks", "QPT-1-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "QPT-1",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "phase-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        test_files: [],
+        quick_fix_loop: { test_review_cycles_used: 0 },
+        quick_fix_contract: quickFixContractFixture("new_red_test"),
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const phaseTestPacket = {
+      status: "done" as const,
+      test_files: ["src/qpt.test.ts"],
+      red_confirmed: true,
+      ac_covered: ["AC-1"],
+      deviations_emitted: 0,
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    };
+    const out = await processSingleSubagentAssistantText(
+      "phase-test",
+      "Run phase-test for harness item QPT-1",
+      fencedJsonAssistantBody(phaseTestPacket),
+      emptyHarnessState(),
+    );
+    expect(out).toContain("Quick-fix (phase-test)");
+    const task = JSON.parse(readFileSync(join(project, ".tasks", "QPT-1-task-1.json"), "utf8")) as {
+      phase: string;
+      test_files: string[];
+    };
+    expect(task.phase).toBe("review-test");
+    expect(task.test_files).toEqual(["src/qpt.test.ts"]);
+  });
+
+  test("applies implement phase-test → review-test handoff after validated phase-test packet", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("IPT-1", "implement phase test apply", "implement", "express");
+    persistPrimaryTaskId(project, "IPT-1");
+    writeFileSync(
+      join(project, ".tasks", "IPT-1-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "IPT-1",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "phase-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        test_files: [],
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const phaseTestPacket = {
+      status: "done" as const,
+      test_files: ["src/ipt.test.ts"],
+      red_confirmed: true,
+      ac_covered: ["AC-1"],
+      deviations_emitted: 0,
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    };
+    const out = await processSingleSubagentAssistantText(
+      "phase-test",
+      "Run phase-test for harness item IPT-1",
+      fencedJsonAssistantBody(phaseTestPacket),
+      emptyHarnessState(),
+    );
+    expect(out).toContain("Implement (phase-test)");
+    const task = JSON.parse(readFileSync(join(project, ".tasks", "IPT-1-task-1.json"), "utf8")) as {
+      phase: string;
+      test_files: string[];
+    };
+    expect(task.phase).toBe("review-test");
+    expect(task.test_files).toEqual(["src/ipt.test.ts"]);
+  });
+
+  test("review-test quick_fix apply reads devConfig orchestration.quick_fix_loop", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("QRT-2", "gate", "quick_fix", undefined, quickFixIntent());
+    persistPrimaryTaskId(project, "QRT-2");
+    writeFileSync(
+      join(project, ".tasks", "QRT-2-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "QRT-2",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "phase-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        quick_fix_loop: { test_review_cycles_used: 0 },
+        quick_fix_contract: quickFixContractFixture("existing_tests"),
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const reviewPacket = {
+      verdict: "issues" as const,
+      findings: [
+        {
+          severity: "warning" as const,
+          issue: "flakey assertion order",
+          evidence: "e",
+          recommendation: "r",
+        },
+      ],
+    };
+    await processSingleSubagentAssistantText(
+      "review-test",
+      "Review tests for QRT-2",
+      fencedJsonAssistantBody(reviewPacket),
+      emptyHarnessState(
+        sampleConfig({
+          orchestration: { quick_fix_loop: { severity_gate: "block" } },
+        }),
+      ),
+    );
+    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-2-task-1.json"), "utf8")) as {
+      phase: string;
+      quick_fix_loop?: { test_review_cycles_used: number };
+    };
+    expect(task.phase).toBe("phase-code");
+    expect(task.quick_fix_loop?.test_review_cycles_used).toBe(0);
+  });
+
+  test("blocks quick_fix when review-test issues hit loop cap (quick_fix_loop_blocked)", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("QFBC-1", "loop cap", "quick_fix", undefined, quickFixIntent());
+    persistPrimaryTaskId(project, "QFBC-1");
+    writeFileSync(
+      join(project, ".tasks", "QFBC-1-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "QFBC-1",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "review-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        quick_fix_loop: { test_review_cycles_used: 0 },
+        quick_fix_contract: quickFixContractFixture("existing_tests"),
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const reviewPacket = {
+      verdict: "issues" as const,
+      findings: [
+        {
+          severity: "critical" as const,
+          issue: "tests fail",
+          evidence: "e",
+          recommendation: "r",
+          file: "src/qfbc.test.ts",
+          line: 1,
+        },
+      ],
+    };
+    const out = await processSingleSubagentAssistantText(
+      "review-test",
+      "Review tests for QFBC-1",
+      fencedJsonAssistantBody(reviewPacket),
+      emptyHarnessState(
+        sampleConfig({
+          orchestration: { quick_fix_loop: { max_test_review_loops: 0, severity_gate: "warn" } },
+        }),
+      ),
+    );
+    expect(out).toContain("Quick-fix:");
+    expect(out).toContain("loop cap");
+
+    const task = JSON.parse(
+      readFileSync(join(project, ".tasks", "QFBC-1-task-1.json"), "utf8"),
+    ) as { status: string; events: Array<{ type?: string; reason?: string }> };
+    expect(task.status).toBe("blocked");
+    const blockedEvent = task.events.find((e) => e.type === "quick_fix_loop_blocked");
+    expect(blockedEvent).toBeDefined();
+    expect(String(blockedEvent?.reason)).toMatch(/cap reached/i);
+
+    const wi = JSON.parse(readFileSync(join(project, ".tasks", "QFBC-1.json"), "utf8")) as {
+      updated?: string;
+    };
+    expect(typeof wi.updated).toBe("string");
+    expect(wi.updated!.length).toBeGreaterThan(0);
   });
 
   test("appends usage line when subagent reports billable usage", async () => {
@@ -524,12 +756,6 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("USG-1", "Usage", "quick_fix", undefined, quickFixIntent());
 
-    const state: HarnessMutableState = {
-      devConfig: null,
-      costCache: new Map(),
-      sessionCost: 0,
-      activeWorkItem: null,
-    };
     await processSubagentToolResult({
       details: {
         results: [
@@ -541,7 +767,7 @@ describe("harness processSubagentToolResult", () => {
           },
         ],
       },
-      state,
+      state: emptyHarnessState(),
       pricing: loadPricing(),
     });
     const jsonl = join(project, ".tasks", "USG-1-usage.jsonl");

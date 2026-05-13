@@ -148,7 +148,7 @@ interface UsageStats {
   turns: number;
 }
 
-interface SingleResult {
+export interface SingleResult {
   agent: string;
   agentSource: "user" | "project" | "unknown";
   task: string;
@@ -511,6 +511,40 @@ const SubagentParams = Type.Object({
     Type.String({ description: "Working directory for the agent process (single mode)" }),
   ),
 });
+
+/**
+ * Harness-driven subagent spawn (isolated `pi` child), bypassing the chat tool path.
+ * Skips project-local agent confirmation — use `agentScope: "user"` unless the
+ * caller owns a confirm UI. Intended for ACCORD core orchestration only.
+ */
+export async function harnessSpawnSubagent(params: {
+  cwd: string;
+  agentScope?: AgentScope;
+  agent: string;
+  task: string;
+  stepCwd?: string;
+  signal?: AbortSignal;
+}): Promise<SingleResult> {
+  const agentScope = params.agentScope ?? "user";
+  const discovery = discoverAgents(params.cwd, agentScope);
+  const makeDetails = (results: SingleResult[]): SubagentDetails => ({
+    mode: "single",
+    agentScope,
+    projectAgentsDir: discovery.projectAgentsDir,
+    results,
+  });
+  return runSingleAgent(
+    params.cwd,
+    discovery.agents,
+    params.agent,
+    params.task,
+    params.stepCwd,
+    1,
+    params.signal,
+    undefined,
+    makeDetails,
+  );
+}
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({

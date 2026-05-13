@@ -1,3 +1,36 @@
+/** Optional harness orchestration overrides (see `schemas/accord-schema.json`). */
+export interface DevHarnessOrchestrationConfig {
+  /**
+   * Caps and severity gating for quick-fix `review-test` → `phase-test` retries.
+   * Omitted fields fall back to `defaultQuickFixLoopPolicy()` in `src/core/orchestration/policy.ts`.
+   */
+  quick_fix_loop?: {
+    /** Max post-review-test retries toward `phase-test` before task `status` is set to `blocked`. */
+    max_test_review_loops?: number;
+    /** Which finding severities consume a retry slot when verdict is `issues`. */
+    severity_gate?: "none" | "warn" | "block";
+  };
+  /**
+   * Optional **implement** pipeline gates (challenge / `reviews_requested` → **review-code** before verify).
+   * Omitted fields fall back to {@link defaultImplementCodeReviewPolicy} in `src/core/orchestration/policy.ts`.
+   */
+  implement_loop?: {
+    code_review_on_challenge?: boolean;
+    code_review_on_reviews_requested?: boolean;
+  };
+  /**
+   * Bounded LLM output merged into resume task text (Phase 5). Never selects agents —
+   * only the shape in `schemas/orchestration-judgment-packet.json`. Pi calls the model when
+   * `ACCORD_ORCHESTRATION_JUDGMENT=1` and `enabled` is true; invalid JSON falls back to a template appendix.
+   */
+  judgment?: {
+    enabled?: boolean;
+    /** Dispatch agent registry ids that receive judgment (default: review-test, phase-test). */
+    agents?: string[];
+    max_tokens?: number;
+  };
+}
+
 export interface DevHarnessConfig {
   schema_version: "1.0";
   language: string;
@@ -31,6 +64,7 @@ export interface DevHarnessConfig {
    */
   providers?: UserProviderDef[];
   log_level?: "debug" | "info" | "warn" | "error" | "silent";
+  orchestration?: DevHarnessOrchestrationConfig;
 }
 
 export interface ContextSourceConfig {

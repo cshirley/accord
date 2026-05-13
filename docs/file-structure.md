@@ -18,6 +18,7 @@ src/
     config/                      Config types, globals, AGENTS.md parsing, placement, detection
       detect/                    Project stack, monorepo, tracker, and command inference
     commands/                    Host-neutral /dev dispatch, help, intent classification
+    orchestration/               Workflow graph, guards, interpreter, runner (`runUntilStop`, `runResumeOrchestrationWithReplans`, `runFinishOrchestration`), `finish-resolve.ts`, `implement-resume.ts`, `implement-phase-code.ts`, `quick-fix.ts` (loop policy + resume), resume + `dev_orchestrate`, policy, `ACCORD_CORE_ORCHESTRATOR` resume/finish paths
     queries/                     Read-only dashboards, review queue, verify summaries, retro
     briefing/                    Context router: code briefs, decision packets, intent contract briefs
     crucible/                    Verification command runner, result formatting, staleness checks
@@ -30,6 +31,9 @@ src/
 
   adapters/pi/
     extension.ts                 Pi extension registration for /dev, tools, hooks
+    orchestration-runtime-host.ts Pi OrchestrationRuntimeHost (preflight + spawn + processSubagentToolResult)
+    resume-orchestration.ts       `/dev resume` core path when ACCORD_CORE_ORCHESTRATOR=1
+    finish-orchestration.ts       `/dev finish` core path when ACCORD_CORE_ORCHESTRATOR=1
     command/autocomplete.ts      Pi autocomplete wiring for /dev arguments
     hooks.ts                     Pi lifecycle event handlers
     hook-state.ts                Shared Pi hook state and session marker sync
@@ -67,6 +71,7 @@ tests/*.test.ts                   Bun unit tests (`core-contracts`, `harness`, `
 ## Navigation guide
 
 - Change `/dev` command routing or intent classification in `src/core/commands/`.
+- Change harness orchestration (`src/core/orchestration/`) — see [`docs/harness-orchestration.md`](harness-orchestration.md) and [`docs/harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md). Resume resolution + `ACCORD_CORE_ORCHESTRATOR=1` `/dev resume` path is implemented; full graph coverage is still in progress.
 - Change Pi-specific command behavior, autocomplete, hooks, status, or tool registration in `src/adapters/pi/`.
 - Change work item state and `.tasks/` handling in `src/core/work-items/`.
 - Change agent brief construction in `src/core/briefing/`.

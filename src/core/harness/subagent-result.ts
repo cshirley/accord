@@ -4,8 +4,8 @@
 
 import { agentRequiresVerification, agentSchemas } from "../agents/registry.js";
 import { validateReturn } from "../artifacts/validation.js";
-import { formatVerificationResults, runVerificationCommands } from "../crucible/verification.js";
 import { createLogger } from "../logging.js";
+import { runPostResultHandlerForAgent } from "../orchestration/post-result/registry.js";
 import type { PricingConfig } from "../telemetry/usage.js";
 import {
   appendUsageLine,
@@ -19,6 +19,7 @@ import {
   type UsageLine,
   updateWorkItemCost,
 } from "../telemetry/usage.js";
+import { formatVerificationResults, runVerificationCommands } from "../verification/runner.js";
 import type { HarnessMutableState } from "./types.js";
 
 const log = createLogger("harness");
@@ -148,6 +149,13 @@ export async function processSubagentToolResult(
           `\n⚠ Return packet validation failed for ${agentName}:`,
           ...validation.errors.map((e) => `  • ${e}`),
         ].join("\n");
+      } else if (workItemId) {
+        contentAppend += runPostResultHandlerForAgent(
+          agentName,
+          workItemId,
+          packet,
+          state.devConfig,
+        );
       }
     } else if (
       !packet &&

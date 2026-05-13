@@ -172,6 +172,67 @@
           "description": "Path to monorepo root relative to this AGENTS.md"
         }
       }
+    },
+    "orchestration": {
+      "type": "object",
+      "description": "Deterministic harness behaviour overrides (Phase 3+).",
+      "additionalProperties": false,
+      "properties": {
+        "quick_fix_loop": {
+          "type": "object",
+          "description": "Quick-fix adversarial test↔review loop: after each validated `review-test` packet, the harness may bump counters, set task `phase` to `phase-test` or `phase-code`, or mark the task `blocked` when the cap is reached.",
+          "additionalProperties": false,
+          "properties": {
+            "max_test_review_loops": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum `test_review_cycles_used` before further gated `issues` verdicts block the task. Default: 5."
+            },
+            "severity_gate": {
+              "type": "string",
+              "enum": ["none", "warn", "block"],
+              "description": "`none`: any `issues` verdict can consume a retry. `warn`: warning or critical findings consume a retry. `block`: only critical findings consume a retry. Default: warn."
+            }
+          }
+        },
+        "implement_loop": {
+          "type": "object",
+          "description": "Standard **implement** pipeline: after validated `phase-code`, the harness may set task `phase` to **review-code** when the plan marks `challenge` or the return packet requests reviews.",
+          "additionalProperties": false,
+          "properties": {
+            "code_review_on_challenge": {
+              "type": "boolean",
+              "description": "When true (default), a plan task with `challenge: true` routes to **review-code** after `phase-code` completes successfully."
+            },
+            "code_review_on_reviews_requested": {
+              "type": "boolean",
+              "description": "When true (default), a `phase-code` return with `reviews_requested` > 0 routes to **review-code**."
+            }
+          }
+        },
+        "judgment": {
+          "type": "object",
+          "description": "Optional bounded LLM step that appends a schema-validated brief fragment to resume task text (Phase 5). Requires `ACCORD_ORCHESTRATION_JUDGMENT=1` on Pi to call the model.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "When true, eligible resume spawns may call judgment before subagent execution (Pi only when env gate is set)."
+            },
+            "agents": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Dispatch agent ids (registry) that receive judgment. Default: review-test, phase-test."
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 256,
+              "maximum": 8192,
+              "description": "Max output tokens for the judgment completion. Default: 1536."
+            }
+          }
+        }
+      }
     }
   }
 }

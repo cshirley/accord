@@ -21,7 +21,6 @@ import {
 } from "../src/core/config/detect/index.js";
 import { mergeContextSources } from "../src/core/config/global.js";
 import { devInitDetect } from "../src/core/config/init-detect.js";
-import { checkVerifyStaleness } from "../src/core/crucible/staleness.js";
 import { notifyPendingDecisionsIfAny } from "../src/core/harness/index.js";
 import { devTasks } from "../src/core/queries/dashboard.js";
 import type { PricingConfig } from "../src/core/telemetry/usage.js";
@@ -38,6 +37,7 @@ import {
   recomputeCost,
   setHarnessRunTag,
 } from "../src/core/telemetry/usage.js";
+import { checkVerifyStaleness } from "../src/core/verification/staleness.js";
 import {
   devCheckpointDelete,
   devCheckpointRead,
@@ -345,8 +345,9 @@ describe("stack / monorepo / init detect", () => {
   test("devInitDetect empty vs minimal TS project", () => {
     const empty = tempProject();
     const noProj = devInitDetect(empty);
-    expect(noProj.proposed_config).toBeNull();
-    expect(noProj.formatted_summary).toMatch(/No recognised project files/);
+    expect(noProj.ok).toBe(false);
+    if (noProj.ok) throw new Error("expected detection failure for empty project");
+    expect(noProj.error.formatted_summary).toMatch(/No recognised project files/);
 
     const ts = tempProject();
     writeFileSync(
@@ -356,9 +357,11 @@ describe("stack / monorepo / init detect", () => {
     );
     writeFileSync(join(ts, "tsconfig.json"), "{}\n", "utf8");
     const det = devInitDetect(ts);
-    expect(det.proposed_config?.language).toBe("typescript");
-    expect(det.formatted_summary).toContain(ts);
-    expect(det.detection_notes.length).toBeGreaterThan(0);
+    expect(det.ok).toBe(true);
+    if (!det.ok) throw new Error(det.error.message);
+    expect(det.value.proposed_config.language).toBe("typescript");
+    expect(det.value.formatted_summary).toContain(ts);
+    expect(det.value.detection_notes.length).toBeGreaterThan(0);
   });
 
   test("buildDevHarnessConfig applies Makefile test override", () => {

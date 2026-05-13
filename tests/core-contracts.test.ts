@@ -5,17 +5,25 @@ import { join } from "node:path";
 import { agentRequiresConfig } from "../src/core/agents/registry.js";
 import { validateArtifact, validateReturn } from "../src/core/artifacts/validation.js";
 import { devQuickFixBrief } from "../src/core/briefing/code-brief.js";
-import { devDispatch, parseHarnessTagArgs } from "../src/core/commands/dispatch.js";
+import { classifyPreflight } from "../src/core/commands/classify-dispatch.js";
+import {
+  devDispatch,
+  parseHarnessTagArgs,
+  parseKnownDevSubcommandArgs,
+} from "../src/core/commands/dispatch.js";
 import {
   formatRefinementResult,
   recommendIntentMode,
   refineWithTicketSignals,
 } from "../src/core/commands/intent.js";
+import {
+  assertSubcommandRoutingComplete,
+  getDevSubcommandOwner,
+} from "../src/core/commands/subcommand-routing.js";
 import { extractDevHarnessJson, loadDevHarnessConfig } from "../src/core/config/agents-md.js";
 import { devInitWrite } from "../src/core/config/init-write.js";
 import { resolveConfigLocation } from "../src/core/config/placement.js";
 import type { DevHarnessConfig } from "../src/core/config/types.js";
-import { formatConfigBrief, formatVerificationResults } from "../src/core/crucible/verification.js";
 import {
   createLogContext,
   createLogger,
@@ -30,6 +38,7 @@ import {
   formatMissingPacketWarning,
   formatPacketInjection,
 } from "../src/core/telemetry/usage.js";
+import { formatConfigBrief, formatVerificationResults } from "../src/core/verification/runner.js";
 import { TASKS_DIR, writeJson } from "../src/core/work-items/io.js";
 import {
   devBootstrap,
@@ -152,6 +161,73 @@ describe("command dispatch", () => {
         phase: "coding",
       },
     });
+  });
+});
+
+describe("parseKnownDevSubcommandArgs", () => {
+  test("finds leading work item id and preserves flags", () => {
+    expect(parseKnownDevSubcommandArgs("align", "PROJ-1 --force")).toEqual({
+      rawArgs: "PROJ-1 --force",
+      tokens: ["PROJ-1", "--force"],
+      positional: ["PROJ-1"],
+      leadingWorkItemId: "PROJ-1",
+    });
+  });
+
+  test("returns empty structure for blank args", () => {
+    expect(parseKnownDevSubcommandArgs("plan", "  ")).toEqual({
+      rawArgs: "",
+      tokens: [],
+      positional: [],
+    });
+  });
+});
+
+describe("subcommand routing", () => {
+  test("covers every DEV_SUBCOMMANDS entry", () => {
+    assertSubcommandRoutingComplete();
+    expect(getDevSubcommandOwner("resume")).toBe("core_orchestrator_when_flagged");
+    expect(getDevSubcommandOwner("align")).toBe("skill");
+    expect(getDevSubcommandOwner("help")).toBe("extension_local");
+  });
+});
+
+describe("classifyPreflight", () => {
+  test("creates work item for unambiguous ticket bootstrap", () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    const line = "FOO-1 implement refresh tokens end-to-end with full pipeline and implement tests";
+    const pre = classifyPreflight(line);
+    expect(pre.bootstrapNotice).toContain("Created work item `FOO-1`");
+    expect(existsSync(join(project, ".tasks", "FOO-1.json"))).toBe(true);
+  });
+
+  test("skips bootstrap when work item already exists", () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    writeFileSync(
+      join(project, ".tasks", "FOO-2.json"),
+      JSON.stringify({
+        id: "FOO-2",
+        title: "Existing",
+        phase: "speccing",
+      }),
+    );
+    const pre = classifyPreflight("FOO-2 implement something else here with full pipeline wording");
+    expect(pre.bootstrapNotice).toContain("already exists");
+  });
+
+  test("does not bootstrap commit-shaped ticket lines", () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    const pre = classifyPreflight(
+      "FOO-3 create a commit message for the staged changes and stage all files please",
+    );
+    expect(pre.bootstrapNotice).toContain("does not auto-bootstrap");
+    expect(existsSync(join(project, ".tasks", "FOO-3.json"))).toBe(false);
   });
 });
 
@@ -387,12 +463,12 @@ describe("quick_fix pattern contracts", () => {
     await expect(validateArtifact(result.path)).resolves.toEqual({ valid: true, errors: [] });
 
     const brief = devQuickFixBrief("FIX-1", sampleConfig());
-    expect("error" in brief).toBe(false);
-    if ("error" in brief) throw new Error(brief.error);
-    expect(brief.brief_type).toBe("phase-code");
-    expect(brief.brief).toContain("### Quick Fix Rules");
-    expect(brief.brief).toContain("### Quick Fix Contract");
-    expect(brief.brief).toContain("## Code Task Brief");
+    expect(brief.ok).toBe(true);
+    if (!brief.ok) throw new Error(brief.error);
+    expect(brief.value.brief_type).toBe("phase-code");
+    expect(brief.value.brief).toContain("### Quick Fix Rules");
+    expect(brief.value.brief).toContain("### Quick Fix Contract");
+    expect(brief.value.brief).toContain("## Code Task Brief");
 
     const taskFile = JSON.parse(readFileSync(join(project, ".tasks", "FIX-1-task-1.json"), "utf8"));
     expect(taskFile.phase).toBe("phase-code");
@@ -435,14 +511,14 @@ describe("quick_fix pattern contracts", () => {
     });
 
     const brief = devQuickFixBrief("BUG-1", sampleConfig());
-    expect("error" in brief).toBe(false);
-    if ("error" in brief) throw new Error(brief.error);
+    expect(brief.ok).toBe(true);
+    if (!brief.ok) throw new Error(brief.error);
 
-    expect(brief.brief_type).toBe("phase-test");
-    expect(brief.brief).toContain("## Quick Fix Test Brief");
-    expect(brief.brief).toContain("regression test");
-    expect(brief.brief).toContain("### Covered Acceptance Criteria");
-    expect(brief.brief).toContain("**AC-1**");
+    expect(brief.value.brief_type).toBe("phase-test");
+    expect(brief.value.brief).toContain("## Quick Fix Test Brief");
+    expect(brief.value.brief).toContain("regression test");
+    expect(brief.value.brief).toContain("### Covered Acceptance Criteria");
+    expect(brief.value.brief).toContain("**AC-1**");
 
     const taskFile = JSON.parse(readFileSync(join(project, ".tasks", "BUG-1-task-1.json"), "utf8"));
     expect(taskFile.phase).toBe("phase-test");
@@ -487,12 +563,12 @@ describe("quick_fix pattern contracts", () => {
     });
 
     const brief = devQuickFixBrief("REG-1", sampleConfig());
-    expect("error" in brief).toBe(false);
-    if ("error" in brief) throw new Error(brief.error);
+    expect(brief.ok).toBe(true);
+    if (!brief.ok) throw new Error(brief.error);
 
-    expect(brief.brief_type).toBe("phase-code");
-    expect(brief.brief).toContain("## Code Task Brief");
-    expect(brief.brief).toContain("### Quick Fix Rules");
+    expect(brief.value.brief_type).toBe("phase-code");
+    expect(brief.value.brief).toContain("## Code Task Brief");
+    expect(brief.value.brief).toContain("### Quick Fix Rules");
 
     const taskFile = JSON.parse(readFileSync(join(project, ".tasks", "REG-1-task-1.json"), "utf8"));
     expect(taskFile.phase).toBe("phase-code");
@@ -523,15 +599,15 @@ describe("quick_fix pattern contracts", () => {
     });
 
     const qfBrief = devQuickFixBrief("QF-CB-1", sampleConfig());
-    expect("error" in qfBrief).toBe(false);
+    expect(qfBrief.ok).toBe(true);
 
     const { devCodeBrief } = await import("../src/core/briefing/code-brief.js");
     const codeBrief = devCodeBrief("QF-CB-1", "1", sampleConfig());
-    expect("error" in codeBrief).toBe(false);
-    if ("error" in codeBrief) throw new Error(codeBrief.error);
-    expect(codeBrief.brief).toContain("## Code Task Brief");
-    expect(codeBrief.brief).toContain("**AC-1**");
-    expect(codeBrief.brief).toContain("Auth timeout returns 408 instead of 500");
+    expect(codeBrief.ok).toBe(true);
+    if (!codeBrief.ok) throw new Error(codeBrief.error);
+    expect(codeBrief.value.brief).toContain("## Code Task Brief");
+    expect(codeBrief.value.brief).toContain("**AC-1**");
+    expect(codeBrief.value.brief).toContain("Auth timeout returns 408 instead of 500");
   });
 });
 
@@ -544,12 +620,12 @@ describe("work item lifecycle", () => {
     writeFileSync(join(project, ".tasks", "LIFE-1-checkpoint.json"), JSON.stringify({ draft: {} }));
 
     const result = devTransition("LIFE-1", "speccing", { spec: "docs/dev/LIFE-1/spec.json" });
-    expect("error" in result).toBe(false);
-    if ("error" in result) throw new Error(result.error);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
 
-    expect(result.work_item.phase).toBe("speccing");
-    expect(result.work_item.spec).toBe("docs/dev/LIFE-1/spec.json");
-    expect(result.work_item.plan).toBeNull();
+    expect(result.value.work_item.phase).toBe("speccing");
+    expect(result.value.work_item.spec).toBe("docs/dev/LIFE-1/spec.json");
+    expect(result.value.work_item.plan).toBeNull();
 
     const checkpointExists = require("node:fs").existsSync(
       join(project, ".tasks", "LIFE-1-checkpoint.json"),
@@ -562,8 +638,8 @@ describe("work item lifecycle", () => {
     process.chdir(project);
 
     const result = devTransition("NOPE-1", "coding");
-    expect("error" in result).toBe(true);
-    if ("error" in result) expect(result.error).toContain("NOPE-1");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("NOPE-1");
   });
 
   test("devFinalizeWorkItem persists terminal outcome and retro", () => {
@@ -577,19 +653,23 @@ describe("work item lifecycle", () => {
       next_action: "merge PR",
       retro: { summary: "Smooth delivery", verify_verdict: "pass" },
       shift_left_findings: [
-        { category: "spec", evidence: "Missing edge case", recommendation: "Add negative ACs" },
+        {
+          category: "spec_plan_gap",
+          evidence: "Missing edge case",
+          recommendation: "Add negative ACs",
+        },
       ],
     });
-    expect("error" in result).toBe(false);
-    if ("error" in result) throw new Error(result.error);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
 
-    expect(result.work_item.terminal_outcome).toBe("done");
-    expect(result.work_item.completed_at).toBeTruthy();
-    expect(result.work_item.next_action).toBe("merge PR");
-    expect(result.work_item.retro?.summary).toBe("Smooth delivery");
-    expect(result.work_item.retro?.ran_at).toBeTruthy();
-    expect(result.work_item.shift_left_findings).toHaveLength(1);
-    expect(result.work_item.shift_left_findings?.[0].category).toBe("spec");
+    expect(result.value.work_item.terminal_outcome).toBe("done");
+    expect(result.value.work_item.completed_at).toBeTruthy();
+    expect(result.value.work_item.next_action).toBe("merge PR");
+    expect(result.value.work_item.retro?.summary).toBe("Smooth delivery");
+    expect(result.value.work_item.retro?.ran_at).toBeTruthy();
+    expect(result.value.work_item.shift_left_findings).toHaveLength(1);
+    expect(result.value.work_item.shift_left_findings?.[0].category).toBe("spec_plan_gap");
   });
 
   test("devFinalizeWorkItem returns error for missing work item", () => {
@@ -597,7 +677,7 @@ describe("work item lifecycle", () => {
     process.chdir(project);
 
     const result = devFinalizeWorkItem("NOPE-2", { terminal_outcome: "blocked" });
-    expect("error" in result).toBe(true);
+    expect(result.ok).toBe(false);
   });
 
   test("devPromoteEvents promotes escalations to decisions and deduplicates", () => {

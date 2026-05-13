@@ -3,9 +3,9 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
-import { checkVerifyStaleness } from "../crucible/staleness.js";
-import { formatVerificationResults, runVerificationCommands } from "../crucible/verification.js";
 import { extractWorkItemId } from "../telemetry/usage.js";
+import { formatVerificationResults, runVerificationCommands } from "../verification/runner.js";
+import { checkVerifyStaleness } from "../verification/staleness.js";
 import { firstSubagentAgentName, getPrimarySubagentEntry } from "./subagent-entries.js";
 
 export async function runVerifyPreflightOnSubagentCall(

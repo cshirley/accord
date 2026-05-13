@@ -85,7 +85,7 @@ export async function bootstrapWorkItem(opts: BootstrapOpts): Promise<BootstrapR
   // autopipeline seeds the brief and skips align, so we transition forward to
   // "speccing" immediately and attach the brief path.
   const result = devTransition(opts.ticket.key, "speccing", { brief: opts.briefPath });
-  if ("error" in result) {
+  if (!result.ok) {
     throw new Error(`bootstrap transition failed: ${result.error}`);
   }
 

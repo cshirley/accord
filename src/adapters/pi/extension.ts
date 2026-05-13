@@ -2,7 +2,7 @@
  * ACCORD Extension for Pi — entry point.
  *
  * Wires together three concerns:
- *   1. /dev command   — deterministic routing + LLM fallback
+ *   1. /dev command   — deterministic routing + optional core resume / finish (`ACCORD_CORE_ORCHESTRATOR=1`) + free-text intent preflight (`classifyPreflight`) before skill follow-up
  *   2. Tools          — orchestrator functions exposed to the LLM
  *   3. Hooks          — event handlers for validation, verification, usage, etc.
  *
@@ -12,8 +12,10 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { AutocompleteItem } from "@mariozechner/pi-tui";
+import { classifyPreflight } from "../../core/commands/classify-dispatch.js";
 import { devDispatch, parseHarnessTagArgs } from "../../core/commands/dispatch.js";
 import { DEV_HELP_TEXT } from "../../core/commands/help.js";
+import { isPlanModeReadOnlyDevSubcommand } from "../../core/commands/subcommand-routing.js";
 import { loadDevHarnessConfig } from "../../core/config/index.js";
 import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
@@ -25,16 +27,18 @@ import {
   setHarnessRunTag,
 } from "../../core/telemetry/usage.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";
+import { tryFinishViaCoreOrchestrator } from "./finish-orchestration.js";
 import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
-import { registerHooks } from "./hooks.js";
+import { registerPiHarnessHookListeners } from "./pi-hook-listeners.js";
 import { isPlanModeActive, planModeBlockMessage } from "./plan-mode.js";
+import { tryResumeViaCoreOrchestrator } from "./resume-orchestration.js";
 import { registerTools } from "./tools.js";
 
 const extensionLog = createLogger("extension");
 
 function isReadOnlyDevRoute(route: ReturnType<typeof devDispatch>): boolean {
   if (route.type === "empty") return true;
-  return route.type === "known" && ["help", "tasks", "retro"].includes(route.subcommand);
+  return route.type === "known" && isPlanModeReadOnlyDevSubcommand(route.subcommand);
 }
 
 export default function (pi: ExtensionAPI) {
@@ -92,7 +96,7 @@ export default function (pi: ExtensionAPI) {
     }
     if (route.type === "known" && route.subcommand === "retro") {
       const result = devRetro();
-      ctx.ui.notify("error" in result ? result.error : result.formatted, "info");
+      ctx.ui.notify(result.ok ? result.value.formatted : result.error, "info");
       return;
     }
 
@@ -127,6 +131,24 @@ export default function (pi: ExtensionAPI) {
       } catch (e: unknown) {
         ctx.ui.notify(e instanceof Error ? e.message : String(e), "error");
       }
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "finish") {
+      const finishOutcome = await tryFinishViaCoreOrchestrator(route.args, pi, ctx, state);
+      if (finishOutcome === "handled") return;
+    }
+
+    if (route.type === "known" && route.subcommand === "resume") {
+      const resumeOutcome = await tryResumeViaCoreOrchestrator(route.args, pi, ctx, state);
+      if (resumeOutcome === "handled") return;
+    }
+
+    if (route.type === "classify") {
+      const pre = classifyPreflight(route.text);
+      ctx.ui.notify(pre.intentBlock, "info");
+      if (pre.bootstrapNotice) ctx.ui.notify(pre.bootstrapNotice, "info");
+      pi.sendUserMessage(`/skill:accord ${route.text}`, { deliverAs: "followUp" });
       return;
     }
 
@@ -173,5 +195,5 @@ export default function (pi: ExtensionAPI) {
   // ── Tools + Hooks ──────────────────────────────────────
 
   registerTools(pi, () => state.devConfig);
-  registerHooks(pi, state);
+  registerPiHarnessHookListeners(pi, state);
 }

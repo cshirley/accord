@@ -44,6 +44,37 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
   { value: "help", description: "Show usage" },
 ];
 
+/** First positional argument when it looks like `PROJ-1` / `ACCORD-1234`. */
+export const DEV_WORK_ITEM_ID_PATTERN = /^[A-Z]+(?:-[A-Z]+)*-\d+$/;
+
+export interface ParsedKnownDevSubcommandArgs {
+  rawArgs: string;
+  tokens: string[];
+  /** Positional tokens only (tokens that do not start with `-`). */
+  positional: string[];
+  /** First positional token when it matches {@link DEV_WORK_ITEM_ID_PATTERN}. */
+  leadingWorkItemId?: string;
+}
+
+/**
+ * Structured parse for known `/dev` subcommand tails (flags vs leading work item id).
+ * The runner can use this instead of ad-hoc `args.split` in adapters.
+ */
+export function parseKnownDevSubcommandArgs(
+  _subcommand: string,
+  rawArgs: string,
+): ParsedKnownDevSubcommandArgs {
+  const trimmed = rawArgs.trim();
+  if (!trimmed) {
+    return { rawArgs: trimmed, tokens: [], positional: [] };
+  }
+  const tokens = trimmed.split(/\s+/);
+  const positional = tokens.filter((token) => !token.startsWith("-"));
+  const first = positional[0];
+  const leadingWorkItemId = first && DEV_WORK_ITEM_ID_PATTERN.test(first) ? first : undefined;
+  return { rawArgs: trimmed, tokens, positional, leadingWorkItemId };
+}
+
 /** Split on first run of flags so multi-word labels stay intact. */
 export function parseHarnessTagArgs(
   raw: string,

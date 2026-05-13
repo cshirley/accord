@@ -1,16 +1,27 @@
 /**
  * Shared types for work item state management.
+ *
+ * Cross-cutting enums (`WorkItemPattern`, `IntentMode`, `IntentConfidence`,
+ * `TerminalOutcome`, `ShiftLeftFinding`) are re-exported from `core/types/domain`
+ * — that module is the single source of truth.
  */
 
-export type WorkItemPattern = "implement" | "quick_fix" | "investigate" | "infra" | "analyse";
-export type IntentMode =
-  | "narrow_change"
-  | "pipeline"
-  | "review"
-  | "commit"
-  | "explain"
-  | "investigate";
-export type IntentConfidence = "high" | "medium" | "low";
+import type {
+  IntentConfidence,
+  IntentMode,
+  ShiftLeftFinding,
+  TerminalOutcome,
+  WorkItemPattern,
+} from "../types/domain.js";
+
+export type {
+  IntentConfidence,
+  IntentMode,
+  ShiftLeftFinding,
+  ShiftLeftFindingCategory,
+  TerminalOutcome,
+  WorkItemPattern,
+} from "../types/domain.js";
 
 export interface WorkItem {
   schema_version: string;
@@ -27,7 +38,7 @@ export interface WorkItem {
   target_paths?: string[];
   out_of_scope?: string[];
   expected_finish?: string;
-  terminal_outcome?: "done" | "blocked" | "partially_achieved" | "unclear";
+  terminal_outcome?: TerminalOutcome;
   completed_at?: string;
   next_action?: string | null;
   retro?: {
@@ -61,12 +72,6 @@ export interface Decision {
   resolved_at?: string;
 }
 
-export interface ShiftLeftFinding {
-  category: string;
-  evidence: string;
-  recommendation: string;
-}
-
 export interface Deviation {
   task_id: number;
   description: string;
@@ -83,6 +88,8 @@ export interface TaskFile {
   owner_nonce: string;
   phase: string;
   status: string;
+  /** Harness quick-fix test↔review loop counters (see `schemas/task-schema.json`). */
+  quick_fix_loop?: { test_review_cycles_used: number };
   quick_fix_contract?: QuickFixContract;
   events: TaskEvent[];
   [key: string]: unknown;

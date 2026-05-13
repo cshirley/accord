@@ -11,8 +11,8 @@
 import { agentDefersConfigGuard, agentRequiresConfig } from "../agents/registry.js";
 import { formatIntentContractForTask } from "../briefing/intent-contract-brief.js";
 import type { DevHarnessConfig } from "../config/index.js";
-import { formatConfigBrief, formatSchemaBrief } from "../crucible/verification.js";
 import { createLogger } from "../logging.js";
+import { formatConfigBrief, formatSchemaBrief } from "../verification/runner.js";
 import { collectSubagentEntries } from "./subagent-entries.js";
 
 const log = createLogger("harness");

@@ -4,12 +4,14 @@
 
 import * as path from "node:path";
 import { createLogger } from "../logging.js";
+import { err, ok, type Result } from "../types/result.js";
 import { devCheckpointDelete } from "./checkpoint.js";
 import { loadTaskFile, loadWorkItem, now, TASKS_DIR, writeJson } from "./io.js";
 import type {
   IntentConfidence,
   IntentMode,
   ShiftLeftFinding,
+  TerminalOutcome,
   WorkItem,
   WorkItemPattern,
 } from "./types.js";
@@ -94,9 +96,9 @@ export function devTransition(
   id: string,
   nextPhase: string,
   updates?: { spec?: string; plan?: string; verify?: string; brief?: string },
-): { work_item: WorkItem } | { error: string } {
+): Result<{ work_item: WorkItem }> {
   const wi = loadWorkItem(id);
-  if (!wi) return { error: `Work item not found: ${id}` };
+  if (!wi) return err(`Work item not found: ${id}`);
 
   wi.phase = nextPhase;
   wi.updated = now();
@@ -108,13 +110,13 @@ export function devTransition(
   writeJson(path.join(TASKS_DIR, `${id}.json`), wi);
   devCheckpointDelete(id);
 
-  return { work_item: wi };
+  return ok({ work_item: wi });
 }
 
 // ── Finalization / retrospective summary ───────────────────
 
 export interface FinalizeWorkItemInput {
-  terminal_outcome: "done" | "blocked" | "partially_achieved" | "unclear";
+  terminal_outcome: TerminalOutcome;
   next_action?: string | null;
   retro?: {
     ran_at?: string;
@@ -129,9 +131,9 @@ export interface FinalizeWorkItemInput {
 export function devFinalizeWorkItem(
   id: string,
   input: FinalizeWorkItemInput,
-): { work_item: WorkItem } | { error: string } {
+): Result<{ work_item: WorkItem }> {
   const wi = loadWorkItem(id);
-  if (!wi) return { error: `Work item not found: ${id}` };
+  if (!wi) return err(`Work item not found: ${id}`);
 
   const timestamp = now();
   wi.terminal_outcome = input.terminal_outcome;
@@ -142,7 +144,7 @@ export function devFinalizeWorkItem(
   wi.updated = timestamp;
 
   writeJson(path.join(TASKS_DIR, `${id}.json`), wi);
-  return { work_item: wi };
+  return ok({ work_item: wi });
 }
 
 // ── Event promotion ────────────────────────────────────────

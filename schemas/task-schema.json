@@ -20,7 +20,15 @@
     "task_id": { "type": "integer", "minimum": 1 },
     "owner_nonce": { "type": "string", "pattern": "^[0-9a-f]{6}$" },
     "phase": {
-      "enum": ["phase-test", "phase-code", "phase-verify-code", "phase-verify-acceptance"]
+      "enum": [
+        "phase-test",
+        "review-test",
+        "phase-code",
+        "review-code",
+        "phase-verify-code",
+        "phase-verify-acceptance"
+      ],
+      "description": "Per-task pipeline position. `review-test` is used between phase-test and phase-code (quick_fix new_red_test and implement). `review-code` is optional after phase-code when policy or plan requests it."
     },
     "status": { "enum": ["pending", "in_progress", "done", "blocked"] },
     "pre_impl_gates": { "enum": ["pending", "complete"] },
@@ -32,6 +40,19 @@
     "red_confirmed": {
       "type": "boolean",
       "description": "Whether tests fail as expected before implementation"
+    },
+    "quick_fix_loop": {
+      "type": "object",
+      "description": "Harness-owned counters for quick-fix test↔review adversary loops (D2)",
+      "additionalProperties": false,
+      "required": ["test_review_cycles_used"],
+      "properties": {
+        "test_review_cycles_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many post-review-test retries toward phase-test have been consumed"
+        }
+      }
     },
     "quick_fix_contract": {
       "type": "object",

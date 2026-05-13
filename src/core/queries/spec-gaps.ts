@@ -4,6 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, readJson } from "../work-items/io.js";
 
 export interface SpecGapResult {
@@ -38,15 +39,15 @@ function resolveSpecPath(id: string): string | null {
   return null;
 }
 
-export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
+export function devSpecGaps(id: string): Result<SpecGapsResult> {
   const specPath = resolveSpecPath(id);
   if (!specPath) {
-    return {
-      error: `Spec not found for ${id}. Tried wi.spec, docs/dev/${id}/spec.json, docs/specs/${id}-spec.json.`,
-    };
+    return err(
+      `Spec not found for ${id}. Tried wi.spec, docs/dev/${id}/spec.json, docs/specs/${id}-spec.json.`,
+    );
   }
   const spec = readJson<Record<string, unknown>>(specPath);
-  if (!spec) return { error: `Spec not readable: ${specPath}` };
+  if (!spec) return err(`Spec not readable: ${specPath}`);
 
   const results: SpecGapResult[] = [];
   const scopeOut = (
@@ -386,10 +387,10 @@ export function devSpecGaps(id: string): SpecGapsResult | { error: string } {
   else if (hasSilent)
     lines.push("\nSilent items are warnings — consider addressing them in the spec.");
 
-  return {
+  return ok({
     results,
     has_violations: hasViolations,
     has_silent: hasSilent,
     formatted: lines.join("\n"),
-  };
+  });
 }
