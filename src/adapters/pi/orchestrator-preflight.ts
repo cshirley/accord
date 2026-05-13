@@ -14,11 +14,11 @@
  */
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { OrchestrationRuntimeHost } from "../../core/orchestration/host.js";
 import {
   isCoreOrchestratorEnabled,
   parseLeadingWorkItemId,
 } from "../../core/orchestration/index.js";
-import type { OrchestrationRuntimeHost } from "../../core/orchestration/runner.js";
 import type { HookState } from "./hook-state.js";
 import { createResumeOrchestrationRuntimeHost } from "./orchestration-runtime-host.js";
 import { isPlanModeActive, planModeSubagentBlockReason } from "./plan-mode.js";

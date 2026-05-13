@@ -25,7 +25,7 @@ import {
 import { devInitDetect } from "../config/init-detect.js";
 import { devInitWrite, type WriteTarget } from "../config/init-write.js";
 import type { DevHarnessConfig } from "../config/types.js";
-import { buildDevOrchestratePayload } from "../orchestration/runner.js";
+import { buildDevOrchestratePayload } from "../orchestration/plan.js";
 import { devTasks } from "../queries/dashboard.js";
 import { devResumeState } from "../queries/resume-state.js";
 import { devRetro } from "../queries/retro.js";

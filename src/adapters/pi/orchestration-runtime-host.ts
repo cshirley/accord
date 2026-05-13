@@ -12,14 +12,14 @@ import {
   runGatherPreflightOnSubagentCall,
   runVerifyPreflightOnSubagentCall,
 } from "../../core/harness/index.js";
+import type {
+  OrchestrationJudgmentRequest,
+  OrchestrationRuntimeHost,
+} from "../../core/orchestration/host.js";
 import {
   isOrchestrationJudgmentConfigured,
   ORCHESTRATION_JUDGMENT_SCHEMA_VERSION,
 } from "../../core/orchestration/judgment.js";
-import type {
-  OrchestrationJudgmentRequest,
-  OrchestrationRuntimeHost,
-} from "../../core/orchestration/runner.js";
 import { loadPricing } from "../../core/telemetry/usage.js";
 import type { HookState } from "./hook-state.js";
 import { syncHarnessRunSessionEntry } from "./hook-state.js";

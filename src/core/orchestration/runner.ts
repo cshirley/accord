@@ -1,131 +1,27 @@
 /**
- * Orchestration runner — plan resume, map to {@link NextStep}, optional execute loop.
+ * Orchestration runner — executes a resolved {@link NextStep} list against a
+ * {@link OrchestrationRuntimeHost}.
+ *
+ * Resume: {@link runResumeOrchestrationWithReplans} re-plans after each
+ * successful spawn so quick_fix `phase-test` → `review-test` (and similar
+ * chains) progress without a second `/dev resume`.
+ *
+ * Finish: {@link runFinishOrchestration} spawns `phase-verify-acceptance`
+ * once, then on a clean exit derives the terminal outcome from
+ * {@link devVerifySummary} and writes it via {@link devFinalizeWorkItem}.
+ *
+ * Pure planning lives in `./plan.ts`; host port types live in `./host.ts`.
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
+import type { TerminalOutcome } from "../types/domain.js";
 import { devFinalizeWorkItem } from "../work-items/lifecycle.js";
-import type { OrchestrationHost } from "./host.js";
+import type { OrchestrationRuntimeHost } from "./host.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
+import { planDevResumeOrchestration, resumeResolutionToNextSteps } from "./plan.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
-import { resolveResumeOrchestration } from "./resolve/resume.js";
-import type {
-  NextStep,
-  ResumeOrchestrationResolution,
-  RunUntilStopResult,
-  SubagentSpawnResult,
-} from "./types.js";
-
-export function planDevResumeOrchestration(
-  workItemId: string,
-  devConfig: DevHarnessConfig | null,
-): ResumeOrchestrationResolution {
-  return resolveResumeOrchestration(workItemId, devConfig);
-}
-
-export function resumeResolutionToNextSteps(resolution: ResumeOrchestrationResolution): NextStep[] {
-  switch (resolution.outcome) {
-    case "forward_skill":
-      return [{ kind: "delegate_to_skill", reason: resolution.reason }];
-    case "complete":
-      return [
-        ...resolution.messages.map((message) => ({ kind: "notify_user" as const, message })),
-        { kind: "stop" as const, reason: "complete" as const },
-      ];
-    case "blocked":
-      return [
-        ...resolution.messages.map((message) => ({ kind: "notify_user" as const, message })),
-        { kind: "stop" as const, reason: "blocked" as const },
-      ];
-    case "spawn":
-      return [
-        {
-          kind: "spawn_subagent" as const,
-          workItemId: resolution.workItemId,
-          request: { agent: resolution.agent, task: resolution.task },
-        },
-        { kind: "stop" as const, reason: "spawned_subagent" as const },
-      ];
-  }
-}
-
-export function planDevFinishOrchestration(
-  workItemId: string,
-  devConfig: DevHarnessConfig | null,
-): ResumeOrchestrationResolution {
-  return resolveFinishOrchestration(workItemId, devConfig);
-}
-
-export type DevOrchestrateCommand = "resume" | "finish";
-
-export function buildDevOrchestratePayload(
-  command: DevOrchestrateCommand,
-  workItemId: string,
-  devConfig: DevHarnessConfig | null,
-): {
-  command: DevOrchestrateCommand;
-  resolution: ResumeOrchestrationResolution;
-  next_steps: NextStep[];
-  /** MCP / headless hosts cannot spawn Pi subagents; clients use this hint. */
-  programmatic_spawn_supported: boolean;
-  /**
-   * True only for `command: "resume"` when the plan is a spawn and Dev Harness enables
-   * judgment for that dispatch agent. Pi may still skip the LLM (`ACCORD_ORCHESTRATION_JUDGMENT`);
-   * MCP never runs judgment — use {@link spawn_task_after_template_judgment} for template parity.
-   */
-  judgment_configured_for_spawn: boolean;
-  /**
-   * When {@link judgment_configured_for_spawn} is true, the outbound task after the same
-   * template-only merge {@link runResumeOrchestrationWithReplans} applies when `runJudgment`
-   * is absent or returns nothing parseable. Matches Pi when the judgment LLM is off or fails;
-   * diverges when Pi merges validated model JSON.
-   */
-  spawn_task_after_template_judgment?: string;
-} {
-  const resolution =
-    command === "resume"
-      ? resolveResumeOrchestration(workItemId, devConfig)
-      : resolveFinishOrchestration(workItemId, devConfig);
-  const judgmentConfiguredForSpawn =
-    command === "resume" &&
-    resolution.outcome === "spawn" &&
-    isOrchestrationJudgmentConfigured(devConfig, resolution.agent);
-  const spawnTaskAfterTemplateJudgment =
-    judgmentConfiguredForSpawn && resolution.outcome === "spawn"
-      ? mergeResumeTaskWithJudgment({
-          baseTask: resolution.task,
-          rawLlmText: undefined,
-          workItemId: resolution.workItemId,
-          dispatchAgent: resolution.agent,
-        })
-      : undefined;
-  return {
-    command,
-    resolution,
-    next_steps: resumeResolutionToNextSteps(resolution),
-    programmatic_spawn_supported: false,
-    judgment_configured_for_spawn: judgmentConfiguredForSpawn,
-    ...(spawnTaskAfterTemplateJudgment !== undefined
-      ? { spawn_task_after_template_judgment: spawnTaskAfterTemplateJudgment }
-      : {}),
-  };
-}
-
-export type OrchestrationJudgmentRequest = {
-  /** Registry id for logging only — host must not use this to route or spawn. */
-  dispatchAgent: string;
-  workItemId: string;
-  baseTask: string;
-};
-
-export type OrchestrationRuntimeHost = Pick<OrchestrationHost, "notify"> & {
-  spawnSubagent(input: { agent: string; task: string }): Promise<SubagentSpawnResult>;
-  /**
-   * Optional bounded LLM call returning **raw assistant text** (may include JSON).
-   * Core validates against `schemas/orchestration-judgment-packet.json` before merge.
-   */
-  runJudgment?(request: OrchestrationJudgmentRequest): Promise<string | undefined>;
-};
+import type { NextStep, ResumeOrchestrationResolution, RunUntilStopResult } from "./types.js";
 
 const DEFAULT_MAX_SEQUENTIAL_RESUME_SPAWNS = 8;
 
@@ -226,9 +122,7 @@ export async function runResumeOrchestrationWithReplans(
   throw new Error("runResumeOrchestrationWithReplans: loop exited without return");
 }
 
-function verdictToTerminalOutcome(
-  verdict: string,
-): "done" | "blocked" | "partially_achieved" | "unclear" {
+function verdictToTerminalOutcome(verdict: string): TerminalOutcome {
   const v = verdict.trim().toLowerCase();
   if (v === "pass") {
     return "done";

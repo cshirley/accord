@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import type { DevHarnessConfig } from "../src/core/config/index.js";
-import { buildDevOrchestratePayload } from "../src/core/orchestration/runner.js";
+import { buildDevOrchestratePayload } from "../src/core/orchestration/plan.js";
 
 /** Minimal valid Dev Harness block — enough for orchestration planning. */
 function stubDevConfig(): DevHarnessConfig {

@@ -17,29 +17,32 @@ src/
     artifacts/                   Artifact and return-packet validation
     config/                      Config types, globals, AGENTS.md parsing, placement, detection
       detect/                    Project stack, monorepo, tracker, and command inference
-    commands/                    Host-neutral /dev dispatch, help, intent classification
-    orchestration/               Workflow graph, guards, interpreter, runner (`runUntilStop`, `runResumeOrchestrationWithReplans`, `runFinishOrchestration`), `finish-resolve.ts`, `implement-resume.ts`, `implement-phase-code.ts`, `quick-fix.ts` (loop policy + resume), resume + `dev_orchestrate`, policy, `ACCORD_CORE_ORCHESTRATOR` resume/finish paths
+    commands/                    Host-neutral /dev dispatch, help, intent classification, classify-preflight, subcommand routing
+    orchestration/               Workflow graph (`graph.ts`, `guards.ts`, `interpreter.ts`), host ports (`host.ts`), planning (`plan.ts` — `buildDevOrchestratePayload`, `planDevResume/Finish`), runner (`runner.ts` — `runResumeOrchestrationWithReplans`, `runFinishOrchestration`, `runUntilStop`), `judgment.ts`, `policy.ts`, `quick-fix.ts`, `phase-coarse-routing.ts`, `post-result/` (per-agent post-spawn handlers + shared `advancePrimaryTask`), `resolve/` (resume + finish resolution; unified `resolvePrimaryTaskResumeAgentId`)
     queries/                     Read-only dashboards, review queue, verify summaries, retro
     briefing/                    Context router: code briefs, decision packets, intent contract briefs
-    crucible/                    Verification command runner, result formatting, staleness checks
+    verification/                Verification command runner (`runner.ts`), staleness checks (`staleness.ts`) — formerly `crucible/`
     agents/                      Logical agent role registry and schema assignments
     telemetry/                   Usage accounting, run tags, work item discovery
+    tools/                       Single registry of `dev_*` tools (`registry.ts`) + TypeBox→Zod compiler (`compile-zod.ts`); Pi + MCP adapters iterate this
+    types/                       Cross-cutting domain enums (`domain.ts`), canonical task-phase set (`phases.ts`), universal `Result<T,E>` (`result.ts`)
 
   adapters/mcp/
     server.ts                    Stdio MCP server (same dev_* tools as Pi)
     register-tools.ts            MCP tool registration
 
   adapters/pi/
-    extension.ts                 Pi extension registration for /dev, tools, hooks
+    extension.ts                 Pi extension registration for /dev, tools, hook listeners
     orchestration-runtime-host.ts Pi OrchestrationRuntimeHost (preflight + spawn + processSubagentToolResult)
-    resume-orchestration.ts       `/dev resume` core path when ACCORD_CORE_ORCHESTRATOR=1
-    finish-orchestration.ts       `/dev finish` core path when ACCORD_CORE_ORCHESTRATOR=1
+    orchestrator-preflight.ts    Shared core-orchestrator/plan-mode/work-item-id gate for resume + finish
+    resume-orchestration.ts      `/dev resume` core path when ACCORD_CORE_ORCHESTRATOR=1
+    finish-orchestration.ts      `/dev finish` core path when ACCORD_CORE_ORCHESTRATOR=1
     command/autocomplete.ts      Pi autocomplete wiring for /dev arguments
-    hooks.ts                     Pi lifecycle event handlers
+    pi-hook-listeners.ts         Pi lifecycle event handlers (host-neutral harness hooks + UI wiring)
     hook-state.ts                Shared Pi hook state and session marker sync
     plan-mode.ts                 Pi plan-mode guard messages
     status-bar.ts                Pi status bar rendering
-    tools.ts                     Pi tool registration wrappers around core functions
+    tools.ts                     Thin loop over `core/tools/ACCORD_TOOLS` — translates host-neutral results into Pi envelopes
 
   integrations/
     provider-deps.ts             Bundled + user provider loader, preflight dep checks, and report formatting
@@ -72,11 +75,12 @@ tests/*.test.ts                   Bun unit tests (`core-contracts`, `harness`, `
 
 - Change `/dev` command routing or intent classification in `src/core/commands/`.
 - Change harness orchestration (`src/core/orchestration/`) — see [`docs/harness-orchestration.md`](harness-orchestration.md) and [`docs/harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md). Resume resolution + `ACCORD_CORE_ORCHESTRATOR=1` `/dev resume` path is implemented; full graph coverage is still in progress.
-- Change Pi-specific command behavior, autocomplete, hooks, status, or tool registration in `src/adapters/pi/`.
+- Change Pi-specific command behavior, autocomplete, hook listeners, status, or tool envelope wrapping in `src/adapters/pi/`.
 - Change work item state and `.tasks/` handling in `src/core/work-items/`.
 - Change agent brief construction in `src/core/briefing/`.
-- Change verification pressure, command execution, or stale artifact checks in `src/core/crucible/`.
-- Change shared hook behaviour (reusable outside Pi) in `src/core/harness/`; Pi-specific wiring stays in `src/adapters/pi/hooks.ts`.
+- Change verification pressure, command execution, or stale artifact checks in `src/core/verification/`.
+- Change shared hook behaviour (reusable outside Pi) in `src/core/harness/`; Pi-specific wiring stays in `src/adapters/pi/pi-hook-listeners.ts`.
+- Add, remove, or rename a `dev_*` tool surface in `src/core/tools/registry.ts` — both Pi and MCP adapters pick it up automatically.
 - Change schemas or return packet rules in `schemas/` and `src/core/artifacts/validation.ts`.
 - Run `npm run check` from the package root after structural changes; it includes `bun test`, schema examples, asset validation, bundle, and runtime smoke checks.
 
