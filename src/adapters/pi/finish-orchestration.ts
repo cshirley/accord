@@ -2,7 +2,7 @@
  * `/dev finish` via core orchestration + programmatic subagent (`ACCORD_CORE_ORCHESTRATOR=1`).
  */
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import {
   resolveFinishOrchestration,
   runFinishOrchestrationFromResolution,

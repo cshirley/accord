@@ -17,7 +17,7 @@ The reusable workflow declares the following surface — see
 | Name | Type | Required | Default | Purpose |
 |---|---|---|---|---|
 | `ticket` | string | yes | — | Jira ticket key. |
-| `pi_version` | string | no | `latest` | npm tag / version of `@mariozechner/pi-coding-agent`. |
+| `pi_version` | string | no | `latest` | npm tag / version of `@earendil-works/pi-coding-agent`. |
 | `accord_ref` | string | no | `v1` | Tag / branch of `pi-accord` asset bundle. |
 | `max_runtime_minutes` | number | no | `90` | Hard cap on job runtime. |
 | `max_cost_usd` | number | no | `20` | Hard cap on accumulated subagent USD. |
@@ -151,7 +151,7 @@ pi -p --mode json /skill:accord <phase> <ticket>
 There is **no SDK import** — `tests/ci/no-extra-pi-spawns.test.ts` walks
 every script and asserts every invocation matches the allow-list regex
 above and that no file under `scripts/ci/` imports
-`@mariozechner/pi-coding-agent`. ACCORD's own `dev_*` tools
+`@earendil-works/pi-coding-agent`. ACCORD's own `dev_*` tools
 (`devBootstrap`, `devTransition`, `devFinalize`) are called by
 `bootstrap-work-item.ts` via direct TypeScript imports from
 `@clive.shirley/pi-accord/src/core/...`.

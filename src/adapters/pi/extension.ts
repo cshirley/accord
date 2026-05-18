@@ -10,8 +10,8 @@
  * for the full agentic flow diagrams. README.md is the entry point.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { AutocompleteItem } from "@mariozechner/pi-tui";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { classifyPreflight } from "../../core/commands/classify-dispatch.js";
 import { devDispatch, parseHarnessTagArgs } from "../../core/commands/dispatch.js";
 import { DEV_HELP_TEXT } from "../../core/commands/help.js";
@@ -58,7 +58,7 @@ export default function (pi: ExtensionAPI) {
 
   const commandHandler = async (
     args: string,
-    ctx: import("@mariozechner/pi-coding-agent").ExtensionCommandContext,
+    ctx: import("@earendil-works/pi-coding-agent").ExtensionCommandContext,
   ) => {
     const route = devDispatch(args);
 

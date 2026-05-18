@@ -10,8 +10,8 @@
  *   before each LLM call, so only the most recent turns carry full output.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { formatSize, truncateHead, truncateTail } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { formatSize, truncateHead, truncateTail } from "@earendil-works/pi-coding-agent";
 import type { ThriftConfig } from "./config.js";
 
 // ── Public stats (read by index.ts for /prune-stats) ───────────────────

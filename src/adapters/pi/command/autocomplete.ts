@@ -2,7 +2,7 @@ import type {
   AutocompleteItem,
   AutocompleteProvider,
   AutocompleteSuggestions,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import { DEV_SUBCOMMANDS } from "../../../core/commands/dispatch.js";
 import { listWorkItemFiles, readJson, TASKS_DIR } from "../../../core/work-items/io.js";
 import type { WorkItem } from "../../../core/work-items/types.js";

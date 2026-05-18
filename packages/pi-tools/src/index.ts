@@ -10,7 +10,7 @@
  *   2. Import it here and add to the commandSets array
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import googleCommands from "./commands/google.commands.js";
 // Command sets — setup/status per service
 import jiraCommands from "./commands/jira.commands.js";

@@ -41,7 +41,7 @@
       "requirement": "MUST",
       "type": "architectural",
       "criterion": "Phase orchestration uses `pi -p --mode json /skill:accord <phase> <ticket>` subprocesses only. The workflow does not embed Pi via the SDK and does not start any in-process Pi runtime. ACCORD's own `dev_*` tools (`dev_bootstrap`, `dev_transitions`, `dev_finalize`, `dev_verify_summary`) are called by `bootstrap-work-item.ts` via direct TypeScript imports from `@clive.shirley/pi-accord/src/core/...`; no MCP sidecar is started.",
-      "enforcement": "Unit test `tests/ci/no-extra-pi-spawns.test.ts` parses every `scripts/ci/*.ts` and every `action.yml` for `pi ` invocations, asserts each is exactly `pi -p --mode json /skill:accord <phase> <ticket>` plus argv flags from an allowlist, and asserts no `@mariozechner/pi-coding-agent` SDK symbols are imported anywhere under `scripts/ci/`."
+      "enforcement": "Unit test `tests/ci/no-extra-pi-spawns.test.ts` parses every `scripts/ci/*.ts` and every `action.yml` for `pi ` invocations, asserts each is exactly `pi -p --mode json /skill:accord <phase> <ticket>` plus argv flags from an allowlist, and asserts no `@earendil-works/pi-coding-agent` SDK symbols are imported anywhere under `scripts/ci/`."
     },
     {
       "id": "AC-7",
@@ -289,7 +289,7 @@
       {
         "id": "TC-10",
         "covers": "AC-6",
-        "scenario": "Walk every TypeScript file under `scripts/ci/` and every YAML file under `.github/actions/` plus `.github/workflows/autopipeline.yml`; assert that every `pi ` invocation matches the regex `^pi -p --mode json /skill:accord (spec|plan|code|verify|resume|finish|gather|align|init) \\S+( --[a-z-]+(=\\S+)?)*$`, and that no source file imports any symbol from `@mariozechner/pi-coding-agent` (SDK ban). Runs under `bun test`.",
+        "scenario": "Walk every TypeScript file under `scripts/ci/` and every YAML file under `.github/actions/` plus `.github/workflows/autopipeline.yml`; assert that every `pi ` invocation matches the regex `^pi -p --mode json /skill:accord (spec|plan|code|verify|resume|finish|gather|align|init) \\S+( --[a-z-]+(=\\S+)?)*$`, and that no source file imports any symbol from `@earendil-works/pi-coding-agent` (SDK ban). Runs under `bun test`.",
         "tier": "unit",
         "test_name_glob": "tests/ci/no-extra-pi-spawns.test.ts"
       },
@@ -415,7 +415,7 @@
         "name": "npm_public",
         "credential": "none",
         "tier": "ci-only",
-        "scope": "Public read of @mariozechner/pi-coding-agent and @clive.shirley/pi-accord; no credential required."
+        "scope": "Public read of @earendil-works/pi-coding-agent and @clive.shirley/pi-accord; no credential required."
       }
     ]
   },

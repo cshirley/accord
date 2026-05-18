@@ -25,7 +25,7 @@ description: Install pi-coding-agent + pi-accord with cache-friendly layout (AC-
 
 inputs:
   pi_version:
-    description: npm tag or version of @mariozechner/pi-coding-agent.
+    description: npm tag or version of @earendil-works/pi-coding-agent.
     required: false
     default: latest
   accord_ref:
@@ -81,7 +81,7 @@ runs:
         PI_OFFLINE: "1"
         PI_SKIP_VERSION_CHECK: "1"
       run: |
-        npm i -g @mariozechner/pi-coding-agent@${{ inputs.pi_version }}
+        npm i -g @earendil-works/pi-coding-agent@${{ inputs.pi_version }}
 
     - name: bun install (in .accord-ci/)
       shell: bash

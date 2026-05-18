@@ -5,7 +5,7 @@
  *      and .github/actions/ must match the allow-list regex
  *      ^pi -p --mode json /skill:accord (spec|plan|code|verify|resume|finish|gather|align|init) \S+( --[a-z-]+(=\S+)?)*$
  *   2. No file under scripts/ci/ imports any symbol from
- *      @mariozechner/pi-coding-agent (SDK ban).
+ *      @earendil-works/pi-coding-agent (SDK ban).
  *
  * This test reads from disk so it auto-tracks new files as tasks 7 / 11 add
  * invocations — no fixture wiring required.
@@ -31,7 +31,7 @@ const PI_INVOCATION_DETECTOR_RE = /\bpi\s+-p\s+--mode\s+json\s+\/skill:accord\b[
  * `description` field that points users at the SDK).
  */
 const SDK_FORBIDDEN_RE =
-  /(?:import\s[^;]*['"]@mariozechner\/pi-coding-agent['"]|require\s*\(\s*['"]@mariozechner\/pi-coding-agent['"]\s*\)|from\s+['"]@mariozechner\/pi-coding-agent['"])/;
+  /(?:import\s[^;]*['"]@earendil-works\/pi-coding-agent['"]|require\s*\(\s*['"]@earendil-works\/pi-coding-agent['"]\s*\)|from\s+['"]@earendil-works\/pi-coding-agent['"])/;
 
 function* walk(dir: string): IterableIterator<string> {
   let entries: string[];
@@ -109,7 +109,7 @@ describe("AC-6 / TC-10 — `pi` invocations match the allowlist", () => {
   }
 });
 
-describe("AC-6 — no @mariozechner/pi-coding-agent SDK import under scripts/ci/", () => {
+describe("AC-6 — no @earendil-works/pi-coding-agent SDK import under scripts/ci/", () => {
   const tsFiles = collect((p) => extname(p) === ".ts", SCRIPTS_CI);
 
   test("inventory: at least one TS file is scanned (sanity)", () => {
@@ -118,7 +118,7 @@ describe("AC-6 — no @mariozechner/pi-coding-agent SDK import under scripts/ci/
 
   for (const file of tsFiles) {
     const rel = file.slice(REPO_ROOT.length + 1);
-    test(`${rel} does NOT import @mariozechner/pi-coding-agent`, () => {
+    test(`${rel} does NOT import @earendil-works/pi-coding-agent`, () => {
       const src = readFileSync(file, "utf8");
       expect(SDK_FORBIDDEN_RE.test(src)).toBe(false);
     });

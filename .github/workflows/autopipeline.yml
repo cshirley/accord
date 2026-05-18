@@ -23,7 +23,7 @@ on:
         type: string
         required: true
       pi_version:
-        description: npm tag or version of @mariozechner/pi-coding-agent.
+        description: npm tag or version of @earendil-works/pi-coding-agent.
         type: string
         required: false
         default: latest

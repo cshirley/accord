@@ -8,7 +8,7 @@
  *   gh_pr_submit        — push + optionally create PR
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerCommitTools } from "./commit.js";
 import { registerPrTools } from "./pr.js";
 

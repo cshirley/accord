@@ -192,7 +192,7 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 
 1. **Schema** — `schemas/orchestration-judgment-packet.json` (`schema_version`, `brief_appendix`, optional `focus_points`). No routing fields.
 2. **Core** — `src/core/orchestration/judgment.ts` (`validateOrchestrationJudgmentPacket`, `mergeResumeTaskWithJudgment`, `extractJsonObjectFromModelText`, `isOrchestrationJudgmentConfigured`). `runResumeOrchestrationWithReplans` merges judgment **after** plan fingerprinting (fingerprint uses pre-judgment task) and **before** spawn.
-3. **Pi host** — `createResumeOrchestrationRuntimeHost` implements `runJudgment` via `@mariozechner/pi-ai` `completeSimple` when `ACCORD_ORCHESTRATION_JUDGMENT=1` **and** `orchestration.judgment.enabled` in Dev Harness JSON; otherwise returns `undefined` (core applies template appendix when judgment is configured, or skips merge when not configured).
+3. **Pi host** — `createResumeOrchestrationRuntimeHost` implements `runJudgment` via `@earendil-works/pi-ai` `completeSimple` when `ACCORD_ORCHESTRATION_JUDGMENT=1` **and** `orchestration.judgment.enabled` in Dev Harness JSON; otherwise returns `undefined` (core applies template appendix when judgment is configured, or skips merge when not configured).
 4. **Config** — `orchestration.judgment` in `schemas/accord-schema.json` + `DevHarnessOrchestrationConfig` (`enabled`, optional `agents`, optional `max_tokens`).
 5. **Tests** — `tests/orchestration-judgment.test.ts` (validation, merge, oversized appendix, random-input fuzz → template).
 

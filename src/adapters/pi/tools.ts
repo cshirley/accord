@@ -6,7 +6,7 @@
  * `AgentToolResult` envelope here.
  */
 
-import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { AgentToolResult, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { DevHarnessConfig } from "../../core/config/index.js";
 import { ACCORD_TOOLS } from "../../core/tools/registry.js";
 import type { ToolHandlerResult } from "../../core/tools/types.js";

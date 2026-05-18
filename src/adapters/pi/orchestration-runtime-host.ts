@@ -2,9 +2,9 @@
  * Pi {@link OrchestrationRuntimeHost} — gather/verify preflight, spawn, harness result path.
  */
 
-import type { AssistantMessage, TextContent, UserMessage } from "@mariozechner/pi-ai";
-import { completeSimple } from "@mariozechner/pi-ai";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { AssistantMessage, TextContent, UserMessage } from "@earendil-works/pi-ai";
+import { completeSimple } from "@earendil-works/pi-ai";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { harnessSpawnSubagent } from "../../../packages/pi-subagent/src/index.js";
 import {
   prepareSubagentToolCall,

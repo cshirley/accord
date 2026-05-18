@@ -24,7 +24,7 @@ We want any GitHub repository to be able to opt into a fully autonomous Jira →
 
 `pi-accord` ships ACCORD as a Pi extension. The harness is fully usable interactively today via the `/dev` command and was designed from the start so that "every phase runs in a fresh window; all state persists to `.tasks/` and `docs/`" (see `assets/skills/accord/SKILL.md`). The persistence model means that the same skill that drives an interactive session can be driven by a sequence of headless `pi -p` calls without losing state between phases.
 
-Pi itself supports headless execution via `pi -p` (print mode) and `pi --mode json` (JSON-event-stream mode). Both are documented in `node_modules/@mariozechner/pi-coding-agent/docs/{quickstart,json,sdk,usage}.md`. The CLI exposes a stable contract; the SDK exists for embedding Pi in larger applications and has a richer but lower-level surface.
+Pi itself supports headless execution via `pi -p` (print mode) and `pi --mode json` (JSON-event-stream mode). Both are documented in `node_modules/@earendil-works/pi-coding-agent/docs/{quickstart,json,sdk,usage}.md`. The CLI exposes a stable contract; the SDK exists for embedding Pi in larger applications and has a richer but lower-level surface.
 
 Jira → GitHub triggering is solved at the integration layer: Atlassian Automation can fire `POST https://api.github.com/repos/<owner>/<repo>/dispatches` on a status transition, which surfaces in GitHub Actions as a `repository_dispatch` event with arbitrary `client_payload`.
 
@@ -101,7 +101,7 @@ This repository has no existing `.github/` directory and no CI scaffolding. `.gi
 
 | Path | Why |
 |---|---|
-| `~/.npm` | Speeds `npm i -g @mariozechner/pi-coding-agent` and any `npx` calls |
+| `~/.npm` | Speeds `npm i -g @earendil-works/pi-coding-agent` and any `npx` calls |
 | `~/.bun/install/cache` | Speeds `bun install` in the `.accord-ci` checkout |
 | `~/.config/pi/agent` (excluding `auth.json` and `sessions/`) | Skips `pi install` re-registration and asset-link work |
 | `.accord-ci/node_modules` | Skips `bun install` entirely on lockfile-unchanged hits |
@@ -143,7 +143,7 @@ flowchart LR
 
 **Rollback plan.** If a v1 release breaks consumers, we ship `v1.0.x` patch tagged off the previous good commit and re-point the moving `v1` tag. Consumers pinned to `v1` recover automatically; consumers pinned to a SHA are unaffected and can upgrade on their schedule.
 
-**External dependencies.** `@mariozechner/pi-coding-agent` (npm), Atlassian Cloud (Jira REST + Automation), GitHub Actions, Anthropic API. We pin Pi via the `pi_version` input.
+**External dependencies.** `@earendil-works/pi-coding-agent` (npm), Atlassian Cloud (Jira REST + Automation), GitHub Actions, Anthropic API. We pin Pi via the `pi_version` input.
 
 ## Scale & Performance
 
@@ -235,7 +235,7 @@ This brief was authored from the design discussion in plan mode; no Jira ticket 
 - `assets/agents/accord/phase-gather.md`, `assets/providers/trackers/jira.md` — informs the `seed-brief.ts` design (the `## Gathered Context` section and the field mappings from a Jira issue).
 - `assets/skills/{commit,pr}/SKILL.md` — the commit message and PR body templates the autopipeline must produce so output is indistinguishable from human-driven runs.
 - `docs/accord-workflow.md`, `docs/pipeline.md` — the canonical end-to-end description of phases, hooks, and the `implement/standard` pipeline shape.
-- `node_modules/@mariozechner/pi-coding-agent/docs/{quickstart,usage,json,sdk}.md` — Pi's headless surface (`pi -p`, `--mode json`) and the SDK alternative considered and declined for v1.
+- `node_modules/@earendil-works/pi-coding-agent/docs/{quickstart,usage,json,sdk}.md` — Pi's headless surface (`pi -p`, `--mode json`) and the SDK alternative considered and declined for v1.
 - `package.json` (this repo) — confirms the package is named `@clive.shirley/pi-accord`, the bundled extensions and skills, and the `bun run mcp` entry point that the SDK alternative would have used.
 - `.gitignore` — confirms `.tasks/` is transient and `docs/dev/` is committed; the autopipeline preserves both invariants.
 

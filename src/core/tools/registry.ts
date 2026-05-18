@@ -11,7 +11,7 @@
  * for both adapters; the array itself is the source of truth.
  */
 
-import { StringEnum } from "@mariozechner/pi-ai";
+import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { devCodeBrief, devNonce, devQuickFixBrief } from "../briefing/code-brief.js";
 import { devDecisionPacket } from "../briefing/decision-packet.js";

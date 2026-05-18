@@ -32,7 +32,7 @@ export const INPUTS = [
     type: "string",
     required: false,
     default: "latest",
-    description: "npm tag or version of @mariozechner/pi-coding-agent.",
+    description: "npm tag or version of @earendil-works/pi-coding-agent.",
   },
   {
     name: "accord_ref",
