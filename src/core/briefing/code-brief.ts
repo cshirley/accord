@@ -5,6 +5,7 @@
  */
 
 import { randomBytes } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import type { DevHarnessConfig } from "../config/index.js";
 import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
@@ -337,6 +338,7 @@ function quickFixContract(
 
 export interface QuickFixBrief {
   brief: string;
+  brief_path: string;
   task_file_path: string;
   task_id: string;
   brief_type: "phase-test" | "phase-code";
@@ -461,8 +463,17 @@ export function devQuickFixBrief(
     s.push("");
   }
 
+  const briefContent = s.join("\n");
+  const briefPath = path.join("docs", "dev", workItemId, "brief.md");
+  mkdirSync(path.dirname(briefPath), { recursive: true });
+  writeFileSync(briefPath, briefContent, "utf8");
+  wi.brief = briefPath;
+  wi.updated = now();
+  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+
   return ok({
-    brief: s.join("\n"),
+    brief: briefContent,
+    brief_path: briefPath,
     task_file_path: taskFilePath,
     task_id: taskId,
     brief_type: needsTestPhase ? "phase-test" : "phase-code",

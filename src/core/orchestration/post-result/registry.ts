@@ -11,6 +11,7 @@
 import type { DevHarnessConfig } from "../../config/types.js";
 import { applyPhaseCodePostResult } from "./phase-code.js";
 import { applyPhaseTestPostResult } from "./phase-test.js";
+import { applyPhaseVerifyAcceptancePostResult } from "./phase-verify-acceptance.js";
 import { applyReviewTestPostResult } from "./review-test.js";
 
 export type PostResultHandler = (
@@ -23,6 +24,7 @@ export const POST_RESULT_HANDLERS: Readonly<Record<string, PostResultHandler>> =
   "phase-test": applyPhaseTestPostResult,
   "review-test": applyReviewTestPostResult,
   "phase-code": applyPhaseCodePostResult,
+  "phase-verify-acceptance": applyPhaseVerifyAcceptancePostResult,
 };
 
 /**

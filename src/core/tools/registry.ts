@@ -379,6 +379,7 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         ok: true,
         text: result.value.brief,
         details: {
+          brief_path: result.value.brief_path,
           task_file_path: result.value.task_file_path,
           task_id: result.value.task_id,
           brief_type: result.value.brief_type,
