@@ -1,10 +1,10 @@
 /**
  * AC-6 architectural enforcement (TC-10):
  *
- *   1. Every literal `pi ` invocation under scripts/ci/, .github/workflows/,
+ *   1. Every literal `pi ` invocation under packages/pi-accord-ci/src/, .github/workflows/,
  *      and .github/actions/ must match the allow-list regex
  *      ^pi -p --mode json /skill:accord (spec|plan|code|verify|resume|finish|gather|align|init) \S+( --[a-z-]+(=\S+)?)*$
- *   2. No file under scripts/ci/ imports any symbol from
+ *   2. No file under packages/pi-accord-ci/src/ imports any symbol from
  *      @earendil-works/pi-coding-agent (SDK ban).
  *
  * This test reads from disk so it auto-tracks new files as tasks 7 / 11 add
@@ -15,8 +15,8 @@ import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 
-const REPO_ROOT = resolve(import.meta.dir, "../..");
-const SCRIPTS_CI = join(REPO_ROOT, "scripts/ci");
+const REPO_ROOT = resolve(import.meta.dir, "../../..");
+const SCRIPTS_CI = join(REPO_ROOT, "packages/pi-accord-ci/src");
 const WORKFLOWS = join(REPO_ROOT, ".github/workflows");
 const ACTIONS = join(REPO_ROOT, ".github/actions");
 
@@ -109,7 +109,7 @@ describe("AC-6 / TC-10 — `pi` invocations match the allowlist", () => {
   }
 });
 
-describe("AC-6 — no @earendil-works/pi-coding-agent SDK import under scripts/ci/", () => {
+describe("AC-6 — no @earendil-works/pi-coding-agent SDK import under pi-accord-ci/src/", () => {
   const tsFiles = collect((p) => extname(p) === ".ts", SCRIPTS_CI);
 
   test("inventory: at least one TS file is scanned (sanity)", () => {

@@ -23,6 +23,16 @@
         "typebox": "^1.1.37",
       },
     },
+    "packages/pi-accord-ci": {
+      "name": "@clive.shirley/pi-accord-ci",
+      "version": "0.1.0",
+      "dependencies": {
+        "@clive.shirley/pi-accord": "file:../..",
+      },
+      "devDependencies": {
+        "yaml": "^2.9.0",
+      },
+    },
     "packages/pi-git-tools": {
       "name": "@clive.shirley/pi-git-tools",
       "version": "0.1.0",
@@ -139,6 +149,10 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.4.15", "", { "os": "win32", "cpu": "arm64" }, "sha512-ouhkYdlhp/1GghEJPdWwD/Vi3gQ1nFxuSpMolWsbq3Lsq3QUR4jl6UdhhscdCugKU5vOEuMiJhvKj66O0OCq+w=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.15", "", { "os": "win32", "cpu": "x64" }, "sha512-zBrGq5mx5wwpnow4+2BxUvleDM+GNd4sLbPaMapsSLQLD0NGRCquqPBTgN+7XkUteHvj7M+BstuI8tmnV7+HgQ=="],
+
+    "@clive.shirley/pi-accord": ["@clive.shirley/pi-accord@root:", {}],
+
+    "@clive.shirley/pi-accord-ci": ["@clive.shirley/pi-accord-ci@workspace:packages/pi-accord-ci"],
 
     "@clive.shirley/pi-git-tools": ["@clive.shirley/pi-git-tools@workspace:packages/pi-git-tools"],
 

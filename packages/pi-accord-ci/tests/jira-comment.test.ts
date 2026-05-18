@@ -8,7 +8,7 @@ import {
   postComment,
   transitionTicket,
   truncateForJira,
-} from "../../scripts/ci/jira-comment.js";
+} from "../src/jira-comment.js";
 
 const ENV_BACKUP: Record<string, string | undefined> = {};
 

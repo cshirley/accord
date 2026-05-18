@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { checkCostCap, type WorkItemForCostCap } from "../../scripts/ci/parse-phase-result.js";
+import { checkCostCap, type WorkItemForCostCap } from "../src/parse-phase-result.js";
 
 const OPTS = {
   ticket: "PROJ-1",

@@ -5,7 +5,7 @@ import {
   requireEnv,
   resolveGithubToken,
   SECRET_NAMES,
-} from "../../../scripts/ci/lib/env.js";
+} from "../../src/lib/env.js";
 
 const REQUIRED_SECRETS = [
   "ANTHROPIC_API_KEY",

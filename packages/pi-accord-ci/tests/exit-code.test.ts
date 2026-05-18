@@ -8,12 +8,12 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { MissingSecretError, requireEnv } from "../../scripts/ci/lib/env.js";
+import { MissingSecretError, requireEnv } from "../src/lib/env.js";
 import {
   checkCostCap,
   dispatchTerminal,
   type TerminalOpts,
-} from "../../scripts/ci/parse-phase-result.js";
+} from "../src/parse-phase-result.js";
 
 const OPTS: TerminalOpts = {
   ticket: "PROJ-1",

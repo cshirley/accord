@@ -27,7 +27,7 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 
 ## Project Layout
 
-- `packages/` holds additional Pi extensions shipped with this repo (Bun workspaces): `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`. Each has its own `package.json` and `src/` entry loaded via the root `pi.extensions` list.
+- `packages/` holds additional Pi extensions shipped with this repo (Bun workspaces): `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`, plus `pi-accord-ci` (GitHub Actions autopipeline scripts and contract tests). Each Pi extension has its own `package.json` and `src/` entry loaded via the root `pi.extensions` list; `pi-accord-ci` is consumed by `.github/workflows/autopipeline.yml`.
 - `src/` holds all TypeScript source code for the ACCORD harness:
   - `src/core/` contains host-neutral ACCORD logic: config, command dispatch, work items, artifacts, brief construction, verification, queries, telemetry, and agent metadata.
   - `src/adapters/pi/` contains Pi-specific integration code. Pi APIs should not leak into `src/core/`.

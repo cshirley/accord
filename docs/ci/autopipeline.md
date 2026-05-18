@@ -10,7 +10,7 @@ and falls back to a structured Jira comment on every terminal branch.
 ## Contract surface (AC-15)
 
 The reusable workflow declares the following surface — see
-`scripts/ci/lib/inputs.ts` for the source of truth.
+`packages/pi-accord-ci/src/lib/inputs.ts` for the source of truth.
 
 ### Inputs
 
@@ -148,9 +148,9 @@ Phase orchestration is exclusively via the CLI:
 pi -p --mode json /skill:accord <phase> <ticket>
 ```
 
-There is **no SDK import** — `tests/ci/no-extra-pi-spawns.test.ts` walks
+There is **no SDK import** — `packages/pi-accord-ci/tests/no-extra-pi-spawns.test.ts` walks
 every script and asserts every invocation matches the allow-list regex
-above and that no file under `scripts/ci/` imports
+above and that no file under `packages/pi-accord-ci/src/` imports
 `@earendil-works/pi-coding-agent`. ACCORD's own `dev_*` tools
 (`devBootstrap`, `devTransition`, `devFinalize`) are called by
 `bootstrap-work-item.ts` via direct TypeScript imports from
@@ -163,8 +163,8 @@ levels of fidelity before a wet run hits real Jira:
 
 | Level | What it covers | How to run |
 |---|---|---|
-| L1 — unit | All deterministic logic: gates, brief seed, bootstrap, resume gate, terminal dispatch, cost cap, commit/PR shape. | `bun test tests/ci` |
-| L2 — scenarios | Ten-scenario self-test (AC-17) + exit-code policy (AC-18). | `bun test tests/ci/self-test tests/ci/exit-code.test.ts` |
+| L1 — unit | All deterministic logic: gates, brief seed, bootstrap, resume gate, terminal dispatch, cost cap, commit/PR shape. | `bun test packages/pi-accord-ci/tests` |
+| L2 — scenarios | Ten-scenario self-test (AC-17) + exit-code policy (AC-18). | `bun test packages/pi-accord-ci/tests/self-test packages/pi-accord-ci/tests/exit-code.test.ts` |
 | L3 — workflow YAML | Runs the workflow YAML in a local Docker container via [`act`](https://github.com/nektos/act). Closest to a real runner without GitHub Actions. | `bun run smoke:act:self-test` (no secrets) or `bun run smoke:act:autopipeline` (needs `.env.smoke` — see `.env.smoke.example`) |
 | L4 — real runner | Real GitHub-hosted runner, `dry_run=true` so no Jira/PR side effects. | `bun run smoke:gh:autopipeline` (`gh` CLI required, branch must be pushed) |
 | L5 — wet run | End-to-end: sandbox Jira → Automation rule → real `pi` subprocess → PR. | See `docs/ci/consumer-quickstart.md`. |
@@ -174,25 +174,35 @@ L3 and L4 both default to `dry_run=true`: `commit-and-pr.ts` skips
 to a JSONL file instead of POSTing. Cost stays bounded by
 `max_cost_usd` (default `1` for the smoke wrapper).
 
-The L3 wrapper (`scripts/ci/smoke-act.ts`) auto-detects a Docker
+The L3 wrapper (`packages/pi-accord-ci/src/smoke-act.ts`) auto-detects a Docker
 socket — Docker Desktop, Rancher Desktop, Colima, OrbStack, or rootless
 Linux Docker — and surfaces a clear error if no runtime is reachable.
 An explicit `DOCKER_HOST` is honoured if set.
+
+## Package layout
+
+CI scripts and contract tests live in the workspace package
+`@clive.shirley/pi-accord-ci` (`packages/pi-accord-ci/`). On a consumer
+runner, `setup-pi` checks out this repo into `.accord-ci/`; workflow
+steps invoke scripts as
+`bun run .accord-ci/packages/pi-accord-ci/src/<script>.ts`. Local
+development uses the same paths without the `.accord-ci/` prefix.
 
 ## Where to look
 
 | Concern | File |
 |---|---|
+| CI package | `packages/pi-accord-ci/` (`package.json`, `src/`, `tests/`) |
 | Workflow entrypoint | `.github/workflows/autopipeline.yml` |
 | Composite — install pi + cache | `.github/actions/setup-pi/action.yml` |
 | Composite — invoke a phase | `.github/actions/run-accord-phase/action.yml` |
-| Gate — AGENTS.md (AC-2) | `scripts/ci/gate-agents-md.ts` |
-| Gate — Jira ticket (AC-3) | `scripts/ci/gate-ticket.ts` |
-| Brief seeding (AC-5) | `scripts/ci/seed-brief.ts` |
-| Work item bootstrap (AC-5, AC-6) | `scripts/ci/bootstrap-work-item.ts` |
-| Resume gate (AC-16) | `scripts/ci/decide-resume.ts` |
-| Phase subprocess + parsing | `scripts/ci/run-phase.ts` |
-| Terminal dispatch + cost cap | `scripts/ci/parse-phase-result.ts` |
-| Jira REST helper | `scripts/ci/jira-comment.ts` |
-| Commit + PR open (AC-8, AC-9, AC-11) | `scripts/ci/commit-and-pr.ts` |
-| Self-test harness (AC-17) | `tests/ci/self-test/` |
+| Gate — AGENTS.md (AC-2) | `packages/pi-accord-ci/src/gate-agents-md.ts` |
+| Gate — Jira ticket (AC-3) | `packages/pi-accord-ci/src/gate-ticket.ts` |
+| Brief seeding (AC-5) | `packages/pi-accord-ci/src/seed-brief.ts` |
+| Work item bootstrap (AC-5, AC-6) | `packages/pi-accord-ci/src/bootstrap-work-item.ts` |
+| Resume gate (AC-16) | `packages/pi-accord-ci/src/decide-resume.ts` |
+| Phase subprocess + parsing | `packages/pi-accord-ci/src/run-phase.ts` |
+| Terminal dispatch + cost cap | `packages/pi-accord-ci/src/parse-phase-result.ts` |
+| Jira REST helper | `packages/pi-accord-ci/src/jira-comment.ts` |
+| Commit + PR open (AC-8, AC-9, AC-11) | `packages/pi-accord-ci/src/commit-and-pr.ts` |
+| Self-test harness (AC-17) | `packages/pi-accord-ci/tests/self-test/` |

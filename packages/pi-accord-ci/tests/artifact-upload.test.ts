@@ -13,7 +13,7 @@ import { join, resolve } from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
-const REPO_ROOT = resolve(import.meta.dir, "../..");
+const REPO_ROOT = resolve(import.meta.dir, "../../..");
 const WORKFLOW_PATH = join(REPO_ROOT, ".github/workflows/autopipeline.yml");
 const RAW = readFileSync(WORKFLOW_PATH, "utf8");
 const WORKFLOW = parseYaml(RAW) as Record<string, unknown>;

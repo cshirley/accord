@@ -9,9 +9,9 @@ import {
   OPTIONAL_SECRETS,
   REQUIRED_SECRETS,
   type WorkflowInputSpec,
-} from "../../scripts/ci/lib/inputs.js";
+} from "../src/lib/inputs.js";
 
-const WORKFLOW_PATH = join(import.meta.dir, "../../.github/workflows/autopipeline.yml");
+const WORKFLOW_PATH = join(import.meta.dir, "../../../.github/workflows/autopipeline.yml");
 const workflow = parseYaml(readFileSync(WORKFLOW_PATH, "utf8")) as Record<string, unknown>;
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -155,9 +155,11 @@ describe("AC-1: dispatch event-name canonicalisation (real-runner contract)", ()
     expect(env.GITHUB_EVENT_PATH).toBe("${{ github.event_path }}");
   });
 
-  test("dispatch step runs scripts/ci/dispatch.ts (no inlined validator)", () => {
+  test("dispatch step runs pi-accord-ci dispatch.ts (no inlined validator)", () => {
     const step = dispatchStep();
-    expect(step.run).toBe("bun run scripts/ci/dispatch.ts");
+    expect(step.run).toBe(
+      "bun run .accord-ci/packages/pi-accord-ci/src/dispatch.ts",
+    );
   });
 });
 

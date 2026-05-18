@@ -39,7 +39,7 @@ export type FetchLike = (
 }>;
 
 const DEFAULT_MAX_RETRY_DELAY_MS = 5000;
-const DEFAULT_DRY_RUN_LOG = "tests/ci/.tmp/jira-log.jsonl";
+const DEFAULT_DRY_RUN_LOG = "packages/pi-accord-ci/tests/.tmp/jira-log.jsonl";
 
 function basicAuthHeader(): string {
   const email = requireEnv("JIRA_USER_EMAIL");

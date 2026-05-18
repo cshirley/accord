@@ -22,8 +22,8 @@ import { join } from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
-const SMOKE_PATH = join(import.meta.dir, "../../.github/workflows/autopipeline-smoke.yml");
-const AUTOPIPELINE_PATH = join(import.meta.dir, "../../.github/workflows/autopipeline.yml");
+const SMOKE_PATH = join(import.meta.dir, "../../../.github/workflows/autopipeline-smoke.yml");
+const AUTOPIPELINE_PATH = join(import.meta.dir, "../../../.github/workflows/autopipeline.yml");
 
 function asRecord(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {

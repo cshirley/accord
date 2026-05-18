@@ -17,10 +17,10 @@ import {
   type ExecLike,
   type GhPrApi,
   renderPrBody,
-} from "../../../scripts/ci/commit-and-pr.js";
-import { runAgentsMdGate } from "../../../scripts/ci/gate-agents-md.js";
-import { DEFAULT_TICKET_GATE_CONFIG, runTicketGate } from "../../../scripts/ci/gate-ticket.js";
-import { seedBrief } from "../../../scripts/ci/seed-brief.js";
+} from "../../src/commit-and-pr.js";
+import { runAgentsMdGate } from "../../src/gate-agents-md.js";
+import { DEFAULT_TICKET_GATE_CONFIG, runTicketGate } from "../../src/gate-ticket.js";
+import { seedBrief } from "../../src/seed-brief.js";
 
 let repo: string;
 

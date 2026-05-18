@@ -1,0 +1,16 @@
+{
+  "name": "@clive.shirley/pi-accord-ci",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ACCORD GitHub Actions autopipeline scripts and contract tests",
+  "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@clive.shirley/pi-accord": "file:../.."
+  },
+  "devDependencies": {
+    "yaml": "^2.9.0"
+  }
+}

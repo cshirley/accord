@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { dispatchTerminal, type TerminalOpts } from "../../scripts/ci/parse-phase-result.js";
+import { dispatchTerminal, type TerminalOpts } from "../src/parse-phase-result.js";
 
 const OPTS: TerminalOpts = {
   ticket: "PROJ-1",

@@ -2,11 +2,11 @@
 #
 # Runs on every PR to this repo and invokes the reusable workflow handlers
 # in DRY_RUN mode against the ten-scenario fixture corpus under
-# tests/ci/self-test/. Any byte-level drift in the per-scenario Jira-comment
+# packages/pi-accord-ci/tests/self-test/. Any byte-level drift in the per-scenario Jira-comment
 # payloads, or any deviation in exit codes, fails the PR.
 #
-# The actual scenario inventory + assertions live in tests/ci/self-test/
-# *.test.ts and tests/ci/exit-code.test.ts so they auto-run under any
+# The actual scenario inventory + assertions live in packages/pi-accord-ci/tests/self-test/
+# *.test.ts and packages/pi-accord-ci/tests/exit-code.test.ts so they auto-run under any
 # `bun test` invocation, not just CI.
 
 name: ACCORD autopipeline self-test
@@ -43,13 +43,13 @@ jobs:
         run: bun run check:types
 
       - name: AC-17 scenario harness
-        run: bun test tests/ci/self-test/
+        run: bun test packages/pi-accord-ci/tests/self-test/
 
       - name: AC-18 exit-code policy
-        run: bun test tests/ci/exit-code.test.ts
+        run: bun test packages/pi-accord-ci/tests/exit-code.test.ts
 
       - name: Full CI test surface
-        run: bun test tests/ci/
+        run: bun test packages/pi-accord-ci/tests/
 
       - name: Asset validation
         run: |

@@ -25,21 +25,21 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { decideResume, type WorkItemState } from "../../../scripts/ci/decide-resume.js";
-import { runAgentsMdGate } from "../../../scripts/ci/gate-agents-md.js";
+import { decideResume, type WorkItemState } from "../../src/decide-resume.js";
+import { runAgentsMdGate } from "../../src/gate-agents-md.js";
 import {
   DEFAULT_TICKET_GATE_CONFIG,
   type JiraIssue,
   runTicketGate,
   type TicketGateCheckId,
   type TicketGateConfig,
-} from "../../../scripts/ci/gate-ticket.js";
+} from "../../src/gate-ticket.js";
 import {
   checkCostCap,
   dispatchTerminal,
   type TerminalOpts,
   type WorkItemForCostCap,
-} from "../../../scripts/ci/parse-phase-result.js";
+} from "../../src/parse-phase-result.js";
 
 const GATE_CFG_AGENTS = { transitionOnFailure: "Needs Triage" } as const;
 const TICKET_GATE_CFG: TicketGateConfig = {

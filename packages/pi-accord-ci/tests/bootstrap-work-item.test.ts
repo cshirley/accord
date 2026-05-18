@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { bootstrapWorkItem } from "../../scripts/ci/bootstrap-work-item.js";
-import type { JiraIssue } from "../../scripts/ci/gate-ticket.js";
+import { bootstrapWorkItem } from "../src/bootstrap-work-item.js";
+import type { JiraIssue } from "../src/gate-ticket.js";
 
 const PASSING: JiraIssue = JSON.parse(
   readFileSync(join(import.meta.dir, "fixtures/jira/gate-passing.json"), "utf8"),

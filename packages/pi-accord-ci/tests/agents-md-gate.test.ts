@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { runAgentsMdGate } from "../../scripts/ci/gate-agents-md.js";
+import { runAgentsMdGate } from "../src/gate-agents-md.js";
 
 function makeRepo(contents: string | null): string {
   const dir = mkdtempSync(join(tmpdir(), "accord-agents-md-gate-"));

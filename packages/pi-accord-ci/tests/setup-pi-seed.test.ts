@@ -25,7 +25,7 @@ import { join, resolve } from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
-const REPO_ROOT = resolve(import.meta.dir, "../..");
+const REPO_ROOT = resolve(import.meta.dir, "../../..");
 const SETUP_PI = join(REPO_ROOT, ".github/actions/setup-pi/action.yml");
 const SUBAGENT_TEMPLATE = join(REPO_ROOT, "assets/ci/subagent.json");
 const THRIFT_TEMPLATE = join(REPO_ROOT, "assets/ci/thrift.json");

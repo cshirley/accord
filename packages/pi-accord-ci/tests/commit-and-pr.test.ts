@@ -9,7 +9,7 @@ import {
   type ExecLike,
   type GhPrApi,
   renderPrBody,
-} from "../../scripts/ci/commit-and-pr.js";
+} from "../src/commit-and-pr.js";
 
 let repo: string;
 

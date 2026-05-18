@@ -4,7 +4,7 @@ import {
   type GithubEventPayload,
   MissingDispatchFieldError,
   readDispatch,
-} from "../../scripts/ci/dispatch.js";
+} from "../src/dispatch.js";
 
 describe("readDispatch (AC-1, TC-20)", () => {
   test("(a) workflow_call with inputs.ticket → returns { ticket, statusAtTrigger: null }", () => {
@@ -133,7 +133,7 @@ function runDispatch(env: Record<string, string | undefined>): {
     if (typeof v === "string") cleanEnv[k] = v;
   }
   if (!cleanEnv.PATH) cleanEnv.PATH = process.env.PATH ?? "";
-  const script = join(import.meta.dir, "../../scripts/ci/dispatch.ts");
+  const script = join(import.meta.dir, "../src/dispatch.ts");
   const result = spawnSync("bun", ["run", script], { env: cleanEnv, encoding: "utf8" });
   return {
     stdout: result.stdout ?? "",

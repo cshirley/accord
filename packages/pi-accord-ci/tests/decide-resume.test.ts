@@ -5,7 +5,7 @@ import {
   normaliseBrief,
   type ResumeOpts,
   type WorkItemState,
-} from "../../scripts/ci/decide-resume.js";
+} from "../src/decide-resume.js";
 
 const TICKET = "PROJ-123";
 

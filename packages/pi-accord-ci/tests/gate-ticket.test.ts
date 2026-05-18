@@ -7,7 +7,7 @@ import {
   type JiraIssue,
   runTicketGate,
   type TicketGateConfig,
-} from "../../scripts/ci/gate-ticket.js";
+} from "../src/gate-ticket.js";
 
 const PASSING: JiraIssue = JSON.parse(
   readFileSync(join(import.meta.dir, "fixtures/jira/gate-passing.json"), "utf8"),

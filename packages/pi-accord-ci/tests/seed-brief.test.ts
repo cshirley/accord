@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { JiraIssue } from "../../scripts/ci/gate-ticket.js";
-import { seedBrief, slugify } from "../../scripts/ci/seed-brief.js";
+import type { JiraIssue } from "../src/gate-ticket.js";
+import { seedBrief, slugify } from "../src/seed-brief.js";
 
 const PASSING: JiraIssue = JSON.parse(
   readFileSync(join(import.meta.dir, "fixtures/jira/gate-passing.json"), "utf8"),

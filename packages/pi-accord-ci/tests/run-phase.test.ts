@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Readable } from "node:stream";
 
-import { runPhase, type SpawnLike } from "../../scripts/ci/run-phase.js";
+import { runPhase, type SpawnLike } from "../src/run-phase.js";
 
 function makeSpawnStub(
   stdoutLines: string[],
