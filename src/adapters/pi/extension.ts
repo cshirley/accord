@@ -13,14 +13,16 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { classifyPreflight } from "../../core/commands/classify-dispatch.js";
-import { devDispatch, parseHarnessTagArgs } from "../../core/commands/dispatch.js";
+import { devDispatch, parseHarnessTagArgs, parseKnownDevSubcommandArgs } from "../../core/commands/dispatch.js";
 import { DEV_HELP_TEXT } from "../../core/commands/help.js";
 import { isPlanModeReadOnlyDevSubcommand } from "../../core/commands/subcommand-routing.js";
 import { loadDevHarnessConfig } from "../../core/config/index.js";
+import { parseLeadingWorkItemId } from "../../core/orchestration/index.js";
 import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import { devTasks } from "../../core/queries/dashboard.js";
 import { devRetro } from "../../core/queries/retro.js";
+import { devRehydrateWorkItem } from "../../core/work-items/rehydrate.js";
 import {
   clearHarnessRunTag,
   describeHarnessRunMeta,
@@ -139,9 +141,32 @@ export default function (pi: ExtensionAPI) {
       if (finishOutcome === "handled") return;
     }
 
+    if (route.type === "known" && route.subcommand === "rehydrate") {
+      const parsed = parseKnownDevSubcommandArgs("rehydrate", route.args);
+      const workItemId = parsed.leadingWorkItemId;
+      if (!workItemId) {
+        ctx.ui.notify("Usage: `/dev rehydrate <work-item-id>`", "warning");
+        return;
+      }
+      const result = devRehydrateWorkItem(workItemId);
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      ctx.ui.notify(result.value.message, "info");
+      return;
+    }
+
     if (route.type === "known" && route.subcommand === "resume") {
       const resumeOutcome = await tryResumeViaCoreOrchestrator(route.args, pi, ctx, state);
       if (resumeOutcome === "handled") return;
+      const resumeId = parseLeadingWorkItemId(route.args);
+      if (resumeId) {
+        ctx.ui.notify(
+          `Resume ${resumeId}: continuing via accord skill (core orchestrator off or phase unmapped).`,
+          "info",
+        );
+      }
     }
 
     if (route.type === "classify") {

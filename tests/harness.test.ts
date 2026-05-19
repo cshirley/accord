@@ -523,7 +523,7 @@ describe("harness processSubagentToolResult", () => {
         work_item_id: "QRT-1",
         task_id: 1,
         owner_nonce: "abcdef",
-        phase: "phase-code",
+        phase: "review-test",
         status: "pending",
         pre_impl_gates: "pending",
         quick_fix_loop: { test_review_cycles_used: 0 },
@@ -637,6 +637,46 @@ describe("harness processSubagentToolResult", () => {
     expect(task.test_files).toEqual(["src/ipt.test.ts"]);
   });
 
+  test("applies implement review-test → phase-code handoff after validated review-test packet", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("IRT-1", "implement review test apply", "implement", "express");
+    persistPrimaryTaskId(project, "IRT-1");
+    writeFileSync(
+      join(project, ".tasks", "IRT-1-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "IRT-1",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "review-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        test_files: ["src/irt.test.ts"],
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const reviewPacket = {
+      verdict: "clean" as const,
+      findings: [] as Array<{ severity: string; issue: string }>,
+    };
+    const out = await processSingleSubagentAssistantText(
+      "review-test",
+      "Run review-test for harness item IRT-1",
+      fencedJsonAssistantBody(reviewPacket),
+      emptyHarnessState(),
+    );
+    expect(out).toContain("Implement (review-test)");
+    const task = JSON.parse(readFileSync(join(project, ".tasks", "IRT-1-task-1.json"), "utf8")) as {
+      phase: string;
+      pre_impl_gates: string;
+    };
+    expect(task.phase).toBe("phase-code");
+    expect(task.pre_impl_gates).toBe("complete");
+  });
+
   test("review-test quick_fix apply reads devConfig orchestration.quick_fix_loop", async () => {
     const project = tempProject();
     process.chdir(project);
@@ -649,7 +689,7 @@ describe("harness processSubagentToolResult", () => {
         work_item_id: "QRT-2",
         task_id: 1,
         owner_nonce: "abcdef",
-        phase: "phase-test",
+        phase: "review-test",
         status: "pending",
         pre_impl_gates: "pending",
         quick_fix_loop: { test_review_cycles_used: 0 },
@@ -734,7 +774,7 @@ describe("harness processSubagentToolResult", () => {
       ),
     );
     expect(out).toContain("Quick-fix:");
-    expect(out).toContain("loop cap");
+    expect(out).toContain("retry cap reached");
 
     const task = JSON.parse(
       readFileSync(join(project, ".tasks", "QFBC-1-task-1.json"), "utf8"),

@@ -403,6 +403,96 @@ describe("resume orchestration", () => {
     expect(out.stalledReason).toBe("repeat_spawn");
     expect(out.lastRun.lastSpawn?.agent).toBe("review-test");
   });
+
+  test("runResumeOrchestrationWithReplans does not auto-chain into phase-code in one command", async () => {
+    mkdirSync(join(tempCwd, "docs", "dev", "ACCORD-991"), { recursive: true });
+    writeFileSync(
+      join("docs", "dev", "ACCORD-991", "spec.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        acceptance_criteria: [{ id: "AC-1", requirement: "MUST", type: "scenario", scenario: "s" }],
+        verification: {
+          commands: ["bun test"],
+          test_cases: [{ id: "TC-1", covers: "AC-1", scenario: "s", tier: "unit" }],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join("docs", "dev", "ACCORD-991", "plan.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        tasks: [
+          {
+            id: 1,
+            title: "t",
+            covers_ac: ["AC-1"],
+            challenge: false,
+            files: [],
+            steps: [],
+          },
+        ],
+        guidance: [],
+      })}\n`,
+      "utf8",
+    );
+    writeWorkItem("ACCORD-991", {
+      schema_version: "1.0",
+      id: "ACCORD-991",
+      title: "qf",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "quick_fix",
+      phase: "fixing",
+      task_ids: [1],
+      spec: "docs/dev/ACCORD-991/spec.json",
+      plan: "docs/dev/ACCORD-991/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    const taskPath = join(".tasks", "ACCORD-991-task-1.json");
+    writeFileSync(
+      taskPath,
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "ACCORD-991",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "review-test",
+        status: "pending",
+        pre_impl_gates: "complete",
+        test_files: ["pkg/x.test.ts"],
+        quick_fix_loop: { test_review_cycles_used: 0 },
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    let spawnCount = 0;
+    const notices: string[] = [];
+    const host = {
+      notify: (_level: string, text: string) => {
+        notices.push(text);
+      },
+      spawnSubagent: async (input: { agent: string }) => {
+        spawnCount += 1;
+        expect(input.agent).toBe("review-test");
+        const raw = JSON.parse(readFileSync(taskPath, "utf8")) as Record<string, unknown>;
+        raw.phase = "phase-code";
+        writeFileSync(taskPath, `${JSON.stringify(raw)}\n`, "utf8");
+        return { exitCode: 0 };
+      },
+    };
+
+    const out = await runResumeOrchestrationWithReplans("ACCORD-991", minimalDevConfig(), host);
+    expect(spawnCount).toBe(1);
+    expect(out.iterations).toBe(1);
+    expect(out.lastRun.lastSpawn?.agent).toBe("review-test");
+    expect(notices.some((n) => n.includes("phase-code"))).toBe(true);
+  });
 });
 
 describe("quick-fix orchestration", () => {
@@ -878,7 +968,7 @@ describe("quick-fix orchestration", () => {
         work_item_id: "QAP-0",
         task_id: 1,
         owner_nonce: "abcdef",
-        phase: "phase-test",
+        phase: "review-test",
         status: "pending",
         pre_impl_gates: "pending",
         quick_fix_loop: { test_review_cycles_used: 0 },
@@ -909,7 +999,7 @@ describe("quick-fix orchestration", () => {
       { verdict: "issues", findings: [{ severity: "critical", issue: "x" }] },
       devCfg,
     );
-    expect(note).toContain("loop cap reached");
+    expect(note).toContain("retry cap reached");
     const task = JSON.parse(readFileSync(join(".tasks", "QAP-0-task-1.json"), "utf8")) as {
       status: string;
     };
@@ -941,7 +1031,7 @@ describe("quick-fix orchestration", () => {
         work_item_id: "QAP-1",
         task_id: 1,
         owner_nonce: "abcdef",
-        phase: "phase-code",
+        phase: "review-test",
         status: "pending",
         pre_impl_gates: "pending",
         quick_fix_loop: { test_review_cycles_used: 0 },
@@ -997,7 +1087,7 @@ describe("quick-fix orchestration", () => {
         work_item_id: "QAP-2",
         task_id: 1,
         owner_nonce: "abcdef",
-        phase: "phase-test",
+        phase: "review-test",
         status: "pending",
         pre_impl_gates: "pending",
         quick_fix_loop: { test_review_cycles_used: policy.maxTestReviewLoops },
@@ -1023,7 +1113,7 @@ describe("quick-fix orchestration", () => {
       verdict: "issues",
       findings: [{ severity: "critical", issue: "x" }],
     });
-    expect(note).toContain("loop cap reached");
+    expect(note).toContain("retry cap reached");
     const task = JSON.parse(readFileSync(join(".tasks", "QAP-2-task-1.json"), "utf8")) as {
       status: string;
     };
@@ -1411,7 +1501,7 @@ describe("implement phase-code harness hook", () => {
     expect(task.phase).toBe("review-code");
   });
 
-  test("applyPhaseCodePostResult skips when implement_loop disables reviews_requested gate", () => {
+  test("applyPhaseCodePostResult always enqueues review-code even when implement_loop flags are false", () => {
     mkdirSync(join(tempCwd, "docs", "dev", "IPC-2"), { recursive: true });
     writeFileSync(
       join("docs", "dev", "IPC-2", "plan.json"),
@@ -1465,7 +1555,7 @@ describe("implement phase-code harness hook", () => {
       "IPC-2",
       {
         status: "done",
-        reviews_requested: 2,
+        reviews_requested: 0,
         files_changed: [],
         tests_passing: true,
         ac_covered: ["AC-1"],
@@ -1474,10 +1564,10 @@ describe("implement phase-code harness hook", () => {
       },
       cfg,
     );
-    expect(note).toBe("");
+    expect(note).toContain("review-code");
     const task = JSON.parse(readFileSync(join(".tasks", "IPC-2-task-1.json"), "utf8")) as {
       phase: string;
     };
-    expect(task.phase).toBe("phase-code");
+    expect(task.phase).toBe("review-code");
   });
 });

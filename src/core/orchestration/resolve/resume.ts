@@ -7,6 +7,7 @@ import type { DevHarnessConfig } from "../../config/index.js";
 import { devResumeState } from "../../queries/resume-state.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
+import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import { buildQuickFixPreImplReviewTestBrief } from "../quick-fix.js";
 import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../types.js";
 import { resolvePrimaryTaskResumeAgentId } from "./primary-task.js";
@@ -46,12 +47,6 @@ export function resolveResumeOrchestration(
   workItemId: string,
   devConfig: DevHarnessConfig | null,
 ): ResumeOrchestrationResolution {
-  const rs = devResumeState(workItemId);
-  if (!rs.ok) {
-    return { outcome: "forward_skill", reason: rs.error };
-  }
-  const state = rs.value;
-
   const wi = loadWorkItem(workItemId);
   if (wi?.completed_at && wi.terminal_outcome) {
     const messages: OrchestrationMessage[] = [
@@ -63,15 +58,21 @@ export function resolveResumeOrchestration(
     return { outcome: "complete", messages };
   }
 
-  if (!isWorkItemPattern(state.pattern)) {
+  const rsAfterReconcile = devResumeState(workItemId);
+  if (!rsAfterReconcile.ok) {
+    return { outcome: "forward_skill", reason: rsAfterReconcile.error };
+  }
+  const stateAfterReconcile = rsAfterReconcile.value;
+
+  if (!isWorkItemPattern(stateAfterReconcile.pattern)) {
     return {
       outcome: "forward_skill",
-      reason: `Unknown work item pattern "${state.pattern}" — delegate to accord skill.`,
+      reason: `Unknown work item pattern "${stateAfterReconcile.pattern}" — delegate to accord skill.`,
     };
   }
 
-  const pattern = state.pattern;
-  const phase = state.phase;
+  const pattern = stateAfterReconcile.pattern;
+  const phase = stateAfterReconcile.phase;
   const agent = resolveResumeAgentId(phase, pattern) ?? resolvePrimaryTaskResumeAgentId(workItemId);
 
   if (!agent) {
@@ -100,27 +101,28 @@ export function resolveResumeOrchestration(
     };
   }
 
-  const task =
+  const baseTask =
     buildQuickFixPreImplReviewTestBrief({
-      workItemId: state.id,
+      workItemId: stateAfterReconcile.id,
       phase,
-      title: state.title,
-      pattern: state.pattern,
-      variant: state.variant,
+      title: stateAfterReconcile.title,
+      pattern: stateAfterReconcile.pattern,
+      variant: stateAfterReconcile.variant,
       dispatchAgent: agent,
     }) ??
     buildResumeTaskBrief({
-      workItemId: state.id,
+      workItemId: stateAfterReconcile.id,
       phase,
-      title: state.title,
-      pattern: state.pattern,
-      variant: state.variant,
+      title: stateAfterReconcile.title,
+      pattern: stateAfterReconcile.pattern,
+      variant: stateAfterReconcile.variant,
       dispatchAgent: agent,
     });
+  const task = appendReviewFeedbackToResumeBrief(workItemId, baseTask, agent);
 
   return {
     outcome: "spawn",
-    workItemId: state.id,
+    workItemId: stateAfterReconcile.id,
     agent,
     task,
   };

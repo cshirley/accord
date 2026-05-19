@@ -7,6 +7,11 @@
   "additionalProperties": false,
   "properties": {
     "verdict": { "enum": ["clean", "issues"] },
+    "analysis": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional structured narrative summary (adversarial review checks, etc.). Prose before the return JSON fence is also captured on the task file when present."
+    },
     "findings": {
       "type": "array",
       "items": {

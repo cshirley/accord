@@ -8,6 +8,7 @@
 
 import { loadWorkItem } from "../work-items/io.js";
 import { devBootstrap, type IntentContractInput } from "../work-items/lifecycle.js";
+import { ensureWorkItemHydrated } from "../work-items/rehydrate.js";
 import type { WorkItemPattern } from "../work-items/types.js";
 import {
   formatIntentRecommendation,
@@ -114,6 +115,14 @@ export function classifyPreflight(text: string): ClassifyPreflightResult {
   if (existing) {
     bootstrapNotice = `Work item \`${parsed.id}\` already exists (phase: ${existing.phase}) — skipping bootstrap.`;
     return { intent, intentBlock, bootstrapNotice };
+  }
+
+  if (patternVariant.pattern === "implement") {
+    const rehydrated = ensureWorkItemHydrated(parsed.id);
+    if (rehydrated.ok && rehydrated.value.rehydrated) {
+      bootstrapNotice = `${rehydrated.value.message} The accord skill will pick up from persisted state.`;
+      return { intent, intentBlock, bootstrapNotice };
+    }
   }
 
   const intentContract: IntentContractInput = {

@@ -19,6 +19,13 @@ export interface DevHarnessOrchestrationConfig {
     code_review_on_reviews_requested?: boolean;
   };
   /**
+   * Critical finding retries after **review-test** / **review-code** (persisted on the task file).
+   * Default max: 3 (`DEFAULT_MAX_CRITICAL_REVIEW_RETRIES`).
+   */
+  review_loop?: {
+    max_critical_retries?: number;
+  };
+  /**
    * Bounded LLM output merged into resume task text (Phase 5). Never selects agents —
    * only the shape in `schemas/orchestration-judgment-packet.json`. Pi calls the model when
    * `ACCORD_ORCHESTRATION_JUDGMENT=1` and `enabled` is true; invalid JSON falls back to a template appendix.

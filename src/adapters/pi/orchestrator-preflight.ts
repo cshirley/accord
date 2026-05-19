@@ -3,7 +3,7 @@
  *
  * Both commands check the same gates before executing the orchestration:
  *
- *   1. `ACCORD_CORE_ORCHESTRATOR=1` — otherwise forward to `/skill:accord`.
+ *   1. Core orchestrator enabled (default) — set `ACCORD_CORE_ORCHESTRATOR=0` to forward to `/skill:accord`.
  *   2. Plan mode is not active — otherwise warn and consume the command.
  *   3. The work item ID is parseable from the arg string — otherwise show usage.
  *   4. Build a runtime host wired to the Pi adapter.

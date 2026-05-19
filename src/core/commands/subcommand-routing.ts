@@ -10,7 +10,7 @@ import { DEV_SUBCOMMANDS } from "./dispatch.js";
 export type DevSubcommandOwner =
   /** Handled in `extension.ts` without invoking the accord skill. */
   | "extension_local"
-  /** `resume` / `finish` when `ACCORD_CORE_ORCHESTRATOR=1` (adapter tries core first). */
+  /** `resume` / `finish` via core orchestrator by default (adapter tries core first). */
   | "core_orchestrator_when_flagged"
   /** Forwarded as `/skill:accord …` for LLM-driven workflow. */
   | "skill";
@@ -21,6 +21,7 @@ const ROUTING: Readonly<Record<string, DevSubcommandOwner>> = {
   retro: "extension_local",
   tag: "extension_local",
   resume: "core_orchestrator_when_flagged",
+  rehydrate: "extension_local",
   finish: "core_orchestrator_when_flagged",
   init: "skill",
   align: "skill",

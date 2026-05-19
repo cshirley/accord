@@ -6,6 +6,15 @@ import type { AssistantMessage, TextContent, UserMessage } from "@earendil-works
 import { completeSimple } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { harnessSpawnSubagent } from "../../../packages/pi-subagent/src/index.js";
+import { startOrchestratorSubagentChatDisplay } from "../../../packages/pi-subagent/src/orchestrator-chat.js";
+import {
+  clearOrchestratorSpawnWidget,
+  mountOrchestratorSpawnWidget,
+  refreshOrchestratorSpawnUi,
+  registerOrchestratorSpawn,
+  unregisterOrchestratorSpawn,
+  updateOrchestratorSpawn,
+} from "../../../packages/pi-subagent/src/orchestrator-spawn-status.js";
 import {
   prepareSubagentToolCall,
   processSubagentToolResult,
@@ -104,6 +113,28 @@ export function createResumeOrchestrationRuntimeHost(
         return { exitCode: 1 };
       }
 
+      ctx.ui.notify(`${spawnLabel}: starting ${agent}…`, "info");
+
+      const spawnStatusId = `spawn-${agent}-${String(Date.now())}`;
+
+      registerOrchestratorSpawn(spawnStatusId, { label: spawnLabel, agent });
+      if (ctx.hasUI) {
+        mountOrchestratorSpawnWidget(ctx);
+        void refreshOrchestratorSpawnUi(ctx);
+      }
+
+      const chatUi = startOrchestratorSubagentChatDisplay(pi, ctx, {
+        label: spawnLabel,
+        agent,
+        task,
+        onProgress: (progress) => {
+          updateOrchestratorSpawn(spawnStatusId, progress);
+        },
+        onUiRefresh: () => {
+          void refreshOrchestratorSpawnUi(ctx);
+        },
+      });
+
       let singleResult: Awaited<ReturnType<typeof harnessSpawnSubagent>>;
       try {
         singleResult = await harnessSpawnSubagent({
@@ -111,11 +142,19 @@ export function createResumeOrchestrationRuntimeHost(
           agent,
           task,
           signal: ctx.signal,
+          onUpdate: chatUi.onUpdate,
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         ctx.ui.notify(`Subagent spawn failed: ${msg}`, "error");
         return { exitCode: 1 };
+      } finally {
+        chatUi.dispose();
+        unregisterOrchestratorSpawn(spawnStatusId);
+        if (ctx.hasUI) {
+          clearOrchestratorSpawnWidget(ctx);
+          void refreshOrchestratorSpawnUi(ctx);
+        }
       }
 
       const details = {

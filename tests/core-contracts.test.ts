@@ -465,14 +465,13 @@ describe("quick_fix pattern contracts", () => {
     const brief = devQuickFixBrief("FIX-1", sampleConfig());
     expect(brief.ok).toBe(true);
     if (!brief.ok) throw new Error(brief.error);
-    expect(brief.value.brief_type).toBe("phase-code");
-    expect(brief.value.brief).toContain("### Quick Fix Rules");
+    expect(brief.value.brief_type).toBe("review-test");
+    expect(brief.value.brief).toContain("review-test");
     expect(brief.value.brief).toContain("### Quick Fix Contract");
-    expect(brief.value.brief).toContain("## Code Task Brief");
 
     const taskFile = JSON.parse(readFileSync(join(project, ".tasks", "FIX-1-task-1.json"), "utf8"));
-    expect(taskFile.phase).toBe("phase-code");
-    expect(taskFile.pre_impl_gates).toBe("complete");
+    expect(taskFile.phase).toBe("review-test");
+    expect(taskFile.pre_impl_gates).toBe("pending");
     expect(taskFile.quick_fix_contract.plan.expected_finish).toBe("Fix login typo");
     expect(taskFile.quick_fix_contract.test.strategy).toBe("no_test");
     expect(taskFile.quick_fix_contract.test.reason).toContain("Mechanical");
@@ -551,7 +550,7 @@ describe("quick_fix pattern contracts", () => {
     ).resolves.toEqual({ valid: true, errors: [] });
   });
 
-  test("existing_tests strategy produces phase-code brief directly", async () => {
+  test("existing_tests strategy starts at phase-test before review-test", async () => {
     const project = tempProject();
     process.chdir(project);
 
@@ -566,13 +565,12 @@ describe("quick_fix pattern contracts", () => {
     expect(brief.ok).toBe(true);
     if (!brief.ok) throw new Error(brief.error);
 
-    expect(brief.value.brief_type).toBe("phase-code");
-    expect(brief.value.brief).toContain("## Code Task Brief");
-    expect(brief.value.brief).toContain("### Quick Fix Rules");
+    expect(brief.value.brief_type).toBe("phase-test");
+    expect(brief.value.brief).toContain("## Quick Fix Test Brief");
 
     const taskFile = JSON.parse(readFileSync(join(project, ".tasks", "REG-1-task-1.json"), "utf8"));
-    expect(taskFile.phase).toBe("phase-code");
-    expect(taskFile.pre_impl_gates).toBe("complete");
+    expect(taskFile.phase).toBe("phase-test");
+    expect(taskFile.pre_impl_gates).toBe("pending");
     expect(taskFile.quick_fix_contract.test.strategy).toBe("existing_tests");
 
     await expect(validateArtifact(join(project, ".tasks", "REG-1-task-1.json"))).resolves.toEqual({

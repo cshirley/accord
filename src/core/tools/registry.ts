@@ -28,6 +28,7 @@ import type { DevHarnessConfig } from "../config/types.js";
 import { buildDevOrchestratePayload } from "../orchestration/plan.js";
 import { devTasks } from "../queries/dashboard.js";
 import { devResumeState } from "../queries/resume-state.js";
+import { devRehydrateWorkItem } from "../work-items/rehydrate.js";
 import { devRetro } from "../queries/retro.js";
 import { devReviewQueue } from "../queries/review-queue.js";
 import { devSpecGaps } from "../queries/spec-gaps.js";
@@ -389,10 +390,26 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
   }),
 
   defineTool({
+    name: "dev_rehydrate",
+    label: "Rehydrate Work Item",
+    description:
+      "Recreate .tasks/<ID>.json (and task files from plan.json) from docs/dev/<ID>/ when runtime state was lost",
+    promptSnippet:
+      "When .tasks/ is missing but brief/spec/plan exist on disk, call before dev_resume_state. Idempotent if the work item already exists.",
+    parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
+    handler(params) {
+      const result = devRehydrateWorkItem(params.id);
+      if (!result.ok) return { ok: false, text: result.error };
+      return { ok: true, text: result.value.message, details: result.value };
+    },
+  }),
+
+  defineTool({
     name: "dev_resume_state",
     label: "Resume State",
     description: "Read work item + checkpoint state for /dev resume routing",
-    promptSnippet: "Get resume state: phase, checkpoint presence, pattern — for dispatch routing",
+    promptSnippet:
+      "Get resume state: phase, checkpoint presence, pattern — for dispatch routing. Rehydrates from docs/dev/ when .tasks/ is missing.",
     parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
     handler(params) {
       const result = devResumeState(params.id);

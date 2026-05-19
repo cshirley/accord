@@ -512,6 +512,53 @@ function contentBlocksToText(content: unknown): string {
     .join("\n");
 }
 
+/** Prose before the final fenced ```json return block (subagent analysis / narrative). */
+export function extractAnalysisFromAssistantText(text: string): string | undefined {
+  if (!text) {
+    return undefined;
+  }
+  const withoutFence = text.replace(/```json\s*\n[\s\S]*?\n```/g, "").trim();
+  return withoutFence.length > 0 ? withoutFence : undefined;
+}
+
+export function extractAnalysisFromSubagentResult(result: unknown): string | undefined {
+  const r = result as Record<string, unknown>;
+  const candidates: string[] = [];
+
+  if (Array.isArray(r.messages)) {
+    const assistantMessages = [...r.messages].filter(
+      (m: unknown) => (m as { role?: string }).role === "assistant",
+    );
+    const last = assistantMessages[assistantMessages.length - 1];
+    if (last) {
+      const text = contentBlocksToText((last as { content?: unknown }).content);
+      if (text) {
+        candidates.push(text);
+      }
+    }
+  }
+
+  for (const key of ["content", "output", "text", "response", "result", "final", "finalResponse"]) {
+    const value = r[key];
+    if (typeof value === "string") {
+      candidates.push(value);
+    } else {
+      const text = contentBlocksToText(value);
+      if (text) {
+        candidates.push(text);
+      }
+    }
+  }
+
+  for (const text of candidates) {
+    const analysis = extractAnalysisFromAssistantText(text);
+    if (analysis) {
+      return analysis;
+    }
+  }
+  return undefined;
+}
+
 export function extractReturnPacketFromSubagentResult(
   result: unknown,
 ): Record<string, unknown> | null {

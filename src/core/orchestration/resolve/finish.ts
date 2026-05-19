@@ -5,6 +5,7 @@
 import { agentRequiresConfig, getAgentMeta } from "../../agents/registry.js";
 import type { DevHarnessConfig } from "../../config/index.js";
 import { loadWorkItem } from "../../work-items/io.js";
+import { ensureWorkItemHydrated } from "../../work-items/rehydrate.js";
 import type { WorkItem } from "../../work-items/types.js";
 import type { ResumeOrchestrationResolution } from "../types.js";
 
@@ -54,6 +55,14 @@ export function resolveFinishOrchestration(
   workItemId: string,
   devConfig: DevHarnessConfig | null,
 ): ResumeOrchestrationResolution {
+  const hydrated = ensureWorkItemHydrated(workItemId);
+  if (!hydrated.ok) {
+    return {
+      outcome: "forward_skill",
+      reason: hydrated.error,
+    };
+  }
+
   const wi = loadWorkItem(workItemId);
   if (!wi) {
     return {

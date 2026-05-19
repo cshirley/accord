@@ -197,7 +197,7 @@
         },
         "implement_loop": {
           "type": "object",
-          "description": "Standard **implement** pipeline: after validated `phase-code`, the harness may set task `phase` to **review-code** when the plan marks `challenge` or the return packet requests reviews.",
+          "description": "Legacy **implement** review toggles. The harness always enqueues **review-code** after **phase-code**; `code_review_on_*` fields are ignored for routing.",
           "additionalProperties": false,
           "properties": {
             "code_review_on_challenge": {
@@ -207,6 +207,18 @@
             "code_review_on_reviews_requested": {
               "type": "boolean",
               "description": "When true (default), a `phase-code` return with `reviews_requested` > 0 routes to **review-code**."
+            }
+          }
+        },
+        "review_loop": {
+          "type": "object",
+          "description": "Critical finding retries after **review-test** or **review-code** (findings persisted on the task file as `last_review_feedback`).",
+          "additionalProperties": false,
+          "properties": {
+            "max_critical_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Max retries per loop when findings include severity `critical`. Default: 3."
             }
           }
         },

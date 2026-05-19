@@ -41,9 +41,71 @@
       "type": "boolean",
       "description": "Whether tests fail as expected before implementation"
     },
+    "review_loop": {
+      "type": "object",
+      "description": "Harness-owned retry counters for critical findings on review-test / review-code",
+      "additionalProperties": false,
+      "properties": {
+        "test_review_retries_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Critical review-test findings that respawned phase-test"
+        },
+        "code_review_retries_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Critical review-code findings that respawned phase-code"
+        }
+      }
+    },
+    "agent_returns": {
+      "type": "array",
+      "description": "Audit log of validated subagent return packets (newest last). Includes full packet and any prose analysis.",
+      "items": {
+        "type": "object",
+        "required": ["agent", "at", "packet"],
+        "additionalProperties": false,
+        "properties": {
+          "agent": { "type": "string", "minLength": 1 },
+          "at": { "type": "string", "format": "date-time" },
+          "task_phase": { "type": "string" },
+          "analysis": { "type": "string", "minLength": 1 },
+          "packet": { "type": "object" }
+        }
+      }
+    },
+    "last_review_feedback": {
+      "type": "object",
+      "description": "Latest adversarial review (review-test / review-code) for orchestrator retries and resume briefs",
+      "additionalProperties": false,
+      "required": ["agent", "verdict", "findings", "at", "packet"],
+      "properties": {
+        "agent": { "enum": ["review-test", "review-code"] },
+        "verdict": { "enum": ["clean", "issues"] },
+        "at": { "type": "string", "format": "date-time" },
+        "analysis": { "type": "string", "minLength": 1 },
+        "packet": { "type": "object" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["severity", "issue"],
+            "additionalProperties": false,
+            "properties": {
+              "severity": { "enum": ["critical", "warning", "suggestion"] },
+              "issue": { "type": "string", "minLength": 1 },
+              "file": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "evidence": { "type": "string" },
+              "recommendation": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "quick_fix_loop": {
       "type": "object",
-      "description": "Harness-owned counters for quick-fix test↔review adversary loops (D2)",
+      "description": "Legacy alias — mirrored from review_loop.test_review_retries_used for quick-fix",
       "additionalProperties": false,
       "required": ["test_review_cycles_used"],
       "properties": {

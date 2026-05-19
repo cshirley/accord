@@ -5,6 +5,7 @@
 import { err, ok, type Result } from "../types/result.js";
 import { devCheckpointRead } from "../work-items/checkpoint.js";
 import { loadWorkItem } from "../work-items/io.js";
+import { ensureWorkItemHydrated } from "../work-items/rehydrate.js";
 
 export interface ResumeState {
   id: string;
@@ -22,8 +23,15 @@ export interface ResumeState {
 }
 
 export function devResumeState(id: string): Result<ResumeState> {
+  const hydrated = ensureWorkItemHydrated(id);
+  if (!hydrated.ok) {
+    return err(hydrated.error);
+  }
+
   const wi = loadWorkItem(id);
-  if (!wi) return err(`No active work item for ${id}. Run /dev <description> to start one.`);
+  if (!wi) {
+    return err(`No active work item for ${id}. Run /dev <description> to start one.`);
+  }
 
   const cp = devCheckpointRead(id);
   return ok({

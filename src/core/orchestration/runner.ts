@@ -20,6 +20,7 @@ import { devFinalizeWorkItem } from "../work-items/lifecycle.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
 import { planDevResumeOrchestration, resumeResolutionToNextSteps } from "./plan.js";
+import { resumeAllowsAutoReplanToAgent } from "./policy.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
 import type { NextStep, ResumeOrchestrationResolution, RunUntilStopResult } from "./types.js";
 
@@ -109,6 +110,18 @@ export async function runResumeOrchestrationWithReplans(
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
     if (resolution.outcome !== "spawn") {
+      return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
+    }
+
+    const nextResolution = planDevResumeOrchestration(workItemId, devConfig);
+    if (
+      nextResolution.outcome === "spawn" &&
+      !resumeAllowsAutoReplanToAgent(nextResolution.agent)
+    ) {
+      host.notify(
+        "info",
+        `Resume: next step is **${nextResolution.agent}**. Run \`/dev resume ${workItemId}\` again to continue (one implementation agent per command).`,
+      );
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
 

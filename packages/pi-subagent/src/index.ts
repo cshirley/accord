@@ -23,11 +23,14 @@ import {
   type ExtensionAPI,
   getMarkdownTheme,
   type ThemeColor,
+  type ToolDefinition,
   withFileMutationQueue,
 } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { type AgentConfig, type AgentScope, discoverAgents, resolveModelConfig } from "./agents.js";
+import { registerOrchestratorSubagentChatRenderer } from "./orchestrator-chat.js";
+import { applyToolExecutionToMessages } from "./progress.js";
 
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
@@ -379,6 +382,7 @@ async function runSingleAgent(
         shell: false,
         stdio: ["ignore", "pipe", "pipe"],
       });
+      emitUpdate();
       let buffer = "";
 
       const processLine = (line: string) => {
@@ -391,9 +395,28 @@ async function runSingleAgent(
         }
 
         const ev = event as Record<string, unknown>;
+
+        const upsertStreamingMessage = (msg: Message) => {
+          const messages = currentResult.messages;
+          const last = messages.at(-1);
+          if (last && last.role === msg.role) {
+            messages[messages.length - 1] = msg;
+          } else {
+            messages.push(msg);
+          }
+        };
+
+        if (
+          (ev.type === "message_start" || ev.type === "message_update") &&
+          ev.message
+        ) {
+          upsertStreamingMessage(ev.message as Message);
+          emitUpdate();
+        }
+
         if (ev.type === "message_end" && ev.message) {
           const msg = ev.message as Message;
-          currentResult.messages.push(msg);
+          upsertStreamingMessage(msg);
 
           if (msg.role === "assistant") {
             currentResult.usage.turns++;
@@ -410,6 +433,43 @@ async function runSingleAgent(
             if (msg.stopReason) currentResult.stopReason = msg.stopReason;
             if (msg.errorMessage) currentResult.errorMessage = msg.errorMessage;
           }
+          emitUpdate();
+        }
+
+        if (
+          ev.type === "turn_start" ||
+          ev.type === "agent_start"
+        ) {
+          emitUpdate();
+        }
+
+        if (ev.type === "tool_execution_start" || ev.type === "tool_execution_update") {
+          const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
+          const args =
+            ev.args && typeof ev.args === "object"
+              ? (ev.args as Record<string, unknown>)
+              : {};
+          applyToolExecutionToMessages(
+            currentResult.messages,
+            toolName,
+            args,
+            typeof ev.toolCallId === "string" ? ev.toolCallId : undefined,
+          );
+          emitUpdate();
+        }
+
+        if (ev.type === "tool_execution_end") {
+          const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
+          const args =
+            ev.args && typeof ev.args === "object"
+              ? (ev.args as Record<string, unknown>)
+              : {};
+          applyToolExecutionToMessages(
+            currentResult.messages,
+            toolName,
+            args,
+            typeof ev.toolCallId === "string" ? ev.toolCallId : undefined,
+          );
           emitUpdate();
         }
 
@@ -524,6 +584,7 @@ export async function harnessSpawnSubagent(params: {
   task: string;
   stepCwd?: string;
   signal?: AbortSignal;
+  onUpdate?: OnUpdateCallback;
 }): Promise<SingleResult> {
   const agentScope = params.agentScope ?? "user";
   const discovery = discoverAgents(params.cwd, agentScope);
@@ -541,13 +602,13 @@ export async function harnessSpawnSubagent(params: {
     params.stepCwd,
     1,
     params.signal,
-    undefined,
+    params.onUpdate,
     makeDetails,
   );
 }
 
 export default function (pi: ExtensionAPI) {
-  pi.registerTool({
+  const subagentTool: ToolDefinition<typeof SubagentParams, SubagentDetails> = {
     name: "subagent",
     label: "Subagent",
     description: [
@@ -1158,5 +1219,8 @@ export default function (pi: ExtensionAPI) {
       const text = result.content[0];
       return new Text(text?.type === "text" ? text.text : "(no output)", 0, 0);
     },
-  });
+  };
+
+  pi.registerTool(subagentTool);
+  registerOrchestratorSubagentChatRenderer(pi, subagentTool as Parameters<typeof registerOrchestratorSubagentChatRenderer>[1]);
 }

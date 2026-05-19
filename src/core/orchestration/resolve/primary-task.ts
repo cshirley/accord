@@ -11,7 +11,8 @@
  */
 
 import { getAgentMeta } from "../../agents/registry.js";
-import { RESUMABLE_PIPELINE_TASK_PHASES } from "../../types/phases.js";
+import { isResumablePipelineTaskPhase } from "../../types/phases.js";
+import { resolveActivePrimaryTaskId } from "../post-result/primary-task.js";
 import { loadTaskFile, loadWorkItem } from "../../work-items/io.js";
 import type { WorkItemPattern } from "../../work-items/types.js";
 
@@ -37,15 +38,24 @@ export function resolvePrimaryTaskResumeAgentId(workItemId: string): string | nu
   if (!coarseGate || wi.phase !== coarseGate) {
     return null;
   }
-  const primaryTaskId = wi.task_ids[0] ?? 1;
+  const primaryTaskId = resolveActivePrimaryTaskId(wi);
+  if (primaryTaskId === null) {
+    return null;
+  }
   const task = loadTaskFile(workItemId, String(primaryTaskId));
-  if (!task || task.status === "blocked") {
+  if (!task || task.status === "blocked" || task.status === "done") {
     return null;
   }
-  const phase = task.phase;
-  if (typeof phase !== "string" || !RESUMABLE_PIPELINE_TASK_PHASES.has(phase)) {
+  let phase = task.phase;
+  if (typeof phase !== "string" || !isResumablePipelineTaskPhase(phase)) {
     return null;
   }
+
+  // Mandatory pre-impl review: never spawn phase-code until review-test has completed.
+  if (phase === "phase-code" && task.pre_impl_gates !== "complete") {
+    phase = "review-test";
+  }
+
   if (!getAgentMeta(phase)) {
     return null;
   }

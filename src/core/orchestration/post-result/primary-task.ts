@@ -8,8 +8,36 @@
  */
 
 import * as path from "node:path";
-import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../../work-items/io.js";
+import { loadTaskFile, loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../../work-items/io.js";
 import type { WorkItem } from "../../work-items/types.js";
+
+/**
+ * First task in `task_ids` (sorted) that is not `done` or `blocked`, or `null` when every
+ * known task file is terminal. Used by resume routing and post-result handlers so a
+ * completed task does not keep respawning the same agent under orchestrator replans.
+ */
+export function resolveActivePrimaryTaskId(workItem: WorkItem): number | null {
+  const sorted = [...(workItem.task_ids ?? [])].sort((a, b) => a - b);
+  const candidates = sorted.length > 0 ? sorted : [1];
+
+  for (const taskId of candidates) {
+    const task = loadTaskFile(workItem.id, String(taskId));
+    if (!task) {
+      continue;
+    }
+    const status = task.status;
+    if (status === "done" || status === "blocked") {
+      continue;
+    }
+    return taskId;
+  }
+  return null;
+}
+
+/** Task id to use when mutating per-task state: active task, else legacy `task_ids[0] ?? 1`. */
+export function resolvePrimaryTaskIdForMutation(workItem: WorkItem): number {
+  return resolveActivePrimaryTaskId(workItem) ?? workItem.task_ids[0] ?? 1;
+}
 
 export interface PrimaryTaskMutationContext {
   workItem: WorkItem;
@@ -37,7 +65,7 @@ export function advancePrimaryTask(
     return false;
   }
 
-  const primaryTaskId = wi.task_ids[0] ?? 1;
+  const primaryTaskId = resolvePrimaryTaskIdForMutation(wi);
   const taskPath = path.join(TASKS_DIR, `${workItemId}-task-${primaryTaskId}.json`);
   const task = readJson<Record<string, unknown>>(taskPath);
   if (!task) {
@@ -55,8 +83,11 @@ export function advancePrimaryTask(
     task.events = [...events, { at: timestamp, ...result.event }];
   }
 
-  wi.updated = timestamp;
   writeJson(taskPath, task);
-  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+  // Mutators such as `devPromoteEvents` may persist work-item side effects; reload so we
+  // do not clobber decisions/deviations written during `mutate`.
+  const wiToWrite = loadWorkItem(workItemId) ?? wi;
+  wiToWrite.updated = timestamp;
+  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wiToWrite);
   return true;
 }

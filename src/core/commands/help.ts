@@ -13,8 +13,8 @@ function buildHelpText(): string {
   return `/dev — agentic harness entry point
 
 Routing (deterministic):
-  Local in extension: help, tasks, retro, tag.
-  Core orchestrator when ACCORD_CORE_ORCHESTRATOR=1: resume, finish (otherwise skill).
+  Local in extension: help, tasks, retro, tag, rehydrate.
+  Core orchestrator (default): resume, finish. Set ACCORD_CORE_ORCHESTRATOR=0 for skill routing.
   Free text: core runs the same intent rules as dev_intent (and may bootstrap a missing
   ticket-shaped work item), then forwards to the accord skill.
   All other subcommands: accord skill.

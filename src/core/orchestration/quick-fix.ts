@@ -9,12 +9,14 @@
  */
 
 import * as path from "node:path";
+import type { DevHarnessConfig } from "../config/types.js";
 import { loadWorkItem, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
 import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
+import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback.js";
 
 export { RESUMABLE_PIPELINE_TASK_PHASES } from "../types/phases.js";
-
-export type ReviewTestVerdict = "clean" | "issues";
+export type { ReviewTestVerdict } from "./review-feedback.js";
+import type { ReviewTestVerdict } from "./review-feedback.js";
 
 const SEVERITY_RANK: Record<string, number> = {
   suggestion: 1,
@@ -57,10 +59,8 @@ export function reviewIssuesConsumeQuickFixRetrySlot(
 export function readQuickFixLoopCounters(task: Record<string, unknown>): {
   test_review_cycles_used: number;
 } {
-  const loop = task.quick_fix_loop as { test_review_cycles_used?: unknown } | undefined;
-  const raw = loop?.test_review_cycles_used;
-  const n = typeof raw === "number" && Number.isFinite(raw) ? Math.floor(raw) : 0;
-  return { test_review_cycles_used: Math.max(0, n) };
+  const counters = readReviewLoopCounters(task);
+  return { test_review_cycles_used: counters.test_review_retries_used };
 }
 
 /**
@@ -97,13 +97,24 @@ export function decideQuickFixAfterReviewPacket(
 ):
   | { nextAgent: "phase-test" | "phase-code"; bumpCycle: boolean }
   | { blocked: true; reason: string } {
-  if (packet.verdict === "clean") {
-    return { nextAgent: "phase-code", bumpCycle: false };
+  const devConfig = {
+    orchestration: { review_loop: { max_critical_retries: policy.maxTestReviewLoops } },
+  } as DevHarnessConfig;
+  const decision = decideAfterReviewTest(
+    {
+      test_review_retries_used: counters.test_review_cycles_used,
+      code_review_retries_used: 0,
+    },
+    { verdict: packet.verdict, findings: [...packet.findings] },
+    devConfig,
+  );
+  if ("blocked" in decision) {
+    return { blocked: true, reason: decision.reason };
   }
-  if (!reviewIssuesConsumeQuickFixRetrySlot(packet.findings, policy.severityGate)) {
-    return { nextAgent: "phase-code", bumpCycle: false };
-  }
-  return decideQuickFixAfterReviewTest(counters, "issues", policy);
+  return {
+    nextAgent: decision.nextPhase,
+    bumpCycle: decision.bumpTestRetry,
+  };
 }
 
 export function bumpQuickFixTestReviewCycle(
@@ -155,7 +166,10 @@ export function buildQuickFixPreImplReviewTestBrief(input: {
   const testFiles = (Array.isArray(taskFile.test_files) ? taskFile.test_files : []).filter(
     (f): f is string => typeof f === "string",
   );
-  if (testFiles.length === 0) {
+  const testStrategy = (
+    taskFile.quick_fix_contract as { test?: { strategy?: string } } | undefined
+  )?.test?.strategy;
+  if (testFiles.length === 0 && testStrategy !== "no_test") {
     return null;
   }
 
@@ -196,6 +210,11 @@ export function buildQuickFixPreImplReviewTestBrief(input: {
     task: taskRow,
     guidance: engineerGuidance,
     quick_fix_contract: taskFile.quick_fix_contract,
+    ...(testStrategy === "no_test"
+      ? {
+          note: "quick_fix_contract.test.strategy is no_test — review scope, stubs, and contract only (no new test files).",
+        }
+      : {}),
   };
 
   const pipelineLabel = input.pattern === "quick_fix" ? "quick fix" : "implement";

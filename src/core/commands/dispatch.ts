@@ -25,6 +25,10 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
   { value: "spec", description: "Write/refine a spec" },
   { value: "plan", description: "Generate an implementation plan" },
   { value: "resume", description: "Resume a work item" },
+  {
+    value: "rehydrate",
+    description: "Recreate .tasks/ state from committed docs/dev/<ID>/ artifacts",
+  },
   { value: "finish", description: "Run deterministic post-implementation closeout" },
   { value: "check", description: "Run lower-level acceptance checks" },
   { value: "gaps", description: "Find gaps in a step" },

@@ -6,11 +6,13 @@ import { agentRequiresVerification, agentSchemas } from "../agents/registry.js";
 import { validateReturn } from "../artifacts/validation.js";
 import { createLogger } from "../logging.js";
 import { runPostResultHandlerForAgent } from "../orchestration/post-result/registry.js";
+import { persistValidatedAgentReturn } from "../orchestration/task-agent-audit.js";
 import type { PricingConfig } from "../telemetry/usage.js";
 import {
   appendUsageLine,
   computeLineCost,
   ensureAutoHarnessRunMeta,
+  extractAnalysisFromSubagentResult,
   extractReturnPacketFromSubagentResult,
   extractWorkItemId,
   formatMissingPacketWarning,
@@ -150,6 +152,9 @@ export async function processSubagentToolResult(
           ...validation.errors.map((e) => `  • ${e}`),
         ].join("\n");
       } else if (workItemId) {
+        const analysisText = extractAnalysisFromSubagentResult(result);
+        const audit = analysisText ? { analysisText } : undefined;
+        persistValidatedAgentReturn(workItemId, agentName, packet, audit);
         contentAppend += runPostResultHandlerForAgent(
           agentName,
           workItemId,

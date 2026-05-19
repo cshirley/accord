@@ -341,7 +341,7 @@ export interface QuickFixBrief {
   brief_path: string;
   task_file_path: string;
   task_id: string;
-  brief_type: "phase-test" | "phase-code";
+  brief_type: "phase-test" | "review-test" | "phase-code";
 }
 
 export function devQuickFixBrief(
@@ -359,7 +359,9 @@ export function devQuickFixBrief(
     existingTask && typeof existingTask.owner_nonce === "string" ? existingTask.owner_nonce : "";
   const ownerNonce = /^[0-9a-f]{6}$/.test(rawNonce) ? rawNonce : devNonce();
   const contract = quickFixContract(wi, config);
-  const needsTestPhase = contract.test.strategy === "new_red_test";
+  const needsTestPhase =
+    contract.test.strategy === "new_red_test" || contract.test.strategy === "existing_tests";
+  const startsAtReviewTest = contract.test.strategy === "no_test";
 
   const { specPath, planPath } = writeQuickFixStubs(workItemId, wi, contract, config);
 
@@ -374,9 +376,9 @@ export function devQuickFixBrief(
     work_item_id: workItemId,
     task_id: 1,
     owner_nonce: ownerNonce,
-    phase: needsTestPhase ? "phase-test" : "phase-code",
+    phase: needsTestPhase ? "phase-test" : startsAtReviewTest ? "review-test" : "phase-code",
     status: existingTask?.status === "done" ? "done" : "pending",
-    pre_impl_gates: needsTestPhase ? "pending" : "complete",
+    pre_impl_gates: needsTestPhase || startsAtReviewTest ? "pending" : "complete",
     test_files: Array.isArray(existingTask?.test_files) ? existingTask.test_files : [],
     red_confirmed: existingTask?.red_confirmed === true,
     quick_fix_loop: { test_review_cycles_used: loopCounters.test_review_cycles_used },
@@ -398,7 +400,25 @@ export function devQuickFixBrief(
 
   const s: string[] = [];
 
-  if (needsTestPhase) {
+  if (startsAtReviewTest) {
+    s.push("## Quick Fix — review-test (pre-impl, no new tests)");
+    s.push("");
+    s.push(`**work_item_id:** ${workItemId}`);
+    s.push(`**task_id:** ${taskId}`);
+    s.push(`**owner_nonce:** ${ownerNonce}`);
+    s.push(`**task_file_path:** ${taskFilePath}`);
+    s.push("");
+    s.push(
+      "This quick_fix item uses `test.strategy: no_test`. Run **review-test** (pre-impl) on the stubs and contract before implementation.",
+    );
+    s.push("");
+    s.push("### Quick Fix Contract");
+    s.push("");
+    s.push("```json");
+    s.push(JSON.stringify(contract, null, 2));
+    s.push("```");
+    s.push("");
+  } else if (needsTestPhase) {
     s.push("## Quick Fix Test Brief");
     s.push("");
     s.push(`**work_item_id:** ${workItemId}`);
@@ -476,6 +496,6 @@ export function devQuickFixBrief(
     brief_path: briefPath,
     task_file_path: taskFilePath,
     task_id: taskId,
-    brief_type: needsTestPhase ? "phase-test" : "phase-code",
+    brief_type: needsTestPhase ? "phase-test" : startsAtReviewTest ? "review-test" : "phase-code",
   });
 }

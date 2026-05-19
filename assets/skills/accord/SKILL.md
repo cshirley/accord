@@ -1,12 +1,12 @@
 ---
 name: accord
-description: ACCORD accord skill — when Pi forwards `/skill:accord` from `/dev`, orchestrates `subagent` spawns and `dev_*` tools. Subcommands init, align, spec, plan, resume, finish, check, gaps, review, deviations, amend-spec, spec-gaps, or default classify. Extension may handle resume/finish locally when ACCORD_CORE_ORCHESTRATOR=1. State on `.tasks/` and `docs/dev/`. See docs/harness-orchestration.md.
+description: ACCORD accord skill — when Pi forwards `/skill:accord` from `/dev`, orchestrates `subagent` spawns and `dev_*` tools. Subcommands init, align, spec, plan, resume, finish, check, gaps, review, deviations, amend-spec, spec-gaps, or default classify. Extension handles resume/finish locally by default (ACCORD_CORE_ORCHESTRATOR=0 for skill routing). State on `.tasks/` and `docs/dev/`. See docs/harness-orchestration.md.
 model: sonnet
 ---
 
 # ACCORD — accord skill (`/skill:accord`)
 
-When `/dev …` forwards here, you drive **`subagent`** spawns and **`dev_*`** tools. **Disk state wins** (`.tasks/`, `docs/dev/<ID>/`); the user may `/clear` and continue with `/dev resume <ID>` (often executed by the extension when `ACCORD_CORE_ORCHESTRATOR=1` — see §Extension vs this skill).
+When `/dev …` forwards here, you drive **`subagent`** spawns and **`dev_*`** tools. **Disk state wins** (`.tasks/`, `docs/dev/<ID>/`); the user may `/clear` and continue with `/dev resume <ID>` (usually executed by the extension unless `ACCORD_CORE_ORCHESTRATOR=0` — see §Extension vs this skill).
 
 ## Pipeline overview
 
@@ -25,7 +25,7 @@ Pi loads **`subagent`**, the **ACCORD** extension, and **`notify`**. ACCORD hook
 ### Extension vs this skill (routing)
 
 - **Extension-local:** `help`, `tasks`, `retro`, `tag` — help text from **`DEV_HELP_TEXT`** (`src/core/commands/help.ts`).
-- **`ACCORD_CORE_ORCHESTRATOR=1`:** extension may run **`resume` / `finish`** spawns programmatically; on failure to plan, work arrives here. Unset: **`resume` / `finish`** are skill-driven.
+- **Core orchestrator (default):** extension runs **`resume` / `finish`** spawns programmatically; on failure to plan, work arrives here. **`ACCORD_CORE_ORCHESTRATOR=0`:** **`resume` / `finish`** are skill-driven.
 - **Free text:** same deterministic routing as **`dev_intent`** / **`classify-dispatch`** (`src/core/commands/classify-dispatch.ts`) before forward.
 - **MCP:** **`dev_orchestrate`** returns JSON plans only — no subagent spawns over stdio (`docs/hooks-and-tools.md`).
 
@@ -39,7 +39,7 @@ Hard rule: your working context is the work item JSON (~1 KB) + N agent summarie
 
 Registered **`dev_*`** tools share one canonical registry: **`src/core/tools/registry.ts`** — both the Pi adapter (**`src/adapters/pi/tools.ts`**) and the MCP adapter (**`src/adapters/mcp/register-tools.ts`**) iterate that array, so they cannot drift. Semantics: **`docs/hooks-and-tools.md`**.
 
-**Surface:** `dev_tasks`, `dev_intent`, `dev_intent_enrich`, `dev_bootstrap`, `dev_checkpoint`, `dev_review_queue`, `dev_retro`, `dev_finalize`, `dev_promote_events`, `dev_spec_gaps`, `dev_code_brief`, `dev_quick_fix_brief`, `dev_resume_state`, `dev_transition`, `dev_verify_summary`, `dev_nonce`, `dev_decision_packet`, `dev_init_detect`, `dev_init_write`, `dev_orchestrate`.
+**Surface:** `dev_tasks`, `dev_intent`, `dev_intent_enrich`, `dev_bootstrap`, `dev_rehydrate`, `dev_checkpoint`, `dev_review_queue`, `dev_retro`, `dev_finalize`, `dev_promote_events`, `dev_spec_gaps`, `dev_code_brief`, `dev_quick_fix_brief`, `dev_resume_state`, `dev_transition`, `dev_verify_summary`, `dev_nonce`, `dev_decision_packet`, `dev_init_detect`, `dev_init_write`, `dev_orchestrate`.
 
 **Rules:** `dev_intent` before classifying free text — honour **`needs_confirmation`** / **`escalation_ceiling`**. Prefer **`dev_bootstrap`** / **`dev_transition`** over hand-editing JSON. Always **`dev_promote_events`** after **`phase-code`**. **`dev_finalize`** on terminal paths. Read-only dashboards via **`dev_tasks`**, **`dev_review_queue`**, **`dev_retro`**, **`dev_spec_gaps`** — do not re-parse those blobs by hand.
 
@@ -66,7 +66,7 @@ Parse the first word of the forwarded input. **Extension-local** commands (`help
 
 Mismatched subcommand + arguments (e.g. `spec` without `<ID>`) → ask for the missing piece. Never guess the work item ID.
 
-When **`ACCORD_CORE_ORCHESTRATOR=1`**, `resume` / `finish` may not reach this skill if the extension resolves the spawn chain locally (§Extension vs this skill).
+Unless **`ACCORD_CORE_ORCHESTRATOR=0`**, `resume` / `finish` may not reach this skill if the extension resolves the spawn chain locally (§Extension vs this skill).
 
 **Empty input** (`/dev` with no args): handled by the extension (`dev_dispatch`). Never classify or bootstrap on empty input.
 
@@ -97,17 +97,17 @@ Source of truth for fields and placement enums: **`src/core/config/init-detect.t
 1. **`dev_intent(free_text)`** — treat output as the intent contract. Classification logic: **`src/core/commands/intent.ts`**. Respect **`needs_confirmation`** (explicit tokens, not bare yes/no), **`escalation_ceiling`**, **`target_paths`**, **`out_of_scope`**.
 2. **Ticket enrichment:** if confidence is `medium`/`low`, input matches a ticket id, and mode is `pipeline` or `narrow_change`, fetch ticket metadata then **`dev_intent_enrich`**. On tracker failure, skip enrichment and continue.
 3. **Work item id:** prefer a ticket-shaped id (`[A-Z]+(-[A-Z]+)*-\d+` — see **`src/core/commands/classify-dispatch.ts`** / **`src/core/work-items/lifecycle.ts`**). If missing: ask on ticket-shaped flows; else mint a keyword slug (`KEYWORD-1`, bump suffix if `.tasks/<ID>.json` exists) for modes that persist work.
-4. **`dev_resume_state(id)`** — if a work item exists, announce **`phase`** (and intent ceiling if returned) then dispatch. If missing, **`dev_bootstrap`** with id, title, pattern, variant, and intent fields from `dev_intent`.
+4. **`dev_resume_state(id)`** — rehydrates from `docs/dev/<id>/` when `.tasks/` is missing (then announce **`phase`** and dispatch). If no recoverable artifacts, **`dev_bootstrap`** with id, title, pattern, variant, and intent fields from `dev_intent`. Explicit recovery: **`dev_rehydrate(id)`** or **`/dev rehydrate <id>`**.
 5. **Never** bootstrap on empty input (extension-only). Ambiguous scope → top-2 ask; do not promote `narrow_change` / `review` / `explain` / `investigate` into **`pipeline`** without explicit user consent.
 
 ### Pattern composition
 
 | Pattern/Variant | Sequence |
 | --- | --- |
-| `implement/express` | gather → code → verify-code → [review-code] → report |
-| `implement/standard` | align\* → spec\* → plan\* → per-task (test → [review-test pre-impl] → code → verify-code → [review-code]) → finish |
-| `implement/orchestrated` | align\* → spec\* → plan\* → parallel (test → [review-test] → code) per worktree → sequential merge → finish |
-| `quick_fix` | [test → review-test]\*\* → code → verify-code → report |
+| `implement/express` | gather → code → verify-code → review-code → report |
+| `implement/standard` | align\* → spec\* → plan\* → per-task (test → review-test → code → review-code → verify-code) → finish |
+| `implement/orchestrated` | align\* → spec\* → plan\* → parallel (test → review-test → code → review-code) per worktree → sequential merge → finish |
+| `quick_fix` | (test or review-test) → review-test → code → review-code → verify-code → report |
 | `investigate` | gather → explore → hypothesise → test → report |
 | `infra` | gather → explore → code (IaC) → verify-infra → report |
 | `analyse` | gather → explore → draft (inline — orchestrator assembles the design doc) → review-design → report |
@@ -122,7 +122,7 @@ Source of truth for fields and placement enums: **`src/core/config/init-detect.t
 | `infra` | — | `exploring` |
 | `analyse` | — | `researching` |
 
-`*` Multi-turn checkpoints — §Multi-turn checkpoints. `**` Only when `quick_fix_contract.test.strategy` is `new_red_test`. `[review-test pre-impl]` Advisory; critical loops obey **`orchestration.quick_fix_loop`**. `[review-code]` From **`challenge`**, **`request_review`**, or **`implement_loop`** (§Policy source of truth).
+`*` Multi-turn checkpoints — §Multi-turn checkpoints. **review-test** and **review-code** are mandatory per task (harness-enforced). Critical findings on review agents retry **phase-test** / **phase-code** per **`orchestration.review_loop`** (default cap 3).
 
 ### Multi-turn checkpoints
 
@@ -148,7 +148,7 @@ Phases marked `*` in the pattern table use **`dev_checkpoint`** when the agent r
 | finish | `dev_review_queue` + `dev_tasks` + `phase-verify-acceptance` + `dev_verify_summary` + `dev_finalize` (same sequence the extension runner uses when it owns finish) |
 | report | inline — `dev_decision_packet` / user messaging |
 
-**Spawn shape:** `{ agent: "<registry-id>", task: "<brief>" }`. Parallel / chain payloads follow the `subagent` tool contract. When **`ACCORD_CORE_ORCHESTRATOR=1`**, the extension may call the same spawns programmatically for `resume` / `finish` — **disk state is still authoritative**.
+**Spawn shape:** `{ agent: "<registry-id>", task: "<brief>" }`. Parallel / chain payloads follow the `subagent` tool contract. By default the extension calls the same spawns programmatically for `resume` / `finish` — **disk state is still authoritative**.
 
 Hooks validate return packets, append usage, recompute `cost_usd`, and run verify/type-check gates — **do not** reimplement those scripts in the skill.
 

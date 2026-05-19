@@ -3,8 +3,8 @@
  * pipeline calls for a pre-impl review pass.
  *
  * Applies to:
- * - `quick_fix` + `fixing`: primary task carries `quick_fix_contract.test.strategy === "new_red_test"`.
- * - `implement` + `implementing`: standard pipeline (no contract gate; same done packet shape).
+ * - `quick_fix` + `fixing`: any strategy except `no_test` (which routes straight to **review-test** at bootstrap).
+ * - `implement` + `implementing`: standard pipeline (same done packet shape).
  */
 
 import { advancePrimaryTask } from "./primary-task.js";
@@ -51,7 +51,7 @@ export function applyPhaseTestPostResult(workItemId: string, packet: unknown): s
     let eventType: "quick_fix_phase_test_applied" | "implement_phase_test_applied";
     if (wi.pattern === "quick_fix" && wi.phase === "fixing") {
       const contract = task.quick_fix_contract as { test?: { strategy?: string } } | undefined;
-      if (contract?.test?.strategy !== "new_red_test") {
+      if (contract?.test?.strategy === "no_test") {
         return false;
       }
       eventType = "quick_fix_phase_test_applied";
