@@ -58,7 +58,7 @@ export type NextStep =
   | { kind: "stop"; reason: OrchestrationStopReason }
   | { kind: "delegate_to_skill"; reason: string };
 
-/** Minimal spawn result for runner / tests (Pi fills from `harnessSpawnSubagent`). */
+/** Minimal spawn result for runner / tests (Pi adapter fills from `runSubagent`). */
 export interface SubagentSpawnResult {
   exitCode: number;
 }

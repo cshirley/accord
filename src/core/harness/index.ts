@@ -41,6 +41,12 @@ export {
 } from "./subagent-entries.js";
 export { prepareSubagentToolCall } from "./subagent-prepare.js";
 export {
+  applySubagentSpawnPayload,
+  buildSubagentResponseContract,
+  buildSubagentSpawnPayload,
+  resolveHarnessAgentFile,
+} from "./subagent-spawn-payload.js";
+export {
   type ProcessSubagentToolResultParams,
   processSubagentToolResult,
 } from "./subagent-result.js";

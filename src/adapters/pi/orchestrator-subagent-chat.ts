@@ -12,12 +12,16 @@ import type {
   ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { Box, Container, Spacer, Text } from "@earendil-works/pi-tui";
-import type { AgentScope } from "./agents.js";
+import type {
+  AgentScope,
+  SubagentProgress,
+  SubagentToolRenderers,
+} from "../../../packages/pi-subagent/src/api.js";
+import { summarizeSubagentProgress } from "../../../packages/pi-subagent/src/api.js";
 import {
-  type HarnessSubagentOnUpdate,
-  type HarnessSubagentProgress,
-  summarizeHarnessSubagentProgress,
-} from "./progress.js";
+  formatOrchestratorProgressWidgetLines,
+  formatOrchestratorSpawnElapsed,
+} from "./orchestrator-spawn-ui.js";
 
 export const ORCHESTRATOR_SUBAGENT_MESSAGE_TYPE = "accord-orchestrator-subagent";
 
@@ -44,6 +48,8 @@ type RunState = {
   toolCallId: string;
   label: string;
   callArgs: { agent: string; task: string; agentScope: AgentScope };
+  startedAt: number;
+  lastProgress?: SubagentProgress;
   toolResult: AgentToolResult<SubagentDetails> | null;
   rootComponent: OrchestratorSubagentRoot | undefined;
   theme: Theme | undefined;
@@ -73,19 +79,19 @@ const STUB_RENDER_CONTEXT = {
 
 class OrchestratorSubagentChatRow extends Container {
   private readonly box: Box;
-  private readonly callArgs: { agent: string; task: string; agentScope: AgentScope };
+  private readonly run: RunState;
   private expanded: boolean;
   private isPartial = true;
   private isError = false;
   private toolResult: AgentToolResult<SubagentDetails> | null = null;
 
   constructor(
-    callArgs: { agent: string; task: string; agentScope: AgentScope },
+    run: RunState,
     expanded: boolean,
     theme: Theme,
   ) {
     super();
-    this.callArgs = callArgs;
+    this.run = run;
     this.expanded = expanded;
     this.addChild(new Spacer(1));
     this.box = new Box(1, 1, (text) => theme.bg("toolPendingBg", text));
@@ -116,23 +122,49 @@ class OrchestratorSubagentChatRow extends Container {
     this.redraw(theme);
   }
 
+  private appendRunningProgress(theme: Theme): void {
+    const elapsed = formatOrchestratorSpawnElapsed(this.run.startedAt);
+    const progress = this.run.lastProgress ?? {
+      agent: this.run.callArgs.agent,
+      turns: 0,
+      recentToolLines: [],
+      activityLines: [],
+    };
+    const lines = formatOrchestratorProgressWidgetLines(
+      this.run.label,
+      this.run.callArgs.agent,
+      progress,
+      { startedAt: this.run.startedAt },
+    );
+    lines[0] = `${lines[0]} · ${elapsed}`;
+    for (const line of lines) {
+      this.box.addChild(new Text(theme.fg("toolOutput", line), 0, 0));
+    }
+  }
+
   private redraw(theme: Theme) {
     this.box.clear();
+    const callArgs = this.run.callArgs;
     if (subagentRenderCall) {
       try {
-        const callComponent = subagentRenderCall(this.callArgs, theme, STUB_RENDER_CONTEXT);
+        const callComponent = subagentRenderCall(callArgs, theme, STUB_RENDER_CONTEXT);
         if (callComponent) this.box.addChild(callComponent);
       } catch {
         this.box.addChild(
           new Text(
             theme.fg("toolTitle", theme.bold("subagent ")) +
-              theme.fg("accent", this.callArgs.agent),
+              theme.fg("accent", callArgs.agent),
             0,
             0,
           ),
         );
       }
     }
+    if (this.isPartial) {
+      this.appendRunningProgress(theme);
+      return;
+    }
+
     if (this.toolResult && subagentRenderResult) {
       try {
         const resultComponent = subagentRenderResult(
@@ -148,7 +180,7 @@ class OrchestratorSubagentChatRow extends Container {
           this.box.addChild(new Text(theme.fg("toolOutput", text.text), 0, 0));
         }
       }
-    } else if (this.isPartial) {
+    } else if (!this.toolResult) {
       this.box.addChild(new Text(theme.fg("muted", "(running…)"), 0, 0));
     }
   }
@@ -173,7 +205,7 @@ class OrchestratorSubagentRoot extends Container {
 
   syncFromRun(theme: Theme) {
     if (!this.chatRow) {
-      this.chatRow = new OrchestratorSubagentChatRow(this.run.callArgs, this.expanded, theme);
+      this.chatRow = new OrchestratorSubagentChatRow(this.run, this.expanded, theme);
       this.clear();
       this.addChild(this.chatRow);
     }
@@ -194,12 +226,7 @@ class OrchestratorSubagentRoot extends Container {
   }
 }
 
-/** Wire harness spawns to the subagent tool renderers (call after registerTool). */
-type SubagentToolRenderers = {
-  renderCall?: ToolDefinition["renderCall"];
-  renderResult?: ToolDefinition["renderResult"];
-};
-
+/** Wire orchestration spawns to the subagent tool renderers (call after pi-subagent registers its tool). */
 export function registerOrchestratorSubagentChatRenderer(
   pi: ExtensionAPI,
   subagentTool: SubagentToolRenderers,
@@ -224,8 +251,12 @@ export function registerOrchestratorSubagentChatRenderer(
   });
 }
 
+export type OrchestratorSubagentOnUpdate = (
+  partial: AgentToolResult<SubagentDetails>,
+) => void;
+
 export type OrchestratorSubagentChatHandle = {
-  onUpdate: HarnessSubagentOnUpdate;
+  onUpdate: OrchestratorSubagentOnUpdate;
   dispose: () => void;
 };
 
@@ -234,7 +265,7 @@ export type OrchestratorSubagentChatOptions = {
   agent: string;
   task: string;
   /** Called on each subprocess progress tick (e.g. setWidget + setWorkingMessage). */
-  onProgress?: (progress: HarnessSubagentProgress) => void;
+  onProgress?: (progress: SubagentProgress) => void;
   /** Optional hook after the in-chat row invalidates (e.g. refresh footer/widget). */
   onUiRefresh?: () => void;
 };
@@ -247,7 +278,17 @@ function notifyRunUiChanged(run: RunState): void {
   }
 }
 
-/** Post an in-chat tool-style row and stream updates via harnessSpawnSubagent onUpdate. */
+/** Force in-chat orchestrator rows to repaint (heartbeat while `/dev resume` blocks). */
+export function refreshOrchestratorSubagentChatDisplays(): void {
+  for (const run of runs.values()) {
+    if (run.finalized) {
+      continue;
+    }
+    notifyRunUiChanged(run);
+  }
+}
+
+/** Post an in-chat tool-style row and stream updates via runSubagent onUpdate. */
 export function startOrchestratorSubagentChatDisplay(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
@@ -255,10 +296,12 @@ export function startOrchestratorSubagentChatDisplay(
 ): OrchestratorSubagentChatHandle {
   const toolCallId = `accord-orch-${randomUUID()}`;
   const callArgs = { agent: options.agent, task: options.task, agentScope: "user" as const };
+  const startedAt = Date.now();
   runs.set(toolCallId, {
     toolCallId,
     label: options.label,
     callArgs,
+    startedAt,
     toolResult: null,
     rootComponent: undefined,
     theme: undefined,
@@ -277,6 +320,7 @@ export function startOrchestratorSubagentChatDisplay(
         callArgs,
       } satisfies OrchestratorSubagentMessageDetails,
     });
+    options.onUiRefresh?.();
   }
 
   return {
@@ -285,8 +329,9 @@ export function startOrchestratorSubagentChatDisplay(
       if (!run) return;
       run.toolResult = partial as AgentToolResult<SubagentDetails>;
       const current = partial.details?.results[0];
-      if (current && options.onProgress) {
-        options.onProgress(summarizeHarnessSubagentProgress(options.agent, current));
+      if (current) {
+        run.lastProgress = summarizeSubagentProgress(options.agent, current);
+        options.onProgress?.(run.lastProgress);
       }
       // Footer/widget must refresh even before the custom message renderer assigns theme.
       options.onUiRefresh?.();

@@ -5,29 +5,47 @@
 
 import type { ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
-import type { HarnessSubagentProgress } from "./progress.js";
+import type { SubagentProgress } from "../../../packages/pi-subagent/src/api.js";
+import {
+  formatOrchestratorProgressWidgetLines,
+  formatOrchestratorSpawnElapsed,
+  formatOrchestratorStallHint,
+  ORCHESTRATOR_SPAWN_HEARTBEAT_MS,
+} from "./orchestrator-spawn-ui.js";
+import { refreshOrchestratorSubagentChatDisplays } from "./orchestrator-subagent-chat.js";
 
 export const ORCHESTRATOR_SPAWN_STATUS_KEY = "accord-orch";
 export const ORCHESTRATOR_SPAWN_WIDGET_KEY = "accord-orchestrator-spawn";
 
+export { formatOrchestratorSpawnElapsed, ORCHESTRATOR_SPAWN_HEARTBEAT_MS };
+
 type ActiveOrchestratorSpawn = {
   label: string;
   agent: string;
-  progress?: HarnessSubagentProgress;
+  startedAt: number;
+  progress?: SubagentProgress;
 };
 
 const activeSpawns = new Map<string, ActiveOrchestratorSpawn>();
 
 let lastSpawnWidgetTui: { requestRender: () => void } | undefined;
+let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+let heartbeatCtx: Pick<ExtensionCommandContext, "hasUI" | "ui"> | undefined;
 
 function formatSpawnLine(spawn: ActiveOrchestratorSpawn): string {
   const { agent, progress } = spawn;
+  const elapsed = formatOrchestratorSpawnElapsed(spawn.startedAt);
   if (!progress) {
-    return `${agent} (starting…)`;
+    return `${agent} (${elapsed} · starting…)`;
   }
+  const stallHint = formatOrchestratorStallHint(progress, spawn.startedAt);
   const detail =
-    progress.lastToolLine ?? progress.textPreview ?? `turn ${String(progress.turns)}`;
-  return `${agent}: ${detail}`;
+    progress.activityLines.at(-1) ??
+    progress.lastToolLine ??
+    stallHint ??
+    progress.textPreview ??
+    `turn ${String(progress.turns)}`;
+  return `${agent}: ${elapsed} · ${detail}`;
 }
 
 /** Lines for `ctx.ui.setWidget` (one line per active spawn). */
@@ -51,8 +69,24 @@ export function formatOrchestratorSpawnWorkingMessage(): string | undefined {
   const label = activeSpawns.values().next().value?.label ?? "Orchestration";
   if (agents.length === 1) {
     const spawn = activeSpawns.values().next().value;
-    const detail = spawn?.progress?.lastToolLine ?? spawn?.progress?.textPreview;
-    return detail ? `${label}: ${agents[0]} — ${detail}` : `${label}: ${agents[0]}…`;
+    if (!spawn) {
+      return `${label}: ${agents[0]}…`;
+    }
+    const elapsed = formatOrchestratorSpawnElapsed(spawn.startedAt);
+    const progress = spawn.progress;
+    const stallHint = progress
+      ? formatOrchestratorStallHint(progress, spawn.startedAt)
+      : undefined;
+    const detail =
+      progress?.activityLines.at(-1) ??
+      progress?.lastToolLine ??
+      stallHint ??
+      progress?.textPreview;
+    if (detail) {
+      return `${label}: ${agents[0]} — ${elapsed} · ${detail}`;
+    }
+    const turns = spawn.progress?.turns ?? 0;
+    return `${label}: ${agents[0]} — ${elapsed} · turn ${String(turns)}`;
   }
   return `${label}: ${agents.join(", ")}`;
 }
@@ -65,12 +99,39 @@ export function yieldToEventLoop(): Promise<void> {
 }
 
 function buildSpawnWidgetComponent(theme: Theme): Container {
-  const lines = formatOrchestratorSpawnStatusLines();
   const container = new Container();
-  if (lines.length === 0) {
+  if (activeSpawns.size === 0) {
     container.addChild(new Text(theme.fg("muted", "(orchestrator idle)"), 1, 0));
     return container;
   }
+
+  if (activeSpawns.size === 1) {
+    const spawn = activeSpawns.values().next().value;
+    if (!spawn) {
+      return container;
+    }
+    const elapsed = formatOrchestratorSpawnElapsed(spawn.startedAt);
+    const progress = spawn.progress ?? {
+      agent: spawn.agent,
+      turns: 0,
+      recentToolLines: [],
+      activityLines: [],
+    };
+    const lines = formatOrchestratorProgressWidgetLines(spawn.label, spawn.agent, progress, {
+      startedAt: spawn.startedAt,
+    });
+    lines[0] = `${lines[0]} · ${elapsed}`;
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      const line = lines[lineIndex];
+      if (line === undefined) continue;
+      const styled =
+        lineIndex === 0 ? theme.fg("accent", line) : theme.fg("toolOutput", line);
+      container.addChild(new Text(styled, 1, 0));
+    }
+    return container;
+  }
+
+  const lines = formatOrchestratorSpawnStatusLines();
   for (const line of lines) {
     const styled =
       line.startsWith("Subagent") || line.startsWith("Subagents")
@@ -140,14 +201,43 @@ export async function refreshOrchestratorSpawnUi(
   await yieldToEventLoop();
 }
 
+/** Repaint status/widget while subprocess is running (extension commands block the main loop). */
+export function startOrchestratorSpawnHeartbeat(
+  ctx: Pick<ExtensionCommandContext, "hasUI" | "ui">,
+): void {
+  heartbeatCtx = ctx;
+  if (heartbeatTimer) {
+    return;
+  }
+  heartbeatTimer = setInterval(() => {
+    if (activeSpawns.size === 0 || !heartbeatCtx) {
+      return;
+    }
+    refreshOrchestratorSubagentChatDisplays();
+    void refreshOrchestratorSpawnUi(heartbeatCtx);
+  }, ORCHESTRATOR_SPAWN_HEARTBEAT_MS);
+}
+
+export function stopOrchestratorSpawnHeartbeat(): void {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = undefined;
+  }
+  heartbeatCtx = undefined;
+}
+
 export function registerOrchestratorSpawn(
   spawnId: string,
   info: { label: string; agent: string },
 ): void {
-  activeSpawns.set(spawnId, { label: info.label, agent: info.agent });
+  activeSpawns.set(spawnId, {
+    label: info.label,
+    agent: info.agent,
+    startedAt: Date.now(),
+  });
 }
 
-export function updateOrchestratorSpawn(spawnId: string, progress: HarnessSubagentProgress): void {
+export function updateOrchestratorSpawn(spawnId: string, progress: SubagentProgress): void {
   const row = activeSpawns.get(spawnId);
   if (!row) {
     return;
@@ -157,4 +247,7 @@ export function updateOrchestratorSpawn(spawnId: string, progress: HarnessSubage
 
 export function unregisterOrchestratorSpawn(spawnId: string): void {
   activeSpawns.delete(spawnId);
+  if (activeSpawns.size === 0) {
+    stopOrchestratorSpawnHeartbeat();
+  }
 }

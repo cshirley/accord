@@ -34,6 +34,8 @@ import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
 import { registerPiHarnessHookListeners } from "./pi-hook-listeners.js";
 import { isPlanModeActive, planModeBlockMessage } from "./plan-mode.js";
 import { tryResumeViaCoreOrchestrator } from "./resume-orchestration.js";
+import { getSubagentToolRenderers } from "../../../packages/pi-subagent/src/api.js";
+import { registerOrchestratorSubagentChatRenderer } from "./orchestrator-subagent-chat.js";
 import { registerTools } from "./tools.js";
 
 const extensionLog = createLogger("extension");
@@ -221,4 +223,5 @@ export default function (pi: ExtensionAPI) {
 
   registerTools(pi, () => state.devConfig);
   registerPiHarnessHookListeners(pi, state);
+  registerOrchestratorSubagentChatRenderer(pi, getSubagentToolRenderers() ?? {});
 }

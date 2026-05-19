@@ -2,7 +2,11 @@
  * Shared parsing of Pi `subagent` tool payloads (agent / chain / tasks).
  */
 
-export type SubagentEntry = { agent?: string; task?: string };
+export type SubagentEntry = {
+  agent?: string;
+  task?: string;
+  agentFile?: string;
+};
 
 export function collectSubagentEntries(input: Record<string, unknown>): SubagentEntry[] {
   const entries: SubagentEntry[] = [];

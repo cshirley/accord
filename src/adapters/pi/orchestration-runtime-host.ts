@@ -5,16 +5,24 @@
 import type { AssistantMessage, TextContent, UserMessage } from "@earendil-works/pi-ai";
 import { completeSimple } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { harnessSpawnSubagent } from "../../../packages/pi-subagent/src/index.js";
-import { startOrchestratorSubagentChatDisplay } from "../../../packages/pi-subagent/src/orchestrator-chat.js";
+import type { SubagentResponseContract } from "../../../packages/pi-subagent/src/api.js";
+import { SPAWN_TIMEOUT_DISABLED } from "../../../packages/pi-subagent/src/spawn/timeout.js";
+import {
+  createOrchestrationSubagentOnUpdate,
+  runOrchestrationSubagent,
+  type OrchestrationSubagentSingleResult,
+} from "./orchestration-subagent-spawn.js";
+import { startOrchestratorSubagentChatDisplay } from "./orchestrator-subagent-chat.js";
 import {
   clearOrchestratorSpawnWidget,
   mountOrchestratorSpawnWidget,
   refreshOrchestratorSpawnUi,
   registerOrchestratorSpawn,
+  startOrchestratorSpawnHeartbeat,
+  stopOrchestratorSpawnHeartbeat,
   unregisterOrchestratorSpawn,
   updateOrchestratorSpawn,
-} from "../../../packages/pi-subagent/src/orchestrator-spawn-status.js";
+} from "./orchestrator-spawn-status.js";
 import {
   prepareSubagentToolCall,
   processSubagentToolResult,
@@ -120,6 +128,9 @@ export function createResumeOrchestrationRuntimeHost(
       registerOrchestratorSpawn(spawnStatusId, { label: spawnLabel, agent });
       if (ctx.hasUI) {
         mountOrchestratorSpawnWidget(ctx);
+        startOrchestratorSpawnHeartbeat(ctx);
+        ctx.ui.setWorkingMessage(`${spawnLabel}: starting ${agent}…`);
+        ctx.ui.setWorkingIndicator();
         void refreshOrchestratorSpawnUi(ctx);
       }
 
@@ -135,14 +146,32 @@ export function createResumeOrchestrationRuntimeHost(
         },
       });
 
-      let singleResult: Awaited<ReturnType<typeof harnessSpawnSubagent>>;
+      let singleResult: OrchestrationSubagentSingleResult;
+      const subagentDetails = {
+        mode: "single" as const,
+        agentScope: "user" as const,
+        projectAgentsDir: null as string | null,
+      };
       try {
-        singleResult = await harnessSpawnSubagent({
+        singleResult = await runOrchestrationSubagent({
           cwd: ctx.cwd,
           agent,
+          agentFile: typeof input.agentFile === "string" ? input.agentFile : undefined,
           task,
+          model: typeof input.model === "string" ? input.model : undefined,
+          systemAppend: typeof input.systemAppend === "string" ? input.systemAppend : undefined,
+          response: input.response as SubagentResponseContract | undefined,
+          timeoutMs: SPAWN_TIMEOUT_DISABLED,
           signal: ctx.signal,
-          onUpdate: chatUi.onUpdate,
+          onEvent: (event) => {
+            if (event.type === "progress") {
+              updateOrchestratorSpawn(spawnStatusId, event.progress);
+            }
+          },
+          onUpdate: createOrchestrationSubagentOnUpdate(
+            (results) => ({ ...subagentDetails, results }),
+            (partial) => chatUi.onUpdate(partial as Parameters<typeof chatUi.onUpdate>[0]),
+          ),
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -152,17 +181,15 @@ export function createResumeOrchestrationRuntimeHost(
         chatUi.dispose();
         unregisterOrchestratorSpawn(spawnStatusId);
         if (ctx.hasUI) {
+          stopOrchestratorSpawnHeartbeat();
           clearOrchestratorSpawnWidget(ctx);
+          ctx.ui.setWorkingMessage(undefined);
+          ctx.ui.setWorkingIndicator();
           void refreshOrchestratorSpawnUi(ctx);
         }
       }
 
-      const details = {
-        mode: "single" as const,
-        agentScope: "user" as const,
-        projectAgentsDir: null as string | null,
-        results: [singleResult],
-      };
+      const details = { ...subagentDetails, results: [singleResult] };
 
       const append = await processSubagentToolResult({
         details,
