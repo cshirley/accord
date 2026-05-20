@@ -6,7 +6,7 @@
 import {
   extractAnalysisFromSubagentResult,
   extractReturnPacketFromSubagentResult,
-} from "../telemetry/usage.js";
+} from "../subagent/result/packet.js";
 import { advancePrimaryTask } from "./post-result/primary-task.js";
 import {
   isReviewReturnPacket,

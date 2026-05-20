@@ -7,11 +7,11 @@ import {
   type DepCheckResult,
   formatPreflightReport,
   loadAllProviders,
-} from "../../integrations/provider-deps.js";
-import type { DevHarnessConfig } from "../config/index.js";
-import { loadGlobalConfig, mergeContextSources } from "../config/index.js";
-import { firstSubagentAgentName, getPrimarySubagentEntry } from "./subagent-entries.js";
-import type { HarnessHost } from "./types.js";
+} from "../../../integrations/provider-deps.js";
+import type { DevHarnessConfig } from "../../config/index.js";
+import { loadGlobalConfig, mergeContextSources } from "../../config/index.js";
+import { firstSubagentAgentName, getPrimarySubagentEntry } from "../entries.js";
+import type { HarnessHost } from "../../harness/types.js";
 
 export async function runGatherPreflightOnSubagentCall(
   input: Record<string, unknown>,

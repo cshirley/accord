@@ -4,13 +4,13 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { SubagentResponseContract } from "../../../packages/pi-subagent/src/api.js";
+import type { SubagentResponseContract } from "../../integrations/pi-subagent.js";
 import { agentSchemas } from "../agents/registry.js";
 import { formatIntentContractForTask } from "../briefing/intent-contract-brief.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { EXT_DIR, PI_AGENT_DIR } from "../config/paths.js";
 import { formatConfigBrief } from "../verification/runner.js";
-import { collectSubagentEntries } from "./subagent-entries.js";
+import { collectSubagentEntries } from "./entries.js";
 
 const SCHEMAS_DIR = join(EXT_DIR, "schemas");
 

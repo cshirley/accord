@@ -3,34 +3,40 @@
  */
 
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { Message } from "@earendil-works/pi-ai";
 import {
   runSubagent,
   type RunSubagentRequest,
   type SpawnSubagentResult,
   type SpawnSubagentUpdate,
-  type SubagentLiveActivity,
-} from "../../../packages/pi-subagent/src/api.js";
+} from "../../../integrations/pi-subagent.js";
 
-export interface OrchestrationSubagentSingleResult {
-  agent: string;
-  agentSource: "user" | "project" | "unknown";
-  task: string;
-  exitCode: number;
-  messages: Message[];
-  stderr: string;
-  usage: SpawnSubagentResult["usage"];
-  model?: string;
-  stopReason?: string;
-  errorMessage?: string;
-  step?: number;
-  liveActivity?: SubagentLiveActivity;
-}
+/** One row in orchestration `details.results` — aligned with pi-subagent {@link SpawnSubagentResult}. */
+export type OrchestrationSubagentSingleResult = Pick<
+  SpawnSubagentResult,
+  | "agent"
+  | "agentSource"
+  | "agentFile"
+  | "task"
+  | "exitCode"
+  | "messages"
+  | "stderr"
+  | "usage"
+  | "model"
+  | "stopReason"
+  | "errorMessage"
+  | "step"
+  | "liveActivity"
+  | "output"
+  | "parsedReturn"
+  | "timedOut"
+  | "aborted"
+>;
 
 export function mapSpawnResultToSingle(result: SpawnSubagentResult): OrchestrationSubagentSingleResult {
   return {
     agent: result.agent,
     agentSource: result.agentSource,
+    agentFile: result.agentFile,
     task: result.task,
     exitCode: result.exitCode,
     messages: result.messages,
@@ -41,6 +47,10 @@ export function mapSpawnResultToSingle(result: SpawnSubagentResult): Orchestrati
     errorMessage: result.errorMessage,
     step: result.step,
     liveActivity: result.liveActivity,
+    output: result.output,
+    parsedReturn: result.parsedReturn,
+    timedOut: result.timedOut,
+    aborted: result.aborted,
   };
 }
 

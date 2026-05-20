@@ -2,29 +2,30 @@
  * After subagent tool completes: usage, return packets, post-code verification.
  */
 
-import { agentRequiresVerification, agentSchemas } from "../agents/registry.js";
-import { validateReturn } from "../artifacts/validation.js";
-import { createLogger } from "../logging.js";
-import { runPostResultHandlerForAgent } from "../orchestration/post-result/registry.js";
-import { persistValidatedAgentReturn } from "../orchestration/task-agent-audit.js";
-import type { PricingConfig } from "../telemetry/usage.js";
+import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
+import { validateReturn } from "../../artifacts/validation.js";
+import { createLogger } from "../../logging.js";
+import { runPostResultHandlerForAgent } from "../../orchestration/post-result/registry.js";
+import { persistValidatedAgentReturn } from "../../orchestration/task-agent-audit.js";
+import type { PricingConfig } from "../../telemetry/usage.js";
 import {
   appendUsageLine,
   computeLineCost,
   ensureAutoHarnessRunMeta,
-  extractAnalysisFromSubagentResult,
-  extractReturnPacketFromSubagentResult,
   extractWorkItemId,
-  formatMissingPacketWarning,
-  formatPacketInjection,
   normalizeUsageCostFields,
   type UsageLine,
   updateWorkItemCost,
-} from "../telemetry/usage.js";
-import { formatVerificationResults, runVerificationCommands } from "../verification/runner.js";
-import type { HarnessMutableState } from "./types.js";
+} from "../../telemetry/usage.js";
+import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
+import type { HarnessMutableState } from "../../harness/types.js";
+import {
+  extractAnalysisFromSubagentResult,
+  extractReturnPacketFromSubagentResult,
+} from "./packet.js";
+import { formatMissingPacketWarning, formatPacketInjection } from "./handoff.js";
 
-const log = createLogger("harness");
+const log = createLogger("subagent");
 
 export interface ProcessSubagentToolResultParams {
   details: unknown;
@@ -100,8 +101,28 @@ export async function processSubagentToolResult(
     const lastAssistant = assistantMsgs[assistantMsgs.length - 1];
     const lastContent = lastAssistant?.content as unknown;
     const hasContent = Array.isArray(lastContent) ? lastContent.length > 0 : !!lastContent;
+    const packet = agentName ? extractReturnPacketFromSubagentResult(result) : null;
 
-    if (agentName && !hasContent) {
+    if (result.timedOut === true) {
+      contentAppend += [
+        `\n\n❌ **${agentName || "subagent"} timed out before completing.**`,
+        ``,
+        `The subprocess was stopped by the harness spawn timeout. Increase \`spawnTimeoutMs\` in subagent.json, set \`timeoutMs\` on the tool call, or use \`ACCORD_SUBAGENT_SPAWN_TIMEOUT_MS\` for orchestration defaults.`,
+      ].join("\n");
+      continue;
+    }
+
+    if (result.aborted === true && !hasContent) {
+      contentAppend += [
+        `\n\n⚠ **${agentName || "subagent"} was aborted** (user cancel or parent session ended).`,
+        result.errorMessage ? `\n- ${String(result.errorMessage)}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      continue;
+    }
+
+    if (agentName && !hasContent && !packet) {
       const stderrTail = typeof result.stderr === "string" ? result.stderr.slice(-300).trim() : "";
       log.error(
         `agent=${agentName} EMPTY RESPONSE stopReason=${result.stopReason} exitCode=${result.exitCode} model=${result.model}`,
@@ -125,7 +146,6 @@ export async function processSubagentToolResult(
       continue;
     }
 
-    const packet = agentName ? extractReturnPacketFromSubagentResult(result) : null;
     if (packet) {
       log.info(`agent=${agentName} packet=found status=${(packet as { status?: string }).status}`);
     } else if (agentName) {

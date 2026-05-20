@@ -9,7 +9,7 @@ import {
 import {
   buildSubagentResponseContract,
   resolveHarnessAgentFile,
-} from "../src/core/harness/subagent-spawn-payload.js";
+} from "../src/core/subagent/payload.js";
 
 describe("loadAgentFromFile", () => {
   test("loads bundled phase-code agent", () => {

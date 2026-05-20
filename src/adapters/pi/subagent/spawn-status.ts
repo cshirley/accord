@@ -5,14 +5,14 @@
 
 import type { ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
-import type { SubagentProgress } from "../../../packages/pi-subagent/src/api.js";
+import type { SubagentProgress } from "../../../integrations/pi-subagent.js";
 import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,
   formatOrchestratorStallHint,
   ORCHESTRATOR_SPAWN_HEARTBEAT_MS,
-} from "./orchestrator-spawn-ui.js";
-import { refreshOrchestratorSubagentChatDisplays } from "./orchestrator-subagent-chat.js";
+} from "./spawn-ui.js";
+import { refreshOrchestratorSubagentChatDisplays } from "./chat-display.js";
 
 export const ORCHESTRATOR_SPAWN_STATUS_KEY = "accord-orch";
 export const ORCHESTRATOR_SPAWN_WIDGET_KEY = "accord-orchestrator-spawn";

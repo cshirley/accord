@@ -10,7 +10,7 @@ import {
 import type { ResumeOrchestrationResolution } from "../../core/orchestration/types.js";
 import { devResumeState } from "../../core/queries/resume-state.js";
 import type { HookState } from "./hook-state.js";
-import { runOrchestratorPreflight } from "./orchestrator-preflight.js";
+import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
 
 function notifyResumePlanPreview(
   ctx: ExtensionCommandContext,

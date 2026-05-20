@@ -10,7 +10,7 @@ import {
 import { devTasks } from "../../core/queries/dashboard.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import type { HookState } from "./hook-state.js";
-import { runOrchestratorPreflight } from "./orchestrator-preflight.js";
+import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
 
 const NOTIFY_SLICE = 3500;
 

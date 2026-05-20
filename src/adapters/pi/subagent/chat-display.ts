@@ -12,16 +12,16 @@ import type {
   ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { Box, Container, Spacer, Text } from "@earendil-works/pi-tui";
-import type {
-  AgentScope,
-  SubagentProgress,
-  SubagentToolRenderers,
-} from "../../../packages/pi-subagent/src/api.js";
-import { summarizeSubagentProgress } from "../../../packages/pi-subagent/src/api.js";
+import {
+  summarizeSubagentProgress,
+  type AgentScope,
+  type SubagentProgress,
+  type SubagentToolRenderers,
+} from "../../../integrations/pi-subagent.js";
 import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,
-} from "./orchestrator-spawn-ui.js";
+} from "./spawn-ui.js";
 
 export const ORCHESTRATOR_SUBAGENT_MESSAGE_TYPE = "accord-orchestrator-subagent";
 

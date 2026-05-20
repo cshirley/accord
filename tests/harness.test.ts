@@ -174,10 +174,11 @@ describe("harness subagent-prepare", () => {
     expect(prepareSubagentToolCall(input, null).blockReason).toMatch(/Run \/dev init/);
   });
 
-  test("injects Project Stack when devConfig present", () => {
+  test("injects Project Stack into systemAppend when devConfig present", () => {
     const input: Record<string, unknown> = { agent: "phase-code", task: "TASK" };
     expect(prepareSubagentToolCall(input, sampleConfig()).blockReason).toBeUndefined();
-    expect(String(input.task)).toContain("Project Stack");
+    expect(String(input.systemAppend)).toContain("Project Stack");
+    expect(String(input.task)).toBe("TASK");
   });
 
   test("remaps cursor-agent/ model prefix", () => {
@@ -431,6 +432,26 @@ describe("harness processSubagentToolResult", () => {
         pricing: loadPricing(),
       }),
     ).toBe("");
+  });
+
+  test("prefers parsedReturn from programmatic spawn results", async () => {
+    const out = await processSubagentToolResult({
+      details: {
+        results: [
+          {
+            agent: "phase-align",
+            task: "ACCORD-1 align",
+            exitCode: 0,
+            messages: [],
+            parsedReturn: { status: "done", summary: "aligned" },
+          },
+        ],
+      },
+      state: emptyHarnessState(),
+      pricing: loadPricing(),
+    });
+    expect(out).toContain("phase-align Return Packet");
+    expect(out).toContain('"summary": "aligned"');
   });
 
   test("injects validated phase-code return packet from assistant fenced JSON", async () => {

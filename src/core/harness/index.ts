@@ -14,7 +14,7 @@ export {
   type BootstrapOptions,
   maybeAutoInstallAssets,
 } from "./asset-bootstrap.js";
-export { runGatherPreflightOnSubagentCall } from "./gather-preflight.js";
+export { runGatherPreflightOnSubagentCall } from "../subagent/preflight/gather.js";
 export {
   createOrchestratorUsageDedup,
   isAssistantTurnMessage,
@@ -34,22 +34,30 @@ export {
   seedHarnessSessionCostState,
 } from "./session-start.js";
 export {
-  collectSubagentEntries,
-  firstSubagentAgentName,
-  getPrimarySubagentEntry,
-  type SubagentEntry,
-} from "./subagent-entries.js";
-export { prepareSubagentToolCall } from "./subagent-prepare.js";
-export {
+  assembleHandoffContent,
   applySubagentSpawnPayload,
+  buildSingleSubagentRunRequest,
   buildSubagentResponseContract,
   buildSubagentSpawnPayload,
-  resolveHarnessAgentFile,
-} from "./subagent-spawn-payload.js";
-export {
-  type ProcessSubagentToolResultParams,
+  collectSubagentEntries,
+  extractAnalysisFromSubagentResult,
+  extractReturnPacket,
+  extractReturnPacketFromSubagentResult,
+  firstSubagentAgentName,
+  formatMissingPacketWarning,
+  formatPacketInjection,
+  getPrimarySubagentEntry,
+  prepareSubagentToolCall,
   processSubagentToolResult,
-} from "./subagent-result.js";
+  readPreparedSingleSubagentInput,
+  resolveHarnessAgentFile,
+  runSubagentToolPreflight,
+  runVerifyPreflightOnSubagentCall,
+  type PreparedSingleSubagentInput,
+  type ProcessSubagentToolResultParams,
+  type SubagentEntry,
+  type SubagentPreflightOptions,
+  type SubagentSpawnPayload,
+} from "../subagent/index.js";
 export type { HarnessHost, HarnessMutableState, OrchestratorUsageDedup } from "./types.js";
 export { ORCHESTRATOR_FP_CAP } from "./types.js";
-export { runVerifyPreflightOnSubagentCall } from "./verify-preflight.js";

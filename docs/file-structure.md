@@ -12,7 +12,8 @@ src/
   index.ts                       Harness entry; delegates to src/adapters/pi/extension.ts
 
   core/
-    harness/                     Host-neutral hook callables (Pi + Cursor)
+    subagent/                    Host-neutral subagent prepare, preflight, spawn payload, result processing
+    harness/                     Host-neutral hook callables (Pi + Cursor; re-exports subagent surface)
     work-items/                  .tasks lifecycle, checkpointing, JSON IO, WorkItem types
     artifacts/                   Artifact and return-packet validation
     config/                      Config types, globals, AGENTS.md parsing, placement, detection
@@ -33,8 +34,13 @@ src/
 
   adapters/pi/
     extension.ts                 Pi extension registration for /dev, tools, hook listeners
-    orchestration-runtime-host.ts Pi OrchestrationRuntimeHost (preflight + spawn + processSubagentToolResult)
-    orchestrator-preflight.ts    Shared core-orchestrator/plan-mode/work-item-id gate for resume + finish
+    subagent/                    Programmatic spawn UI + OrchestrationRuntimeHost (resume/finish)
+      runtime-host.ts            Preflight, runSubagent, processSubagentToolResult
+      command-preflight.ts       Plan mode + work-item-id gate for resume + finish
+      spawn-bridge.ts            runOrchestrationSubagent / mapSpawnResultToSingle
+      chat-display.ts            In-chat progress row during orchestration spawns
+      spawn-status.ts            Footer widget + heartbeat during spawns
+      judgment.ts                Optional LLM judgment for resume task supplements
     resume-orchestration.ts      `/dev resume` core path when ACCORD_CORE_ORCHESTRATOR=1
     finish-orchestration.ts      `/dev finish` core path when ACCORD_CORE_ORCHESTRATOR=1
     command/autocomplete.ts      Pi autocomplete wiring for /dev arguments
@@ -45,6 +51,7 @@ src/
     tools.ts                     Thin loop over `core/tools/ACCORD_TOOLS` — translates host-neutral results into Pi envelopes
 
   integrations/
+    pi-subagent.ts                 Re-exports for packages/pi-subagent (single import surface for ACCORD)
     provider-deps.ts             Bundled + user provider loader, preflight dep checks, and report formatting
 
 assets/
@@ -79,7 +86,8 @@ tests/*.test.ts                   Bun unit tests (`core-contracts`, `harness`, `
 - Change work item state and `.tasks/` handling in `src/core/work-items/`.
 - Change agent brief construction in `src/core/briefing/`.
 - Change verification pressure, command execution, or stale artifact checks in `src/core/verification/`.
-- Change shared hook behaviour (reusable outside Pi) in `src/core/harness/`; Pi-specific wiring stays in `src/adapters/pi/pi-hook-listeners.ts`.
+- Change subagent prepare/preflight/result handling in `src/core/subagent/`; other shared hooks stay in `src/core/harness/` (re-exports subagent for compatibility).
+- Change Pi programmatic spawn UI in `src/adapters/pi/subagent/`; hook wiring stays in `src/adapters/pi/pi-hook-listeners.ts`.
 - Add, remove, or rename a `dev_*` tool surface in `src/core/tools/registry.ts` — both Pi and MCP adapters pick it up automatically.
 - Change schemas or return packet rules in `schemas/` and `src/core/artifacts/validation.ts`.
 - Run `npm run check` from the package root after structural changes; it includes `bun test`, schema examples, asset validation, bundle, and runtime smoke checks.

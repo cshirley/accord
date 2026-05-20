@@ -2,11 +2,11 @@
  * Before phase-verify-* subagent: staleness + verification_commands gate.
  */
 
-import type { DevHarnessConfig } from "../config/index.js";
-import { extractWorkItemId } from "../telemetry/usage.js";
-import { formatVerificationResults, runVerificationCommands } from "../verification/runner.js";
-import { checkVerifyStaleness } from "../verification/staleness.js";
-import { firstSubagentAgentName, getPrimarySubagentEntry } from "./subagent-entries.js";
+import type { DevHarnessConfig } from "../../config/index.js";
+import { extractWorkItemId } from "../../telemetry/usage.js";
+import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
+import { checkVerifyStaleness } from "../../verification/staleness.js";
+import { firstSubagentAgentName, getPrimarySubagentEntry } from "../entries.js";
 
 export async function runVerifyPreflightOnSubagentCall(
   input: Record<string, unknown>,

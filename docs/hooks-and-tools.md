@@ -19,9 +19,10 @@ When `AGENTS.md` is written, reloads the cached `devConfig` so subsequent hooks 
 Fires before every subagent spawn. Two responsibilities:
 
 1. **Config guard** — agents registered with `requiresConfig: true` in `src/core/agents/registry.ts` are blocked if no `devConfig` exists. Agents with `deferConfigGuard: true` (like `phase-gather`) are exempt.
-2. **Brief injection** — appends two sections to the agent's task text:
-   - `## Project Stack` — the `devConfig` JSON (language, test commands, verification commands)
-   - `## Schemas` — the JSON schemas this agent reads/writes + the return schema + validated example payloads from `schemas/examples/`
+2. **Spawn payload** — mutates the outgoing `subagent` tool call in place (`src/core/subagent/`):
+   - `agentFile` — absolute path to bundled phase/review agent markdown
+   - `systemAppend` — `## Project Stack` from `devConfig` plus intent-contract brief when present
+   - `response` — return-schema contract (pi-subagent appends schema text to the task)
 
 ### Gather preflight (tool_call → subagent phase-gather)
 
@@ -32,7 +33,7 @@ Before `phase-gather` runs, checks availability of configured sources (Jira, Sla
 After any subagent completes:
 
 1. **Usage tracking** — extracts `work_item_id` from the task text, appends a line to `<ID>-usage.jsonl` with token counts and cost, updates the work item's `cost_usd`.
-2. **Return packet extraction** — finds the last `\`\`\`json` block in the assistant's final message, parses it as the return packet.
+2. **Return packet extraction** — prefers `parsedReturn` from programmatic `runSubagent`, else the last `\`\`\`json` block in the assistant message (`src/core/subagent/result/packet.ts`).
 3. **Return packet validation** — validates the packet against the agent's return schema from `src/core/agents/registry.ts`.
 4. **Post-code verification** — for agents with `verifyAfter: true` (currently `phase-code`), runs `type_check` and `test.command`. Type check failure is a hard gate (appended as error). Test failure is advisory.
 

@@ -8,10 +8,10 @@
 import { agentDefersConfigGuard, agentRequiresConfig } from "../agents/registry.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { createLogger } from "../logging.js";
-import { collectSubagentEntries } from "./subagent-entries.js";
-import { applySubagentSpawnPayload } from "./subagent-spawn-payload.js";
+import { collectSubagentEntries } from "./entries.js";
+import { applySubagentSpawnPayload } from "./payload.js";
 
-const log = createLogger("harness");
+const log = createLogger("subagent");
 
 export function prepareSubagentToolCall(
   input: Record<string, unknown>,

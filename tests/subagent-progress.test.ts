@@ -4,13 +4,13 @@ import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,
   formatOrchestratorStallHint,
-} from "../src/adapters/pi/orchestrator-spawn-ui.js";
+} from "../src/adapters/pi/subagent/spawn-ui.js";
 import {
   formatOrchestratorSpawnStatusLines,
   registerOrchestratorSpawn,
   unregisterOrchestratorSpawn,
   updateOrchestratorSpawn,
-} from "../src/adapters/pi/orchestrator-spawn-status.js";
+} from "../src/adapters/pi/subagent/spawn-status.js";
 import {
   applyToolExecutionToMessages,
   extractToolOutputPreview,
