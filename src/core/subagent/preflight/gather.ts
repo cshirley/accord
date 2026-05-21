@@ -11,7 +11,7 @@ import {
 import type { DevHarnessConfig } from "../../config/index.js";
 import { loadGlobalConfig, mergeContextSources } from "../../config/index.js";
 import { firstSubagentAgentName, getPrimarySubagentEntry } from "../entries.js";
-import type { HarnessHost } from "../../harness/types.js";
+import type { HarnessHost } from "../../types/host.js";
 
 export async function runGatherPreflightOnSubagentCall(
   input: Record<string, unknown>,

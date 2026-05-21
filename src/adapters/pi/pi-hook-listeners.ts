@@ -12,6 +12,7 @@ import {
   isAgentsMdPath,
   notifyPendingDecisionsIfAny,
   processOrchestratorTurnEnd,
+  assembleHandoffContent,
   processSubagentToolResult,
   runSubagentToolPreflight,
   seedHarnessSessionCostState,
@@ -19,7 +20,6 @@ import {
 } from "../../core/harness/index.js";
 import { resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import {
-  assembleHandoffContent,
   clearHarnessRunTag,
   inferWorkItemIdFromSession,
   loadPricing,

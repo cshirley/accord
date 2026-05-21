@@ -22,6 +22,7 @@ import {
 import { mergeContextSources } from "../src/core/config/global.js";
 import { devInitDetect } from "../src/core/config/init-detect.js";
 import { notifyPendingDecisionsIfAny } from "../src/core/harness/index.js";
+import { extractReturnPacket } from "../src/core/subagent/index.js";
 import { devTasks } from "../src/core/queries/dashboard.js";
 import type { PricingConfig } from "../src/core/telemetry/usage.js";
 import {
@@ -31,7 +32,6 @@ import {
   describeHarnessRunMeta,
   discoverWorkItems,
   ensureAutoHarnessRunMeta,
-  extractReturnPacket,
   normalizeUsageCostFields,
   pricingFor,
   recomputeCost,

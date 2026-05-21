@@ -384,6 +384,7 @@ describe("resume orchestration", () => {
       notify: () => {},
       spawnSubagent: async (input: { agent: string; task: string }) => {
         spawnCount += 1;
+        // first spawn (phase-test) transitions task to review-test
         if (spawnCount === 1) {
           expect(input.agent).toBe("phase-test");
           const raw = JSON.parse(readFileSync(taskPath, "utf8")) as Record<string, unknown>;

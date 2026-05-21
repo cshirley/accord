@@ -16,7 +16,10 @@ export {
   resolveHarnessAgentFile,
   type SubagentSpawnPayload,
 } from "./payload.js";
-export { runSubagentToolPreflight, type SubagentPreflightOptions } from "./preflight.js";
+export {
+  runSubagentToolPreflight,
+  type SubagentPreflightOptions,
+} from "./preflight-runner.js";
 export {
   buildSingleSubagentRunRequest,
   readPreparedSingleSubagentInput,

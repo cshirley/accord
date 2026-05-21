@@ -3,9 +3,9 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
+import type { HarnessHost } from "../types/host.js";
 import { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
 import { prepareSubagentToolCall } from "./prepare.js";
-import type { HarnessHost } from "../harness/types.js";
 import { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
 
 export type SubagentPreflightOptions = {

@@ -1,6 +1,5 @@
 /**
- * Usage tracking - pricing, cost accounting, return packet extraction,
- * and work item discovery.
+ * Usage tracking — pricing, cost accounting, run tags, and work item discovery.
  */
 
 import { randomUUID } from "node:crypto";
@@ -399,20 +398,6 @@ export function updateWorkItemCost(workItemId: string, cost: number): void {
     log.warn(`failed to update work item cost for ${workItemId}: ${e}`);
   }
 }
-
-// ── Subagent return packets (canonical: core/subagent) ───────
-
-export {
-  extractAnalysisFromAssistantText,
-  extractAnalysisFromSubagentResult,
-  extractReturnPacket,
-  extractReturnPacketFromSubagentResult,
-} from "../subagent/result/packet.js";
-export {
-  assembleHandoffContent,
-  formatMissingPacketWarning,
-  formatPacketInjection,
-} from "../subagent/result/handoff.js";
 
 // ── Work item discovery ────────────────────────────────────
 

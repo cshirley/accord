@@ -11,7 +11,6 @@
  * for both adapters; the array itself is the source of truth.
  */
 
-import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { devCodeBrief, devNonce, devQuickFixBrief } from "../briefing/code-brief.js";
 import { devDecisionPacket } from "../briefing/decision-packet.js";
@@ -46,43 +45,17 @@ import {
   type FinalizeWorkItemInput,
 } from "../work-items/lifecycle.js";
 import type { Checkpoint } from "../work-items/types.js";
+import {
+  checkpointActionEnum,
+  confidenceEnum,
+  escalationCeilingEnum,
+  initWriteTargetEnum,
+  intentModeEnum,
+  patternEnum,
+  terminalOutcomeEnum,
+  variantEnum,
+} from "./enums.js";
 import { defineTool, type ToolDefinition } from "./types.js";
-
-const intentModeEnum = StringEnum([
-  "narrow_change",
-  "pipeline",
-  "review",
-  "commit",
-  "explain",
-  "investigate",
-] as const);
-
-const confidenceEnum = StringEnum(["high", "medium", "low"] as const);
-
-const escalationCeilingEnum = StringEnum([
-  "pipeline_allowed",
-  "no_pipeline_without_confirmation",
-  "no_implementation_without_confirmation",
-  "read_only_until_confirmed",
-  "no_edits",
-] as const);
-
-const patternEnum = StringEnum([
-  "implement",
-  "quick_fix",
-  "investigate",
-  "infra",
-  "analyse",
-] as const);
-
-const variantEnum = StringEnum(["express", "standard", "orchestrated"] as const);
-
-const terminalOutcomeEnum = StringEnum([
-  "done",
-  "blocked",
-  "partially_achieved",
-  "unclear",
-] as const);
 
 function stringifyFieldValues(fields: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
@@ -178,12 +151,8 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     parameters: Type.Object({
       id: Type.String({ description: "Work item ID (e.g. ACCORD-1234)" }),
       title: Type.String({ description: "Short title" }),
-      pattern: StringEnum(["implement", "quick_fix", "investigate", "infra", "analyse"] as const, {
-        description: "Pattern: implement, quick_fix, investigate, infra, analyse",
-      }),
-      variant: Type.Optional(
-        Type.String({ description: "Variant: standard, express, orchestrated" }),
-      ),
+      pattern: patternEnum,
+      variant: Type.Optional(variantEnum),
       intent_mode: Type.Optional(intentModeEnum),
       intent_confidence: Type.Optional(confidenceEnum),
       escalation_ceiling: Type.Optional(escalationCeilingEnum),
@@ -217,7 +186,7 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     promptSnippet: "Manage checkpoint state for spec/plan multi-turn phases",
     parameters: Type.Object({
       id: Type.String({ description: "Work item ID" }),
-      action: StringEnum(["read", "write", "delete"] as const),
+      action: checkpointActionEnum,
       data: Type.Optional(
         Type.Object(
           {},
@@ -615,10 +584,7 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
             "The finalised ACCORD config object (after user corrections). See schemas/dev-harness-config-schema.json.",
         },
       ),
-      target: StringEnum(["local", "root", "root_replace", "link_only"] as const, {
-        description:
-          "Where to write: 'local' (cwd only), 'root' (root + link), 'root_replace' (replace root + link), 'link_only' (ref directive only)",
-      }),
+      target: initWriteTargetEnum,
       cwd: Type.Optional(
         Type.String({ description: "Current working directory (defaults to process.cwd())" }),
       ),

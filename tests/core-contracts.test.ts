@@ -37,7 +37,7 @@ import {
   extractReturnPacketFromSubagentResult,
   formatMissingPacketWarning,
   formatPacketInjection,
-} from "../src/core/telemetry/usage.js";
+} from "../src/core/subagent/index.js";
 import { formatConfigBrief, formatVerificationResults } from "../src/core/verification/runner.js";
 import { TASKS_DIR, writeJson } from "../src/core/work-items/io.js";
 import {

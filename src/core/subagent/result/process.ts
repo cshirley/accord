@@ -18,7 +18,7 @@ import {
   updateWorkItemCost,
 } from "../../telemetry/usage.js";
 import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
-import type { HarnessMutableState } from "../../harness/types.js";
+import type { HarnessMutableState } from "../../types/host.js";
 import {
   extractAnalysisFromSubagentResult,
   extractReturnPacketFromSubagentResult,

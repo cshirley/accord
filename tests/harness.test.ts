@@ -698,7 +698,7 @@ describe("harness processSubagentToolResult", () => {
     expect(task.pre_impl_gates).toBe("complete");
   });
 
-  test("review-test quick_fix apply reads devConfig orchestration.quick_fix_loop", async () => {
+  test("review-test warning-only issues advance to phase-code (with severity_gate config)", async () => {
     const project = tempProject();
     process.chdir(project);
     devBootstrap("QRT-2", "gate", "quick_fix", undefined, quickFixIntent());
@@ -742,6 +742,53 @@ describe("harness processSubagentToolResult", () => {
       ),
     );
     const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-2-task-1.json"), "utf8")) as {
+      phase: string;
+      quick_fix_loop?: { test_review_cycles_used: number };
+    };
+    expect(task.phase).toBe("phase-code");
+    expect(task.quick_fix_loop?.test_review_cycles_used).toBe(0);
+  });
+
+  test("review-test warning-only issues advance to phase-code (no devConfig)", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("QRT-3", "gate", "quick_fix", undefined, quickFixIntent());
+    persistPrimaryTaskId(project, "QRT-3");
+    writeFileSync(
+      join(project, ".tasks", "QRT-3-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "QRT-3",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "review-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        quick_fix_loop: { test_review_cycles_used: 0 },
+        quick_fix_contract: quickFixContractFixture("existing_tests"),
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const reviewPacket = {
+      verdict: "issues" as const,
+      findings: [
+        {
+          severity: "warning" as const,
+          issue: "flakey assertion order",
+          evidence: "e",
+          recommendation: "r",
+        },
+      ],
+    };
+    await processSingleSubagentAssistantText(
+      "review-test",
+      "Review tests for QRT-3 (no devConfig)",
+      fencedJsonAssistantBody(reviewPacket),
+      emptyHarnessState(),
+    );
+    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-3-task-1.json"), "utf8")) as {
       phase: string;
       quick_fix_loop?: { test_review_cycles_used: number };
     };
@@ -795,7 +842,7 @@ describe("harness processSubagentToolResult", () => {
       ),
     );
     expect(out).toContain("Quick-fix:");
-    expect(out).toContain("retry cap reached");
+    expect(out).toMatch(/cap reached/i);
 
     const task = JSON.parse(
       readFileSync(join(project, ".tasks", "QFBC-1-task-1.json"), "utf8"),

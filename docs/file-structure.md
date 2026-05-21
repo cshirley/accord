@@ -26,7 +26,7 @@ src/
     agents/                      Logical agent role registry and schema assignments
     telemetry/                   Usage accounting, run tags, work item discovery
     tools/                       Single registry of `dev_*` tools (`registry.ts`) + TypeBox→Zod compiler (`compile-zod.ts`); Pi + MCP adapters iterate this
-    types/                       Cross-cutting domain enums (`domain.ts`), canonical task-phase set (`phases.ts`), universal `Result<T,E>` (`result.ts`)
+    types/                       Cross-cutting types: `domain.ts`, `phases.ts`, `result.ts`, `host.ts` (HarnessHost / HarnessMutableState)
 
   adapters/mcp/
     server.ts                    Stdio MCP server (same dev_* tools as Pi)

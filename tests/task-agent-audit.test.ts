@@ -10,7 +10,7 @@ import {
 import {
   extractAnalysisFromAssistantText,
   extractAnalysisFromSubagentResult,
-} from "../src/core/telemetry/usage.js";
+} from "../src/core/subagent/index.js";
 
 let tempCwd: string;
 let originalCwd: string;

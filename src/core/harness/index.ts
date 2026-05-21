@@ -33,6 +33,9 @@ export {
   type HarnessCostSeed,
   seedHarnessSessionCostState,
 } from "./session-start.js";
+/**
+ * @deprecated Import from `../subagent/index.js`. Re-exported for existing callers (d978cc1).
+ */
 export {
   assembleHandoffContent,
   applySubagentSpawnPayload,
@@ -40,6 +43,7 @@ export {
   buildSubagentResponseContract,
   buildSubagentSpawnPayload,
   collectSubagentEntries,
+  extractAnalysisFromAssistantText, // added for catch-up parity — was missing from this shim
   extractAnalysisFromSubagentResult,
   extractReturnPacket,
   extractReturnPacketFromSubagentResult,
@@ -59,5 +63,9 @@ export {
   type SubagentPreflightOptions,
   type SubagentSpawnPayload,
 } from "../subagent/index.js";
-export type { HarnessHost, HarnessMutableState, OrchestratorUsageDedup } from "./types.js";
-export { ORCHESTRATOR_FP_CAP } from "./types.js";
+export type {
+  HarnessHost,
+  HarnessMutableState,
+  OrchestratorUsageDedup,
+} from "../types/host.js";
+export { ORCHESTRATOR_FP_CAP } from "../types/host.js";

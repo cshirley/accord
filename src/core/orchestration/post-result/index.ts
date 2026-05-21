@@ -1,7 +1,17 @@
-export * from "./phase-code.js";
-export * from "./phase-test.js";
-export * from "./phase-verify-acceptance.js";
-export * from "./primary-task.js";
-export * from "./registry.js";
-export * from "./review-code.js";
-export * from "./review-test.js";
+export { applyPhaseCodePostResult } from "./phase-code.js";
+export { applyPhaseTestPostResult } from "./phase-test.js";
+export { applyPhaseVerifyAcceptancePostResult } from "./phase-verify-acceptance.js";
+export {
+  advancePrimaryTask,
+  resolveActivePrimaryTaskId,
+  resolvePrimaryTaskIdForMutation,
+  type PrimaryTaskMutationContext,
+  type PrimaryTaskMutationResult,
+} from "./primary-task.js";
+export {
+  POST_RESULT_HANDLERS,
+  runPostResultHandlerForAgent,
+  type PostResultHandler,
+} from "./registry.js";
+export { applyReviewCodePostResult } from "./review-code.js";
+export { applyReviewTestPostResult } from "./review-test.js";
