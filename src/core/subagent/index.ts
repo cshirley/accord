@@ -32,6 +32,7 @@ export {
   extractAnalysisFromSubagentResult,
   extractReturnPacket,
   extractReturnPacketFromSubagentResult,
+  findBalancedJsonRegions,
 } from "./result/packet.js";
 export {
   assembleHandoffContent,

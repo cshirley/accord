@@ -3,7 +3,7 @@
  * Used when `.tasks/` was deleted but brief/spec/plan remain on disk (e.g. another machine).
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { createLogger } from "../logging.js";
 import { reconcileCoarsePhaseUntilStable } from "../orchestration/reconcile-coarse-phase.js";
@@ -46,6 +46,21 @@ interface InferredImplementLadder {
   plan: string | null;
   verify: string | null;
   bootstrapTasks: boolean;
+}
+
+/**
+ * Quick-fix briefs always contain a `Quick Fix Contract` block (written by
+ * `writeQuickFixStubs`). Detecting this prevents rehydrate from silently
+ * recreating the work item as `implement/standard` with the wrong phase ladder.
+ */
+function briefLooksLikeQuickFix(briefPath: string | null): boolean {
+  if (!briefPath || !existsSync(briefPath)) return false;
+  try {
+    const text = readFileSync(briefPath, "utf8");
+    return text.includes("Quick Fix Contract") || text.includes("## Quick Fix");
+  } catch {
+    return false;
+  }
 }
 
 function resolveVerifyPath(workItemId: string): string | null {
@@ -143,6 +158,13 @@ export function rehydrateWorkItemFromArtifacts(workItemId: string): Result<Rehyd
   }
 
   const ladder = inferred.value;
+  if (briefLooksLikeQuickFix(ladder.brief)) {
+    return err(
+      `Work item ${workItemId} appears to be a quick_fix (brief contains "Quick Fix Contract"). ` +
+        `Rehydrate currently only supports implement/standard. ` +
+        `Re-run \`/dev\` with the original quick_fix request to recreate runtime state.`,
+    );
+  }
   const timestamp = now();
   const wi: WorkItem = {
     schema_version: "1.0",

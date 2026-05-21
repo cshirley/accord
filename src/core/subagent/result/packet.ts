@@ -8,7 +8,7 @@
  * don't unbalance the scanner. This is O(n) and avoids the catastrophic
  * backtracking of the previous greedy regex approach.
  */
-function findBalancedJsonRegions(text: string): string[] {
+export function findBalancedJsonRegions(text: string): string[] {
   const regions: string[] = [];
   const len = text.length;
   let i = 0;

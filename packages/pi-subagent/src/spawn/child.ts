@@ -26,6 +26,9 @@ import {
   resolveSpawnModel,
 } from "./resolve.js";
 
+/** Cap captured stderr at 1 MB so long-running noisy subagents don't grow the buffer without bound. */
+const STDERR_BUFFER_CAP = 1024 * 1024;
+
 async function writePromptToTempFile(
   agentName: string,
   prompt: string,
@@ -187,8 +190,16 @@ export async function spawnSubagent(params: SpawnSubagentParams): Promise<SpawnS
       });
 
       proc.stderr.on("data", (data) => {
-        currentResult.stderr += data.toString();
-        for (const line of data.toString().split("\n")) {
+        const text = data.toString();
+        if (currentResult.stderr.length < STDERR_BUFFER_CAP) {
+          const remaining = STDERR_BUFFER_CAP - currentResult.stderr.length;
+          if (text.length <= remaining) {
+            currentResult.stderr += text;
+          } else {
+            currentResult.stderr += `${text.slice(0, remaining)}\n[stderr truncated at ${String(STDERR_BUFFER_CAP)} bytes]`;
+          }
+        }
+        for (const line of text.split("\n")) {
           const trimmed = line.trim();
           if (!trimmed) continue;
           if (trimmed.startsWith("{")) {
@@ -206,25 +217,45 @@ export async function spawnSubagent(params: SpawnSubagentParams): Promise<SpawnS
         }
       });
 
+      let killTimer: ReturnType<typeof setTimeout> | undefined;
+      let abortListener: (() => void) | undefined;
+      const signal = params.signal;
+      const detachAbort = () => {
+        if (killTimer !== undefined) {
+          clearTimeout(killTimer);
+          killTimer = undefined;
+        }
+        if (signal && abortListener) {
+          signal.removeEventListener("abort", abortListener);
+          abortListener = undefined;
+        }
+      };
+
       proc.on("close", (code) => {
         if (buffer.trim()) processLine(buffer);
+        detachAbort();
         resolve(code ?? 0);
       });
 
       proc.on("error", () => {
+        detachAbort();
         resolve(1);
       });
 
-      if (params.signal) {
+      if (signal) {
         const killProc = () => {
           wasAborted = true;
           proc.kill("SIGTERM");
-          setTimeout(() => {
+          killTimer = setTimeout(() => {
             if (!proc.killed) proc.kill("SIGKILL");
           }, 5000);
         };
-        if (params.signal.aborted) killProc();
-        else params.signal.addEventListener("abort", killProc, { once: true });
+        if (signal.aborted) {
+          killProc();
+        } else {
+          abortListener = killProc;
+          signal.addEventListener("abort", killProc, { once: true });
+        }
       }
     });
 

@@ -42,10 +42,27 @@ function uniqueCandidates(candidates: string[]): string[] {
   return out;
 }
 
+/**
+ * Walk up to {@link MAX_MONOREPO_WALK_UP_DEPTH} parents looking for `docs/dev/<id>/<file>`.
+ * Stops early at a repo sentinel (`.git`) so we don't escape the project root.
+ * Covers shallow workspaces and deeply nested package layouts without the
+ * previous hard-coded depth list.
+ */
+const MAX_MONOREPO_WALK_UP_DEPTH = 8;
+const REPO_ROOT_SENTINELS = [".git"];
+
 function monorepoDevArtifactCandidates(workItemId: string, fileName: string): string[] {
   const out: string[] = [];
-  for (const prefix of ["../../docs", "../../../docs", "../../../../docs"]) {
-    out.push(path.join(prefix, "dev", workItemId, fileName));
+  let current = path.resolve("..");
+  let lastDir: string | null = null;
+  for (let depth = 0; depth < MAX_MONOREPO_WALK_UP_DEPTH; depth++) {
+    if (current === lastDir) break;
+    out.push(path.join(current, "docs", "dev", workItemId, fileName));
+    if (REPO_ROOT_SENTINELS.some((sentinel) => existsSync(path.join(current, sentinel)))) {
+      break;
+    }
+    lastDir = current;
+    current = path.dirname(current);
   }
   return out;
 }

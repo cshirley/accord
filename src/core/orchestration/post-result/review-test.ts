@@ -8,7 +8,6 @@ import {
   decideAfterReviewTest,
   isReviewReturnPacket,
   persistLastReviewFeedback,
-  readLastReviewFeedback,
   readReviewLoopCounters,
   writeReviewLoopCounters,
 } from "../review-feedback.js";
@@ -35,10 +34,7 @@ export function applyReviewTestPostResult(
       return false;
     }
 
-    const priorFeedback = readLastReviewFeedback(task);
-    if (!priorFeedback) {
-      persistLastReviewFeedback(task, "review-test", packet, timestamp);
-    }
+    persistLastReviewFeedback(task, "review-test", packet, timestamp);
 
     const counters = readReviewLoopCounters(task);
     const decision = decideAfterReviewTest(counters, packet, devConfig);

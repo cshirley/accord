@@ -6,6 +6,7 @@
  */
 
 import type { DevHarnessConfig } from "../config/types.js";
+import { findBalancedJsonRegions } from "../subagent/result/packet.js";
 
 export const ORCHESTRATION_JUDGMENT_SCHEMA_VERSION = "1.0" as const;
 
@@ -68,22 +69,27 @@ function mergeValidatedAppendix(baseTask: string, packet: OrchestrationJudgmentP
 }
 
 /**
- * Pull the first JSON object from model output (handles optional ```json fences).
+ * Pull a JSON object from model output (handles optional ```json fences).
+ * Iterates balanced `{...}` regions from the end so multi-object output (tool
+ * echoes + judgment block) returns the last parseable region rather than
+ * collapsing the whole span into an unparseable greedy slice.
  */
 export function extractJsonObjectFromModelText(text: string): unknown | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
   const fence = /^```(?:json)?\s*([\s\S]*?)```/m.exec(trimmed);
   const candidate = fence ? fence[1].trim() : trimmed;
-  const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-  const slice = candidate.slice(start, end + 1);
-  try {
-    return JSON.parse(slice) as unknown;
-  } catch {
-    return null;
+  const regions = findBalancedJsonRegions(candidate);
+  for (let i = regions.length - 1; i >= 0; i--) {
+    const region = regions[i];
+    if (region === undefined) continue;
+    try {
+      return JSON.parse(region) as unknown;
+    } catch {
+      /* try the next region */
+    }
   }
+  return null;
 }
 
 export function validateOrchestrationJudgmentPacket(

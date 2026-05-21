@@ -225,6 +225,7 @@ export async function runUntilStop(
       for (const request of step.request.steps) {
         const r = await host.spawnSubagent(request);
         lastSpawn = { agent: request.agent, exitCode: r.exitCode };
+        if (r.exitCode !== 0) break;
       }
     } else if (step.kind === "spawn_parallel") {
       const tasks = step.request.tasks;
