@@ -4,8 +4,8 @@
 
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import {
-  runSubagent,
   type RunSubagentRequest,
+  runSubagent,
   type SpawnSubagentResult,
   type SpawnSubagentUpdate,
 } from "../../../integrations/pi-subagent.js";
@@ -32,7 +32,9 @@ export type OrchestrationSubagentSingleResult = Pick<
   | "aborted"
 >;
 
-export function mapSpawnResultToSingle(result: SpawnSubagentResult): OrchestrationSubagentSingleResult {
+export function mapSpawnResultToSingle(
+  result: SpawnSubagentResult,
+): OrchestrationSubagentSingleResult {
   return {
     agent: result.agent,
     agentSource: result.agentSource,

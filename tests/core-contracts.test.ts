@@ -186,8 +186,8 @@ describe("parseKnownDevSubcommandArgs", () => {
 describe("subcommand routing", () => {
   test("covers every DEV_SUBCOMMANDS entry", () => {
     assertSubcommandRoutingComplete();
-    expect(getDevSubcommandOwner("resume")).toBe("core_orchestrator_when_flagged");
-    expect(getDevSubcommandOwner("align")).toBe("skill");
+    expect(getDevSubcommandOwner("resume")).toBe("core_orchestrator");
+    expect(getDevSubcommandOwner("align")).toBe("core_orchestrator");
     expect(getDevSubcommandOwner("help")).toBe("extension_local");
   });
 });

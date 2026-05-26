@@ -6,8 +6,8 @@ import type { DevHarnessConfig } from "../config/index.js";
 import type { HarnessHost } from "../types/host.js";
 import { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
 import { runPipelineArtifactPreflightOnSubagentCall } from "./preflight/pipeline-artifacts.js";
-import { prepareSubagentToolCall } from "./prepare.js";
 import { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
+import { prepareSubagentToolCall } from "./prepare.js";
 
 export type SubagentPreflightOptions = {
   devConfig: DevHarnessConfig | null;

@@ -3,25 +3,25 @@
  */
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { SubagentRunError, SPAWN_TIMEOUT_DISABLED } from "../../../integrations/pi-subagent.js";
+import type { OrchestrationRuntimeHost } from "../../../core/orchestration/host.js";
 import {
   buildSingleSubagentRunRequest,
   processSubagentToolResult,
   readPreparedSingleSubagentInput,
   runSubagentToolPreflight,
 } from "../../../core/subagent/index.js";
-import type { OrchestrationRuntimeHost } from "../../../core/orchestration/host.js";
 import { loadPricing } from "../../../core/telemetry/usage.js";
+import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../../../integrations/pi-subagent.js";
 import type { HookState } from "../hook-state.js";
 import { syncHarnessRunSessionEntry } from "../hook-state.js";
 import { updateStatusBar } from "../status-bar.js";
-import { runOrchestrationJudgment } from "./judgment.js";
 import { startOrchestratorSubagentChatDisplay } from "./chat-display.js";
+import { runOrchestrationJudgment } from "./judgment.js";
 import {
   createOrchestrationSubagentOnUpdate,
   mapSpawnResultToSingle,
-  runOrchestrationSubagent,
   type OrchestrationSubagentSingleResult,
+  runOrchestrationSubagent,
 } from "./spawn-bridge.js";
 import {
   clearOrchestratorSpawnWidget,
@@ -124,8 +124,7 @@ export function createResumeOrchestrationRuntimeHost(
       } catch (e) {
         if (e instanceof SubagentRunError) {
           singleResult = mapSpawnResultToSingle(e.result);
-          const level =
-            e.reason === "aborted" || e.reason === "timeout" ? "warning" : "error";
+          const level = e.reason === "aborted" || e.reason === "timeout" ? "warning" : "error";
           ctx.ui.notify(`Subagent spawn failed: ${e.message}`, level);
         } else {
           const msg = e instanceof Error ? e.message : String(e);

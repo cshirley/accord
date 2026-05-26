@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { reconcileCoarsePhaseBeforeResume } from "../src/core/orchestration/reconcile-coarse-phase.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
-import { loadWorkItem } from "../src/core/work-items/io.js";
 import { devCheckpointWrite } from "../src/core/work-items/checkpoint.js";
+import { loadWorkItem } from "../src/core/work-items/io.js";
+import { devBootstrap } from "../src/core/work-items/lifecycle.js";
 
 let tempRoot: string;
 let cwdBefore: string;

@@ -8,7 +8,14 @@
  */
 
 import * as path from "node:path";
-import { loadTaskFile, loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../../work-items/io.js";
+import {
+  loadTaskFile,
+  loadWorkItem,
+  now,
+  readJson,
+  TASKS_DIR,
+  writeJson,
+} from "../../work-items/io.js";
 import type { WorkItem } from "../../work-items/types.js";
 
 /**

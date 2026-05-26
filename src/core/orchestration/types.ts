@@ -10,7 +10,6 @@ export interface OrchestrationMessage {
 }
 
 export type ResumeOrchestrationResolution =
-  | { outcome: "forward_skill"; reason: string }
   | { outcome: "complete"; messages: OrchestrationMessage[] }
   | { outcome: "blocked"; messages: OrchestrationMessage[] }
   | {
@@ -21,12 +20,7 @@ export type ResumeOrchestrationResolution =
     };
 
 /** Reason the outer loop stopped (extended over time). */
-export type OrchestrationStopReason =
-  | "delegate_to_skill"
-  | "complete"
-  | "blocked"
-  | "spawned_subagent"
-  | "idle";
+export type OrchestrationStopReason = "complete" | "blocked" | "spawned_subagent" | "idle";
 
 /** Single subagent invocation (aligns with `subagent` tool / harness spawn). */
 export interface SubagentSpawnRequest {
@@ -55,8 +49,7 @@ export type NextStep =
   | { kind: "spawn_chain"; workItemId: string; request: SubagentChainSpawnRequest }
   | { kind: "spawn_parallel"; workItemId: string; request: SubagentParallelSpawnRequest }
   | { kind: "notify_user"; message: OrchestrationMessage }
-  | { kind: "stop"; reason: OrchestrationStopReason }
-  | { kind: "delegate_to_skill"; reason: string };
+  | { kind: "stop"; reason: OrchestrationStopReason };
 
 /** Minimal spawn result for runner / tests (Pi adapter fills from `runSubagent`). */
 export interface SubagentSpawnResult {

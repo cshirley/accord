@@ -1,38 +1,34 @@
 /**
  * Single source of truth for who owns each `/dev` / `/accord` subcommand.
- *
- * Phase 4: extension and docs stay aligned; core orchestration grows behind flags.
  */
 
 import { DEV_SUBCOMMANDS } from "./dispatch.js";
 
 /** Where execution is handled for a known subcommand token. */
 export type DevSubcommandOwner =
-  /** Handled in `extension.ts` without invoking the accord skill. */
+  /** Handled in `extension.ts` without programmatic subagent spawns. */
   | "extension_local"
-  /** `resume` / `finish` via core orchestrator by default (adapter tries core first). */
-  | "core_orchestrator_when_flagged"
-  /** Forwarded as `/skill:accord …` for LLM-driven workflow. */
-  | "skill";
+  /** Core orchestrator (`runDevSubcommandOrchestrationWithReplans` / resume / finish). */
+  | "core_orchestrator";
 
 const ROUTING: Readonly<Record<string, DevSubcommandOwner>> = {
   help: "extension_local",
   tasks: "extension_local",
   retro: "extension_local",
   tag: "extension_local",
-  resume: "core_orchestrator_when_flagged",
   rehydrate: "extension_local",
-  finish: "core_orchestrator_when_flagged",
-  init: "skill",
-  align: "skill",
-  spec: "skill",
-  plan: "skill",
-  check: "skill",
-  gaps: "skill",
-  review: "skill",
-  deviations: "skill",
-  "amend-spec": "skill",
-  "spec-gaps": "skill",
+  init: "extension_local",
+  "spec-gaps": "extension_local",
+  review: "extension_local",
+  resume: "core_orchestrator",
+  finish: "core_orchestrator",
+  align: "core_orchestrator",
+  spec: "core_orchestrator",
+  plan: "core_orchestrator",
+  check: "core_orchestrator",
+  gaps: "core_orchestrator",
+  deviations: "core_orchestrator",
+  "amend-spec": "core_orchestrator",
 } as const;
 
 export function assertSubcommandRoutingComplete(): void {

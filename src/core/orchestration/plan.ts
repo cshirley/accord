@@ -30,8 +30,6 @@ export function planDevFinishOrchestration(
 
 export function resumeResolutionToNextSteps(resolution: ResumeOrchestrationResolution): NextStep[] {
   switch (resolution.outcome) {
-    case "forward_skill":
-      return [{ kind: "delegate_to_skill", reason: resolution.reason }];
     case "complete":
       return [
         ...resolution.messages.map((message) => ({ kind: "notify_user" as const, message })),
@@ -102,7 +100,7 @@ export function buildDevOrchestratePayload(
         })
       : undefined;
   const workflowCost =
-    command === "finish" ? buildWorkflowCostReport(workItemId) ?? undefined : undefined;
+    command === "finish" ? (buildWorkflowCostReport(workItemId) ?? undefined) : undefined;
 
   return {
     command,

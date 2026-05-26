@@ -13,10 +13,10 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Box, Container, Spacer, Text } from "@earendil-works/pi-tui";
 import {
-  summarizeSubagentProgress,
   type AgentScope,
   type SubagentProgress,
   type SubagentToolRenderers,
+  summarizeSubagentProgress,
 } from "../../../integrations/pi-subagent.js";
 import {
   formatOrchestratorProgressWidgetLines,
@@ -82,14 +82,9 @@ class OrchestratorSubagentChatRow extends Container {
   private readonly run: RunState;
   private expanded: boolean;
   private isPartial = true;
-  private isError = false;
   private toolResult: AgentToolResult<SubagentDetails> | null = null;
 
-  constructor(
-    run: RunState,
-    expanded: boolean,
-    theme: Theme,
-  ) {
+  constructor(run: RunState, expanded: boolean, theme: Theme) {
     super();
     this.run = run;
     this.expanded = expanded;
@@ -107,7 +102,6 @@ class OrchestratorSubagentChatRow extends Container {
   applyUpdate(partial: AgentToolResult<SubagentDetails>, theme: Theme) {
     this.toolResult = partial;
     this.isPartial = true;
-    this.isError = false;
     this.box.setBgFn((text) => theme.bg("toolPendingBg", text));
     this.redraw(theme);
   }
@@ -115,7 +109,6 @@ class OrchestratorSubagentChatRow extends Container {
   applyFinal(result: AgentToolResult<SubagentDetails>, theme: Theme, isError: boolean) {
     this.toolResult = result;
     this.isPartial = false;
-    this.isError = isError;
     this.box.setBgFn((text) =>
       isError ? theme.bg("toolErrorBg", text) : theme.bg("toolSuccessBg", text),
     );
@@ -152,8 +145,7 @@ class OrchestratorSubagentChatRow extends Container {
       } catch {
         this.box.addChild(
           new Text(
-            theme.fg("toolTitle", theme.bold("subagent ")) +
-              theme.fg("accent", callArgs.agent),
+            theme.fg("toolTitle", theme.bold("subagent ")) + theme.fg("accent", callArgs.agent),
             0,
             0,
           ),
@@ -251,9 +243,7 @@ export function registerOrchestratorSubagentChatRenderer(
   });
 }
 
-export type OrchestratorSubagentOnUpdate = (
-  partial: AgentToolResult<SubagentDetails>,
-) => void;
+export type OrchestratorSubagentOnUpdate = (partial: AgentToolResult<SubagentDetails>) => void;
 
 export type OrchestratorSubagentChatHandle = {
   onUpdate: OrchestratorSubagentOnUpdate;

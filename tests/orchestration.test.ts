@@ -155,9 +155,9 @@ describe("resume orchestration", () => {
       cost_usd: 0,
     });
     const r = resolveResumeOrchestration("WI-1b", minimalDevConfig());
-    expect(r.outcome).toBe("forward_skill");
-    if (r.outcome === "forward_skill") {
-      expect(r.reason).toContain("Unknown work item pattern");
+    expect(r.outcome).toBe("blocked");
+    if (r.outcome === "blocked") {
+      expect(r.messages[0]?.text).toContain("Unknown work item pattern");
     }
   });
 
@@ -180,9 +180,9 @@ describe("resume orchestration", () => {
       cost_usd: 0,
     });
     const r = resolveResumeOrchestration("WI-1c", minimalDevConfig());
-    expect(r.outcome).toBe("forward_skill");
-    if (r.outcome === "forward_skill") {
-      expect(r.reason).toContain("no harness resume mapping");
+    expect(r.outcome).toBe("blocked");
+    if (r.outcome === "blocked") {
+      expect(r.messages[0]?.text).toContain("no harness resume mapping");
     }
   });
 
@@ -1169,14 +1169,14 @@ describe("quick-fix orchestration", () => {
       "utf8",
     );
     const forwarded = resolveResumeOrchestration("QFBLK-1", minimalDevConfig());
-    expect(forwarded.outcome).toBe("forward_skill");
+    expect(forwarded.outcome).toBe("blocked");
   });
 });
 
 describe("finish orchestration", () => {
-  test("resolveFinishOrchestration forwards when work item missing", () => {
+  test("resolveFinishOrchestration blocks when work item missing", () => {
     const r = resolveFinishOrchestration("MISSING-1", minimalDevConfig());
-    expect(r.outcome).toBe("forward_skill");
+    expect(r.outcome).toBe("blocked");
   });
 
   test("resolveFinishOrchestration blocked on pending decision", () => {

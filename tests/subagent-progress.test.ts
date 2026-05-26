@@ -1,17 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Message } from "@earendil-works/pi-ai";
 import {
-  formatOrchestratorProgressWidgetLines,
-  formatOrchestratorSpawnElapsed,
-  formatOrchestratorStallHint,
-} from "../src/adapters/pi/subagent/spawn-ui.js";
-import {
-  formatOrchestratorSpawnStatusLines,
-  registerOrchestratorSpawn,
-  unregisterOrchestratorSpawn,
-  updateOrchestratorSpawn,
-} from "../src/adapters/pi/subagent/spawn-status.js";
-import {
   applyToolExecutionToMessages,
   extractToolOutputPreview,
   formatToolCall,
@@ -20,6 +9,17 @@ import {
   SubagentActivityBuffer,
   summarizeSubagentProgress,
 } from "../packages/pi-subagent/src/api.js";
+import {
+  formatOrchestratorSpawnStatusLines,
+  registerOrchestratorSpawn,
+  unregisterOrchestratorSpawn,
+  updateOrchestratorSpawn,
+} from "../src/adapters/pi/subagent/spawn-status.js";
+import {
+  formatOrchestratorProgressWidgetLines,
+  formatOrchestratorSpawnElapsed,
+  formatOrchestratorStallHint,
+} from "../src/adapters/pi/subagent/spawn-ui.js";
 
 describe("summarizeSubagentProgress", () => {
   test("extracts tool lines and turn count", () => {
@@ -243,9 +243,7 @@ describe("formatOrchestratorSpawnElapsed", () => {
 
 describe("isSubagentStderrNoise", () => {
   test("filters extension bootstrap stderr", () => {
-    expect(isSubagentStderrNoise("📓 Journal tools loaded: journal-read-entry")).toBe(
-      true,
-    );
+    expect(isSubagentStderrNoise("📓 Journal tools loaded: journal-read-entry")).toBe(true);
     expect(isSubagentStderrNoise("🔗 Tools loaded: 14 tools, 3 services")).toBe(true);
     expect(isSubagentStderrNoise("actual error: connection refused")).toBe(false);
   });

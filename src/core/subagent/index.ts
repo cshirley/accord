@@ -8,7 +8,6 @@ export {
   getPrimarySubagentEntry,
   type SubagentEntry,
 } from "./entries.js";
-export { prepareSubagentToolCall } from "./prepare.js";
 export {
   applySubagentSpawnPayload,
   buildSubagentResponseContract,
@@ -16,15 +15,6 @@ export {
   resolveHarnessAgentFile,
   type SubagentSpawnPayload,
 } from "./payload.js";
-export {
-  runSubagentToolPreflight,
-  type SubagentPreflightOptions,
-} from "./preflight-runner.js";
-export {
-  buildSingleSubagentRunRequest,
-  readPreparedSingleSubagentInput,
-  type PreparedSingleSubagentInput,
-} from "./run-request.js";
 export { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
 export {
   checkBriefPresentForSpeccing,
@@ -34,6 +24,16 @@ export {
 } from "./preflight/pipeline-artifacts.js";
 export { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
 export {
+  runSubagentToolPreflight,
+  type SubagentPreflightOptions,
+} from "./preflight-runner.js";
+export { prepareSubagentToolCall } from "./prepare.js";
+export {
+  assembleHandoffContent,
+  formatMissingPacketWarning,
+  formatPacketInjection,
+} from "./result/handoff.js";
+export {
   extractAnalysisFromAssistantText,
   extractAnalysisFromSubagentResult,
   extractReturnPacket,
@@ -41,11 +41,11 @@ export {
   findBalancedJsonRegions,
 } from "./result/packet.js";
 export {
-  assembleHandoffContent,
-  formatMissingPacketWarning,
-  formatPacketInjection,
-} from "./result/handoff.js";
-export {
   type ProcessSubagentToolResultParams,
   processSubagentToolResult,
 } from "./result/process.js";
+export {
+  buildSingleSubagentRunRequest,
+  type PreparedSingleSubagentInput,
+  readPreparedSingleSubagentInput,
+} from "./run-request.js";

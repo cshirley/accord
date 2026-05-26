@@ -9,12 +9,11 @@ import * as path from "node:path";
 import { withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { handleSubagentJsonEvent } from "../events/handle.js";
 import {
-  SubagentActivityBuffer,
   isSubagentStderrNoise,
+  SubagentActivityBuffer,
   summarizeSubagentProgress,
 } from "../progress/index.js";
 import { parseSubagentReturnJson } from "../response-contract.js";
-import type { SpawnSubagentParams, SpawnSubagentResult } from "./types.js";
 import { getFinalOutput } from "./output.js";
 import {
   buildSystemPrompt,
@@ -25,6 +24,7 @@ import {
   resolveSpawnAgent,
   resolveSpawnModel,
 } from "./resolve.js";
+import type { SpawnSubagentParams, SpawnSubagentResult } from "./types.js";
 
 /** Cap captured stderr at 1 MB so long-running noisy subagents don't grow the buffer without bound. */
 const STDERR_BUFFER_CAP = 1024 * 1024;
@@ -106,7 +106,12 @@ export async function spawnSubagent(params: SpawnSubagentParams): Promise<SpawnS
 
   const activity = new SubagentActivityBuffer();
   activity.pushStatus("subagent process started");
-  params.onEvent?.({ type: "resolved", agent: agent.name, agentFile: agent.filePath, model: qualifiedModel });
+  params.onEvent?.({
+    type: "resolved",
+    agent: agent.name,
+    agentFile: agent.filePath,
+    model: qualifiedModel,
+  });
   params.onEvent?.({ type: "process_started" });
   params.onEvent?.({ type: "status", message: "subagent process started" });
 

@@ -27,4 +27,3 @@ export function assembleHandoffContent(
   }
   return [{ type: "text", text: existingParts.join("\n") + contentAppend }];
 }
-

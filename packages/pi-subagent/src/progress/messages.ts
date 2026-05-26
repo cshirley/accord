@@ -18,9 +18,7 @@ export function applyToolExecutionToMessages(
   const last = messages.at(-1);
   if (last?.role === "assistant") {
     const content = Array.isArray(last.content) ? [...last.content] : [];
-    const existingIndex = content.findIndex(
-      (part) => part.type === "toolCall" && part.id === id,
-    );
+    const existingIndex = content.findIndex((part) => part.type === "toolCall" && part.id === id);
     if (existingIndex >= 0) {
       content[existingIndex] = toolCallPart;
     } else {

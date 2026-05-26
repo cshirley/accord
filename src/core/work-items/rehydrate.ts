@@ -144,7 +144,9 @@ function inferImplementStandardLadder(workItemId: string): Result<InferredImplem
  * Create `.tasks/<ID>.json` (and task files when plan exists) from `docs/dev/` artifacts.
  * No-op when the work item already exists.
  */
-export function rehydrateWorkItemFromArtifacts(workItemId: string): Result<RehydrateWorkItemResult> {
+export function rehydrateWorkItemFromArtifacts(
+  workItemId: string,
+): Result<RehydrateWorkItemResult> {
   const existing = loadWorkItem(workItemId);
   if (existing) {
     return ok({

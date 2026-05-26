@@ -4,12 +4,12 @@
 
 export {
   ORCHESTRATOR_SUBAGENT_MESSAGE_TYPE,
-  registerOrchestratorSubagentChatRenderer,
-  refreshOrchestratorSubagentChatDisplays,
-  startOrchestratorSubagentChatDisplay,
   type OrchestratorSubagentChatHandle,
   type OrchestratorSubagentChatOptions,
   type OrchestratorSubagentOnUpdate,
+  refreshOrchestratorSubagentChatDisplays,
+  registerOrchestratorSubagentChatRenderer,
+  startOrchestratorSubagentChatDisplay,
 } from "./chat-display.js";
 export {
   type OrchestratorPreflightOptions,
@@ -21,8 +21,8 @@ export { createResumeOrchestrationRuntimeHost } from "./runtime-host.js";
 export {
   createOrchestrationSubagentOnUpdate,
   mapSpawnResultToSingle,
-  runOrchestrationSubagent,
   type OrchestrationSubagentSingleResult,
+  runOrchestrationSubagent,
 } from "./spawn-bridge.js";
 export {
   applyOrchestratorSpawnStatus,

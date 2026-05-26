@@ -57,11 +57,11 @@ function returnPacketEvent(packet: object): string {
 }
 
 describe("runPhase — argv (AC-6)", () => {
-  test("spawns exactly `pi -p --mode json /skill:accord <phase> <ticket>`", async () => {
+  test("spawns exactly `pi -p --mode json /dev <phase> <ticket>`", async () => {
     const { spawn, argvSeen } = makeSpawnStub([SESSION_HEADER, returnPacketEvent(DONE_PACKET)]);
     await runPhase({ phase: "spec", ticket: "PROJ-1", spawn });
     expect(argvSeen).toHaveLength(1);
-    expect(argvSeen[0]).toEqual(["pi", "-p", "--mode", "json", "/skill:accord", "spec", "PROJ-1"]);
+    expect(argvSeen[0]).toEqual(["pi", "-p", "--mode", "json", "/dev", "spec", "PROJ-1"]);
   });
 
   test("supports extra allowlist flags via opts.extraArgs", async () => {
@@ -77,7 +77,7 @@ describe("runPhase — argv (AC-6)", () => {
       "-p",
       "--mode",
       "json",
-      "/skill:accord",
+      "/dev",
       "code",
       "PROJ-1",
       "--task-id=2",

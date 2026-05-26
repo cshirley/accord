@@ -5,9 +5,9 @@
 import {
   computeLineCost,
   loadPricing,
+  type PricingConfig,
   readUsageLines,
   recomputeCost,
-  type PricingConfig,
   type UsageLine,
 } from "../telemetry/usage.js";
 import { loadWorkItem } from "../work-items/io.js";

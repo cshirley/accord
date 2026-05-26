@@ -1,5 +1,5 @@
 import { StringEnum } from "@earendil-works/pi-ai";
-import { Type, type Static } from "typebox";
+import { type Static, Type } from "typebox";
 
 const TaskItem = Type.Object({
   agent: Type.String({ description: "Name of the agent to invoke" }),
@@ -55,7 +55,9 @@ export const SubagentParamsSchema = Type.Object({
   ),
   task: Type.Optional(Type.String({ description: "Task to delegate (for single mode)" })),
   model: Type.Optional(
-    Type.String({ description: "Override model (provider/model or bare id with profile provider)" }),
+    Type.String({
+      description: "Override model (provider/model or bare id with profile provider)",
+    }),
   ),
   thinking: Type.Optional(
     StringEnum(["off", "minimal", "low", "medium", "high", "xhigh"] as const, {

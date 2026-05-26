@@ -1,14 +1,14 @@
 import type { Message } from "@earendil-works/pi-ai";
 import { applyToolExecutionToMessages } from "./messages.js";
+import { extractToolOutputPreview, formatToolCall } from "./tool-format.js";
 import {
   MAX_STATUS_ACTIVITY_LINES,
   MAX_TOOL_ACTIVITY_LINES,
+  type SubagentLiveActivity,
   TEXT_DELTA_PULSE_MS,
   TEXT_PREVIEW_MAX,
   THINKING_DELTA_PULSE_MS,
-  type SubagentLiveActivity,
 } from "./types.js";
-import { extractToolOutputPreview, formatToolCall } from "./tool-format.js";
 
 /** Rolling activity log while the child `pi` process streams JSON. */
 export class SubagentActivityBuffer {
@@ -75,10 +75,7 @@ export class SubagentActivityBuffer {
    * Pi JSON `message_update` assistantMessageEvent (toolcall_*, thinking_*, text_*).
    * Tool calls often appear here before or instead of separate top-level tool_execution_* lines.
    */
-  applyAssistantMessageEvent(
-    event: Record<string, unknown>,
-    messages: Message[],
-  ): void {
+  applyAssistantMessageEvent(event: Record<string, unknown>, messages: Message[]): void {
     const eventKind = typeof event.type === "string" ? event.type : "";
     if (eventKind === "text_delta" && typeof event.delta === "string") {
       this.onTextDelta(event.delta);
@@ -94,8 +91,7 @@ export class SubagentActivityBuffer {
         return;
       }
       this.lastThinkingPulseAt = now;
-      const preview =
-        event.delta.length > 60 ? `…${event.delta.slice(-60)}` : event.delta;
+      const preview = event.delta.length > 60 ? `…${event.delta.slice(-60)}` : event.delta;
       this.pushUnique(`thinking ${preview}`, "status");
       return;
     }

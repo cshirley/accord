@@ -15,7 +15,10 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { devBootstrap, devTransition } from "@clive.shirley/pi-accord/src/core/work-items/lifecycle.js";
+import {
+  devBootstrap,
+  devTransition,
+} from "@clive.shirley/pi-accord/src/core/work-items/lifecycle.js";
 import type { JiraIssue } from "./gate-ticket.js";
 
 export interface BootstrapOpts {

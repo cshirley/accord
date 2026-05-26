@@ -7,12 +7,12 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadDevHarnessConfig } from "../../core/config/index.js";
 import {
   applyHarnessCostSeed,
+  assembleHandoffContent,
   createOrchestratorUsageDedup,
   formatArtifactValidationFailureMessage,
   isAgentsMdPath,
   notifyPendingDecisionsIfAny,
   processOrchestratorTurnEnd,
-  assembleHandoffContent,
   processSubagentToolResult,
   runSubagentToolPreflight,
   seedHarnessSessionCostState,

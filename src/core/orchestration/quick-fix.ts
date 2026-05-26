@@ -16,6 +16,7 @@ import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback
 
 export { RESUMABLE_PIPELINE_TASK_PHASES } from "../types/phases.js";
 export type { ReviewTestVerdict } from "./review-feedback.js";
+
 import type { ReviewTestVerdict } from "./review-feedback.js";
 
 const SEVERITY_RANK: Record<string, number> = {
@@ -166,9 +167,8 @@ export function buildQuickFixPreImplReviewTestBrief(input: {
   const testFiles = (Array.isArray(taskFile.test_files) ? taskFile.test_files : []).filter(
     (f): f is string => typeof f === "string",
   );
-  const testStrategy = (
-    taskFile.quick_fix_contract as { test?: { strategy?: string } } | undefined
-  )?.test?.strategy;
+  const testStrategy = (taskFile.quick_fix_contract as { test?: { strategy?: string } } | undefined)
+    ?.test?.strategy;
   if (testFiles.length === 0 && testStrategy !== "no_test") {
     return null;
   }

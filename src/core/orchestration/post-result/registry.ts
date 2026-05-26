@@ -10,8 +10,8 @@
 
 import type { DevHarnessConfig } from "../../config/types.js";
 import { applyPhaseAlignPostResult } from "./phase-align.js";
-import { applyPhasePlanPostResult } from "./phase-plan.js";
 import { applyPhaseCodePostResult } from "./phase-code.js";
+import { applyPhasePlanPostResult } from "./phase-plan.js";
 import { applyPhaseTestPostResult } from "./phase-test.js";
 import { applyPhaseVerifyAcceptancePostResult } from "./phase-verify-acceptance.js";
 import { applyReviewCodePostResult } from "./review-code.js";

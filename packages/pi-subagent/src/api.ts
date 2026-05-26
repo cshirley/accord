@@ -3,13 +3,34 @@
  * The Pi `subagent` tool extension is separate — see `index.ts`.
  */
 
-export { runSubagent, spawnSubagent, resolveSpawnAgent } from "./spawn/index.js";
+export { loadAgentFromFile } from "./agent-load.js";
+export {
+  type AgentConfig,
+  type AgentScope,
+  discoverAgents,
+  resolveAgentFile,
+  resolveModelConfig,
+  type ThinkingLevel,
+} from "./agents.js";
+export type { SubagentLiveActivity, SubagentProgress } from "./progress/index.js";
+export {
+  applyToolExecutionToMessages,
+  extractToolOutputPreview,
+  formatToolCall,
+  isSubagentStderrNoise,
+  looksLikeToolActivityLine,
+  mergeActivityWithToolLines,
+  mergeToolCallsFromAssistantMessage,
+  SubagentActivityBuffer,
+  summarizeSubagentProgress,
+} from "./progress/index.js";
+export { formatResponseContractAppendix, parseSubagentReturnJson } from "./response-contract.js";
+export { resolveSpawnAgent, runSubagent, spawnSubagent } from "./spawn/index.js";
 export {
   DEFAULT_SPAWN_TIMEOUT_MS,
   resolveSpawnTimeoutMs,
   SPAWN_TIMEOUT_DISABLED,
 } from "./spawn/timeout.js";
-export { SubagentRunError } from "./spawn/types.js";
 export type {
   RunSubagentRequest,
   SpawnSubagentParams,
@@ -19,28 +40,7 @@ export type {
   SubagentRunEvent,
   SubagentUsageStats,
 } from "./spawn/types.js";
-export { loadAgentFromFile } from "./agent-load.js";
-export {
-  discoverAgents,
-  resolveAgentFile,
-  resolveModelConfig,
-  type AgentConfig,
-  type AgentScope,
-  type ThinkingLevel,
-} from "./agents.js";
-export { formatResponseContractAppendix, parseSubagentReturnJson } from "./response-contract.js";
-export {
-  summarizeSubagentProgress,
-  SubagentActivityBuffer,
-  applyToolExecutionToMessages,
-  extractToolOutputPreview,
-  formatToolCall,
-  isSubagentStderrNoise,
-  looksLikeToolActivityLine,
-  mergeActivityWithToolLines,
-  mergeToolCallsFromAssistantMessage,
-} from "./progress/index.js";
-export type { SubagentLiveActivity, SubagentProgress } from "./progress/index.js";
+export { SubagentRunError } from "./spawn/types.js";
 export {
   getSubagentToolRenderers,
   type SubagentToolRenderers,

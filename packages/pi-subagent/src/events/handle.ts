@@ -12,7 +12,15 @@ import type { SubagentRunEvent } from "../spawn/types.js";
 
 export type SubagentRunState = {
   messages: Message[];
-  usage: { turns: number; input: number; output: number; cacheRead: number; cacheWrite: number; cost: number; contextTokens: number };
+  usage: {
+    turns: number;
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    cost: number;
+    contextTokens: number;
+  };
   model?: string;
   stopReason?: string;
   errorMessage?: string;
@@ -67,10 +75,7 @@ export function handleSubagentJsonEvent(
         if (part.type !== "toolCall") {
           continue;
         }
-        activity.onToolStart(
-          part.name,
-          part.arguments as Record<string, unknown>,
-        );
+        activity.onToolStart(part.name, part.arguments as Record<string, unknown>);
       }
     }
     emitUpdate();
@@ -114,7 +119,8 @@ export function handleSubagentJsonEvent(
 
   if (eventType === "tool_execution_start") {
     const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
-    const toolArgs = ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
+    const toolArgs =
+      ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
     const toolCallId = typeof ev.toolCallId === "string" ? ev.toolCallId : undefined;
     activity.onToolStart(toolName, toolArgs);
     onEvent?.({ type: "tool_start", toolName, args: toolArgs, toolCallId });
@@ -125,17 +131,24 @@ export function handleSubagentJsonEvent(
 
   if (eventType === "tool_execution_update") {
     const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
-    const toolArgs = ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
+    const toolArgs =
+      ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
     activity.onToolUpdate(toolName, ev.partialResult);
     onEvent?.({ type: "tool_update", toolName, partialResult: ev.partialResult });
-    applyToolExecutionToMessages(currentResult.messages, toolName, toolArgs, typeof ev.toolCallId === "string" ? ev.toolCallId : undefined);
+    applyToolExecutionToMessages(
+      currentResult.messages,
+      toolName,
+      toolArgs,
+      typeof ev.toolCallId === "string" ? ev.toolCallId : undefined,
+    );
     emitUpdate();
     return;
   }
 
   if (eventType === "tool_execution_end") {
     const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
-    const toolArgs = ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
+    const toolArgs =
+      ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
     const toolCallId = typeof ev.toolCallId === "string" ? ev.toolCallId : undefined;
     const isError = ev.isError === true;
     activity.onToolEnd(toolName, toolArgs, isError);

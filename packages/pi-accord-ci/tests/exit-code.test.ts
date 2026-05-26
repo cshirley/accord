@@ -9,11 +9,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { MissingSecretError, requireEnv } from "../src/lib/env.js";
-import {
-  checkCostCap,
-  dispatchTerminal,
-  type TerminalOpts,
-} from "../src/parse-phase-result.js";
+import { checkCostCap, dispatchTerminal, type TerminalOpts } from "../src/parse-phase-result.js";
 
 const OPTS: TerminalOpts = {
   ticket: "PROJ-1",

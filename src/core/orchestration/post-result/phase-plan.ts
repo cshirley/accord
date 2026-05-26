@@ -21,9 +21,7 @@ interface PhasePlanDonePacket {
 
 function isPhasePlanDonePacket(packet: unknown): packet is PhasePlanDonePacket {
   return (
-    !!packet &&
-    typeof packet === "object" &&
-    (packet as PhasePlanDonePacket).status === "done"
+    !!packet && typeof packet === "object" && (packet as PhasePlanDonePacket).status === "done"
   );
 }
 
@@ -47,7 +45,9 @@ export function applyPhasePlanPostResult(workItemId: string, packet: unknown): s
       "❌ **phase-plan returned `done` but no complete plan is on disk.**",
       "",
       `- Checked: \`${resolvedPath}\``,
-      declaredPath && declaredPath !== resolvedPath ? `- Packet plan_path: \`${declaredPath}\`` : "",
+      declaredPath && declaredPath !== resolvedPath
+        ? `- Packet plan_path: \`${declaredPath}\``
+        : "",
       "",
       `Respawn **phase-plan** (or \`/dev resume ${workItemId}\`) until it writes \`${expectedRel}\`.`,
     ]
@@ -69,8 +69,7 @@ export function applyPhasePlanPostResult(workItemId: string, packet: unknown): s
   }
 
   const bootstrapped = bootstrapImplementTasksFromPlan(workItemId, resolvedPath);
-  const taskNote =
-    bootstrapped > 0 ? ` Bootstrapped ${String(bootstrapped)} task file(s).` : "";
+  const taskNote = bootstrapped > 0 ? ` Bootstrapped ${String(bootstrapped)} task file(s).` : "";
 
   return [
     "",

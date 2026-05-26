@@ -38,10 +38,7 @@ export function devArtifactDir(workItemId: string, cwd?: string): string {
 }
 
 /** Relative artifact path stored on work items and passed to phase agents. */
-export function preferredDevArtifactRelPath(
-  workItemId: string,
-  kind: ArtifactKind,
-): string {
+export function preferredDevArtifactRelPath(workItemId: string, kind: ArtifactKind): string {
   return path.join(devArtifactDirRel(workItemId), artifactFileName(kind));
 }
 

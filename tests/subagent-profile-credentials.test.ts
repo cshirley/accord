@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
+  type AgentConfig,
   resolveModelConfig,
   resolveProfileForCredentials,
-  type AgentConfig,
   type SubagentConfig,
 } from "../packages/pi-subagent/src/agents.js";
 

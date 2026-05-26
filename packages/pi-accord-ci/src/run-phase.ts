@@ -117,15 +117,7 @@ const TERMINAL_STATUSES = new Set(["done", "needs_input", "blocked", "gaps"]);
 
 export async function runPhase(opts: RunPhaseOpts): Promise<RunPhaseResult> {
   const spawn = opts.spawn ?? defaultSpawn;
-  const argv = [
-    "-p",
-    "--mode",
-    "json",
-    "/skill:accord",
-    opts.phase,
-    opts.ticket,
-    ...(opts.extraArgs ?? []),
-  ];
+  const argv = ["-p", "--mode", "json", "/dev", opts.phase, opts.ticket, ...(opts.extraArgs ?? [])];
   const child = spawn("pi", argv);
 
   let latestPacket: PhaseReturnPacket | null = null;

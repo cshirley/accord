@@ -58,16 +58,21 @@ export function resolveFinishOrchestration(
   const hydrated = ensureWorkItemHydrated(workItemId);
   if (!hydrated.ok) {
     return {
-      outcome: "forward_skill",
-      reason: hydrated.error,
+      outcome: "blocked",
+      messages: [{ level: "warning", text: hydrated.error }],
     };
   }
 
   const wi = loadWorkItem(workItemId);
   if (!wi) {
     return {
-      outcome: "forward_skill",
-      reason: `Work item "${workItemId}" not found — delegate to accord skill.`,
+      outcome: "blocked",
+      messages: [
+        {
+          level: "warning",
+          text: `Work item "${workItemId}" not found.`,
+        },
+      ],
     };
   }
 
@@ -106,8 +111,13 @@ export function resolveFinishOrchestration(
 
   if (!getAgentMeta(VERIFY_AGENT)) {
     return {
-      outcome: "forward_skill",
-      reason: `Agent "${VERIFY_AGENT}" is not registered — delegate to accord skill.`,
+      outcome: "blocked",
+      messages: [
+        {
+          level: "warning",
+          text: `Agent "${VERIFY_AGENT}" is not registered.`,
+        },
+      ],
     };
   }
 

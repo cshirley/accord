@@ -4,11 +4,11 @@
 
 import * as path from "node:path";
 import { createLogger } from "../logging.js";
-import { err, ok, type Result } from "../types/result.js";
 import {
   checkBriefPresentForSpeccing,
   checkSpecPresentForPlanning,
 } from "../subagent/preflight/pipeline-artifacts.js";
+import { err, ok, type Result } from "../types/result.js";
 import { devCheckpointDelete } from "./checkpoint.js";
 import { loadTaskFile, loadWorkItem, now, TASKS_DIR, writeJson } from "./io.js";
 import type {

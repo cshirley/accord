@@ -21,9 +21,7 @@ export async function runSubagent(params: RunSubagentRequest): Promise<SpawnSuba
 
   const timeoutMs = resolveSpawnTimeoutMs(params.timeoutMs, loadSubagentConfig());
   const combined =
-    timeoutMs != null || params.signal
-      ? combineAbortSignals(params.signal, timeoutMs)
-      : null;
+    timeoutMs != null || params.signal ? combineAbortSignals(params.signal, timeoutMs) : null;
 
   const spawnParams: SpawnSubagentParams = {
     ...params,
@@ -76,7 +74,8 @@ export async function runSubagent(params: RunSubagentRequest): Promise<SpawnSuba
 
   const timedOut = combined?.timedOut() ?? false;
   const callerAborted = combined?.callerAborted() ?? false;
-  const resolutionError = result.exitCode !== 0 && result.messages.length === 0 && Boolean(result.stderr);
+  const resolutionError =
+    result.exitCode !== 0 && result.messages.length === 0 && Boolean(result.stderr);
 
   if (timedOut) {
     result.timedOut = true;
@@ -88,11 +87,7 @@ export async function runSubagent(params: RunSubagentRequest): Promise<SpawnSuba
       reason,
       message: `Timed out after ${String(timeoutMs)}ms`,
     });
-    throw new SubagentRunError(
-      `Subagent timed out after ${String(timeoutMs)}ms`,
-      result,
-      reason,
-    );
+    throw new SubagentRunError(`Subagent timed out after ${String(timeoutMs)}ms`, result, reason);
   }
 
   if (callerAborted) {

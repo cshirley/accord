@@ -20,9 +20,7 @@ interface PhaseAlignDonePacket {
 
 function isPhaseAlignDonePacket(packet: unknown): packet is PhaseAlignDonePacket {
   return (
-    !!packet &&
-    typeof packet === "object" &&
-    (packet as PhaseAlignDonePacket).status === "done"
+    !!packet && typeof packet === "object" && (packet as PhaseAlignDonePacket).status === "done"
   );
 }
 
@@ -49,7 +47,9 @@ export function applyPhaseAlignPostResult(workItemId: string, packet: unknown): 
       "❌ **phase-align returned `done` but no complete brief is on disk.**",
       "",
       `- Checked: \`${resolvedPath}\``,
-      declaredPath && declaredPath !== resolvedPath ? `- Packet brief_path: \`${declaredPath}\`` : "",
+      declaredPath && declaredPath !== resolvedPath
+        ? `- Packet brief_path: \`${declaredPath}\``
+        : "",
       "",
       `Respawn **phase-align** (or \`/dev align ${workItemId}\`) until it writes \`${expectedRel}\`.`,
       "**phase-spec is blocked** until the brief exists.",

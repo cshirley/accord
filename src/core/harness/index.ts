@@ -4,6 +4,43 @@
  * Pi adapter maps lifecycle events → these functions and applies UI-specific return shapes.
  */
 
+/**
+ * @deprecated Import from `../subagent/index.js`. Re-exported for existing callers (d978cc1).
+ */
+export {
+  applySubagentSpawnPayload,
+  assembleHandoffContent,
+  buildSingleSubagentRunRequest,
+  buildSubagentResponseContract,
+  buildSubagentSpawnPayload,
+  collectSubagentEntries,
+  extractAnalysisFromAssistantText, // added for catch-up parity — was missing from this shim
+  extractAnalysisFromSubagentResult,
+  extractReturnPacket,
+  extractReturnPacketFromSubagentResult,
+  firstSubagentAgentName,
+  formatMissingPacketWarning,
+  formatPacketInjection,
+  getPrimarySubagentEntry,
+  type PreparedSingleSubagentInput,
+  type ProcessSubagentToolResultParams,
+  prepareSubagentToolCall,
+  processSubagentToolResult,
+  readPreparedSingleSubagentInput,
+  resolveHarnessAgentFile,
+  runSubagentToolPreflight,
+  runVerifyPreflightOnSubagentCall,
+  type SubagentEntry,
+  type SubagentPreflightOptions,
+  type SubagentSpawnPayload,
+} from "../subagent/index.js";
+export { runGatherPreflightOnSubagentCall } from "../subagent/preflight/gather.js";
+export type {
+  HarnessHost,
+  HarnessMutableState,
+  OrchestratorUsageDedup,
+} from "../types/host.js";
+export { ORCHESTRATOR_FP_CAP } from "../types/host.js";
 export {
   formatArtifactValidationFailureMessage,
   validateHarnessArtifactWriteIfApplicable,
@@ -14,7 +51,6 @@ export {
   type BootstrapOptions,
   maybeAutoInstallAssets,
 } from "./asset-bootstrap.js";
-export { runGatherPreflightOnSubagentCall } from "../subagent/preflight/gather.js";
 export {
   createOrchestratorUsageDedup,
   isAssistantTurnMessage,
@@ -33,39 +69,3 @@ export {
   type HarnessCostSeed,
   seedHarnessSessionCostState,
 } from "./session-start.js";
-/**
- * @deprecated Import from `../subagent/index.js`. Re-exported for existing callers (d978cc1).
- */
-export {
-  assembleHandoffContent,
-  applySubagentSpawnPayload,
-  buildSingleSubagentRunRequest,
-  buildSubagentResponseContract,
-  buildSubagentSpawnPayload,
-  collectSubagentEntries,
-  extractAnalysisFromAssistantText, // added for catch-up parity — was missing from this shim
-  extractAnalysisFromSubagentResult,
-  extractReturnPacket,
-  extractReturnPacketFromSubagentResult,
-  firstSubagentAgentName,
-  formatMissingPacketWarning,
-  formatPacketInjection,
-  getPrimarySubagentEntry,
-  prepareSubagentToolCall,
-  processSubagentToolResult,
-  readPreparedSingleSubagentInput,
-  resolveHarnessAgentFile,
-  runSubagentToolPreflight,
-  runVerifyPreflightOnSubagentCall,
-  type PreparedSingleSubagentInput,
-  type ProcessSubagentToolResultParams,
-  type SubagentEntry,
-  type SubagentPreflightOptions,
-  type SubagentSpawnPayload,
-} from "../subagent/index.js";
-export type {
-  HarnessHost,
-  HarnessMutableState,
-  OrchestratorUsageDedup,
-} from "../types/host.js";
-export { ORCHESTRATOR_FP_CAP } from "../types/host.js";

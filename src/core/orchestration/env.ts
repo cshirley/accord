@@ -2,7 +2,7 @@
  * Feature flags for harness orchestration (core runner + programmatic subagent).
  *
  * `ACCORD_CORE_ORCHESTRATOR` defaults to **on** when unset or empty.
- * Set to `0` or `false` to forward `/dev resume` and `/dev finish` to the accord skill.
+ * Set to `0` or `false` to disable programmatic orchestration spawns for `/dev` workflow subcommands.
  */
 
 export function isCoreOrchestratorEnabled(): boolean {

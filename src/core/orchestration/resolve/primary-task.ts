@@ -12,9 +12,9 @@
 
 import { getAgentMeta } from "../../agents/registry.js";
 import { isResumablePipelineTaskPhase } from "../../types/phases.js";
-import { resolveActivePrimaryTaskId } from "../post-result/primary-task.js";
 import { loadTaskFile, loadWorkItem } from "../../work-items/io.js";
 import type { WorkItemPattern } from "../../work-items/types.js";
+import { resolveActivePrimaryTaskId } from "../post-result/primary-task.js";
 
 /** Coarse pipeline phases that defer routing to the primary task file. */
 const PRIMARY_TASK_COARSE_PHASES: Readonly<Record<WorkItemPattern, string | null>> = {

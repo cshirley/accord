@@ -3,7 +3,7 @@
  *
  *   1. Every literal `pi ` invocation under packages/pi-accord-ci/src/, .github/workflows/,
  *      and .github/actions/ must match the allow-list regex
- *      ^pi -p --mode json /skill:accord (spec|plan|code|verify|resume|finish|gather|align|init) \S+( --[a-z-]+(=\S+)?)*$
+ *      ^pi -p --mode json /dev (spec|plan|code|verify|resume|finish|gather|align|init) \S+( --[a-z-]+(=\S+)?)*$
  *   2. No file under packages/pi-accord-ci/src/ imports any symbol from
  *      @earendil-works/pi-coding-agent (SDK ban).
  *
@@ -21,9 +21,9 @@ const WORKFLOWS = join(REPO_ROOT, ".github/workflows");
 const ACTIONS = join(REPO_ROOT, ".github/actions");
 
 const PI_INVOCATION_ALLOWLIST_RE =
-  /^pi -p --mode json \/skill:accord (spec|plan|code|verify|resume|finish|gather|align|init) \S+( --[a-z-]+(=\S+)?)*$/;
+  /^pi -p --mode json \/dev (spec|plan|code|verify|resume|finish|gather|align|init) \S+( --[a-z-]+(=\S+)?)*$/;
 
-const PI_INVOCATION_DETECTOR_RE = /\bpi\s+-p\s+--mode\s+json\s+\/skill:accord\b[^\n]*/g;
+const PI_INVOCATION_DETECTOR_RE = /\bpi\s+-p\s+--mode\s+json\s+\/dev\b[^\n]*/g;
 
 /**
  * Match only `import` and `require` statements that pull from the banned SDK.
@@ -80,21 +80,14 @@ describe("AC-6 / TC-10 — `pi` invocations match the allowlist", () => {
 
   for (const file of files) {
     const rel = file.slice(REPO_ROOT.length + 1);
-    test(`every \`pi /skill:accord\` invocation in ${rel} matches the allowlist regex`, () => {
+    test(`every \`pi /dev\` invocation in ${rel} matches the allowlist regex`, () => {
       const src = readFileSync(file, "utf8");
-      // Scan line-by-line; ignore lines that are clearly documentation
-      // (TypeScript comments, YAML `description:` keys, markdown / inline
-      // backticks). Only assert on lines that look like real shell
-      // invocations — backtick-free, not commented, and either inside a
-      // shell script or a YAML `run:` block.
       for (const rawLine of src.split("\n")) {
         const line = rawLine.trim();
         if (line.startsWith("//")) continue;
         if (line.startsWith("*")) continue;
         if (line.startsWith("#")) continue;
         if (/^description:/i.test(line)) continue;
-        // Skip any line whose first `pi ...` token is wrapped in backticks
-        // (markdown inline code in YAML comments / TS jsdoc).
         if (/`pi\s+-p\b/.test(rawLine)) continue;
         const matches = line.match(PI_INVOCATION_DETECTOR_RE) ?? [];
         for (const m of matches) {
@@ -127,29 +120,25 @@ describe("AC-6 — no @earendil-works/pi-coding-agent SDK import under pi-accord
 
 describe("AC-6 — allowlist regex itself accepts canonical invocations", () => {
   test("accepts a bare spec invocation", () => {
-    expect("pi -p --mode json /skill:accord spec PROJ-123").toMatch(PI_INVOCATION_ALLOWLIST_RE);
+    expect("pi -p --mode json /dev spec PROJ-123").toMatch(PI_INVOCATION_ALLOWLIST_RE);
   });
 
   test("accepts an invocation with allowlist flags", () => {
-    expect(
-      "pi -p --mode json /skill:accord code PROJ-123 --task-id=2 --owner-nonce=abc123",
-    ).toMatch(PI_INVOCATION_ALLOWLIST_RE);
-  });
-
-  test("rejects a non-accord skill", () => {
-    expect("pi -p --mode json /skill:other-skill spec PROJ-123").not.toMatch(
+    expect("pi -p --mode json /dev resume PROJ-123 --task-id=2 --owner-nonce=abc123").toMatch(
       PI_INVOCATION_ALLOWLIST_RE,
     );
+  });
+
+  test("rejects a non-dev command", () => {
+    expect("pi -p --mode json /skill:accord spec PROJ-123").not.toMatch(PI_INVOCATION_ALLOWLIST_RE);
   });
 
   test("rejects an unsupported phase", () => {
-    expect("pi -p --mode json /skill:accord hax0r PROJ-123").not.toMatch(
-      PI_INVOCATION_ALLOWLIST_RE,
-    );
+    expect("pi -p --mode json /dev hax0r PROJ-123").not.toMatch(PI_INVOCATION_ALLOWLIST_RE);
   });
 
   test("rejects a flag that does not use the --kebab-case shape", () => {
-    expect("pi -p --mode json /skill:accord spec PROJ-123 --BAD_FLAG").not.toMatch(
+    expect("pi -p --mode json /dev spec PROJ-123 --BAD_FLAG").not.toMatch(
       PI_INVOCATION_ALLOWLIST_RE,
     );
   });

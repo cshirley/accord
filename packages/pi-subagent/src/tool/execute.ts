@@ -3,15 +3,15 @@ import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import {
   type AgentConfig,
   type AgentScope,
-  type ThinkingLevel,
   discoverAgents,
+  type ThinkingLevel,
 } from "../agents.js";
 import { getFinalOutput } from "../spawn/output.js";
 import type { SubagentResponseContract } from "../spawn/types.js";
+import { SubagentRunError } from "../spawn/types.js";
 import { mapWithConcurrencyLimit } from "./concurrency.js";
 import { MAX_CONCURRENCY, MAX_PARALLEL_TASKS } from "./constants.js";
-import { SubagentParams, type SubagentParams as SubagentParamsInput } from "./params.js";
-import { SubagentRunError } from "../spawn/types.js";
+import type { SubagentParams, SubagentParams as SubagentParamsInput } from "./params.js";
 import { runSingleAgent } from "./run-single.js";
 import type { OnUpdateCallback, SingleResult, SubagentDetails } from "./types.js";
 

@@ -5,8 +5,8 @@
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
 import { validateReturn } from "../../artifacts/validation.js";
 import { createLogger } from "../../logging.js";
-import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
 import { runPostResultHandlerForAgent } from "../../orchestration/post-result/registry.js";
+import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
 import { persistValidatedAgentReturn } from "../../orchestration/task-agent-audit.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
 import {
@@ -19,13 +19,13 @@ import {
   type UsageLine,
   updateWorkItemCost,
 } from "../../telemetry/usage.js";
-import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
 import type { HarnessMutableState } from "../../types/host.js";
+import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
+import { formatMissingPacketWarning, formatPacketInjection } from "./handoff.js";
 import {
   extractAnalysisFromSubagentResult,
   extractReturnPacketFromSubagentResult,
 } from "./packet.js";
-import { formatMissingPacketWarning, formatPacketInjection } from "./handoff.js";
 
 const log = createLogger("subagent");
 
@@ -195,9 +195,7 @@ export async function processSubagentToolResult(
       if (
         workItemId &&
         result.exitCode === 0 &&
-        (agentName === "phase-align" ||
-          agentName === "phase-spec" ||
-          agentName === "phase-plan")
+        (agentName === "phase-align" || agentName === "phase-spec" || agentName === "phase-plan")
       ) {
         const steps = reconcileCoarsePhaseUntilStable(workItemId);
         if (steps > 0) {

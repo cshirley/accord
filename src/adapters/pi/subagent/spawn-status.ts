@@ -6,13 +6,13 @@
 import type { ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
 import type { SubagentProgress } from "../../../integrations/pi-subagent.js";
+import { refreshOrchestratorSubagentChatDisplays } from "./chat-display.js";
 import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,
   formatOrchestratorStallHint,
   ORCHESTRATOR_SPAWN_HEARTBEAT_MS,
 } from "./spawn-ui.js";
-import { refreshOrchestratorSubagentChatDisplays } from "./chat-display.js";
 
 export const ORCHESTRATOR_SPAWN_STATUS_KEY = "accord-orch";
 export const ORCHESTRATOR_SPAWN_WIDGET_KEY = "accord-orchestrator-spawn";
@@ -74,9 +74,7 @@ export function formatOrchestratorSpawnWorkingMessage(): string | undefined {
     }
     const elapsed = formatOrchestratorSpawnElapsed(spawn.startedAt);
     const progress = spawn.progress;
-    const stallHint = progress
-      ? formatOrchestratorStallHint(progress, spawn.startedAt)
-      : undefined;
+    const stallHint = progress ? formatOrchestratorStallHint(progress, spawn.startedAt) : undefined;
     const detail =
       progress?.activityLines.at(-1) ??
       progress?.lastToolLine ??
@@ -124,8 +122,7 @@ function buildSpawnWidgetComponent(theme: Theme): Container {
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       const line = lines[lineIndex];
       if (line === undefined) continue;
-      const styled =
-        lineIndex === 0 ? theme.fg("accent", line) : theme.fg("toolOutput", line);
+      const styled = lineIndex === 0 ? theme.fg("accent", line) : theme.fg("toolOutput", line);
       container.addChild(new Text(styled, 1, 0));
     }
     return container;

@@ -1,11 +1,11 @@
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { AgentScope } from "../agents.js";
 import { getMarkdownTheme, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import type { AgentScope } from "../agents.js";
 import { type DisplayItem, formatToolCall, getDisplayItems } from "../progress/index.js";
 import { getFinalOutput } from "../spawn/output.js";
 import { COLLAPSED_ITEM_COUNT } from "./constants.js";
-import { SubagentParams, type SubagentParams as SubagentParamsInput } from "./params.js";
+import type { SubagentParams, SubagentParams as SubagentParamsInput } from "./params.js";
 import type { SingleResult, SubagentDetails } from "./types.js";
 import { formatUsageStats } from "./usage-format.js";
 
@@ -172,9 +172,7 @@ export function renderSubagentResult(
   if (details.mode === "chain") {
     const successCount = details.results.filter((r) => r.exitCode === 0).length;
     const icon =
-      successCount === details.results.length
-        ? theme.fg("success", "✓")
-        : theme.fg("error", "✗");
+      successCount === details.results.length ? theme.fg("success", "✓") : theme.fg("error", "✗");
 
     if (expanded) {
       const container = new Container();

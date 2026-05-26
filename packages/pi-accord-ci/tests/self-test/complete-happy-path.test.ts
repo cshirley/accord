@@ -12,12 +12,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  commitAndPr,
-  type ExecLike,
-  type GhPrApi,
-  renderPrBody,
-} from "../../src/commit-and-pr.js";
+import { commitAndPr, type ExecLike, type GhPrApi, renderPrBody } from "../../src/commit-and-pr.js";
 import { runAgentsMdGate } from "../../src/gate-agents-md.js";
 import { DEFAULT_TICKET_GATE_CONFIG, runTicketGate } from "../../src/gate-ticket.js";
 import { seedBrief } from "../../src/seed-brief.js";

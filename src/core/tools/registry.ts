@@ -27,12 +27,11 @@ import type { DevHarnessConfig } from "../config/types.js";
 import { buildDevOrchestratePayload } from "../orchestration/plan.js";
 import { devTasks } from "../queries/dashboard.js";
 import { devResumeState } from "../queries/resume-state.js";
-import { devRehydrateWorkItem } from "../work-items/rehydrate.js";
 import { devRetro } from "../queries/retro.js";
 import { devReviewQueue } from "../queries/review-queue.js";
 import { devSpecGaps } from "../queries/spec-gaps.js";
-import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
+import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import {
   devCheckpointDelete,
   devCheckpointRead,
@@ -45,6 +44,7 @@ import {
   devTransition,
   type FinalizeWorkItemInput,
 } from "../work-items/lifecycle.js";
+import { devRehydrateWorkItem } from "../work-items/rehydrate.js";
 import type { Checkpoint } from "../work-items/types.js";
 import {
   checkpointActionEnum,

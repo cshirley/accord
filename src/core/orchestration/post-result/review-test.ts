@@ -28,7 +28,8 @@ export function applyReviewTestPostResult(
   let footer = "";
 
   const applied = advancePrimaryTask(workItemId, ({ workItem: wi, task, timestamp }) => {
-    const onQuickFix = wi.pattern === "quick_fix" && wi.phase === "fixing" && task.quick_fix_contract;
+    const onQuickFix =
+      wi.pattern === "quick_fix" && wi.phase === "fixing" && task.quick_fix_contract;
     const onImplement = wi.pattern === "implement" && wi.phase === "implementing";
     if ((!onQuickFix && !onImplement) || task.phase !== "review-test") {
       return false;

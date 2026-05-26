@@ -2,7 +2,7 @@
  * ACCORD Extension for Pi — entry point.
  *
  * Wires together three concerns:
- *   1. /dev command   — deterministic routing + optional core resume / finish (`ACCORD_CORE_ORCHESTRATOR=1`) + free-text intent preflight (`classifyPreflight`) before skill follow-up
+ *   1. /dev command   — deterministic routing + core orchestrator spawns + free-text intent preflight (`classifyPreflight`)
  *   2. Tools          — orchestrator functions exposed to the LLM
  *   3. Hooks          — event handlers for validation, verification, usage, etc.
  *
@@ -13,30 +13,42 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { classifyPreflight } from "../../core/commands/classify-dispatch.js";
-import { devDispatch, parseHarnessTagArgs, parseKnownDevSubcommandArgs } from "../../core/commands/dispatch.js";
+import {
+  devDispatch,
+  parseHarnessTagArgs,
+  parseKnownDevSubcommandArgs,
+} from "../../core/commands/dispatch.js";
 import { DEV_HELP_TEXT } from "../../core/commands/help.js";
-import { isPlanModeReadOnlyDevSubcommand } from "../../core/commands/subcommand-routing.js";
+import {
+  getDevSubcommandOwner,
+  isPlanModeReadOnlyDevSubcommand,
+} from "../../core/commands/subcommand-routing.js";
 import { loadDevHarnessConfig } from "../../core/config/index.js";
-import { parseLeadingWorkItemId } from "../../core/orchestration/index.js";
 import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import { devTasks } from "../../core/queries/dashboard.js";
 import { devRetro } from "../../core/queries/retro.js";
-import { devRehydrateWorkItem } from "../../core/work-items/rehydrate.js";
+import { devReviewQueue } from "../../core/queries/review-queue.js";
+import { devSpecGaps } from "../../core/queries/spec-gaps.js";
 import {
   clearHarnessRunTag,
   describeHarnessRunMeta,
   setHarnessRunTag,
 } from "../../core/telemetry/usage.js";
+import { devRehydrateWorkItem } from "../../core/work-items/rehydrate.js";
+import { getSubagentToolRenderers } from "../../integrations/pi-subagent.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";
 import { tryFinishViaCoreOrchestrator } from "./finish-orchestration.js";
 import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
 import { registerPiHarnessHookListeners } from "./pi-hook-listeners.js";
 import { isPlanModeActive, planModeBlockMessage } from "./plan-mode.js";
-import { tryResumeViaCoreOrchestrator } from "./resume-orchestration.js";
-import { getSubagentToolRenderers } from "../../integrations/pi-subagent.js";
 import { registerOrchestratorSubagentChatRenderer } from "./subagent/chat-display.js";
 import { registerTools } from "./tools.js";
+import {
+  ORCHESTRATOR_DISABLED_MESSAGE,
+  tryClassifyFollowUpViaCoreOrchestrator,
+  tryDevSubcommandViaCoreOrchestrator,
+} from "./workflow-orchestration.js";
 
 const extensionLog = createLogger("extension");
 
@@ -138,11 +150,6 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
-    if (route.type === "known" && route.subcommand === "finish") {
-      const finishOutcome = await tryFinishViaCoreOrchestrator(route.args, pi, ctx, state);
-      if (finishOutcome === "handled") return;
-    }
-
     if (route.type === "known" && route.subcommand === "rehydrate") {
       const parsed = parseKnownDevSubcommandArgs("rehydrate", route.args);
       const workItemId = parsed.leadingWorkItemId;
@@ -159,31 +166,99 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
-    if (route.type === "known" && route.subcommand === "resume") {
-      const resumeOutcome = await tryResumeViaCoreOrchestrator(route.args, pi, ctx, state);
-      if (resumeOutcome === "handled") return;
-      const resumeId = parseLeadingWorkItemId(route.args);
-      if (resumeId) {
-        ctx.ui.notify(
-          `Resume ${resumeId}: continuing via accord skill (core orchestrator off or phase unmapped).`,
-          "info",
-        );
+    if (route.type === "known" && route.subcommand === "init") {
+      ctx.ui.notify(
+        "ACCORD init runs in this session (not a separate skill). Follow the numbered flow using `dev_init_detect` and `dev_init_write`. See docs/configuration.md.",
+        "info",
+      );
+      pi.sendUserMessage(
+        [
+          "[ACCORD init]",
+          "Run the harness init flow in this session:",
+          "1. Call `dev_init_detect` (cwd inferred).",
+          "2. Confirm placement and fields with the user; patch proposed_config as needed.",
+          "3. Call `dev_init_write` with final config, target, cwd, and git_root when required.",
+          "Do not spawn phase agents until init completes.",
+        ].join("\n"),
+        { deliverAs: "followUp" },
+      );
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "spec-gaps") {
+      const parsed = parseKnownDevSubcommandArgs("spec-gaps", route.args);
+      const workItemId = parsed.leadingWorkItemId;
+      if (!workItemId) {
+        ctx.ui.notify("Usage: `/dev spec-gaps <work-item-id>`", "warning");
+        return;
       }
+      const result = devSpecGaps(workItemId);
+      ctx.ui.notify(
+        result.ok ? result.value.formatted : result.error,
+        result.ok ? "info" : "error",
+      );
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "review") {
+      ctx.ui.notify(devReviewQueue().formatted, "info");
+      ctx.ui.notify(
+        "Drain pending items with the appropriate `review-*` subagent when action is required.",
+        "info",
+      );
+      return;
+    }
+
+    if (route.type === "known" && getDevSubcommandOwner(route.subcommand) === "core_orchestrator") {
+      if (route.subcommand === "finish") {
+        const finishOutcome = await tryFinishViaCoreOrchestrator(route.args, pi, ctx, state);
+        if (finishOutcome === "forward") {
+          ctx.ui.notify(ORCHESTRATOR_DISABLED_MESSAGE, "warning");
+        }
+        return;
+      }
+
+      const orchOutcome = await tryDevSubcommandViaCoreOrchestrator(
+        route.subcommand,
+        route.args,
+        pi,
+        ctx,
+        state,
+      );
+      if (orchOutcome === "orchestrator_disabled") {
+        ctx.ui.notify(ORCHESTRATOR_DISABLED_MESSAGE, "warning");
+      }
+      return;
     }
 
     if (route.type === "classify") {
       const pre = classifyPreflight(route.text);
       ctx.ui.notify(pre.intentBlock, "info");
       if (pre.bootstrapNotice) ctx.ui.notify(pre.bootstrapNotice, "info");
-      pi.sendUserMessage(`/skill:accord ${route.text}`, { deliverAs: "followUp" });
+
+      const followUp = await tryClassifyFollowUpViaCoreOrchestrator(route.text, pi, ctx, state);
+      if (followUp === "orchestrator_disabled") {
+        ctx.ui.notify(ORCHESTRATOR_DISABLED_MESSAGE, "warning");
+        return;
+      }
+      if (followUp === "handled") {
+        return;
+      }
+
+      pi.sendUserMessage(
+        [
+          "[ACCORD classify]",
+          pre.intentBlock,
+          pre.bootstrapNotice ? `\n${pre.bootstrapNotice}` : "",
+          "",
+          "Continue in this session: call `dev_intent` / `dev_bootstrap` / `dev_resume_state` as needed, then use the `subagent` tool for phase agents. Run `/dev resume <ID>` when the work item exists on disk.",
+        ].join("\n"),
+        { deliverAs: "followUp" },
+      );
       return;
     }
 
-    // Everything else → forward to the skill for LLM handling
-    const trimmed = args.trim();
-    pi.sendUserMessage(trimmed ? `/skill:accord ${trimmed}` : "/skill:accord", {
-      deliverAs: "followUp",
-    });
+    ctx.ui.notify("Unknown /dev route. Run `/dev help`.", "warning");
   };
 
   const commandCompletions = (prefix: string): AutocompleteItem[] | null => {

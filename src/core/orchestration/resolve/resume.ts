@@ -7,8 +7,8 @@ import type { DevHarnessConfig } from "../../config/index.js";
 import { devResumeState } from "../../queries/resume-state.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
-import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import { buildQuickFixPreImplReviewTestBrief } from "../quick-fix.js";
+import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../types.js";
 import { resolvePrimaryTaskResumeAgentId } from "./primary-task.js";
 
@@ -60,14 +60,19 @@ export function resolveResumeOrchestration(
 
   const rsAfterReconcile = devResumeState(workItemId);
   if (!rsAfterReconcile.ok) {
-    return { outcome: "forward_skill", reason: rsAfterReconcile.error };
+    return { outcome: "blocked", messages: [{ level: "warning", text: rsAfterReconcile.error }] };
   }
   const stateAfterReconcile = rsAfterReconcile.value;
 
   if (!isWorkItemPattern(stateAfterReconcile.pattern)) {
     return {
-      outcome: "forward_skill",
-      reason: `Unknown work item pattern "${stateAfterReconcile.pattern}" — delegate to accord skill.`,
+      outcome: "blocked",
+      messages: [
+        {
+          level: "warning",
+          text: `Unknown work item pattern "${stateAfterReconcile.pattern}".`,
+        },
+      ],
     };
   }
 
@@ -77,8 +82,13 @@ export function resolveResumeOrchestration(
 
   if (!agent) {
     return {
-      outcome: "forward_skill",
-      reason: `Phase "${phase}" (pattern ${pattern}) has no harness resume mapping yet — delegate to accord skill.`,
+      outcome: "blocked",
+      messages: [
+        {
+          level: "warning",
+          text: `Phase "${phase}" (pattern ${pattern}) has no harness resume mapping yet.`,
+        },
+      ],
     };
   }
 
@@ -96,8 +106,13 @@ export function resolveResumeOrchestration(
 
   if (!getAgentMeta(agent)) {
     return {
-      outcome: "forward_skill",
-      reason: `Resolved agent "${agent}" is not in the registry — delegate to accord skill.`,
+      outcome: "blocked",
+      messages: [
+        {
+          level: "warning",
+          text: `Resolved agent "${agent}" is not in the registry.`,
+        },
+      ],
     };
   }
 

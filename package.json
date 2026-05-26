@@ -55,8 +55,6 @@
       "./src/index.ts"
     ],
     "skills": [
-      "./assets/skills/accord",
-      "./assets/skills/dev",
       "./assets/skills/commit",
       "./assets/skills/pr",
       "./assets/skills/review"

@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { devResumeState } from "../src/core/queries/resume-state.js";
-import { devRehydrateWorkItem, rehydrateWorkItemFromArtifacts } from "../src/core/work-items/rehydrate.js";
 import { loadWorkItem, readJson, TASKS_DIR } from "../src/core/work-items/io.js";
+import {
+  devRehydrateWorkItem,
+  rehydrateWorkItemFromArtifacts,
+} from "../src/core/work-items/rehydrate.js";
 
 const TEST_ID = "REHY-1";
 const DEV_DIR = path.join("docs", "dev", TEST_ID);
@@ -13,7 +16,11 @@ let tempRoot: string;
 
 beforeEach(() => {
   cwdBefore = process.cwd();
-  tempRoot = path.join(import.meta.dir, ".tmp-rehydrate", `${String(Date.now())}-${Math.random().toString(36).slice(2)}`);
+  tempRoot = path.join(
+    import.meta.dir,
+    ".tmp-rehydrate",
+    `${String(Date.now())}-${Math.random().toString(36).slice(2)}`,
+  );
   mkdirSync(path.join(tempRoot, ".tasks"), { recursive: true });
   mkdirSync(path.join(tempRoot, DEV_DIR), { recursive: true });
   process.chdir(tempRoot);
@@ -39,7 +46,10 @@ function writeMinimalSpec(title = "Rehydrate test feature") {
         date: "2026-05-19",
         problem_statement: "Problem",
         proposed_solution: "Solution",
-        acceptance_criteria: [{ id: "AC-1", given: "g", when: "w", then: "t" }],
+        acceptance_criteria: [
+          // biome-ignore lint/suspicious/noThenProperty: spec schema Gherkin field name
+          { id: "AC-1", given: "g", when: "w", then: "t" },
+        ],
         scope: { in: ["x"], out: [] },
         verification: { commands: ["true"], test_cases: [] },
       },

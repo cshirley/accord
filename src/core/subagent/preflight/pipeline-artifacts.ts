@@ -6,6 +6,7 @@
  *   phase-plan  ← complete spec.json
  */
 
+import { extractWorkItemId } from "../../telemetry/usage.js";
 import {
   artifactFileName,
   artifactLooksComplete,
@@ -14,7 +15,6 @@ import {
 } from "../../work-items/artifact-discovery.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import type { WorkItem } from "../../work-items/types.js";
-import { extractWorkItemId } from "../../telemetry/usage.js";
 import { firstSubagentAgentName, getPrimarySubagentEntry } from "../entries.js";
 
 export type ArtifactGateResult = { ok: true; path: string } | { ok: false; reason: string };

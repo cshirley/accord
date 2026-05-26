@@ -1,9 +1,8 @@
 /**
- * Deterministic handling for `/dev` free-text (classify) before the accord skill runs.
+ * Deterministic handling for `/dev` free-text (classify) before orchestration continues.
  *
- * Mirrors the first steps of `assets/skills/accord/SKILL.md` § classify: `dev_intent`
- * rules, then optional `dev_bootstrap` when the line is unambiguous (ticket + title,
- * high-confidence intent, work item missing).
+ * Same rules as `dev_intent`, then optional `dev_bootstrap` when the line is unambiguous
+ * (ticket + title, high-confidence intent, work item missing).
  */
 
 import { loadWorkItem } from "../work-items/io.js";
@@ -101,13 +100,13 @@ export function classifyPreflight(text: string): ClassifyPreflightResult {
   }
 
   if (intent.needs_confirmation) {
-    bootstrapNotice = `Ticket-shaped input \`${parsed.id}\` detected; automatic bootstrap skipped because needs_confirmation is true — the accord skill will continue.`;
+    bootstrapNotice = `Ticket-shaped input \`${parsed.id}\` detected; automatic bootstrap skipped because needs_confirmation is true.`;
     return { intent, intentBlock, bootstrapNotice };
   }
 
   const patternVariant = resolveBootstrapPatternVariant(intent, text);
   if (!patternVariant) {
-    bootstrapNotice = `Ticket \`${parsed.id}\` detected; intent_mode \`${intent.intent_mode}\` does not auto-bootstrap — the accord skill will continue.`;
+    bootstrapNotice = `Ticket \`${parsed.id}\` detected; intent_mode \`${intent.intent_mode}\` does not auto-bootstrap.`;
     return { intent, intentBlock, bootstrapNotice };
   }
 
@@ -120,7 +119,7 @@ export function classifyPreflight(text: string): ClassifyPreflightResult {
   if (patternVariant.pattern === "implement") {
     const rehydrated = ensureWorkItemHydrated(parsed.id);
     if (rehydrated.ok && rehydrated.value.rehydrated) {
-      bootstrapNotice = `${rehydrated.value.message} The accord skill will pick up from persisted state.`;
+      bootstrapNotice = `${rehydrated.value.message} Run \`/dev resume ${parsed.id}\` to continue.`;
       return { intent, intentBlock, bootstrapNotice };
     }
   }
@@ -136,7 +135,7 @@ export function classifyPreflight(text: string): ClassifyPreflightResult {
 
   const { pattern, variant } = patternVariant;
   const boot = devBootstrap(parsed.id, parsed.title, pattern, variant, intentContract);
-  bootstrapNotice = `Created work item \`${boot.work_item.id}\` (${pattern}${variant ? `/${variant}` : ""}) at ${boot.path}. The accord skill will pick up from persisted state.`;
+  bootstrapNotice = `Created work item \`${boot.work_item.id}\` (${pattern}${variant ? `/${variant}` : ""}) at ${boot.path}. Orchestration will continue via /dev resume when an ID is present.`;
 
   return { intent, intentBlock, bootstrapNotice };
 }

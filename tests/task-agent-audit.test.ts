@@ -44,7 +44,12 @@ describe("task agent audit", () => {
   test("extractAnalysisFromSubagentResult reads last assistant message", () => {
     const analysis = extractAnalysisFromSubagentResult({
       messages: [
-        { role: "assistant", content: [{ type: "text", text: "Narrative.\n\n```json\n{\"verdict\":\"clean\",\"findings\":[]}\n```" }] },
+        {
+          role: "assistant",
+          content: [
+            { type: "text", text: 'Narrative.\n\n```json\n{"verdict":"clean","findings":[]}\n```' },
+          ],
+        },
       ],
     });
     expect(analysis).toBe("Narrative.");

@@ -5,9 +5,9 @@ import {
   MAX_RECENT_TOOLS,
   MAX_STATUS_ACTIVITY_LINES,
   MAX_TOOL_ACTIVITY_LINES,
-  TEXT_PREVIEW_MAX,
   type SubagentLiveActivity,
   type SubagentProgress,
+  TEXT_PREVIEW_MAX,
 } from "./types.js";
 
 function latestAssistantText(messages: Message[]): string | undefined {
@@ -22,10 +22,7 @@ function latestAssistantText(messages: Message[]): string | undefined {
 }
 
 /** Merge status lines from the activity buffer with tool lines parsed from messages. */
-export function mergeActivityWithToolLines(
-  activityLines: string[],
-  toolLines: string[],
-): string[] {
+export function mergeActivityWithToolLines(activityLines: string[], toolLines: string[]): string[] {
   const merged = [...activityLines];
   for (const toolLine of toolLines) {
     if (!merged.includes(toolLine)) {
@@ -52,10 +49,7 @@ export function summarizeSubagentProgress(
   }
   const recentToolLines = toolLines.slice(-MAX_RECENT_TOOLS);
   const live = result.liveActivity;
-  const activityLines = mergeActivityWithToolLines(
-    live?.lines ?? [],
-    recentToolLines,
-  );
+  const activityLines = mergeActivityWithToolLines(live?.lines ?? [], recentToolLines);
   const rawText = live?.streamingText ?? latestAssistantText(result.messages);
   const textPreview =
     rawText && rawText.length > TEXT_PREVIEW_MAX

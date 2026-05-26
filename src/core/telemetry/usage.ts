@@ -209,8 +209,7 @@ export function describeHarnessRunMeta(): string {
 /** Normalize provider usage.cost (number vs { total }) for append + rollup. */
 /** Extract plan task id from a subagent task brief (`**task_id:** 2` or `task_id: 2`). */
 export function extractTaskIdFromTaskText(task: string): number | null {
-  const match =
-    task.match(/\*\*task_id:\*\*\s*(\d+)/i) ?? task.match(/(?:^|\n)task_id:\s*(\d+)/i);
+  const match = task.match(/\*\*task_id:\*\*\s*(\d+)/i) ?? task.match(/(?:^|\n)task_id:\s*(\d+)/i);
   if (!match) return null;
   const n = Number(match[1]);
   return Number.isFinite(n) && n >= 1 ? Math.trunc(n) : null;

@@ -5,8 +5,8 @@
 import type { DevHarnessConfig } from "../config/types.js";
 import { loadTaskFile, loadWorkItem } from "../work-items/io.js";
 import {
-  DEFAULT_MAX_CRITICAL_REVIEW_RETRIES,
   criticalReviewLoopPolicyFromDevConfig,
+  DEFAULT_MAX_CRITICAL_REVIEW_RETRIES,
 } from "./policy.js";
 import { maxFindingSeverityRank } from "./quick-fix.js";
 
@@ -113,8 +113,7 @@ export function persistLastReviewFeedback(
     recommendation: f.recommendation,
   }));
   const packetRecord =
-    options?.packet ??
-    (JSON.parse(JSON.stringify(packet)) as Record<string, unknown>);
+    options?.packet ?? (JSON.parse(JSON.stringify(packet)) as Record<string, unknown>);
   const analysis =
     options?.analysis ??
     (typeof packet.analysis === "string" && packet.analysis.trim().length > 0
@@ -132,9 +131,7 @@ export function persistLastReviewFeedback(
 }
 
 /** Read adversarial review state from the task file for orchestrator routing / briefs. */
-export function readLastReviewFeedback(
-  task: Record<string, unknown>,
-): LastReviewFeedback | null {
+export function readLastReviewFeedback(task: Record<string, unknown>): LastReviewFeedback | null {
   const raw = task.last_review_feedback;
   if (!raw || typeof raw !== "object") {
     return null;

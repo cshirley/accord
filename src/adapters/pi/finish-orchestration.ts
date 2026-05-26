@@ -44,8 +44,11 @@ export async function tryFinishViaCoreOrchestrator(
   const { workItemId, host } = preflight;
 
   const resolution = resolveFinishOrchestration(workItemId, state.devConfig);
-  if (resolution.outcome === "forward_skill") {
-    return "forward";
+  if (resolution.outcome === "blocked" || resolution.outcome === "complete") {
+    for (const message of resolution.messages) {
+      ctx.ui.notify(message.text, message.level === "warning" ? "warning" : "info");
+    }
+    return "handled";
   }
 
   notifyTruncated(ctx, devReviewQueue().formatted, "info");

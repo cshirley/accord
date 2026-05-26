@@ -10,17 +10,17 @@
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { createLogger } from "../logging.js";
-import { devCheckpointRead } from "../work-items/checkpoint.js";
 import {
+  type ArtifactKind,
   artifactFileName,
   artifactLooksComplete,
   artifactPathForWorkItem,
   bootstrapImplementTasksFromPlan,
   resolveArtifactPath,
-  type ArtifactKind,
 } from "../work-items/artifact-discovery.js";
-import { devTransition } from "../work-items/lifecycle.js";
+import { devCheckpointRead } from "../work-items/checkpoint.js";
 import { loadWorkItem } from "../work-items/io.js";
+import { devTransition } from "../work-items/lifecycle.js";
 import type { WorkItem } from "../work-items/types.js";
 
 const log = createLogger("orchestration");
