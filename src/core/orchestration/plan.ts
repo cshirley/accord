@@ -8,6 +8,7 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
+import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
 import { resolveResumeOrchestration } from "./resolve/resume.js";
@@ -74,6 +75,8 @@ export interface DevOrchestratePayload {
    * diverges when Pi merges validated model JSON.
    */
   spawn_task_after_template_judgment?: string;
+  /** Present for `finish`: current usage rollup (re-run after verify for final totals). */
+  workflow_cost?: ReturnType<typeof buildWorkflowCostReport>;
 }
 
 export function buildDevOrchestratePayload(
@@ -98,6 +101,9 @@ export function buildDevOrchestratePayload(
           dispatchAgent: resolution.agent,
         })
       : undefined;
+  const workflowCost =
+    command === "finish" ? buildWorkflowCostReport(workItemId) ?? undefined : undefined;
+
   return {
     command,
     resolution,
@@ -107,5 +113,6 @@ export function buildDevOrchestratePayload(
     ...(spawnTaskAfterTemplateJudgment !== undefined
       ? { spawn_task_after_template_judgment: spawnTaskAfterTemplateJudgment }
       : {}),
+    ...(workflowCost ? { workflow_cost: workflowCost } : {}),
   };
 }

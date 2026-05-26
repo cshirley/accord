@@ -5,6 +5,7 @@
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
 import { validateReturn } from "../../artifacts/validation.js";
 import { createLogger } from "../../logging.js";
+import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
 import { runPostResultHandlerForAgent } from "../../orchestration/post-result/registry.js";
 import { persistValidatedAgentReturn } from "../../orchestration/task-agent-audit.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
@@ -12,6 +13,7 @@ import {
   appendUsageLine,
   computeLineCost,
   ensureAutoHarnessRunMeta,
+  extractTaskIdFromTaskText,
   extractWorkItemId,
   normalizeUsageCostFields,
   type UsageLine,
@@ -77,10 +79,12 @@ export async function processSubagentToolResult(
       if (billable > 0) {
         ensureAutoHarnessRunMeta(workItemId);
         host?.syncHarnessRunMeta?.();
+        const taskId = extractTaskIdFromTaskText(task);
         const line: UsageLine = {
           at: new Date().toISOString(),
           work_item_id: workItemId,
           subagent_type: agentName,
+          ...(taskId != null ? { task_id: taskId } : {}),
           model: result.model as string | undefined,
           usage: { ...normalized, turns: normalized.turns || 0 },
           source: "subagent",
@@ -188,6 +192,22 @@ export async function processSubagentToolResult(
       agentSchemas(agentName).some((s) => s.startsWith("return-schemas/"))
     ) {
       contentAppend += formatMissingPacketWarning(agentName, Object.keys(result || {}));
+      if (
+        workItemId &&
+        result.exitCode === 0 &&
+        (agentName === "phase-align" ||
+          agentName === "phase-spec" ||
+          agentName === "phase-plan")
+      ) {
+        const steps = reconcileCoarsePhaseUntilStable(workItemId);
+        if (steps > 0) {
+          contentAppend += [
+            "",
+            `✓ **${agentName}** wrote a complete artifact on disk — work item coarse phase reconciled (${String(steps)} step(s)).`,
+            `Run \`/dev resume ${workItemId}\` to continue.`,
+          ].join("\n");
+        }
+      }
     }
 
     if (

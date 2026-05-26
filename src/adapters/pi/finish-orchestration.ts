@@ -9,6 +9,7 @@ import {
 } from "../../core/orchestration/index.js";
 import { devTasks } from "../../core/queries/dashboard.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
+import { formatWorkflowCostForFinish } from "../../core/queries/workflow-cost.js";
 import type { HookState } from "./hook-state.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
 
@@ -64,6 +65,11 @@ export async function tryFinishViaCoreOrchestrator(
 
   if (result.closeout?.ok) {
     ctx.ui.notify(`Finish: work item ${workItemId} finalised from verify verdict.`, "info");
+  }
+
+  const workflowCost = result.workflow_cost_formatted ?? formatWorkflowCostForFinish(workItemId);
+  if (workflowCost) {
+    notifyTruncated(ctx, workflowCost, "info");
   }
 
   return "handled";

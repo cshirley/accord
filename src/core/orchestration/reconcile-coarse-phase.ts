@@ -8,11 +8,13 @@
  */
 
 import { existsSync } from "node:fs";
+import * as path from "node:path";
 import { createLogger } from "../logging.js";
 import { devCheckpointRead } from "../work-items/checkpoint.js";
 import {
   artifactFileName,
   artifactLooksComplete,
+  artifactPathForWorkItem,
   bootstrapImplementTasksFromPlan,
   resolveArtifactPath,
   type ArtifactKind,
@@ -94,21 +96,27 @@ export function reconcileCoarsePhaseBeforeResume(workItemId: string): ReconcileC
   if (!rule) {
     return { advanced: false };
   }
-  if (hasOpenCheckpoint(workItemId)) {
-    return { advanced: false };
-  }
-
   const artifactPath = resolveArtifactPath(wi, rule.artifact, rule.fileName);
-  if (!artifactLooksComplete(rule.artifact, artifactPath, workItemId)) {
+  const artifactComplete = artifactLooksComplete(rule.artifact, artifactPath, workItemId);
+  if (!artifactComplete) {
+    if (hasOpenCheckpoint(workItemId)) {
+      return { advanced: false };
+    }
     return { advanced: false };
   }
 
+  const storedPath = artifactPathForWorkItem(workItemId, rule.artifact, artifactPath);
   const configuredPath = configuredArtifactPath(wi, rule.artifact);
-  if (configuredPath && configuredPath !== artifactPath && existsSync(configuredPath)) {
+  if (
+    configuredPath &&
+    existsSync(configuredPath) &&
+    existsSync(artifactPath) &&
+    path.resolve(configuredPath) !== path.resolve(artifactPath)
+  ) {
     return { advanced: false };
   }
 
-  const transition = devTransition(workItemId, rule.nextPhase, { [rule.wiField]: artifactPath });
+  const transition = devTransition(workItemId, rule.nextPhase, { [rule.wiField]: storedPath });
   if (!transition.ok) {
     log.warn(`reconcileCoarsePhase: transition failed for ${workItemId}: ${transition.error}`);
     return { advanced: false };

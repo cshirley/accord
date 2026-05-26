@@ -179,7 +179,7 @@ Proceed to Step 5.
 
 ### Step 5 — Produce the brief
 
-Write `docs/dev/<work_item_id>/brief.md` with this structure:
+Write `docs/dev/<work_item_id>/brief.md` under **your current working directory** (the app or package you are developing in — not the monorepo root unless that is your cwd). Use this structure:
 
 ```markdown
 # Problem Brief: <work_item_id>

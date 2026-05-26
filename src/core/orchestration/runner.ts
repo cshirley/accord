@@ -14,6 +14,7 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
+import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
 import type { TerminalOutcome } from "../types/domain.js";
 import { devFinalizeWorkItem } from "../work-items/lifecycle.js";
@@ -21,6 +22,7 @@ import type { OrchestrationRuntimeHost } from "./host.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
 import { planDevResumeOrchestration, resumeResolutionToNextSteps } from "./plan.js";
 import { resumeAllowsAutoReplanToAgent } from "./policy.js";
+import { reconcileCoarsePhaseUntilStable } from "./reconcile-coarse-phase.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
 import type { NextStep, ResumeOrchestrationResolution, RunUntilStopResult } from "./types.js";
 
@@ -113,6 +115,14 @@ export async function runResumeOrchestrationWithReplans(
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
 
+    const reconcileSteps = reconcileCoarsePhaseUntilStable(workItemId);
+    if (reconcileSteps > 0) {
+      host.notify(
+        "info",
+        `Resume: advanced work item coarse phase after ${resolution.agent} (${String(reconcileSteps)} step(s)).`,
+      );
+    }
+
     const nextResolution = planDevResumeOrchestration(workItemId, devConfig);
     if (
       nextResolution.outcome === "spawn" &&
@@ -150,6 +160,8 @@ export interface RunFinishOrchestrationResult {
   resolution: ResumeOrchestrationResolution;
   lastRun: RunUntilStopResult;
   closeout?: { ok: true } | { ok: false; error: string };
+  /** Token/cost rollup for the full work item (includes verify-acceptance when it ran). */
+  workflow_cost_formatted?: string;
 }
 
 export async function runFinishOrchestrationFromResolution(
@@ -173,19 +185,28 @@ export async function runFinishOrchestrationFromResolution(
     } else {
       const terminal = verdictToTerminalOutcome(summary.value.verdict);
       const nextAction = terminal === "done" ? "/commit then open a PR" : `/dev gaps ${workItemId}`;
+      const costReport = buildWorkflowCostReport(workItemId);
       const fin = devFinalizeWorkItem(workItemId, {
         terminal_outcome: terminal,
         next_action: nextAction,
         retro: {
           verify_verdict: summary.value.verdict,
           summary: summary.value.formatted.slice(0, 4000),
+          ...(costReport
+            ? {
+                workflow_cost_usd: costReport.total_cost_usd,
+                workflow_cost: costReport.formatted.slice(0, 4000),
+              }
+            : {}),
         },
       });
       closeout = fin.ok ? { ok: true } : { ok: false, error: fin.error };
     }
   }
 
-  return { resolution, lastRun, closeout };
+  const workflow_cost_formatted = buildWorkflowCostReport(workItemId)?.formatted;
+
+  return { resolution, lastRun, closeout, workflow_cost_formatted };
 }
 
 /**

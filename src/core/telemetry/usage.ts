@@ -36,6 +36,8 @@ export interface UsageLine {
   work_item_id: string;
   /** Logical phase slot: phase agent name or "orchestrator" for the main session. */
   subagent_type: string;
+  /** Plan task id when attributed from the subagent task brief (`task_id:`). */
+  task_id?: number;
   model: string | undefined;
   usage: {
     input: number;
@@ -205,10 +207,36 @@ export function describeHarnessRunMeta(): string {
 }
 
 /** Normalize provider usage.cost (number vs { total }) for append + rollup. */
+/** Extract plan task id from a subagent task brief (`**task_id:** 2` or `task_id: 2`). */
+export function extractTaskIdFromTaskText(task: string): number | null {
+  const match =
+    task.match(/\*\*task_id:\*\*\s*(\d+)/i) ?? task.match(/(?:^|\n)task_id:\s*(\d+)/i);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) && n >= 1 ? Math.trunc(n) : null;
+}
+
+export function readUsageLines(workItemId: string): UsageLine[] {
+  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  if (!fs.existsSync(jsonlPath)) return [];
+  const out: UsageLine[] = [];
+  try {
+    for (const line of fs.readFileSync(jsonlPath, "utf8").trim().split("\n")) {
+      if (!line.trim()) continue;
+      out.push(JSON.parse(line) as UsageLine);
+    }
+  } catch (e) {
+    log.warn(`failed to read usage lines for ${workItemId}: ${e}`);
+  }
+  return out;
+}
+
 export function normalizeUsageCostFields(usage: unknown): UsageLine["usage"] {
   const u = (usage && typeof usage === "object" ? usage : {}) as {
     input?: number;
     output?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
     cacheRead?: number;
     cacheWrite?: number;
     cost?: unknown;
@@ -222,8 +250,8 @@ export function normalizeUsageCostFields(usage: unknown): UsageLine["usage"] {
   else if (c && typeof c === "object" && typeof c.total === "number") cost = c.total;
 
   return {
-    input: u.input || 0,
-    output: u.output || 0,
+    input: u.input || u.prompt_tokens || 0,
+    output: u.output || u.completion_tokens || 0,
     cacheRead: u.cacheRead || 0,
     cacheWrite: u.cacheWrite || 0,
     cost,

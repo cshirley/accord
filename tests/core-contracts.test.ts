@@ -615,9 +615,14 @@ describe("work item lifecycle", () => {
     process.chdir(project);
 
     devBootstrap("LIFE-1", "Lifecycle test", "implement", "standard");
+    mkdirSync(join(project, "docs", "dev", "LIFE-1"), { recursive: true });
+    writeFileSync(join(project, "docs", "dev", "LIFE-1", "brief.md"), "# Brief\n\nAligned.\n");
     writeFileSync(join(project, ".tasks", "LIFE-1-checkpoint.json"), JSON.stringify({ draft: {} }));
 
-    const result = devTransition("LIFE-1", "speccing", { spec: "docs/dev/LIFE-1/spec.json" });
+    const result = devTransition("LIFE-1", "speccing", {
+      brief: "docs/dev/LIFE-1/brief.md",
+      spec: "docs/dev/LIFE-1/spec.json",
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.error);
 

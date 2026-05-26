@@ -31,6 +31,7 @@ import { devRehydrateWorkItem } from "../work-items/rehydrate.js";
 import { devRetro } from "../queries/retro.js";
 import { devReviewQueue } from "../queries/review-queue.js";
 import { devSpecGaps } from "../queries/spec-gaps.js";
+import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
 import {
   devCheckpointDelete,
@@ -387,6 +388,31 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         ok: true,
         text: `${result.value.id}: phase=${result.value.phase}, checkpoint=${result.value.has_checkpoint}, pattern=${result.value.pattern}`,
         details: result.value,
+      };
+    },
+  }),
+
+  defineTool({
+    name: "dev_workflow_cost",
+    label: "Workflow Cost Report",
+    description:
+      "Token and estimated USD cost rollup for a work item from .tasks/<ID>-usage.jsonl, grouped by pipeline phase and plan task.",
+    promptSnippet:
+      "Call on /dev finish (before or after verify) to show per-task input/output tokens and total estimated cost.",
+    parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
+    handler(params) {
+      const report = buildWorkflowCostReport(params.id);
+      if (!report) return { ok: false, text: `Work item not found: ${params.id}` };
+      return {
+        ok: true,
+        text: report.formatted,
+        details: {
+          work_item_id: report.work_item_id,
+          total_input_tokens: report.total_input_tokens,
+          total_output_tokens: report.total_output_tokens,
+          total_cost_usd: report.total_cost_usd,
+          rows: report.rows,
+        },
       };
     },
   }),

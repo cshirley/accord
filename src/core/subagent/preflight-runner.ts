@@ -5,6 +5,7 @@
 import type { DevHarnessConfig } from "../config/index.js";
 import type { HarnessHost } from "../types/host.js";
 import { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
+import { runPipelineArtifactPreflightOnSubagentCall } from "./preflight/pipeline-artifacts.js";
 import { prepareSubagentToolCall } from "./prepare.js";
 import { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
 
@@ -41,6 +42,11 @@ export async function runSubagentToolPreflight(
   );
   if (gather.blockReason) {
     return gather;
+  }
+
+  const pipeline = await runPipelineArtifactPreflightOnSubagentCall(input);
+  if (pipeline.blockReason) {
+    return pipeline;
   }
 
   const verify = await runVerifyPreflightOnSubagentCall(input, options.devConfig);

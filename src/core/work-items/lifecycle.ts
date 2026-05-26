@@ -5,6 +5,10 @@
 import * as path from "node:path";
 import { createLogger } from "../logging.js";
 import { err, ok, type Result } from "../types/result.js";
+import {
+  checkBriefPresentForSpeccing,
+  checkSpecPresentForPlanning,
+} from "../subagent/preflight/pipeline-artifacts.js";
 import { devCheckpointDelete } from "./checkpoint.js";
 import { loadTaskFile, loadWorkItem, now, TASKS_DIR, writeJson } from "./io.js";
 import type {
@@ -99,6 +103,15 @@ export function devTransition(
 ): Result<{ work_item: WorkItem }> {
   const wi = loadWorkItem(id);
   if (!wi) return err(`Work item not found: ${id}`);
+
+  if (nextPhase === "speccing") {
+    const briefGate = checkBriefPresentForSpeccing(id, wi);
+    if (!briefGate.ok) return err(briefGate.reason);
+  }
+  if (nextPhase === "planning") {
+    const specGate = checkSpecPresentForPlanning(id, wi);
+    if (!specGate.ok) return err(specGate.reason);
+  }
 
   wi.phase = nextPhase;
   wi.updated = now();

@@ -885,3 +885,120 @@ describe("harness processSubagentToolResult", () => {
     expect(line).toContain("subagent");
   });
 });
+
+describe("harness pipeline artifact preflight", () => {
+  test("blocks phase-spec when brief missing for implement/standard", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    devBootstrap("GATE-1", "Gate test", "implement", "standard");
+
+    const { runPipelineArtifactPreflightOnSubagentCall } = await import(
+      "../src/core/subagent/preflight/pipeline-artifacts.js"
+    );
+    const r = await runPipelineArtifactPreflightOnSubagentCall({
+      agent: "phase-spec",
+      task: "work_item_id: GATE-1\ncontinue spec",
+    });
+    expect(r.blockReason).toMatch(/Brief required before spec/);
+  });
+
+  test("allows phase-spec when brief exists on disk", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    mkdirSync(join(project, "docs", "dev", "GATE-2"), { recursive: true });
+    writeFileSync(join(project, "docs", "dev", "GATE-2", "brief.md"), "# Problem Brief\n\nBody.\n");
+    devBootstrap("GATE-2", "Gate test 2", "implement", "standard");
+
+    const { runPipelineArtifactPreflightOnSubagentCall } = await import(
+      "../src/core/subagent/preflight/pipeline-artifacts.js"
+    );
+    const r = await runPipelineArtifactPreflightOnSubagentCall({
+      agent: "phase-spec",
+      task: "work_item_id: GATE-2",
+    });
+    expect(r.blockReason).toBeUndefined();
+  });
+});
+
+describe("phase-align post-result", () => {
+  test("advances to speccing when brief on disk", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, "docs", "dev", "ALN-1"), { recursive: true });
+    writeFileSync(join(project, "docs", "dev", "ALN-1", "brief.md"), "# Brief\n\nAligned.\n");
+    devBootstrap("ALN-1", "Align done", "implement", "standard");
+
+    const { applyPhaseAlignPostResult } = await import(
+      "../src/core/orchestration/post-result/phase-align.js"
+    );
+    const out = applyPhaseAlignPostResult("ALN-1", {
+      status: "done",
+      brief_path: "docs/dev/ALN-1/brief.md",
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    expect(out).toMatch(/Brief recorded/);
+    expect(out).toMatch(/speccing/);
+
+    const wi = JSON.parse(readFileSync(join(project, ".tasks", "ALN-1.json"), "utf8"));
+    expect(wi.phase).toBe("speccing");
+    expect(wi.brief).toBe("docs/dev/ALN-1/brief.md");
+  });
+});
+
+describe("dev artifact scope (monorepo app cwd)", () => {
+  function markGitRoot(dir: string): void {
+    mkdirSync(join(dir, ".git"), { recursive: true });
+  }
+
+  test("ignores repo-root brief when cwd is a nested app package", async () => {
+    const repo = tempProject();
+    markGitRoot(repo);
+    const appDir = join(repo, "apps", "portal");
+    mkdirSync(appDir, { recursive: true });
+    mkdirSync(join(repo, "docs", "dev", "APP-1"), { recursive: true });
+    writeFileSync(
+      join(repo, "docs", "dev", "APP-1", "brief.md"),
+      "# Root brief\n\nShould not satisfy app-scoped gates.\n",
+    );
+    mkdirSync(join(appDir, ".tasks"), { recursive: true });
+    process.chdir(appDir);
+    devBootstrap("APP-1", "App scoped", "implement", "standard");
+
+    const { checkBriefPresentForSpeccing } = await import(
+      "../src/core/subagent/preflight/pipeline-artifacts.js"
+    );
+    const missing = checkBriefPresentForSpeccing("APP-1");
+    expect(missing.ok).toBe(false);
+
+    mkdirSync(join(appDir, "docs", "dev", "APP-1"), { recursive: true });
+    writeFileSync(
+      join(appDir, "docs", "dev", "APP-1", "brief.md"),
+      "# App brief\n\nScoped to apps/portal.\n",
+    );
+    const present = checkBriefPresentForSpeccing("APP-1");
+    expect(present.ok).toBe(true);
+    if (present.ok) {
+      expect(present.path.replace(/\\/g, "/")).toMatch(
+        /apps\/portal\/docs\/dev\/APP-1\/brief\.md$/,
+      );
+    }
+  });
+
+  test("resolveDevArtifactPathForId does not walk to repo root from nested cwd", async () => {
+    const repo = tempProject();
+    markGitRoot(repo);
+    const appDir = join(repo, "apps", "portal");
+    mkdirSync(appDir, { recursive: true });
+    mkdirSync(join(repo, "docs", "dev", "APP-2"), { recursive: true });
+    writeFileSync(join(repo, "docs", "dev", "APP-2", "brief.md"), "# Root\n\nOnly at root.\n");
+    process.chdir(appDir);
+
+    const { resolveDevArtifactPathForId } = await import(
+      "../src/core/work-items/artifact-discovery.js"
+    );
+    expect(resolveDevArtifactPathForId("APP-2", "brief")).toBe("docs/dev/APP-2/brief.md");
+    expect(existsSync(join(appDir, "docs", "dev", "APP-2", "brief.md"))).toBe(false);
+  });
+});

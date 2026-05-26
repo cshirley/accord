@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { devNonce } from "../briefing/code-brief.js";
+import { findGitRoot } from "../config/git.js";
 import { loadWorkItem, readJson, TASKS_DIR, writeJson } from "./io.js";
 import type { TaskFile, WorkItem } from "./types.js";
 
@@ -17,8 +18,68 @@ const ARTIFACT_FILE_NAMES: Record<ArtifactKind, string> = {
   plan: "plan.json",
 };
 
-export function devArtifactDir(workItemId: string): string {
+/**
+ * Directory that owns `docs/dev/<id>/` for the current harness session.
+ * When cwd is nested inside a git repo (e.g. `apps/partner-portal`), artifacts
+ * stay under that package — not at the monorepo root.
+ */
+export function devArtifactScopeRoot(cwd: string = process.cwd()): string {
+  return path.resolve(cwd);
+}
+
+/** Relative path from {@link devArtifactScopeRoot} to the work item artifact folder. */
+export function devArtifactDirRel(workItemId: string): string {
   return path.join("docs", "dev", workItemId);
+}
+
+/** Absolute path to `docs/dev/<id>/` for the current scope (nested cwd or repo root). */
+export function devArtifactDir(workItemId: string, cwd?: string): string {
+  return path.join(devArtifactScopeRoot(cwd), devArtifactDirRel(workItemId));
+}
+
+/** Relative artifact path stored on work items and passed to phase agents. */
+export function preferredDevArtifactRelPath(
+  workItemId: string,
+  kind: ArtifactKind,
+): string {
+  return path.join(devArtifactDirRel(workItemId), artifactFileName(kind));
+}
+
+/**
+ * Relative path for `.tasks/` work item fields (`brief`, `spec`, `plan`).
+ * Prefer the scoped layout under cwd; normalize configured/resolved paths when needed.
+ */
+export function artifactPathForWorkItem(
+  workItemId: string,
+  kind: ArtifactKind,
+  resolvedOrConfiguredPath?: string | null,
+): string {
+  const preferred = preferredDevArtifactRelPath(workItemId, kind);
+  if (!resolvedOrConfiguredPath?.trim()) return preferred;
+  const trimmed = resolvedOrConfiguredPath.trim();
+  if (artifactLooksComplete(kind, trimmed, workItemId)) {
+    const scoped = path.join(devArtifactDir(workItemId), artifactFileName(kind));
+    if (path.resolve(trimmed) === path.resolve(scoped)) {
+      return preferred;
+    }
+  }
+  return normalizeArtifactPathForWorkItem(trimmed);
+}
+
+/** Store portable paths on work items (relative to cwd, not absolute). */
+export function normalizeArtifactPathForWorkItem(
+  filePath: string,
+  cwd: string = process.cwd(),
+): string {
+  const trimmed = filePath.trim();
+  if (!trimmed) return trimmed;
+  if (!path.isAbsolute(trimmed)) return trimmed;
+  const resolved = path.resolve(trimmed);
+  const base = path.resolve(cwd);
+  if (resolved === base || resolved.startsWith(base + path.sep)) {
+    return path.relative(base, resolved);
+  }
+  return trimmed;
 }
 
 export function artifactFileName(kind: ArtifactKind): string {
@@ -51,7 +112,17 @@ function uniqueCandidates(candidates: string[]): string[] {
 const MAX_MONOREPO_WALK_UP_DEPTH = 8;
 const REPO_ROOT_SENTINELS = [".git"];
 
+/** Parent walk-up is only used when cwd is the git root (repo-wide docs/dev). */
+function artifactScopeAllowsParentDiscovery(cwd: string = process.cwd()): boolean {
+  const resolved = path.resolve(cwd);
+  const gitRoot = findGitRoot(resolved);
+  if (!gitRoot) return false;
+  return path.resolve(gitRoot) === resolved;
+}
+
 function monorepoDevArtifactCandidates(workItemId: string, fileName: string): string[] {
+  if (!artifactScopeAllowsParentDiscovery()) return [];
+
   const out: string[] = [];
   let current = path.resolve("..");
   let lastDir: string | null = null;
@@ -73,6 +144,7 @@ export function resolveArtifactPath(wi: WorkItem, kind: ArtifactKind, fileName: 
   const configured = configuredArtifactPath(wi, kind);
   if (configured) candidates.push(configured);
   candidates.push(path.join(devArtifactDir(wi.id), fileName));
+  candidates.push(preferredDevArtifactRelPath(wi.id, kind));
   if (wi.spec?.trim()) {
     candidates.push(path.join(path.dirname(wi.spec), fileName));
   }
@@ -84,7 +156,7 @@ export function resolveArtifactPath(wi: WorkItem, kind: ArtifactKind, fileName: 
   for (const candidate of uniqueCandidates(candidates)) {
     if (existsSync(candidate)) return candidate;
   }
-  return configured ?? path.join(devArtifactDir(wi.id), fileName);
+  return configured ?? preferredDevArtifactRelPath(wi.id, kind);
 }
 
 /** Resolve an artifact path by work item id only (no `.tasks/` row required). */
@@ -95,12 +167,13 @@ export function resolveDevArtifactPathForId(
 ): string {
   const candidates = [
     path.join(devArtifactDir(workItemId), fileName),
+    preferredDevArtifactRelPath(workItemId, kind),
     ...monorepoDevArtifactCandidates(workItemId, fileName),
   ];
   for (const candidate of uniqueCandidates(candidates)) {
     if (existsSync(candidate)) return candidate;
   }
-  return path.join(devArtifactDir(workItemId), fileName);
+  return preferredDevArtifactRelPath(workItemId, kind);
 }
 
 interface PlanArtifact {

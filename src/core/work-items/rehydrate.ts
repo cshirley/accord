@@ -10,8 +10,10 @@ import { reconcileCoarsePhaseUntilStable } from "../orchestration/reconcile-coar
 import { err, ok, type Result } from "../types/result.js";
 import {
   artifactLooksComplete,
+  artifactPathForWorkItem,
   bootstrapImplementTasksFromPlan,
   devArtifactDir,
+  normalizeArtifactPathForWorkItem,
   readSpecTitle,
   readTitleFromBrief,
   resolveDevArtifactPathForId,
@@ -94,20 +96,22 @@ function inferImplementStandardLadder(workItemId: string): Result<InferredImplem
   const verify = resolveVerifyPath(workItemId);
 
   if (hasPlan) {
-    let effectiveSpec: string | null = hasSpec ? specPath : null;
+    let effectiveSpec: string | null = hasSpec
+      ? artifactPathForWorkItem(workItemId, "spec", specPath)
+      : null;
     if (!effectiveSpec) {
       const plan = readJson<{ spec?: string }>(planPath);
       const fromPlan = plan?.spec?.trim();
       if (fromPlan && existsSync(fromPlan) && artifactLooksComplete("spec", fromPlan, workItemId)) {
-        effectiveSpec = fromPlan;
+        effectiveSpec = normalizeArtifactPathForWorkItem(fromPlan);
       }
     }
     return ok({
       phase: "implementing",
       title,
-      brief: hasBrief ? briefPath : null,
+      brief: hasBrief ? artifactPathForWorkItem(workItemId, "brief", briefPath) : null,
       spec: effectiveSpec,
-      plan: planPath,
+      plan: artifactPathForWorkItem(workItemId, "plan", planPath),
       verify,
       bootstrapTasks: true,
     });
@@ -117,8 +121,8 @@ function inferImplementStandardLadder(workItemId: string): Result<InferredImplem
     return ok({
       phase: "planning",
       title,
-      brief: hasBrief ? briefPath : null,
-      spec: specPath,
+      brief: hasBrief ? artifactPathForWorkItem(workItemId, "brief", briefPath) : null,
+      spec: artifactPathForWorkItem(workItemId, "spec", specPath),
       plan: null,
       verify,
       bootstrapTasks: false,
@@ -128,7 +132,7 @@ function inferImplementStandardLadder(workItemId: string): Result<InferredImplem
   return ok({
     phase: "speccing",
     title,
-    brief: briefPath,
+    brief: artifactPathForWorkItem(workItemId, "brief", briefPath),
     spec: null,
     plan: null,
     verify,

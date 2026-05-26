@@ -26,6 +26,12 @@ export {
   type PreparedSingleSubagentInput,
 } from "./run-request.js";
 export { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
+export {
+  checkBriefPresentForSpeccing,
+  checkSpecPresentForPlanning,
+  runPipelineArtifactPreflightOnSubagentCall,
+  workItemUsesAlignFirstPipeline,
+} from "./preflight/pipeline-artifacts.js";
 export { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
 export {
   extractAnalysisFromAssistantText,
