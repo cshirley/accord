@@ -7,10 +7,14 @@ import type { DevHarnessConfig } from "../../config/index.js";
 import { devResumeState } from "../../queries/resume-state.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
-import { buildQuickFixPreImplReviewTestBrief } from "../quick-fix.js";
+import { buildImplementSpawnTaskBrief } from "../../briefing/task-requirements.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../types.js";
-import { resolvePrimaryTaskResumeAgentId } from "./primary-task.js";
+import {
+  describeImplementingResumeBlocked,
+  resolveImplementingResumeAgentId,
+  resolvePrimaryTaskResumeAgentId,
+} from "./primary-task.js";
 
 export function parseLeadingWorkItemId(args: string): string | null {
   const trimmed = args.trim();
@@ -78,15 +82,25 @@ export function resolveResumeOrchestration(
 
   const pattern = stateAfterReconcile.pattern;
   const phase = stateAfterReconcile.phase;
-  const agent = resolveResumeAgentId(phase, pattern) ?? resolvePrimaryTaskResumeAgentId(workItemId);
+  const agent =
+    resolveResumeAgentId(phase, pattern) ??
+    (phase === "implementing" && pattern === "implement"
+      ? resolveImplementingResumeAgentId(workItemId)
+      : resolvePrimaryTaskResumeAgentId(workItemId));
 
   if (!agent) {
+    const implementingHint =
+      phase === "implementing" && pattern === "implement"
+        ? describeImplementingResumeBlocked(workItemId)
+        : null;
     return {
       outcome: "blocked",
       messages: [
         {
           level: "warning",
-          text: `Phase "${phase}" (pattern ${pattern}) has no harness resume mapping yet.`,
+          text:
+            implementingHint ??
+            `Phase "${phase}" (pattern ${pattern}) has no harness resume mapping yet.`,
         },
       ],
     };
@@ -117,13 +131,14 @@ export function resolveResumeOrchestration(
   }
 
   const baseTask =
-    buildQuickFixPreImplReviewTestBrief({
+    buildImplementSpawnTaskBrief({
       workItemId: stateAfterReconcile.id,
       phase,
       title: stateAfterReconcile.title,
       pattern: stateAfterReconcile.pattern,
       variant: stateAfterReconcile.variant,
       dispatchAgent: agent,
+      devConfig,
     }) ??
     buildResumeTaskBrief({
       workItemId: stateAfterReconcile.id,

@@ -9,170 +9,23 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import type { DevHarnessConfig } from "../config/index.js";
 import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
+import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { formatCodeTaskBrief, sliceTaskRequirements } from "./task-requirements.js";
 
 export function devCodeBrief(
   workItemId: string,
   taskId: string,
   config: DevHarnessConfig | null,
 ): Result<{ brief: string }> {
-  const wi = loadWorkItem(workItemId);
-  if (!wi) return err(`Work item not found: ${workItemId}`);
-
-  const specPath = wi.spec;
-  const planPath = wi.plan;
-  if (!specPath || !planPath) return err(`Spec or plan not set on work item ${workItemId}`);
-
-  const spec = readJson<Record<string, unknown>>(specPath);
-  const plan = readJson<Record<string, unknown>>(planPath);
-  if (!spec) return err(`Cannot read spec: ${specPath}`);
-  if (!plan) return err(`Cannot read plan: ${planPath}`);
-
-  const tasks = (plan.tasks as unknown[] | undefined) ?? [];
-  const taskRaw = tasks.find((t) => String((t as Record<string, unknown>).id) === String(taskId));
-  if (!taskRaw) return err(`Task ${taskId} not found in plan`);
-  const task = taskRaw as Record<string, unknown>;
-
-  const coveredAcIds = (task.covers_ac as string[] | undefined) ?? [];
-  const criteria = (spec.acceptance_criteria as unknown[] | undefined) ?? [];
-  const coveredAcs = criteria.filter((ac) =>
-    coveredAcIds.includes(String((ac as Record<string, unknown>).id)),
-  );
-
-  const nonce = randomBytes(3).toString("hex");
-  const s: string[] = [];
-
-  s.push("## Code Task Brief");
-  s.push("");
-  s.push(`**work_item_id:** ${workItemId}`);
-  s.push(`**task_id:** ${taskId}`);
-  s.push(`**owner_nonce:** ${nonce}`);
-  s.push(`**task_file_path:** ${path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`)}`);
-  if (wi.brief) s.push(`**brief_path:** ${wi.brief}`);
-  s.push("");
-
-  if (
-    wi.intent_mode ||
-    wi.escalation_ceiling ||
-    wi.target_paths?.length ||
-    wi.out_of_scope?.length ||
-    wi.expected_finish
-  ) {
-    s.push("### Intent Contract");
-    s.push("");
-    if (wi.intent_mode) s.push(`- intent_mode: ${wi.intent_mode}`);
-    if (wi.escalation_ceiling) s.push(`- escalation_ceiling: ${wi.escalation_ceiling}`);
-    if (wi.target_paths?.length) s.push(`- target_paths: ${wi.target_paths.join(", ")}`);
-    if (wi.out_of_scope?.length) s.push(`- out_of_scope: ${wi.out_of_scope.join(", ")}`);
-    if (wi.expected_finish) s.push(`- expected_finish: ${wi.expected_finish}`);
-    s.push("");
+  const parsedId = Number.parseInt(taskId, 10);
+  if (!Number.isFinite(parsedId) || parsedId < 1) {
+    return err(`Invalid task id: ${taskId}`);
   }
-
-  s.push("### Task");
-  s.push("");
-  s.push("```json");
-  s.push(JSON.stringify(task, null, 2));
-  s.push("```");
-  s.push("");
-
-  s.push("### Covered Acceptance Criteria");
-  s.push("");
-  for (const ac of coveredAcs) {
-    const a = ac as Record<string, unknown>;
-    s.push(`- **${a.id}** (${a.type}): ${a.criterion}`);
-  }
-  s.push("");
-
-  const constraints = (spec.constraints as unknown[] | undefined) ?? [];
-  if (constraints.length) {
-    s.push("### Constraints");
-    s.push("");
-    for (const c of constraints)
-      s.push(
-        `- ${typeof c === "string" ? c : String((c as Record<string, unknown>).constraint || JSON.stringify(c))}`,
-      );
-    s.push("");
-  }
-
-  const resolvedQuestions = (spec.resolved_questions as unknown[] | undefined) ?? [];
-  if (resolvedQuestions.length) {
-    s.push("### Resolved Questions");
-    s.push("");
-    for (const q of resolvedQuestions) {
-      const qr = q as Record<string, unknown>;
-      s.push(`- **${qr.question || qr.id}**: ${qr.answer || qr.resolution}`);
-    }
-    s.push("");
-  }
-
-  const scope = spec.scope as Record<string, unknown> | undefined;
-  const scopeIn = (scope?.in as unknown[] | undefined) ?? [];
-  if (scopeIn.length) {
-    s.push("### Scope In");
-    s.push("");
-    for (const si of scopeIn)
-      s.push(
-        `- ${typeof si === "string" ? si : String((si as Record<string, unknown>).item || JSON.stringify(si))}`,
-      );
-    s.push("");
-  }
-
-  const scopeOutItems = (scope?.out as unknown[] | undefined) ?? [];
-  if (scopeOutItems.length) {
-    s.push("### Scope Out");
-    s.push("");
-    for (const so of scopeOutItems) {
-      const sor = so as Record<string, unknown>;
-      s.push(`- ${typeof so === "string" ? so : `${sor.item}: ${sor.reason}`}`);
-    }
-    s.push("");
-  }
-
-  const rejectedAlternatives = (spec.rejected_alternatives as unknown[] | undefined) ?? [];
-  if (rejectedAlternatives.length) {
-    s.push("### Rejected Alternatives");
-    s.push("");
-    for (const ra of rejectedAlternatives) {
-      const r = ra as Record<string, unknown>;
-      s.push(`- **${r.name}**: ${r.reason}`);
-    }
-    s.push("");
-  }
-
-  const guidance = (plan.guidance as unknown[] | undefined) ?? [];
-  if (guidance.length) {
-    s.push("### Plan Guidance");
-    s.push("");
-    for (const g of guidance) {
-      const gr = g as Record<string, unknown>;
-      s.push(`- [${gr.source}] ${gr.directive}`);
-    }
-    s.push("");
-  }
-
-  const reuseCandidates = (plan.reuse_candidates as unknown[] | undefined) ?? [];
-  if (reuseCandidates.length) {
-    s.push("### Reuse Candidates");
-    s.push("");
-    for (const rc of reuseCandidates) {
-      const r = rc as Record<string, unknown>;
-      s.push(`- ${r.path || r.symbol}: ${r.reason || r.note}`);
-    }
-    s.push("");
-  }
-
-  const verification = spec.verification as Record<string, unknown> | undefined;
-  const verCmds =
-    (verification?.commands as string[] | undefined) ?? config?.verification_commands ?? [];
-  if (verCmds.length) {
-    s.push("### Verification Commands");
-    s.push("");
-    for (const cmd of verCmds) s.push(`- \`${cmd}\``);
-    s.push("");
-  }
-
-  return ok({ brief: s.join("\n") });
+  const sliced = sliceTaskRequirements(workItemId, parsedId, config);
+  if (!sliced.ok) return sliced;
+  return ok({ brief: formatCodeTaskBrief(sliced.value) });
 }
 
 export function devNonce(): string {
@@ -275,6 +128,7 @@ function writeQuickFixStubs(
   };
 
   writeJson(specPath, spec);
+  syncSpecMarkdownFromJson(specPath);
   writeJson(planPath, plan);
   return { specPath, planPath };
 }

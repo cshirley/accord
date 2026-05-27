@@ -7,7 +7,7 @@ import { agentRequiresConfig, getAgentMeta } from "../../agents/registry.js";
 import type { DevHarnessConfig } from "../../config/index.js";
 import { devResumeState } from "../../queries/resume-state.js";
 import { isWorkItemPattern } from "../phase-coarse-routing.js";
-import { buildQuickFixPreImplReviewTestBrief } from "../quick-fix.js";
+import { buildImplementSpawnTaskBrief } from "../../briefing/task-requirements.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import type { ResumeOrchestrationResolution } from "../types.js";
 import { buildResumeTaskBrief } from "./resume.js";
@@ -75,13 +75,14 @@ export function resolveForcedAgentOrchestration(
     : `forced_agent: ${agentId}`;
 
   const baseTask =
-    buildQuickFixPreImplReviewTestBrief({
+    buildImplementSpawnTaskBrief({
       workItemId: state.id,
       phase: state.phase,
       title: state.title,
       pattern: state.pattern,
       variant: state.variant,
       dispatchAgent: agentId,
+      devConfig,
     }) ??
     buildResumeTaskBrief({
       workItemId: state.id,

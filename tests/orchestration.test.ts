@@ -161,7 +161,7 @@ describe("resume orchestration", () => {
     }
   });
 
-  test("resolveResumeOrchestration forwards when phase has no mapping (implementing)", () => {
+  test("resolveResumeOrchestration blocks implementing when plan and tasks are missing", () => {
     writeWorkItem("WI-1c", {
       schema_version: "1.0",
       id: "WI-1c",
@@ -182,7 +182,8 @@ describe("resume orchestration", () => {
     const r = resolveResumeOrchestration("WI-1c", minimalDevConfig());
     expect(r.outcome).toBe("blocked");
     if (r.outcome === "blocked") {
-      expect(r.messages[0]?.text).toContain("no harness resume mapping");
+      expect(r.messages[0]?.text).toContain("implementing");
+      expect(r.messages[0]?.text).toContain("plan");
     }
   });
 
@@ -259,8 +260,32 @@ describe("resume orchestration", () => {
 
   test("resolveResumeOrchestration uses primary task phase for implement implementing resume", () => {
     mkdirSync(join(tempCwd, "docs", "dev", "IMP-RES-1"), { recursive: true });
-    writeFileSync(join("docs", "dev", "IMP-RES-1", "spec.json"), "{}\n", "utf8");
-    writeFileSync(join("docs", "dev", "IMP-RES-1", "plan.json"), "{}\n", "utf8");
+    writeFileSync(
+      join("docs", "dev", "IMP-RES-1", "spec.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        acceptance_criteria: [{ id: "AC-1", requirement: "MUST", type: "scenario", scenario: "s" }],
+        verification: { commands: ["bun test"] },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join("docs", "dev", "IMP-RES-1", "plan.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        tasks: [
+          {
+            id: 1,
+            title: "t",
+            covers_ac: ["AC-1"],
+            challenge: false,
+            files: [{ path: "src/a.ts", action: "modify" }],
+            steps: [{ tag: "impl", description: "impl" }],
+          },
+        ],
+      })}\n`,
+      "utf8",
+    );
     writeWorkItem("IMP-RES-1", {
       schema_version: "1.0",
       id: "IMP-RES-1",
@@ -299,7 +324,8 @@ describe("resume orchestration", () => {
     expect(spawned.outcome).toBe("spawn");
     if (spawned.outcome === "spawn") {
       expect(spawned.agent).toBe("phase-code");
-      expect(spawned.task).toContain("dispatch_agent: phase-code");
+      expect(spawned.task).toContain("Task requirements");
+      expect(spawned.task).toContain("abcdef");
     }
   });
 

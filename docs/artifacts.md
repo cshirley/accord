@@ -8,7 +8,8 @@ Committed artifacts — one directory per work item:
 flowchart TB
   subgraph dev["docs/dev/(work-item-id)/"]
     brief["brief.md — phase-align"]
-    spec["spec.json — phase-spec"]
+    spec["spec.json — phase-spec (contract)"]
+    specmd["spec.md — generated from spec.json"]
     plan["plan.json — phase-plan"]
     vjson["verify.json — phase-verify"]
     vmd["verify.md — dev_verify_summary"]
@@ -29,6 +30,8 @@ flowchart TB
 ```
 
 See [`docs/schemas.md`](schemas.md) for the JSON schema each file is validated against.
+
+`spec.md` is **derived** from `spec.json` (including optional `diagrams[]` Mermaid blocks). The harness regenerates it whenever `spec.json` is validated under `docs/dev/<ID>/`. Edit `spec.json` only.
 
 ## Work item IDs
 

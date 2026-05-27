@@ -9,6 +9,7 @@
 
 import { existsSync } from "node:fs";
 import * as path from "node:path";
+import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import { createLogger } from "../logging.js";
 import {
   type ArtifactKind,
@@ -103,6 +104,10 @@ export function reconcileCoarsePhaseBeforeResume(workItemId: string): ReconcileC
       return { advanced: false };
     }
     return { advanced: false };
+  }
+
+  if (rule.artifact === "spec") {
+    syncSpecMarkdownFromJson(artifactPath);
   }
 
   const storedPath = artifactPathForWorkItem(workItemId, rule.artifact, artifactPath);

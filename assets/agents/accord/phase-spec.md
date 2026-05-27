@@ -1,6 +1,6 @@
 ---
 name: phase-spec
-description: "Multi-turn spec interview agent. Given gathered context + prior draft + new answers, either return the next batch of questions (status=needs_input) or finalise docs/dev/<ID>/spec.json (status=done). Orchestrator mediates the user conversation — agent never talks to the user directly."
+description: "Multi-turn spec interview agent. Given gathered context + prior draft + new answers, either return the next batch of questions (status=needs_input) or finalise docs/dev/<ID>/spec.json plus harness-generated spec.md (status=done). Orchestrator mediates the user conversation — agent never talks to the user directly."
 tier: reasoning
 tools:
   read: true
@@ -60,6 +60,42 @@ AC type payloads:
 | `architectural` | `criterion` + `enforcement` (lint rule / CI check) |
 | `property` | `criterion` |
 
+## Architecture diagrams (Mermaid)
+
+Store diagrams in the optional `diagrams[]` field on the final spec JSON. The harness **generates `spec.md` from `spec.json`** after validation — do not write or edit `spec.md` yourself.
+
+### When to add a diagram
+
+| `diagrams[].section` | Add when… | Typical diagram type |
+| --- | --- | --- |
+| `overview` | End-to-end flow across systems before AC detail | `flowchart` |
+| `proposed_solution` | Component boundaries or request/data paths clarify the solution | `flowchart` / `sequenceDiagram` |
+| `scope` | In/out boundaries are easier as a boundary diagram | `flowchart` |
+| `verification` | Test tiers or command pipelines are relational | `flowchart` |
+| `security_topology` | Trust zones, secrets, or auth paths matter | `flowchart` (subgraphs) |
+| `api_contract` | Public surface has multiple callers/callees | `sequenceDiagram` |
+| `deployment` | Rollout, flags, or environment topology is non-trivial | `flowchart` |
+
+Skip diagrams for trivial specs (single-file, docs-only, mechanical fixes). Prefer zero diagrams over noisy ones.
+
+### Diagram rules
+
+1. **Facts live in prose and ACs first** — `problem_statement`, `proposed_solution`, and every `acceptance_criteria[]` entry must state requirements in text. Diagrams compress relationships only; never hide an AC solely in Mermaid.
+2. **Reuse brief diagrams when still accurate** — If `brief.md` already has a Mermaid chart for current state or approach, adapt it into `diagrams[]` (update labels to match spec terms and `AC-N` ids where helpful).
+3. **Small and labelled** — 5–12 nodes; stable IDs (`AuthService`, `phase-spec`, `AC-3`) aligned with code paths and AC references.
+4. **At most one diagram per `section` value** — split concerns across sections rather than one mega-chart.
+5. **Optional `caption`** — short human label rendered above the chart in `spec.md`.
+
+Example `diagrams[]` entry:
+
+```json
+{
+  "section": "proposed_solution",
+  "caption": "Token refresh on 401",
+  "mermaid": "sequenceDiagram\n  participant SPA\n  participant API\n  SPA->>API: request + access JWT\n  API-->>SPA: 401\n  SPA->>API: POST /refresh\n  API-->>SPA: new access JWT"
+}
+```
+
 ## Work performed per spawn
 
 1. **Integrate** — for each entry in `answered` not yet merged into `draft`, write it into the appropriate field. Mark it internally as merged.
@@ -71,7 +107,8 @@ AC type payloads:
    - `schema_version: "1.0"`, `id` = `work_item_id`, `work_item_id` = `work_item_id`, `title`, `date` (today, YYYY-MM-DD).
    - Every MUST AC of type `scenario` has a matching TC in `verification.test_cases`.
    - AC ids are insertion-order unique; no gaps, no renumber.
-5. **Write** — Edit tool → `docs/dev/<work_item_id>/spec.json`. PostToolUse hook validates against `spec-schema.json`. On validation failure, fix the shape — do not strip required fields to appease the validator.
+   - Include `diagrams[]` when [Architecture diagrams (Mermaid)](#architecture-diagrams-mermaid) applies; omit the field when no diagrams are needed.
+5. **Write** — Edit tool → `docs/dev/<work_item_id>/spec.json` only. PostToolUse hook validates against `spec-schema.json` and **regenerates `spec.md`** in the same directory. On validation failure, fix the shape — do not strip required fields to appease the validator. **Do not write `spec.md` manually** — it is derived from JSON.
 6. **Self-review** — spawn `review-spec` via Agent tool, `spec_path = docs/dev/<work_item_id>/spec.json`. Parse its return packet:
    - `critical` findings → fix the spec, re-run `review-spec` (max 2 cycles).
    - `warning` → fix if straightforward; otherwise record in `risks[]`.
@@ -93,7 +130,7 @@ Emit exactly one fenced ```json block last. Matches the injected `return: phase-
 Key content expectations:
 - **`draft`** should be a partial spec conforming to `spec-schema`. Only include fields you've populated so far — empty/missing fields are fine.
 - **`questions`** should be 1–4 focused questions on a single topic. Each question targets a specific schema field.
-- On `done`, the spec is written to disk at `spec_path` and must fully validate against `spec-schema.json`.
+- On `done`, `spec.json` is on disk at `spec_path` and must fully validate against `spec-schema.json`. The harness also writes `spec.md` beside it.
 
 ## Rules
 
@@ -103,4 +140,5 @@ Key content expectations:
 - Never leave topics 13–16 silent. If truly out of scope for this work item, capture a `scope.out` entry with reason — don't omit.
 - Never finalise a spec where a `verification.commands` entry has no corresponding `test_cases[]` of matching tier. If Playwright is in `commands`, at least one e2e-tier TC must reference it.
 - Never talk to the user directly. The orchestrator prints your questions and captures answers.
-- The final JSON on disk is authoritative. No markdown body, no YAML frontmatter.
+- The final JSON on disk is authoritative. `spec.md` is a generated human-readable view — never edit it directly.
+- **Use `diagrams[]` when structure matters.** Follow [Architecture diagrams (Mermaid)](#architecture-diagrams-mermaid); requirements must still appear in AC prose.

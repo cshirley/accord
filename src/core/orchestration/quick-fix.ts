@@ -9,6 +9,7 @@
  */
 
 import * as path from "node:path";
+import { buildImplementSpawnTaskBrief } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/types.js";
 import { loadWorkItem, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
 import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
@@ -145,98 +146,18 @@ export function buildQuickFixPreImplReviewTestBrief(input: {
   pattern: string;
   variant?: string;
   dispatchAgent: string;
+  devConfig?: DevHarnessConfig | null;
 }): string | null {
   if (input.dispatchAgent !== "review-test") {
     return null;
   }
-  if (input.pattern !== "quick_fix" && input.pattern !== "implement") {
-    return null;
-  }
-  const wi = loadWorkItem(input.workItemId);
-  if (!wi?.spec || !wi.plan) {
-    return null;
-  }
-  const spec = readJson<Record<string, unknown>>(wi.spec);
-  const plan = readJson<Record<string, unknown>>(wi.plan);
-  const primaryTaskId = wi.task_ids[0] ?? 1;
-  const taskPath = path.join(TASKS_DIR, `${input.workItemId}-task-${primaryTaskId}.json`);
-  const taskFile = readJson<Record<string, unknown>>(taskPath);
-  if (!spec || !plan || !taskFile) {
-    return null;
-  }
-  const testFiles = (Array.isArray(taskFile.test_files) ? taskFile.test_files : []).filter(
-    (f): f is string => typeof f === "string",
-  );
-  const testStrategy = (taskFile.quick_fix_contract as { test?: { strategy?: string } } | undefined)
-    ?.test?.strategy;
-  if (testFiles.length === 0 && testStrategy !== "no_test") {
-    return null;
-  }
-
-  const tasks = (plan.tasks as unknown[] | undefined) ?? [];
-  const taskRow = tasks.find(
-    (t) => String((t as Record<string, unknown>).id) === String(primaryTaskId),
-  ) as Record<string, unknown> | undefined;
-  if (!taskRow) {
-    return null;
-  }
-
-  const coveredAcIds = (taskRow.covers_ac as string[] | undefined) ?? [];
-  const criteria = (spec.acceptance_criteria as unknown[] | undefined) ?? [];
-  const coveredAcs = criteria.filter((ac) =>
-    coveredAcIds.includes(String((ac as Record<string, unknown>).id)),
-  );
-
-  const verification = spec.verification as Record<string, unknown> | undefined;
-  const allTestCases = (verification?.test_cases as unknown[] | undefined) ?? [];
-  const testCases = allTestCases.filter((tc) => {
-    const covers = (tc as Record<string, unknown>).covers;
-    return typeof covers === "string" && coveredAcIds.includes(covers);
+  return buildImplementSpawnTaskBrief({
+    workItemId: input.workItemId,
+    dispatchAgent: input.dispatchAgent,
+    phase: input.phase,
+    title: input.title,
+    pattern: input.pattern,
+    variant: input.variant,
+    devConfig: input.devConfig ?? null,
   });
-
-  const guidance = (plan.guidance as unknown[] | undefined) ?? [];
-  const engineerGuidance = guidance.filter((g) => {
-    const gr = g as Record<string, unknown>;
-    return gr.source === "engineer";
-  });
-
-  const payload = {
-    mode: "pre-impl" as const,
-    test_files: testFiles,
-    production_files: [] as string[],
-    test_output: "",
-    covered_acs: coveredAcs,
-    test_cases: testCases,
-    task: taskRow,
-    guidance: engineerGuidance,
-    quick_fix_contract: taskFile.quick_fix_contract,
-    ...(testStrategy === "no_test"
-      ? {
-          note: "quick_fix_contract.test.strategy is no_test — review scope, stubs, and contract only (no new test files).",
-        }
-      : {}),
-  };
-
-  const pipelineLabel = input.pattern === "quick_fix" ? "quick fix" : "implement";
-
-  const lines = [
-    `## review-test — ${pipelineLabel} (pre-impl)`,
-    "",
-    "ACCORD harness orchestration built this brief from spec/plan stubs and the per-task file.",
-    "",
-    `**work_item_id:** ${input.workItemId}`,
-    `**work_item_phase:** ${input.phase}`,
-    `**dispatch_agent:** ${input.dispatchAgent}`,
-    `**title:** ${input.title}`,
-    ...(input.variant ? [`**variant:** ${input.variant}`] : []),
-    "",
-    "### Pre-impl payload (read fields below; open test files from disk)",
-    "",
-    "```json",
-    JSON.stringify(payload, null, 2),
-    "```",
-    "",
-    "Return the structured `review-test` result packet required by your agent contract.",
-  ];
-  return lines.join("\n");
 }

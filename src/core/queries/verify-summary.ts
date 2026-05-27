@@ -72,7 +72,14 @@ function renderMarkdownReport(
   const defaultBase = path.join("docs", "dev", id);
   const artifactPaths = [
     ["Brief", wi?.brief || path.join(defaultBase, "brief.md")],
-    ["Spec", wi?.spec || path.join(defaultBase, "spec.json")],
+    ["Spec (JSON)", wi?.spec || path.join(defaultBase, "spec.json")],
+    [
+      "Spec (readable)",
+      path.join(
+        path.dirname(wi?.spec?.trim() ? wi.spec : path.join(defaultBase, "spec.json")),
+        "spec.md",
+      ),
+    ],
     ["Plan", wi?.plan || path.join(defaultBase, "plan.json")],
     ["Machine-readable verify", verifyPath],
   ];

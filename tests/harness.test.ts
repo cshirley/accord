@@ -947,6 +947,55 @@ describe("phase-align post-result", () => {
   });
 });
 
+describe("phase-spec post-result", () => {
+  test("advances to planning and writes spec.md when spec.json on disk", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, "docs", "dev", "SPC-1"), { recursive: true });
+    writeFileSync(
+      join(project, "docs", "dev", "SPC-1", "spec.json"),
+      `${JSON.stringify(
+        {
+          schema_version: "1.0",
+          work_item_id: "SPC-1",
+          title: "Spec done",
+          date: "2026-05-27",
+          problem_statement: "Problem",
+          proposed_solution: "Solution",
+          acceptance_criteria: [
+            { id: "AC-1", requirement: "MUST", type: "constraint", criterion: "Works" },
+          ],
+          scope: { in: ["src"], out: [] },
+          verification: { commands: ["bun test"], test_cases: [] },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    devBootstrap("SPC-1", "Spec path", "implement", "standard");
+    const wiBefore = JSON.parse(readFileSync(join(project, ".tasks", "SPC-1.json"), "utf8"));
+    wiBefore.phase = "speccing";
+    writeFileSync(join(project, ".tasks", "SPC-1.json"), `${JSON.stringify(wiBefore, null, 2)}\n`);
+
+    const { applyPhaseSpecPostResult } = await import(
+      "../src/core/orchestration/post-result/phase-spec.js"
+    );
+    const out = applyPhaseSpecPostResult("SPC-1", {
+      status: "done",
+      spec_path: "docs/dev/SPC-1/spec.json",
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    expect(out).toMatch(/Spec recorded/);
+    expect(out).toMatch(/spec\.md/);
+    expect(out).toMatch(/planning/);
+    expect(existsSync(join(project, "docs", "dev", "SPC-1", "spec.md"))).toBe(true);
+
+    const wi = JSON.parse(readFileSync(join(project, ".tasks", "SPC-1.json"), "utf8"));
+    expect(wi.phase).toBe("planning");
+    expect(wi.spec).toBe("docs/dev/SPC-1/spec.json");
+  });
+});
+
 describe("dev artifact scope (monorepo app cwd)", () => {
   function markGitRoot(dir: string): void {
     mkdirSync(join(dir, ".git"), { recursive: true });

@@ -16,7 +16,7 @@ One round of plan construction. Integrate any new answers, then either ask the n
 ## Expected Input
 
 - `work_item_id` — e.g. `ACCORD-1234`.
-- `spec_path` — path to the JSON spec; read it yourself (schema: `spec-schema.json`).
+- `spec_path` — path to the JSON spec; read it yourself (schema: `spec-schema.json`). Optional: `docs/dev/<ID>/spec.md` in the same directory is a harness-generated readable view (includes Mermaid diagrams from `spec.diagrams[]`).
 - `brief_path` — path to `docs/dev/<ID>/brief.md`. The grounding document from `phase-align`. Read it for narrative understanding of the problem, approach direction, and constraints. Use it to inform guidance questions and task decomposition — especially the "Approach Direction" section which captures the agreed high-level strategy.
 - `reuse_candidates` — array from `phase-explore`, with each candidate's fit label (`use as-is` / `extend` / `compose with` / `partial match only`).
 - `enrichments_dir` — optional path to `.tasks/<ID>-enrichments/`. If present and you need deeper context for planning (e.g. understanding a design doc's migration strategy), read specific cache files from this directory. Do not read all files upfront.
