@@ -243,6 +243,34 @@
               "description": "Max output tokens for the judgment completion. Default: 1536."
             }
           }
+        },
+        "resume": {
+          "type": "object",
+          "description": "Controls how many subagent spawns run in one `/dev resume` before pausing for the user.",
+          "additionalProperties": false,
+          "properties": {
+            "no_auto_chain_agents": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "When the next planned spawn is one of these agent ids, the replan loop stops in the same command. Default: [\"phase-code\"]. Use [] to chain through implementation."
+            },
+            "max_sequential_spawns": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum subagent spawns per `/dev resume` replan loop. Default: 8."
+            }
+          }
+        },
+        "commit": {
+          "type": "object",
+          "description": "Harness git commits during orchestrated implementation (Pi runtime host).",
+          "additionalProperties": false,
+          "properties": {
+            "on_task_done": {
+              "type": "boolean",
+              "description": "When true, after review-code marks a task done, stage task-scoped files and commit without interactive confirmation. Default: false."
+            }
+          }
         }
       }
     }

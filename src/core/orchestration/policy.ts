@@ -122,14 +122,71 @@ export function defaultCriticalReviewLoopPolicy(): CriticalReviewLoopPolicy {
  * Caps for critical-finding retries on **review-test** → **phase-test** and **review-code** → **phase-code**.
  * Falls back to `quick_fix_loop.max_test_review_loops` when `review_loop` is omitted.
  */
-/**
- * Harness subagents that must not be started via the resume replan loop in the same
- * `/dev resume` after an earlier spawn (user runs `/dev resume` again for implementation).
- */
-export const RESUME_NO_AUTO_CHAIN_AGENTS: ReadonlySet<string> = new Set(["phase-code"]);
+/** Default agents that pause the resume replan loop before the next spawn. */
+export const DEFAULT_RESUME_NO_AUTO_CHAIN_AGENTS: readonly string[] = ["phase-code"];
 
-export function resumeAllowsAutoReplanToAgent(agent: string): boolean {
-  return !RESUME_NO_AUTO_CHAIN_AGENTS.has(agent);
+export const DEFAULT_MAX_SEQUENTIAL_RESUME_SPAWNS = 8;
+
+export interface ResumeReplanPolicy {
+  noAutoChainAgents: ReadonlySet<string>;
+  maxSequentialSpawns: number;
+}
+
+export function defaultResumeReplanPolicy(): ResumeReplanPolicy {
+  return {
+    noAutoChainAgents: new Set(DEFAULT_RESUME_NO_AUTO_CHAIN_AGENTS),
+    maxSequentialSpawns: DEFAULT_MAX_SEQUENTIAL_RESUME_SPAWNS,
+  };
+}
+
+/**
+ * Resolves resume replan caps from `orchestration.resume` in Dev Harness JSON.
+ */
+export function resumeReplanPolicyFromDevConfig(
+  config: DevHarnessConfig | null | undefined,
+): ResumeReplanPolicy {
+  const base = defaultResumeReplanPolicy();
+  const raw = config?.orchestration?.resume;
+  if (!raw || typeof raw !== "object") {
+    return base;
+  }
+
+  let noAutoChainAgents = base.noAutoChainAgents;
+  const agentsRaw = raw.no_auto_chain_agents;
+  if (Array.isArray(agentsRaw)) {
+    const ids = agentsRaw.filter((a): a is string => typeof a === "string" && a.length > 0);
+    noAutoChainAgents = new Set(ids);
+  }
+
+  let maxSequentialSpawns = base.maxSequentialSpawns;
+  const maxRaw = raw.max_sequential_spawns;
+  if (typeof maxRaw === "number" && Number.isFinite(maxRaw)) {
+    const floored = Math.floor(maxRaw);
+    if (floored >= 1) {
+      maxSequentialSpawns = floored;
+    }
+  }
+
+  return { noAutoChainAgents, maxSequentialSpawns };
+}
+
+/** @deprecated Use {@link resumeReplanPolicyFromDevConfig} + {@link resumeAllowsAutoReplanToAgent}. */
+export const RESUME_NO_AUTO_CHAIN_AGENTS: ReadonlySet<string> = new Set(
+  DEFAULT_RESUME_NO_AUTO_CHAIN_AGENTS,
+);
+
+export function resumeAllowsAutoReplanToAgent(
+  agent: string,
+  config?: DevHarnessConfig | null,
+): boolean {
+  const policy = resumeReplanPolicyFromDevConfig(config ?? null);
+  return !policy.noAutoChainAgents.has(agent);
+}
+
+export function commitOnTaskDoneFromDevConfig(
+  config: DevHarnessConfig | null | undefined,
+): boolean {
+  return config?.orchestration?.commit?.on_task_done === true;
 }
 
 export function criticalReviewLoopPolicyFromDevConfig(

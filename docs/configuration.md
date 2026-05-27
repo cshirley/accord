@@ -41,6 +41,45 @@ Optional **Phase 5** bounded LLM step before certain `/dev resume` subagent spaw
 
 Also set **`ACCORD_ORCHESTRATION_JUDGMENT=1`** in the Pi environment so the extension actually calls the configured model. Without that env var, judgment is skipped at the host and the harness uses the template appendix when `enabled` is true.
 
+Global defaults can live in `~/.config/pi/agent/accord.json` under `orchestration` (merged into each project's Dev Harness block; project subsections override). Per-project overrides still go in the `## Dev Harness` JSON in `AGENTS.md`.
+
+## Resume replan loop (`orchestration.resume`)
+
+Each `/dev resume` under the core orchestrator can chain multiple subagent spawns until a stop condition. Defaults match `src/core/orchestration/policy.ts`:
+
+| Field | Type | Default | Meaning |
+|-------|------|---------|--------|
+| `no_auto_chain_agents` | string[] | `["phase-code"]` | When the *next* planned spawn is one of these registry ids, the loop stops in the same command. Set `[]` to auto-chain through implementation (and raise `max_sequential_spawns` for multi-task plans). |
+| `max_sequential_spawns` | integer ≥ 1 | `8` | Maximum subagent spawns per `/dev resume` before the loop returns. |
+
+Example — run the full per-task loop (test → review → code → review) without stopping before `phase-code`:
+
+```json
+"orchestration": {
+  "resume": {
+    "no_auto_chain_agents": [],
+    "max_sequential_spawns": 32
+  }
+}
+```
+
+## Per-task commit (`orchestration.commit`)
+
+When `on_task_done` is `true`, the Pi orchestration host commits after **review-code** marks a plan task `done`. This bypasses the interactive `/commit` skill confirmation — use only on branches you are comfortable auto-committing.
+
+| Field | Type | Default | Meaning |
+|-------|------|---------|--------|
+| `on_task_done` | boolean | `false` | Stage task-scoped paths (`plan.tasks[].files`, `test_files`, `docs/dev/<ID>/`) intersected with `git status`, then `git commit`. Records a `harness_task_commit` event on the task file. |
+
+Example:
+
+```json
+"orchestration": {
+  "resume": { "no_auto_chain_agents": [], "max_sequential_spawns": 32 },
+  "commit": { "on_task_done": true }
+}
+```
+
 ## Supported stacks
 
 | Language | Marker | Test | Type check | Lint |

@@ -2,6 +2,7 @@
  * Harness orchestration — deterministic routing (core). Pi adapter executes host I/O.
  */
 
+export * from "./commit-on-task-done.js";
 export * from "./env.js";
 export * from "./graph.js";
 export * from "./guards.js";

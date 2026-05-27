@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { tryCommitOnTaskDone } from "../../../core/orchestration/commit-on-task-done.js";
 import type { OrchestrationRuntimeHost } from "../../../core/orchestration/host.js";
 import {
   buildSingleSubagentRunRequest,
@@ -10,7 +11,11 @@ import {
   readPreparedSingleSubagentInput,
   runSubagentToolPreflight,
 } from "../../../core/subagent/index.js";
-import { loadPricing } from "../../../core/telemetry/usage.js";
+import {
+  extractTaskIdFromTaskText,
+  extractWorkItemId,
+  loadPricing,
+} from "../../../core/telemetry/usage.js";
 import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../../../integrations/pi-subagent.js";
 import type { HookState } from "../hook-state.js";
 import { syncHarnessRunSessionEntry } from "../hook-state.js";
@@ -155,9 +160,32 @@ export function createResumeOrchestrationRuntimeHost(
         },
       });
 
+      let commitAppend = "";
+      if (agent === "review-code" && singleResult.exitCode === 0) {
+        const workItemId = extractWorkItemId(task, { mustExist: true });
+        const taskId = extractTaskIdFromTaskText(task);
+        if (workItemId && taskId != null) {
+          const commitResult = await tryCommitOnTaskDone(
+            workItemId,
+            taskId,
+            state.devConfig,
+            ctx.cwd,
+            ctx.signal,
+          );
+          if (commitResult.ok && commitResult.hash) {
+            commitAppend = `\n\n**Task commit:** \`${commitResult.hash}\` — ${commitResult.message ?? ""}`;
+          } else if (commitResult.ok && commitResult.skipped && commitResult.reason) {
+            commitAppend = `\n\n**Task commit:** skipped (${commitResult.reason}).`;
+          } else if (!commitResult.ok && commitResult.reason) {
+            commitAppend = `\n\n**Task commit failed:** ${commitResult.reason}`;
+            ctx.ui.notify(`Task commit failed: ${commitResult.reason}`, "warning");
+          }
+        }
+      }
+
       const exitLabel =
         singleResult.exitCode === 0 ? "ok" : `exit ${String(singleResult.exitCode)}`;
-      let tail = append ? `\n\n${append}` : "";
+      let tail = append || commitAppend ? `\n\n${append}${commitAppend}` : "";
       if (tail.length > NOTIFY_APPEND_MAX) {
         tail = `${tail.slice(0, NOTIFY_APPEND_MAX)}\n…(truncated)`;
       }

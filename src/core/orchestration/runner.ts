@@ -21,13 +21,11 @@ import { devFinalizeWorkItem } from "../work-items/lifecycle.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
 import { planDevResumeOrchestration, resumeResolutionToNextSteps } from "./plan.js";
-import { resumeAllowsAutoReplanToAgent } from "./policy.js";
+import { resumeAllowsAutoReplanToAgent, resumeReplanPolicyFromDevConfig } from "./policy.js";
 import { reconcileCoarsePhaseUntilStable } from "./reconcile-coarse-phase.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
 import { resolveDevSubcommandOrchestration } from "./resolve/subcommand.js";
 import type { NextStep, ResumeOrchestrationResolution, RunUntilStopResult } from "./types.js";
-
-const DEFAULT_MAX_SEQUENTIAL_RESUME_SPAWNS = 8;
 
 export type ResumeOrchestrationStallReason = "repeat_spawn";
 
@@ -48,9 +46,10 @@ export async function runResumeOrchestrationWithReplans(
   host: OrchestrationRuntimeHost,
   options?: { maxSequentialSpawns?: number },
 ): Promise<RunResumeOrchestrationWithReplansResult> {
+  const resumePolicy = resumeReplanPolicyFromDevConfig(devConfig);
   const maxSequentialSpawns = Math.max(
     1,
-    options?.maxSequentialSpawns ?? DEFAULT_MAX_SEQUENTIAL_RESUME_SPAWNS,
+    options?.maxSequentialSpawns ?? resumePolicy.maxSequentialSpawns,
   );
   let previousSpawnFingerprint: string | undefined;
   let firstResolution: ResumeOrchestrationResolution | undefined;
@@ -125,11 +124,11 @@ export async function runResumeOrchestrationWithReplans(
     const nextResolution = planDevResumeOrchestration(workItemId, devConfig);
     if (
       nextResolution.outcome === "spawn" &&
-      !resumeAllowsAutoReplanToAgent(nextResolution.agent)
+      !resumeAllowsAutoReplanToAgent(nextResolution.agent, devConfig)
     ) {
       host.notify(
         "info",
-        `Resume: next step is **${nextResolution.agent}**. Run \`/dev resume ${workItemId}\` again to continue (one implementation agent per command).`,
+        `Resume: next step is **${nextResolution.agent}**. Run \`/dev resume ${workItemId}\` again to continue (agent is in \`orchestration.resume.no_auto_chain_agents\`).`,
       );
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
@@ -155,9 +154,10 @@ export async function runDevSubcommandOrchestrationWithReplans(
   host: OrchestrationRuntimeHost,
   options?: { maxSequentialSpawns?: number },
 ): Promise<RunResumeOrchestrationWithReplansResult> {
+  const resumePolicy = resumeReplanPolicyFromDevConfig(devConfig);
   const maxSequentialSpawns = Math.max(
     1,
-    options?.maxSequentialSpawns ?? DEFAULT_MAX_SEQUENTIAL_RESUME_SPAWNS,
+    options?.maxSequentialSpawns ?? resumePolicy.maxSequentialSpawns,
   );
   let previousSpawnFingerprint: string | undefined;
   let firstResolution: ResumeOrchestrationResolution | undefined;
@@ -235,11 +235,11 @@ export async function runDevSubcommandOrchestrationWithReplans(
     const nextResolution = planDevResumeOrchestration(workItemId, devConfig);
     if (
       nextResolution.outcome === "spawn" &&
-      !resumeAllowsAutoReplanToAgent(nextResolution.agent)
+      !resumeAllowsAutoReplanToAgent(nextResolution.agent, devConfig)
     ) {
       host.notify(
         "info",
-        `Resume: next step is **${nextResolution.agent}**. Run \`/dev resume ${workItemId}\` again to continue (one implementation agent per command).`,
+        `Resume: next step is **${nextResolution.agent}**. Run \`/dev resume ${workItemId}\` again to continue (agent is in \`orchestration.resume.no_auto_chain_agents\`).`,
       );
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }

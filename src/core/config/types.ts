@@ -36,6 +36,29 @@ export interface DevHarnessOrchestrationConfig {
     agents?: string[];
     max_tokens?: number;
   };
+  /**
+   * `/dev resume` replan loop: which agents may chain in one command and how many spawns max.
+   * Defaults match `src/core/orchestration/policy.ts`.
+   */
+  resume?: {
+    /**
+     * Registry agent ids that stop the replan loop when they are the *next* spawn
+     * (default: `["phase-code"]`). Set `[]` to allow chaining into implementation.
+     */
+    no_auto_chain_agents?: string[];
+    /** Max subagent spawns per `/dev resume` (default: 8). */
+    max_sequential_spawns?: number;
+  };
+  /**
+   * Git commit behaviour during orchestrated implementation (Pi host only).
+   */
+  commit?: {
+    /**
+     * After **review-code** marks a task `done`, stage task-scoped files and commit
+     * without interactive confirmation (default: false).
+     */
+    on_task_done?: boolean;
+  };
 }
 
 export interface DevHarnessConfig {
@@ -107,6 +130,11 @@ export interface UserProviderDef {
 
 export interface DevHarnessGlobalConfig {
   context_sources?: ContextSourceConfig[];
+  /**
+   * Default orchestration overrides for every project with a Dev Harness block.
+   * Project `orchestration` in AGENTS.md is shallow-merged on top (per subsection).
+   */
+  orchestration?: DevHarnessOrchestrationConfig;
   providers?: UserProviderDef[];
   /**
    * Per-developer-machine extension bootstrap preferences. Read by

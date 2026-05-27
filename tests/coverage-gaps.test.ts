@@ -19,7 +19,7 @@ import {
   detectTracker,
   findMonorepoRoot,
 } from "../src/core/config/detect/index.js";
-import { mergeContextSources } from "../src/core/config/global.js";
+import { mergeContextSources, mergeOrchestrationConfig } from "../src/core/config/global.js";
 import { devInitDetect } from "../src/core/config/init-detect.js";
 import { notifyPendingDecisionsIfAny } from "../src/core/harness/index.js";
 import { devTasks } from "../src/core/queries/dashboard.js";
@@ -109,6 +109,29 @@ describe("mergeContextSources", () => {
   test("project can add a source not present globally", () => {
     const merged = mergeContextSources([{ type: "slack" }], [{ type: "wiki", path: "/x" }]);
     expect(merged.map((s) => s.type).sort()).toEqual(["slack", "wiki"]);
+  });
+});
+
+describe("mergeOrchestrationConfig", () => {
+  test("global resume/commit defaults merge with empty project", () => {
+    const merged = mergeOrchestrationConfig(
+      {
+        resume: { no_auto_chain_agents: [], max_sequential_spawns: 32 },
+        commit: { on_task_done: true },
+      },
+      undefined,
+    );
+    expect(merged?.resume?.no_auto_chain_agents).toEqual([]);
+    expect(merged?.commit?.on_task_done).toBe(true);
+  });
+
+  test("project overrides global resume subsection", () => {
+    const merged = mergeOrchestrationConfig(
+      { resume: { no_auto_chain_agents: [], max_sequential_spawns: 32 } },
+      { resume: { max_sequential_spawns: 4 } },
+    );
+    expect(merged?.resume?.max_sequential_spawns).toBe(4);
+    expect(merged?.resume?.no_auto_chain_agents).toEqual([]);
   });
 });
 
