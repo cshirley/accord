@@ -137,13 +137,36 @@ function validateExample(example, schema, _label) {
 
 const exampleFiles = readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json"));
 
+function resolveExampleSchemaPath(exampleFile) {
+  const returnPath = join(RETURN_SCHEMAS_DIR, exampleFile);
+  try {
+    readFileSync(returnPath, "utf8");
+    return returnPath;
+  } catch {
+    const artifactPath = join(SCHEMAS_DIR, exampleFile.replace(/\.json$/, "-schema.json"));
+    try {
+      readFileSync(artifactPath, "utf8");
+      return artifactPath;
+    } catch {
+      return null;
+    }
+  }
+}
+
 for (const exampleFile of exampleFiles) {
-  const schemaPath = join(RETURN_SCHEMAS_DIR, exampleFile);
+  const schemaPath = resolveExampleSchemaPath(exampleFile);
+  if (!schemaPath) {
+    console.error(
+      `✗ ${exampleFile} — no schema at return-schemas/${exampleFile} or ${exampleFile.replace(/\.json$/, "-schema.json")}`,
+    );
+    failures++;
+    continue;
+  }
   let schema;
   try {
     schema = JSON.parse(readFileSync(schemaPath, "utf8"));
-  } catch (_e) {
-    console.error(`✗ ${exampleFile} — schema not found at return-schemas/${exampleFile}`);
+  } catch (e) {
+    console.error(`✗ ${exampleFile} — schema parse error: ${e.message}`);
     failures++;
     continue;
   }

@@ -1,0 +1,32 @@
+[
+  {
+    "schema_version": "1.0",
+    "work_item_id": "ACCORD-1234",
+    "generated_at": "2026-05-27T12:00:00.000Z",
+    "source_usage_file": ".tasks/ACCORD-1234-usage.jsonl",
+    "summary": {
+      "total_input_tokens": 14300,
+      "total_output_tokens": 2300,
+      "total_cost_usd": 0.0842
+    },
+    "rows": [
+      {
+        "scope": "Pipeline",
+        "agent": "phase-align",
+        "calls": 1,
+        "input_tokens": 1000,
+        "output_tokens": 200,
+        "cost_usd": 0.006
+      },
+      {
+        "scope": "Task 1",
+        "agent": "phase-test",
+        "task_id": 1,
+        "calls": 2,
+        "input_tokens": 5000,
+        "output_tokens": 800,
+        "cost_usd": 0.035
+      }
+    ]
+  }
+]

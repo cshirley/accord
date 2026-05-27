@@ -1,12 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { appendFileSync, mkdirSync, rmSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
+import { validateArtifact } from "../src/core/artifacts/validation.js";
+import {
+  devPersistWorkflowCost,
+  syncWorkflowCostMarkdownFromJson,
+  workflowCostJsonPath,
+} from "../src/core/artifacts/workflow-cost-artifact.js";
 import {
   buildWorkflowCostReport,
   formatWorkflowCostForFinish,
 } from "../src/core/queries/workflow-cost.js";
 import { extractTaskIdFromTaskText } from "../src/core/telemetry/usage.js";
+import { loadWorkItem } from "../src/core/work-items/io.js";
 import { devBootstrap } from "../src/core/work-items/lifecycle.js";
 
 let tempRoot: string;
@@ -134,5 +141,55 @@ describe("buildWorkflowCostReport", () => {
     mkdirSync(join(project, ".tasks"), { recursive: true });
     process.chdir(project);
     expect(buildWorkflowCostReport("MISSING-9")).toBeNull();
+  });
+});
+
+describe("devPersistWorkflowCost", () => {
+  test("writes workflow-cost.json, workflow-cost.md, and links work item", async () => {
+    const project = tempProject();
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    process.chdir(project);
+    devBootstrap("COST-2", "Persist cost", "implement", "standard");
+
+    const jsonl = join(project, ".tasks", "COST-2-usage.jsonl");
+    appendFileSync(
+      jsonl,
+      `${JSON.stringify({
+        at: "2026-01-01T00:00:00.000Z",
+        work_item_id: "COST-2",
+        subagent_type: "phase-align",
+        usage: {
+          input: 2000,
+          output: 400,
+          cacheRead: 0,
+          cacheWrite: 0,
+          cost: 0,
+          contextTokens: 0,
+          turns: 1,
+        },
+        source: "subagent",
+      })}\n`,
+      "utf8",
+    );
+
+    const result = devPersistWorkflowCost("COST-2");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+
+    const jsonPath = workflowCostJsonPath("COST-2");
+    const mdPath = join(project, "docs", "dev", "COST-2", "workflow-cost.md");
+    expect(existsSync(join(project, jsonPath))).toBe(true);
+    expect(existsSync(mdPath)).toBe(true);
+
+    const wi = loadWorkItem("COST-2");
+    expect(wi?.workflow_cost).toBe(jsonPath);
+    expect(wi?.cost_usd).toBeGreaterThan(0);
+
+    const validation = await validateArtifact(join(project, jsonPath));
+    expect(validation.valid).toBe(true);
+
+    const sync = syncWorkflowCostMarkdownFromJson(join(project, jsonPath));
+    expect(sync.ok).toBe(true);
+    expect(readFileSync(mdPath, "utf8")).toContain("# Workflow cost: COST-2");
   });
 });

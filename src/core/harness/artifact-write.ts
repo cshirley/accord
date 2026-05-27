@@ -1,5 +1,6 @@
 import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import { validateArtifact } from "../artifacts/validation.js";
+import { syncWorkflowCostMarkdownFromJson } from "../artifacts/workflow-cost-artifact.js";
 import { isHarnessTrackedJsonWritePath, normalizeHarnessRelativePath } from "./paths.js";
 
 /** User-facing block message when validation fails (host maps to tool_result shape). */
@@ -27,6 +28,9 @@ export async function validateHarnessArtifactWriteIfApplicable(
     const normPath = normalizeHarnessRelativePath(filePath);
     if (/\/docs\/dev\/[^/]+\/spec\.json$/i.test(normPath)) {
       syncSpecMarkdownFromJson(filePath);
+    }
+    if (/\/docs\/dev\/[^/]+\/workflow-cost\.json$/i.test(normPath)) {
+      syncWorkflowCostMarkdownFromJson(filePath);
     }
   }
   return { skip: false, valid: result.valid, errors: result.errors };

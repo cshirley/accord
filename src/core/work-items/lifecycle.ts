@@ -3,6 +3,7 @@
  */
 
 import * as path from "node:path";
+import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
 import { createLogger } from "../logging.js";
 import {
   checkBriefPresentForSpeccing,
@@ -145,6 +146,13 @@ export function devFinalizeWorkItem(
   id: string,
   input: FinalizeWorkItemInput,
 ): Result<{ work_item: WorkItem }> {
+  if (!loadWorkItem(id)) return err(`Work item not found: ${id}`);
+
+  const costPersist = devPersistWorkflowCost(id);
+  if (!costPersist.ok) {
+    log.warn(`workflow cost artifact not written for ${id}: ${costPersist.error}`);
+  }
+
   const wi = loadWorkItem(id);
   if (!wi) return err(`Work item not found: ${id}`);
 

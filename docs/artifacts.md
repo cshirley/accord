@@ -13,6 +13,8 @@ flowchart TB
     plan["plan.json — phase-plan"]
     vjson["verify.json — phase-verify"]
     vmd["verify.md — dev_verify_summary"]
+    wcjson["workflow-cost.json — dev_finalize"]
+    wcmd["workflow-cost.md — generated from workflow-cost.json"]
   end
 ```
 
@@ -32,6 +34,8 @@ flowchart TB
 See [`docs/schemas.md`](schemas.md) for the JSON schema each file is validated against.
 
 `spec.md` is **derived** from `spec.json` (including optional `diagrams[]` Mermaid blocks). The harness regenerates it whenever `spec.json` is validated under `docs/dev/<ID>/`. Edit `spec.json` only.
+
+`workflow-cost.json` and `workflow-cost.md` are written at **`/dev finish`** closeout (or `dev_finalize`). They roll up token usage from `.tasks/<ID>-usage.jsonl`. Edit neither file by hand — regenerate by re-running finalize if usage was recorded late.
 
 ## Work item IDs
 

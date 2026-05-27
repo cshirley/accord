@@ -12,6 +12,7 @@ Source of truth for all artifact shapes. Located in `schemas/`.
 | `spec-schema.json` | `docs/dev/<ID>/spec.json` | `work_item_id` |
 | `plan-schema.json` | `docs/dev/<ID>/plan.json` | `work_item_id` |
 | `verify-schema.json` | `docs/dev/<ID>/verify.json` | `work_item_id` |
+| `workflow-cost-schema.json` | `docs/dev/<ID>/workflow-cost.json` | `work_item_id` |
 | `investigation-schema.json` | `.tasks/<ID>-investigation.json` | `work_item_id` |
 | `accord-schema.json` | `## Dev Harness` compatibility config block in AGENTS.md | `schema_version` |
 | `orchestration-judgment-packet.json` | Bounded LLM output merged into resume task text (Phase 5); no routing fields | `schema_version` |

@@ -124,6 +124,10 @@
       }
     },
     "brief": { "type": ["string", "null"] },
+    "workflow_cost": {
+      "type": ["string", "null"],
+      "description": "Relative path to docs/dev/<ID>/workflow-cost.json (written at finalize)"
+    },
     "cost_usd": { "type": "number", "minimum": 0 },
     "timeout_minutes": { "type": "integer", "minimum": 1 },
     "quick_fix_scope": { "type": "array", "items": { "type": "string" } }

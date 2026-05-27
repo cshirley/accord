@@ -74,12 +74,18 @@ function renderMarkdownReport(
     typeof wi.spec === "string" && wi.spec.trim()
       ? wi.spec.trim()
       : path.join(defaultBase, "spec.json");
+  const workflowCostJson =
+    typeof wi.workflow_cost === "string" && wi.workflow_cost.trim()
+      ? wi.workflow_cost.trim()
+      : path.join(defaultBase, "workflow-cost.json");
   const artifactPaths = [
     ["Brief", wi.brief || path.join(defaultBase, "brief.md")],
     ["Spec (JSON)", specJsonPath],
     ["Spec (readable)", path.join(path.dirname(specJsonPath), "spec.md")],
     ["Plan", wi?.plan || path.join(defaultBase, "plan.json")],
     ["Machine-readable verify", verifyPath],
+    ["Workflow cost (JSON)", workflowCostJson],
+    ["Workflow cost (readable)", path.join(path.dirname(workflowCostJson), "workflow-cost.md")],
   ];
 
   const lines: string[] = [
