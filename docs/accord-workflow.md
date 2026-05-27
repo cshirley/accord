@@ -204,7 +204,7 @@ flowchart LR
     RC --> DONE(["task done"])
 ```
 
-`phase-test` writes a failing test mapped to the task's `covers_ac`. `review-test` (read-only) checks assertion quality, AC coverage, and edge cases — runs in parallel with the eventual `review-code` to prevent rationalisation across concerns. `phase-code` implements until the test passes. The post-code hook re-runs the structural commands declared in the project's `## Dev Harness` block; type-check failure is a hard gate, test failure is advisory (the agent may still legitimately have left tests red for the next task).
+`phase-test` writes a failing test mapped to the task's `covers_ac`. `review-test` (read-only, pre-impl) adversarially checks assertion quality, AC coverage, and edge cases before `phase-code` runs. `review-code` (post-impl) reviews production code separately so test and code reviewers do not cross-anchor. The post-code hook re-runs the structural commands declared in the project's `## Dev Harness` block; type-check failure is a hard gate, test failure is advisory (the agent may still legitimately have left tests red for the next task).
 
 `review-code` only runs when the task is flagged `challenge: true` in the plan, or when the code agent emits a `request_review` event mid-task.
 
@@ -270,8 +270,8 @@ All read-only (`write: false, edit: false, bash: false`). All emit findings in t
 | ---------------------- | ---------------------------------------------- | ------------------------------------------- |
 | `review-spec`          | AC consistency, scope coherence, completeness  | After spec draft                            |
 | `review-plan`          | AC coverage, reuse compliance, TDD ordering    | After plan draft                            |
-| `review-test`          | Assertion quality, AC coverage, edge cases     | Before code (pre-impl); during code if challenge |
-| `review-code`          | Correctness, drift from plan, complexity       | After code task if `challenge: true` or `request_review` |
+| `review-test`          | Adversarial test quality, AC coverage, edge cases | **Pre-impl** (after `phase-test`, before `phase-code`); post-impl via `/review` skill on diffs |
+| `review-code`          | Correctness, drift from plan, complexity       | **Post-impl** after `phase-code` (mandatory when review gates on) |
 | `review-security`      | OWASP top 10, auth, payment, input validation  | Changes touching auth/API/payment paths     |
 | `review-design`        | Reasoning quality, citation soundness          | After design draft (`analyse` pattern)      |
 | `review-investigation` | Hypothesis quality, anti-anchoring             | After hypotheses formulated (`investigate`) |
@@ -279,7 +279,7 @@ All read-only (`write: false, edit: false, bash: false`). All emit findings in t
 
 **Auto-downgrade rule.** Findings without `file` + `line` are downgraded to `suggestion` by the orchestrator before being surfaced. There is no path to ship a `critical` finding without a citation.
 
-**Independence.** When `review-test` and `review-code` both run for a task, they are spawned in parallel (independent processes). Neither sees the other's findings until the orchestrator merges them — preventing cross-anchoring.
+**Independence.** `review-test` (pre-impl) and `review-code` (post-impl) run in **separate** processes at different pipeline stages. Neither sees the other's findings until the orchestrator merges them — preventing cross-anchoring. The standalone `/review` skill may spawn both against the same diff in parallel.
 
 ---
 

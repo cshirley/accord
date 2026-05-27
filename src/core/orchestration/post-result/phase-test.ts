@@ -13,6 +13,8 @@ interface PhaseTestDonePacket {
   status: "done";
   test_files: string[];
   red_confirmed?: boolean;
+  test_output?: string;
+  ac_covered?: string[];
 }
 
 function isPhaseTestImplementDonePacket(packet: unknown): packet is PhaseTestDonePacket {
@@ -74,6 +76,15 @@ export function applyPhaseTestPostResult(workItemId: string, packet: unknown): s
     task.test_files = packet.test_files;
     if (typeof packet.red_confirmed === "boolean") {
       task.red_confirmed = packet.red_confirmed;
+    }
+    if (typeof packet.test_output === "string" && packet.test_output.length > 0) {
+      task.test_output = packet.test_output;
+    }
+    if (
+      Array.isArray(packet.ac_covered) &&
+      packet.ac_covered.every((id) => typeof id === "string")
+    ) {
+      task.ac_covered = packet.ac_covered;
     }
 
     const previousPhase = typeof task.phase === "string" ? task.phase : "phase-test";

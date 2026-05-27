@@ -595,6 +595,7 @@ describe("harness processSubagentToolResult", () => {
       status: "done" as const,
       test_files: ["src/qpt.test.ts"],
       red_confirmed: true,
+      test_output: "FAIL: expected 403",
       ac_covered: ["AC-1"],
       deviations_emitted: 0,
       usage: { prompt_tokens: 1, completion_tokens: 1 },
@@ -609,9 +610,13 @@ describe("harness processSubagentToolResult", () => {
     const task = JSON.parse(readFileSync(join(project, ".tasks", "QPT-1-task-1.json"), "utf8")) as {
       phase: string;
       test_files: string[];
+      test_output?: string;
+      ac_covered?: string[];
     };
     expect(task.phase).toBe("review-test");
     expect(task.test_files).toEqual(["src/qpt.test.ts"]);
+    expect(task.test_output).toBe("FAIL: expected 403");
+    expect(task.ac_covered).toEqual(["AC-1"]);
   });
 
   test("applies implement phase-test → review-test handoff after validated phase-test packet", async () => {

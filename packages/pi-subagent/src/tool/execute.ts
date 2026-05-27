@@ -12,7 +12,7 @@ import { SubagentRunError } from "../spawn/types.js";
 import { mapWithConcurrencyLimit } from "./concurrency.js";
 import { MAX_CONCURRENCY, MAX_PARALLEL_TASKS } from "./constants.js";
 import type { SubagentParams, SubagentParams as SubagentParamsInput } from "./params.js";
-import { runSingleAgent } from "./run-single.js";
+import { type RunSingleAgentOptions, runSingleAgent } from "./run-single.js";
 import type { OnUpdateCallback, SingleResult, SubagentDetails } from "./types.js";
 
 type SubagentToolDefinition = ToolDefinition<typeof SubagentParams, SubagentDetails>;
@@ -29,7 +29,7 @@ function buildRunOptions(
     model?: string;
     thinking?: ThinkingLevel;
   } = {},
-): Parameters<typeof runSingleAgent>[8] {
+): RunSingleAgentOptions {
   return {
     agentFile: overrides.agentFile ?? params.agentFile,
     agentScope,

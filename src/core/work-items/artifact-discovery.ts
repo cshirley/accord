@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
-import { devNonce } from "../briefing/code-brief.js";
+import { devNonce } from "../briefing/nonce.js";
 import { findGitRoot } from "../config/git.js";
 import { loadWorkItem, readJson, TASKS_DIR, writeJson } from "./io.js";
 import type { TaskFile, WorkItem } from "./types.js";

@@ -3,11 +3,11 @@
  */
 
 import { agentRequiresConfig, getAgentMeta } from "../../agents/registry.js";
+import { buildImplementSpawnTaskBrief } from "../../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../../config/index.js";
 import { devResumeState } from "../../queries/resume-state.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
-import { buildImplementSpawnTaskBrief } from "../../briefing/task-requirements.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../types.js";
 import {

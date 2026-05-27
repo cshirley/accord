@@ -154,6 +154,6 @@ export function describeImplementingResumeBlocked(workItemId: string): string | 
 
   return [
     `Work item ${workItemId} is in **implementing** but no active task could be resolved.`,
-    "Check \`.tasks/\` task files and \`plan.json\`, or run \`/dev rehydrate\`.",
+    "Check `.tasks/` task files and `plan.json`, or run `/dev rehydrate`.",
   ].join(" ");
 }

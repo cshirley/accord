@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { DevHarnessConfig } from "../src/core/config/index.js";
 import {
   buildImplementSpawnTaskBrief,
   filterTestCasesForAcIds,
   formatAcceptanceCriterionLine,
   sliceTaskRequirements,
 } from "../src/core/briefing/task-requirements.js";
+import type { DevHarnessConfig } from "../src/core/config/index.js";
 import { resolveResumeOrchestration } from "../src/core/orchestration/resolve/resume.js";
 
 function minimalDevConfig(): DevHarnessConfig {
@@ -156,6 +156,97 @@ describe("task-requirements", () => {
       expect(sliced.value.owner_nonce).toBe("aabbcc");
       expect(sliced.value.test_cases).toHaveLength(1);
     }
+  });
+
+  test("buildImplementSpawnTaskBrief passes test_output and spec contract fields to review-test", () => {
+    mkdirSync(join("docs", "dev", "TR-RT"), { recursive: true });
+    writeFileSync(
+      join("docs", "dev", "TR-RT", "spec.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        acceptance_criteria: [
+          { id: "AC-1", requirement: "MUST", type: "scenario", scenario: "does thing" },
+        ],
+        constraints: ["no real network"],
+        scope: { out: [{ item: "legacy API", reason: "deprecated" }] },
+        rejected_alternatives: [{ name: "polling", reason: "too slow" }],
+        verification: {
+          commands: ["bun test"],
+          test_cases: [{ id: "TC-1", covers: "AC-1", scenario: "does thing", tier: "unit" }],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join("docs", "dev", "TR-RT", "plan.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        tasks: [
+          {
+            id: 1,
+            title: "t",
+            covers_ac: ["AC-1"],
+            challenge: false,
+            files: [{ path: "src/a.test.ts", action: "modify" }],
+            steps: [{ tag: "test", description: "red" }],
+          },
+        ],
+        guidance: [{ directive: "use colocated tests", source: "convention" }],
+      })}\n`,
+      "utf8",
+    );
+    writeWorkItem("TR-RT", {
+      schema_version: "1.0",
+      id: "TR-RT",
+      title: "t",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "implementing",
+      spec: "docs/dev/TR-RT/spec.json",
+      plan: "docs/dev/TR-RT/plan.json",
+      verify: null,
+      brief: null,
+      task_ids: [1],
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeFileSync(
+      join(".tasks", "TR-RT-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "TR-RT",
+        task_id: 1,
+        owner_nonce: "ddeeff",
+        phase: "review-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        test_files: ["src/a.test.ts"],
+        red_confirmed: true,
+        test_output: "FAIL: expected 401",
+        ac_covered: ["AC-1"],
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const brief = buildImplementSpawnTaskBrief({
+      workItemId: "TR-RT",
+      dispatchAgent: "review-test",
+      phase: "implementing",
+      title: "t",
+      pattern: "implement",
+      devConfig: minimalDevConfig(),
+    });
+    expect(brief).not.toBeNull();
+    expect(brief).toContain('"test_output": "FAIL: expected 401"');
+    expect(brief).toContain('"constraints"');
+    expect(brief).toContain('"scope_out"');
+    expect(brief).toContain('"rejected_alternatives"');
+    expect(brief).toContain('"ac_covered"');
+    expect(brief).toContain("convention");
   });
 
   test("resolveResumeOrchestration uses rich brief for implementing phase-test", () => {

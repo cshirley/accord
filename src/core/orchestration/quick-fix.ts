@@ -11,7 +11,7 @@
 import * as path from "node:path";
 import { buildImplementSpawnTaskBrief } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/types.js";
-import { loadWorkItem, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
 import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
 import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback.js";
 

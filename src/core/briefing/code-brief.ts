@@ -4,15 +4,17 @@
  * orchestrator's context window.
  */
 
-import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
+import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
-import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { devNonce } from "./nonce.js";
 import { formatCodeTaskBrief, sliceTaskRequirements } from "./task-requirements.js";
+
+export { devNonce };
 
 export function devCodeBrief(
   workItemId: string,
@@ -26,10 +28,6 @@ export function devCodeBrief(
   const sliced = sliceTaskRequirements(workItemId, parsedId, config);
   if (!sliced.ok) return sliced;
   return ok({ brief: formatCodeTaskBrief(sliced.value) });
-}
-
-export function devNonce(): string {
-  return randomBytes(3).toString("hex");
 }
 
 type QuickFixTestStrategy = "existing_tests" | "new_red_test" | "no_test";

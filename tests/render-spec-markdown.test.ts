@@ -18,7 +18,8 @@ describe("renderSpecMarkdown", () => {
           id: "AC-1",
           requirement: "MUST",
           type: "scenario",
-          scenario: "Given an expired access token, When the client refreshes, Then it receives a new token.",
+          scenario:
+            "Given an expired access token, When the client refreshes, Then it receives a new token.",
         },
       ],
       scope: { in: ["src/auth"], out: [] },

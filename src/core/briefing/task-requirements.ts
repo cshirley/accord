@@ -66,6 +66,8 @@ export interface TaskRequirementsSlice {
   };
   quick_fix_contract?: unknown;
   red_confirmed?: boolean;
+  test_output?: string;
+  ac_covered?: string[];
 }
 
 export function filterCoveredAcceptanceCriteria(
@@ -73,9 +75,7 @@ export function filterCoveredAcceptanceCriteria(
   coveredAcIds: string[],
 ): unknown[] {
   const criteria = (spec.acceptance_criteria as unknown[] | undefined) ?? [];
-  return criteria.filter((ac) =>
-    coveredAcIds.includes(String((ac as Record<string, unknown>).id)),
-  );
+  return criteria.filter((ac) => coveredAcIds.includes(String((ac as Record<string, unknown>).id)));
 }
 
 export function filterTestCasesForAcIds(
@@ -120,8 +120,7 @@ export function sliceTaskRequirements(
 
   const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${String(taskId)}.json`);
   const taskFile = readJson<Record<string, unknown>>(taskFilePath);
-  const rawNonce =
-    taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
+  const rawNonce = taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
   const ownerNonce = taskOwnerNonce(rawNonce);
 
   const testFiles = (Array.isArray(taskFile?.test_files) ? taskFile.test_files : []).filter(
@@ -171,6 +170,16 @@ export function sliceTaskRequirements(
       ? { quick_fix_contract: taskFile.quick_fix_contract }
       : {}),
     ...(taskFile?.red_confirmed === true ? { red_confirmed: true } : {}),
+    ...(typeof taskFile?.test_output === "string" && taskFile.test_output.length > 0
+      ? { test_output: taskFile.test_output }
+      : {}),
+    ...(Array.isArray(taskFile?.ac_covered)
+      ? {
+          ac_covered: (taskFile.ac_covered as unknown[]).filter(
+            (id): id is string => typeof id === "string",
+          ),
+        }
+      : {}),
   });
 }
 
@@ -354,19 +363,20 @@ function agentPayloadForSpawn(
   }
 
   if (agent === "review-test") {
-    const engineerGuidance = slice.guidance.filter((g) => {
-      const gr = g as Record<string, unknown>;
-      return gr.source === "engineer";
-    });
     return {
       mode: "pre-impl",
       test_files: slice.test_files,
       production_files: [] as string[],
-      test_output: "",
+      test_output: slice.test_output ?? "",
       covered_acs: slice.covered_acs,
       test_cases: slice.test_cases,
+      constraints: slice.constraints,
+      scope_out: slice.scope_out,
+      rejected_alternatives: slice.rejected_alternatives,
       task: slice.task,
-      guidance: engineerGuidance,
+      guidance: slice.guidance,
+      ...(slice.ac_covered?.length ? { ac_covered: slice.ac_covered } : {}),
+      ...(slice.red_confirmed ? { red_confirmed: true } : {}),
       ...(slice.quick_fix_contract !== undefined
         ? { quick_fix_contract: slice.quick_fix_contract }
         : {}),
