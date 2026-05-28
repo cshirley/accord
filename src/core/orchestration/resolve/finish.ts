@@ -13,9 +13,11 @@ const VERIFY_AGENT = "phase-verify-acceptance";
 
 function workItemHasFinishBlockers(wi: WorkItem): string | null {
   const pendingDecisions = (wi.decisions ?? []).filter((d) => d.status === "pending");
-  const pendingDeviations = (wi.deviations ?? []).filter(
-    (d) => !d.status || d.status === "pending",
-  );
+  const pendingDeviations = (wi.deviations ?? []).filter((d) => {
+    if (d.resolution === "accepted" || d.resolution === "mechanical") return false;
+    if (d.status === "resolved") return false;
+    return true;
+  });
   if (pendingDecisions.length === 0 && pendingDeviations.length === 0) {
     return null;
   }

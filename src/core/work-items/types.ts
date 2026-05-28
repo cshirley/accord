@@ -77,7 +77,10 @@ export interface Deviation {
   description: string;
   reason: string;
   at: string;
+  /** Legacy; prefer `resolution`. */
   status?: string;
+  resolution?: "mechanical" | "blocking" | "accepted";
+  resolved_at?: string;
   blocking_recommendation?: string;
 }
 

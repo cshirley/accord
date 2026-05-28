@@ -29,8 +29,8 @@ export type OrchestratorPreflightResult =
   | { kind: "ready"; workItemId: string; host: OrchestrationRuntimeHost };
 
 export interface OrchestratorPreflightOptions {
-  /** Command name used in the usage warning (e.g. `"resume"`, `"finish"`). */
-  command: "resume" | "finish";
+  /** Command name used in the usage warning (e.g. `"resume"`, `"gaps --tickets"`). */
+  command: string;
   /** Notification label propagated through `spawn` (`"Resume"` or `"Finish"`). */
   spawnNotifyLabel: string;
 }

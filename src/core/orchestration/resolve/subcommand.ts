@@ -19,6 +19,8 @@ export const EXTENSION_ONLY_DEV_SUBCOMMANDS = new Set([
   "init",
   "spec-gaps",
   "review",
+  "gaps",
+  "deviations",
 ]);
 
 const FORCED_AGENT_BY_SUBCOMMAND: Readonly<Record<string, string>> = {

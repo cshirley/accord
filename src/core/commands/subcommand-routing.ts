@@ -20,14 +20,14 @@ const ROUTING: Readonly<Record<string, DevSubcommandOwner>> = {
   init: "extension_local",
   "spec-gaps": "extension_local",
   review: "extension_local",
+  gaps: "extension_local",
+  deviations: "extension_local",
   resume: "core_orchestrator",
   finish: "core_orchestrator",
   align: "core_orchestrator",
   spec: "core_orchestrator",
   plan: "core_orchestrator",
   check: "core_orchestrator",
-  gaps: "core_orchestrator",
-  deviations: "core_orchestrator",
   "amend-spec": "core_orchestrator",
 } as const;
 

@@ -1,12 +1,8 @@
 /**
- * High-contrast `/dev tasks` output in the Pi chat (avoids dim `showStatus` notify styling).
+ * Line styling for `/dev tasks` dashboard output (rendered via dev-formatted-display).
  */
 
-import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
-import { Box, Container, Spacer, Text } from "@earendil-works/pi-tui";
-import { NOTIFY_SLICE } from "./notify.js";
-
-export const DEV_TASKS_MESSAGE_TYPE = "dev-tasks-dashboard";
+import type { Theme } from "@earendil-works/pi-coding-agent";
 
 const INDENT = "  ";
 
@@ -70,58 +66,4 @@ export function styleTasksDashboardLine(theme: Theme, line: string): string {
     default:
       return theme.fg("text", trimmed);
   }
-}
-
-function truncateFormatted(formatted: string): string {
-  if (formatted.length <= NOTIFY_SLICE) return formatted;
-  return `${formatted.slice(0, NOTIFY_SLICE)}\n…(truncated)`;
-}
-
-function buildTasksDashboardComponent(formatted: string, theme: Theme): Container {
-  const container = new Container();
-  container.addChild(new Spacer(1));
-
-  const labelBox = new Box(0, 0, (t) => theme.bg("customMessageBg", t));
-  labelBox.addChild(new Text(theme.bold(theme.fg("customMessageLabel", "[dev tasks]")), 0, 0));
-  container.addChild(labelBox);
-
-  const bodyBox = new Box(1, 1, (t) => theme.bg("customMessageBg", t));
-  for (const line of formatted.split("\n")) {
-    if (line.trimEnd().length === 0) {
-      bodyBox.addChild(new Spacer(1));
-      continue;
-    }
-    const styled = styleTasksDashboardLine(theme, line);
-    if (styled) {
-      bodyBox.addChild(new Text(styled, 0, 0));
-    }
-  }
-  container.addChild(bodyBox);
-  container.addChild(new Spacer(1));
-  return container;
-}
-
-export function registerTasksDashboardRenderer(pi: ExtensionAPI): void {
-  pi.registerMessageRenderer(DEV_TASKS_MESSAGE_TYPE, (message, _options, theme) => {
-    const details = message.details as TasksDashboardMessageDetails | undefined;
-    const formatted =
-      typeof details?.formatted === "string" ? details.formatted : String(message.content ?? "");
-    return buildTasksDashboardComponent(truncateFormatted(formatted), theme);
-  });
-}
-
-/** Post a styled dashboard block in the session transcript (`toolOutput` / `text`, not dim status). */
-export function displayTasksDashboard(
-  pi: ExtensionAPI,
-  ctx: Pick<ExtensionCommandContext, "hasUI">,
-  formatted: string,
-): void {
-  if (!ctx.hasUI) return;
-  const body = truncateFormatted(formatted);
-  pi.sendMessage({
-    customType: DEV_TASKS_MESSAGE_TYPE,
-    content: body.split("\n")[0] ?? "Work items",
-    display: true,
-    details: { formatted: body } satisfies TasksDashboardMessageDetails,
-  });
 }

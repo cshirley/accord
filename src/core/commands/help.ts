@@ -13,8 +13,9 @@ function buildHelpText(): string {
   return `/dev — agentic harness entry point
 
 Routing (deterministic):
-  Local in extension: help, tasks, retro, tag, rehydrate, init, spec-gaps, review.
-  Core orchestrator (default): resume, finish, align, spec, plan, check, gaps, deviations, amend-spec.
+  Local in extension: help, tasks, retro, tag, rehydrate, init, spec-gaps, review, gaps, deviations.
+  Core orchestrator (default): resume, finish, align, spec, plan, check, amend-spec.
+  gaps --tickets / deviations review spawn phase agents when orchestrator is enabled.
   Set ACCORD_CORE_ORCHESTRATOR=0 to disable programmatic spawns (not recommended; bundled accord skill removed).
   Free text: core runs intent rules as dev_intent (and may bootstrap a ticket-shaped work item), then resumes when an ID is present; otherwise continues in this session with dev_* tools.
 
@@ -49,7 +50,8 @@ Examples:
  /dev resume ACCORD-1234           continue at the work item's phase
  /dev finish ACCORD-1234           verify, summarize, and finalize after implementation
  /dev check ACCORD-1234            rerun lower-level acceptance checks
- /dev gaps ACCORD-1234             create tickets for verify gaps
+ /dev gaps ACCORD-1234             list verify gaps (add --tickets for Jira follow-ups)
+ /dev deviations ACCORD-1234       list pending plan deviations (accept|revert|review)
 
 State lives in .tasks/ (runtime) and docs/dev/<ID>/ (committed).
 Safe to /clear between rounds — resume with /dev resume <ID>.`;

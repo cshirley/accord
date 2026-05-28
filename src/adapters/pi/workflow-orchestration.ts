@@ -58,7 +58,7 @@ export async function tryDevSubcommandViaCoreOrchestrator(
   }
 
   const preflight = runOrchestratorPreflight(args, pi, ctx, state, {
-    command: subcommand === "finish" ? "finish" : "resume",
+    command: subcommand,
     spawnNotifyLabel: subcommand,
   });
   if (preflight.kind !== "ready") {

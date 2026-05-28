@@ -32,7 +32,11 @@ export function devReviewQueue(): ReviewQueueResult {
       }
     }
     for (const dev of wi.deviations || []) {
-      if (!dev.status || dev.status === "pending") {
+      const resolved =
+        dev.resolution === "accepted" ||
+        dev.resolution === "mechanical" ||
+        dev.status === "resolved";
+      if (!resolved) {
         deviations.push({ work_item_id: wi.id, deviation: dev });
       }
     }

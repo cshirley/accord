@@ -28,9 +28,15 @@ import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import { devTasks } from "../../core/queries/dashboard.js";
 import { notifyTruncated } from "./notify.js";
-import { displayTasksDashboard, registerTasksDashboardRenderer } from "./tasks-dashboard-display.js";
+import {
+  displayDevQueryOutput,
+  displayTasksDashboard,
+  registerTasksDashboardRenderer,
+} from "./dev-formatted-display.js";
 import { devRetro } from "../../core/queries/retro.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
+import { devDeviations } from "../../core/queries/deviations.js";
+import { devGaps, gapsArgsWantTickets } from "../../core/queries/gaps.js";
 import { devSpecGaps } from "../../core/queries/spec-gaps.js";
 import {
   clearHarnessRunTag,
@@ -114,7 +120,11 @@ export default function (pi: ExtensionAPI) {
     }
     if (route.type === "known" && route.subcommand === "retro") {
       const result = devRetro();
-      ctx.ui.notify(result.ok ? result.value.formatted : result.error, "info");
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "retro", result.value.formatted);
       return;
     }
 
@@ -195,19 +205,80 @@ export default function (pi: ExtensionAPI) {
         return;
       }
       const result = devSpecGaps(workItemId);
-      ctx.ui.notify(
-        result.ok ? result.value.formatted : result.error,
-        result.ok ? "info" : "error",
-      );
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "spec-gaps", result.value.formatted);
       return;
     }
 
     if (route.type === "known" && route.subcommand === "review") {
-      ctx.ui.notify(devReviewQueue().formatted, "info");
+      displayDevQueryOutput(pi, ctx, "review", devReviewQueue().formatted);
       ctx.ui.notify(
         "Drain pending items with the appropriate `review-*` subagent when action is required.",
         "info",
       );
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "gaps") {
+      const parsed = parseKnownDevSubcommandArgs("gaps", route.args);
+      const workItemId = parsed.leadingWorkItemId;
+      if (!workItemId) {
+        ctx.ui.notify("Usage: `/dev gaps <work-item-id> [--tickets]`", "warning");
+        return;
+      }
+      const wantTickets = gapsArgsWantTickets(route.args);
+      const result = devGaps(workItemId, { spawnTickets: wantTickets });
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "gaps", result.value.formatted);
+      if (result.value.spawn_tickets) {
+        const orchOutcome = await tryDevSubcommandViaCoreOrchestrator(
+          "gaps",
+          route.args,
+          pi,
+          ctx,
+          state,
+        );
+        if (orchOutcome === "orchestrator_disabled") {
+          ctx.ui.notify(ORCHESTRATOR_DISABLED_MESSAGE, "warning");
+        }
+      }
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "deviations") {
+      const parsed = parseKnownDevSubcommandArgs("deviations", route.args);
+      const workItemId = parsed.leadingWorkItemId;
+      if (!workItemId) {
+        ctx.ui.notify(
+          "Usage: `/dev deviations <work-item-id> [accept|revert|review] [task_id]`",
+          "warning",
+        );
+        return;
+      }
+      const result = devDeviations(route.args);
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "deviations", result.value.formatted);
+      if (result.value.spawn_review) {
+        const orchOutcome = await tryDevSubcommandViaCoreOrchestrator(
+          "deviations",
+          route.args,
+          pi,
+          ctx,
+          state,
+        );
+        if (orchOutcome === "orchestrator_disabled") {
+          ctx.ui.notify(ORCHESTRATOR_DISABLED_MESSAGE, "warning");
+        }
+      }
       return;
     }
 

@@ -52,7 +52,11 @@ export interface TasksDashboardResult {
 }
 
 function countPendingDeviations(deviations: Deviation[] | undefined): number {
-  return (deviations || []).filter((d) => !d.status || d.status === "pending").length;
+  return (deviations || []).filter((d) => {
+    if (d.resolution === "accepted" || d.resolution === "mechanical") return false;
+    if (d.status === "resolved") return false;
+    return true;
+  }).length;
 }
 
 function formatRelativeUpdated(iso: string): string {
