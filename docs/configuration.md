@@ -29,6 +29,31 @@ Example:
 }
 ```
 
+## Implement review retry policy (`orchestration.review_loop`)
+
+When **`review-test`** or **`review-code`** completes for an **`implement`** work item (or **`review-code`** on **quick_fix**), the harness uses `orchestration.review_loop`:
+
+| Field | Type | Default | Meaning |
+|-------|------|---------|--------|
+| `max_critical_retries` | integer ≥ 0 | `3` | Max retries per agent loop when gated findings fire. |
+| `severity_gate` | `"none"` \| `"warn"` \| `"block"` | `"block"` | Which severities consume a retry: `block` = critical only; `warn` = warning or critical; `none` = any finding. |
+| `review_test` | object | — | Optional override for **review-test** → **phase-test** (`severity_gate`, `max_retries`). |
+| `review_code` | object | — | Optional override for **review-code** → **phase-code**. |
+
+Example (strict test review, lenient code review):
+
+```json
+"orchestration": {
+  "review_loop": {
+    "severity_gate": "block",
+    "max_critical_retries": 3,
+    "review_test": { "severity_gate": "warn", "max_retries": 5 }
+  }
+}
+```
+
+Post-result footers and resume briefs echo the active gate (`severity_gate=…`).
+
 ## Orchestration judgment (`orchestration.judgment`, Pi)
 
 Optional **Phase 5** bounded LLM step before certain `/dev resume` subagent spawns (default agents: `review-test`, `phase-test`). The model returns JSON validated against `schemas/orchestration-judgment-packet.json`; invalid output gets a **template** appendix instead. Routing stays in core — the packet must not include agent or tool routing fields.

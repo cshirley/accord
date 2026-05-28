@@ -212,13 +212,48 @@
         },
         "review_loop": {
           "type": "object",
-          "description": "Critical finding retries after **review-test** or **review-code** (findings persisted on the task file as `last_review_feedback`).",
+          "description": "Finding retries after **review-test** or **review-code** for implement (and quick-fix **review-code**). Findings persisted on the task file as `last_review_feedback`.",
           "additionalProperties": false,
           "properties": {
             "max_critical_retries": {
               "type": "integer",
               "minimum": 0,
-              "description": "Max retries per loop when findings include severity `critical`. Default: 3."
+              "description": "Max retries per loop when gated findings fire. Default: 3."
+            },
+            "severity_gate": {
+              "type": "string",
+              "enum": ["none", "warn", "block"],
+              "description": "Which severities consume a retry when verdict is `issues`: `block` = critical only (default), `warn` = warning or critical, `none` = any finding."
+            },
+            "review_test": {
+              "type": "object",
+              "description": "Optional override for **review-test** → **phase-test** retries (implement / quick-fix review-code path uses review_loop defaults when omitted).",
+              "additionalProperties": false,
+              "properties": {
+                "severity_gate": {
+                  "type": "string",
+                  "enum": ["none", "warn", "block"]
+                },
+                "max_retries": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "review_code": {
+              "type": "object",
+              "description": "Optional override for **review-code** → **phase-code** retries.",
+              "additionalProperties": false,
+              "properties": {
+                "severity_gate": {
+                  "type": "string",
+                  "enum": ["none", "warn", "block"]
+                },
+                "max_retries": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
             }
           }
         },
@@ -241,6 +276,17 @@
               "minimum": 256,
               "maximum": 8192,
               "description": "Max output tokens for the judgment completion. Default: 1536."
+            }
+          }
+        },
+        "review": {
+          "type": "object",
+          "description": "Review orchestration hints (messaging only).",
+          "additionalProperties": false,
+          "properties": {
+            "parallel_prefer_sequential_on_timeout": {
+              "type": "boolean",
+              "description": "When true (default), parallel review-test + review-code timeouts suggest sequential re-run in subagent result processing."
             }
           }
         },

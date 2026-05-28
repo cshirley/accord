@@ -4,6 +4,7 @@
  */
 
 import type { DevHarnessConfig } from "../../config/types.js";
+import { severityGateRemediationLabel } from "../policy.js";
 import {
   decideAfterReviewCode,
   isReviewReturnPacket,
@@ -37,7 +38,7 @@ export function applyReviewCodePostResult(
     persistLastReviewFeedback(task, "review-code", packet, timestamp);
 
     const counters = readReviewLoopCounters(task);
-    const decision = decideAfterReviewCode(counters, packet, devConfig);
+    const decision = decideAfterReviewCode(counters, packet, devConfig, wi.pattern);
 
     if ("blocked" in decision) {
       task.status = "blocked";
@@ -72,14 +73,15 @@ export function applyReviewCodePostResult(
       task.status = "pending";
 
       const label = onQuickFix ? "Quick-fix" : "Implement";
+      const gateLabel = severityGateRemediationLabel(decision.retryPolicy.severityGate);
       footer = [
         "",
         "",
-        `**${label} (review-code):** critical findings — retrying **phase-code**.`,
+        `**${label} (review-code):** ${gateLabel} — retrying **phase-code** (gate \`${decision.retryPolicy.severityGate}\`).`,
         "",
         `- Task phase: \`${previousPhase}\` → \`phase-code\`.`,
         `- Findings: \`last_review_feedback\` on the per-task JSON.`,
-        `- Used ${String(readReviewLoopCounters(task).code_review_retries_used)} code-review retry slot(s).`,
+        `- Used ${String(readReviewLoopCounters(task).code_review_retries_used)} / ${String(decision.retryPolicy.maxRetries)} code-review retry slot(s).`,
         "",
         "Run `/dev resume` for **phase-code**; prior feedback is appended to the harness brief.",
       ].join("\n");
@@ -106,7 +108,7 @@ export function applyReviewCodePostResult(
       `- Task phase: \`${previousPhase}\` (unchanged); \`status\` → \`done\`.`,
       `- Findings: \`last_review_feedback\` on the per-task JSON.`,
       packet.verdict === "issues"
-        ? "- Verdict: `issues` without critical findings — advisory only."
+        ? `- Verdict: \`issues\` below repo gate (\`${decision.retryPolicy.severityGate}\`) — advisory only.`
         : "- Verdict: `clean`.",
       "",
       onQuickFix

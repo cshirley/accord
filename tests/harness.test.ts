@@ -754,6 +754,60 @@ describe("harness processSubagentToolResult", () => {
     expect(task.quick_fix_loop?.test_review_cycles_used).toBe(0);
   });
 
+  test("review-test warning-only issues retry phase-test when severity_gate is warn", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("QRT-4", "warn gate", "quick_fix", undefined, quickFixIntent());
+    persistPrimaryTaskId(project, "QRT-4");
+    writeFileSync(
+      join(project, ".tasks", "QRT-4-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "QRT-4",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "review-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        quick_fix_loop: { test_review_cycles_used: 0 },
+        quick_fix_contract: quickFixContractFixture("existing_tests"),
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const reviewPacket = {
+      verdict: "issues" as const,
+      findings: [
+        {
+          severity: "warning" as const,
+          issue: "missing negative case",
+          evidence: "e",
+          recommendation: "r",
+          file: "src/qrt4.test.ts",
+          line: 1,
+        },
+      ],
+    };
+    const out = await processSingleSubagentAssistantText(
+      "review-test",
+      "Review tests for QRT-4",
+      fencedJsonAssistantBody(reviewPacket),
+      emptyHarnessState(
+        sampleConfig({
+          orchestration: { quick_fix_loop: { severity_gate: "warn", max_test_review_loops: 3 } },
+        }),
+      ),
+    );
+    expect(out).toMatch(/retrying \*\*phase-test\*\*/i);
+    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-4-task-1.json"), "utf8")) as {
+      phase: string;
+      quick_fix_loop?: { test_review_cycles_used: number };
+    };
+    expect(task.phase).toBe("phase-test");
+    expect(task.quick_fix_loop?.test_review_cycles_used).toBe(1);
+  });
+
   test("review-test warning-only issues advance to phase-code (no devConfig)", async () => {
     const project = tempProject();
     process.chdir(project);

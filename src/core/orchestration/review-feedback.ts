@@ -2,13 +2,15 @@
  * Review feedback persistence, critical-issue retry policy, and resume brief supplements.
  */
 
+import { loadDevHarnessConfig } from "../config/index.js";
 import type { DevHarnessConfig } from "../config/types.js";
 import { loadTaskFile, loadWorkItem } from "../work-items/io.js";
 import {
-  criticalReviewLoopPolicyFromDevConfig,
   DEFAULT_MAX_CRITICAL_REVIEW_RETRIES,
+  findingsTriggerReviewRetry,
+  reviewRetryPolicyForAgent,
+  severityGateRemediationLabel,
 } from "./policy.js";
-import { maxFindingSeverityRank } from "./quick-fix.js";
 
 export type ReviewTestVerdict = "clean" | "issues";
 
@@ -44,8 +46,6 @@ export interface ReviewLoopCounters {
   code_review_retries_used: number;
 }
 
-const SEVERITY_CRITICAL_RANK = 3;
-
 export function isReviewReturnPacket(packet: unknown): packet is ReviewReturnPacket {
   if (!packet || typeof packet !== "object") {
     return false;
@@ -65,8 +65,9 @@ export function isReviewReturnPacket(packet: unknown): packet is ReviewReturnPac
   );
 }
 
+/** True when findings meet the default implement gate (`block` = critical only). */
 export function hasCriticalFindings(findings: ReadonlyArray<ReviewFinding>): boolean {
-  return maxFindingSeverityRank(findings) >= SEVERITY_CRITICAL_RANK;
+  return findingsTriggerReviewRetry(findings, "block");
 }
 
 export function readReviewLoopCounters(task: Record<string, unknown>): ReviewLoopCounters {
@@ -169,48 +170,59 @@ export function decideAfterReviewTest(
   counters: ReviewLoopCounters,
   packet: ReviewReturnPacket,
   devConfig: DevHarnessConfig | null | undefined,
+  pattern: string,
 ):
-  | { nextPhase: "phase-test" | "phase-code"; bumpTestRetry: boolean }
+  | {
+      nextPhase: "phase-test" | "phase-code";
+      bumpTestRetry: boolean;
+      retryPolicy: ReturnType<typeof reviewRetryPolicyForAgent>;
+    }
   | { blocked: true; reason: string } {
-  const policy = criticalReviewLoopPolicyFromDevConfig(devConfig);
+  const retryPolicy = reviewRetryPolicyForAgent(devConfig, pattern, "review-test");
 
   if (packet.verdict === "clean") {
-    return { nextPhase: "phase-code", bumpTestRetry: false };
+    return { nextPhase: "phase-code", bumpTestRetry: false, retryPolicy };
   }
-  if (!hasCriticalFindings(packet.findings)) {
-    return { nextPhase: "phase-code", bumpTestRetry: false };
+  if (!findingsTriggerReviewRetry(packet.findings, retryPolicy.severityGate)) {
+    return { nextPhase: "phase-code", bumpTestRetry: false, retryPolicy };
   }
-  if (counters.test_review_retries_used >= policy.maxCriticalRetries) {
+  if (counters.test_review_retries_used >= retryPolicy.maxRetries) {
     return {
       blocked: true,
-      reason: `Review-test critical-issue retry cap reached (${String(policy.maxCriticalRetries)}). Delegate to accord skill or raise orchestration.review_loop.max_critical_retries.`,
+      reason: `Review-test retry cap reached (${String(retryPolicy.maxRetries)}; severity_gate=${retryPolicy.severityGate}). Delegate to accord skill or raise orchestration.review_loop / quick_fix_loop limits.`,
     };
   }
-  return { nextPhase: "phase-test", bumpTestRetry: true };
+  return { nextPhase: "phase-test", bumpTestRetry: true, retryPolicy };
 }
 
 export function decideAfterReviewCode(
   counters: ReviewLoopCounters,
   packet: ReviewReturnPacket,
   devConfig: DevHarnessConfig | null | undefined,
+  pattern: string,
 ):
-  | { nextPhase: "phase-code"; bumpCodeRetry: boolean; markDone: boolean }
+  | {
+      nextPhase: "phase-code";
+      bumpCodeRetry: boolean;
+      markDone: boolean;
+      retryPolicy: ReturnType<typeof reviewRetryPolicyForAgent>;
+    }
   | { blocked: true; reason: string } {
-  const policy = criticalReviewLoopPolicyFromDevConfig(devConfig);
+  const retryPolicy = reviewRetryPolicyForAgent(devConfig, pattern, "review-code");
 
   if (packet.verdict === "clean") {
-    return { nextPhase: "phase-code", bumpCodeRetry: false, markDone: true };
+    return { nextPhase: "phase-code", bumpCodeRetry: false, markDone: true, retryPolicy };
   }
-  if (!hasCriticalFindings(packet.findings)) {
-    return { nextPhase: "phase-code", bumpCodeRetry: false, markDone: true };
+  if (!findingsTriggerReviewRetry(packet.findings, retryPolicy.severityGate)) {
+    return { nextPhase: "phase-code", bumpCodeRetry: false, markDone: true, retryPolicy };
   }
-  if (counters.code_review_retries_used >= policy.maxCriticalRetries) {
+  if (counters.code_review_retries_used >= retryPolicy.maxRetries) {
     return {
       blocked: true,
-      reason: `Review-code critical-issue retry cap reached (${String(policy.maxCriticalRetries)}). Delegate to accord skill or raise orchestration.review_loop.max_critical_retries.`,
+      reason: `Review-code retry cap reached (${String(retryPolicy.maxRetries)}; severity_gate=${retryPolicy.severityGate}). Delegate to accord skill or raise orchestration.review_loop limits.`,
     };
   }
-  return { nextPhase: "phase-code", bumpCodeRetry: true, markDone: false };
+  return { nextPhase: "phase-code", bumpCodeRetry: true, markDone: false, retryPolicy };
 }
 
 const REMEDIATION_AGENT_FOR_REVIEW: Record<LastReviewFeedback["agent"], string> = {
@@ -252,13 +264,21 @@ export function appendReviewFeedbackToResumeBrief(
       continue;
     }
 
+    const devConfig = loadDevHarnessConfig();
+    const retryPolicy = reviewRetryPolicyForAgent(
+      devConfig,
+      String(wi.pattern ?? "implement"),
+      feedback.agent,
+    );
+    const remediation = severityGateRemediationLabel(retryPolicy.severityGate);
+
     const lines = [
       "",
       "## Prior review feedback (harness)",
       "",
       `Source agent: \`${feedback.agent}\` · verdict: \`${feedback.verdict}\` · recorded: ${feedback.at}`,
       "",
-      "Address **critical** items before returning. Non-critical findings are advisory.",
+      `Retry policy: \`severity_gate=${retryPolicy.severityGate}\` (max ${String(retryPolicy.maxRetries)} retries). Address **${remediation}** before returning; lower severities are advisory unless the gate is \`none\`.`,
       "",
     ];
     if (hasAnalysis) {

@@ -20,14 +20,20 @@ export function devCodeBrief(
   workItemId: string,
   taskId: string,
   config: DevHarnessConfig | null,
-): Result<{ brief: string }> {
+): Result<{ brief: string; owner_nonce: string; task_file_path: string }> {
   const parsedId = Number.parseInt(taskId, 10);
   if (!Number.isFinite(parsedId) || parsedId < 1) {
     return err(`Invalid task id: ${taskId}`);
   }
-  const sliced = sliceTaskRequirements(workItemId, parsedId, config);
+  const sliced = sliceTaskRequirements(workItemId, parsedId, config, {
+    syncBeforeSpawn: { dispatchAgent: "phase-code" },
+  });
   if (!sliced.ok) return sliced;
-  return ok({ brief: formatCodeTaskBrief(sliced.value) });
+  return ok({
+    brief: formatCodeTaskBrief(sliced.value),
+    owner_nonce: sliced.value.owner_nonce,
+    task_file_path: sliced.value.task_file_path,
+  });
 }
 
 type QuickFixTestStrategy = "existing_tests" | "new_red_test" | "no_test";

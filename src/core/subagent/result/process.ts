@@ -6,6 +6,7 @@ import { agentRequiresVerification, agentSchemas } from "../../agents/registry.j
 import { validateReturn } from "../../artifacts/validation.js";
 import { createLogger } from "../../logging.js";
 import { runPostResultHandlerForAgent } from "../../orchestration/post-result/registry.js";
+import { tryRecoverMissingReturnPacketFromTaskFile } from "../../orchestration/recover-task-packet.js";
 import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
 import { persistValidatedAgentReturn } from "../../orchestration/task-agent-audit.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
@@ -28,6 +29,20 @@ import {
 } from "./packet.js";
 
 const log = createLogger("subagent");
+
+const COARSE_PHASE_AGENTS = new Set(["phase-align", "phase-spec", "phase-plan"]);
+
+const MISSING_PACKET_RECONCILE_AGENTS = new Set([
+  "phase-align",
+  "phase-spec",
+  "phase-plan",
+  "phase-test",
+  "phase-code",
+  "review-test",
+  "review-code",
+]);
+
+const REVIEW_AGENTS = new Set(["review-test", "review-code"]);
 
 export interface ProcessSubagentToolResultParams {
   details: unknown;
@@ -108,11 +123,23 @@ export async function processSubagentToolResult(
     const packet = agentName ? extractReturnPacketFromSubagentResult(result) : null;
 
     if (result.timedOut === true) {
-      contentAppend += [
+      const timeoutLines = [
         `\n\n❌ **${agentName || "subagent"} timed out before completing.**`,
         ``,
         `The subprocess was stopped by the harness spawn timeout. Increase \`spawnTimeoutMs\` in subagent.json, set \`timeoutMs\` on the tool call, or use \`ACCORD_SUBAGENT_SPAWN_TIMEOUT_MS\` for orchestration defaults.`,
-      ].join("\n");
+        ``,
+        `**Do not respawn ${agentName || "this agent"}** until credentials and timeout are fixed. Run \`dev_subagent_preflight\` with agent="${agentName || "phase-plan"}".`,
+      ];
+      if (workItemId && agentName && COARSE_PHASE_AGENTS.has(agentName)) {
+        const steps = reconcileCoarsePhaseUntilStable(workItemId);
+        if (steps > 0) {
+          timeoutLines.push(
+            ``,
+            `✓ Reconciled ${String(steps)} coarse phase step(s) from on-disk artifacts. Run \`/dev resume ${workItemId}\` to continue.`,
+          );
+        }
+      }
+      contentAppend += timeoutLines.join("\n");
       continue;
     }
 
@@ -192,18 +219,27 @@ export async function processSubagentToolResult(
       agentSchemas(agentName).some((s) => s.startsWith("return-schemas/"))
     ) {
       contentAppend += formatMissingPacketWarning(agentName, Object.keys(result || {}));
-      if (
-        workItemId &&
-        result.exitCode === 0 &&
-        (agentName === "phase-align" || agentName === "phase-spec" || agentName === "phase-plan")
-      ) {
-        const steps = reconcileCoarsePhaseUntilStable(workItemId);
-        if (steps > 0) {
-          contentAppend += [
-            "",
-            `✓ **${agentName}** wrote a complete artifact on disk — work item coarse phase reconciled (${String(steps)} step(s)).`,
-            `Run \`/dev resume ${workItemId}\` to continue.`,
-          ].join("\n");
+      if (workItemId && result.exitCode === 0 && MISSING_PACKET_RECONCILE_AGENTS.has(agentName)) {
+        if (COARSE_PHASE_AGENTS.has(agentName)) {
+          const steps = reconcileCoarsePhaseUntilStable(workItemId);
+          if (steps > 0) {
+            contentAppend += [
+              "",
+              `✓ **${agentName}** wrote a complete artifact on disk — work item coarse phase reconciled (${String(steps)} step(s)).`,
+              `Run \`/dev resume ${workItemId}\` to continue — do not respawn ${agentName}.`,
+            ].join("\n");
+          }
+        } else {
+          const taskId = extractTaskIdFromTaskText(task);
+          const recovered = await tryRecoverMissingReturnPacketFromTaskFile(
+            workItemId,
+            agentName,
+            taskId,
+            state.devConfig,
+          );
+          if (recovered) {
+            contentAppend += recovered;
+          }
         }
       }
     }
@@ -234,6 +270,21 @@ export async function processSubagentToolResult(
             "\n\n❌ **Type check failed — this is a hard gate.** Fix the errors shown above.\n";
         }
       }
+    }
+  }
+
+  const detailsRecord = details as { mode?: string; results?: unknown[] } | null;
+  if (detailsRecord?.mode === "parallel" && Array.isArray(detailsRecord.results)) {
+    const timedOutReviews = (detailsRecord.results as Record<string, unknown>[]).filter(
+      (r) => r.timedOut === true && REVIEW_AGENTS.has(String(r.agent ?? "")),
+    );
+    if (timedOutReviews.length >= 2) {
+      contentAppend += [
+        "",
+        "⚠ **Parallel review timed out** for multiple agents.",
+        "Re-run **review-test** and **review-code** sequentially (one subagent call each), or scope re-review to changed files only.",
+        "Do not retry a full-repo parallel review without increasing `spawnTimeoutMs`.",
+      ].join("\n");
     }
   }
 

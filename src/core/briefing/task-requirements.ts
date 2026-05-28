@@ -3,19 +3,28 @@
  * subagents (phase-test, phase-code, review-test, review-code).
  */
 
-import { randomBytes } from "node:crypto";
 import * as path from "node:path";
 import type { DevHarnessConfig } from "../config/index.js";
+import type { PlanTaskStep } from "../plan/task-pipeline-profile.js";
 import { resolveActivePrimaryTaskId } from "../orchestration/post-result/primary-task.js";
 import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, readJson, TASKS_DIR } from "../work-items/io.js";
+import {
+  NONCE_SYNC_SPAWN_AGENTS,
+  resolveOwnerNonce,
+  syncTaskFileOwnerNonceForSpawn,
+} from "./sync-task-owner-nonce.js";
 
-function taskOwnerNonce(existing: string): string {
-  return /^[0-9a-f]{6}$/.test(existing) ? existing : randomBytes(3).toString("hex");
+export { NONCE_SYNC_SPAWN_AGENTS, resolveOwnerNonce, syncTaskFileOwnerNonceForSpawn };
+
+export interface SliceTaskRequirementsOptions {
+  /** Persist minted `owner_nonce` on the per-task file before phase-test / phase-code spawn. */
+  syncBeforeSpawn?: { dispatchAgent: "phase-test" | "phase-code" };
 }
 
 /** Agents that receive a rich harness-built brief during implement / quick_fix resume. */
 export const IMPLEMENT_SPAWN_AGENTS: ReadonlySet<string> = new Set([
+  "phase-verify-task",
   "phase-test",
   "phase-code",
   "review-test",
@@ -57,6 +66,7 @@ export interface TaskRequirementsSlice {
   guidance: unknown[];
   reuse_candidates: unknown[];
   verification_commands: string[];
+  verify_steps?: string[];
   intent_contract?: {
     intent_mode?: string;
     escalation_ceiling?: string;
@@ -94,6 +104,7 @@ export function sliceTaskRequirements(
   workItemId: string,
   taskId: number,
   config: DevHarnessConfig | null,
+  options?: SliceTaskRequirementsOptions,
 ): Result<TaskRequirementsSlice> {
   const wi = loadWorkItem(workItemId);
   if (!wi) return err(`Work item not found: ${workItemId}`);
@@ -119,9 +130,25 @@ export function sliceTaskRequirements(
   const testCases = filterTestCasesForAcIds(spec, coveredAcIds);
 
   const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${String(taskId)}.json`);
-  const taskFile = readJson<Record<string, unknown>>(taskFilePath);
+  let taskFile = readJson<Record<string, unknown>>(taskFilePath);
   const rawNonce = taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
-  const ownerNonce = taskOwnerNonce(rawNonce);
+  const { ownerNonce, minted } = resolveOwnerNonce(rawNonce);
+
+  const syncAgent = options?.syncBeforeSpawn?.dispatchAgent;
+  if (syncAgent && NONCE_SYNC_SPAWN_AGENTS.has(syncAgent)) {
+    const planSteps = (task.steps as PlanTaskStep[] | undefined) ?? [];
+    const synced = syncTaskFileOwnerNonceForSpawn({
+      workItemId,
+      taskId,
+      ownerNonce,
+      minted,
+      dispatchAgent: syncAgent,
+      planTaskSteps: planSteps,
+      taskFile,
+    });
+    if (!synced.ok) return synced;
+    taskFile = readJson<Record<string, unknown>>(taskFilePath);
+  }
 
   const testFiles = (Array.isArray(taskFile?.test_files) ? taskFile.test_files : []).filter(
     (f): f is string => typeof f === "string",
@@ -131,6 +158,12 @@ export function sliceTaskRequirements(
   const verification = spec.verification as Record<string, unknown> | undefined;
   const verCmds =
     (verification?.commands as string[] | undefined) ?? config?.verification_commands ?? [];
+
+  const planSteps = (task.steps as Array<{ tag?: string; description?: string }> | undefined) ?? [];
+  const verifySteps = planSteps
+    .filter((s) => s.tag === "verify")
+    .map((s) => (typeof s.description === "string" ? s.description.trim() : ""))
+    .filter((d) => d.length > 0);
 
   const intent_contract =
     wi.intent_mode ||
@@ -165,6 +198,7 @@ export function sliceTaskRequirements(
     guidance: (plan.guidance as unknown[] | undefined) ?? [],
     reuse_candidates: (plan.reuse_candidates as unknown[] | undefined) ?? [],
     verification_commands: verCmds,
+    ...(verifySteps.length ? { verify_steps: verifySteps } : {}),
     ...(intent_contract ? { intent_contract } : {}),
     ...(taskFile?.quick_fix_contract !== undefined
       ? { quick_fix_contract: taskFile.quick_fix_contract }
@@ -347,6 +381,15 @@ function agentPayloadForSpawn(
       : {}),
   };
 
+  if (agent === "phase-verify-task") {
+    return {
+      ...base,
+      covered_acs: slice.covered_acs,
+      verification_commands: slice.verification_commands,
+      verify_steps: slice.verify_steps ?? [],
+    };
+  }
+
   if (agent === "phase-test") {
     return {
       ...base,
@@ -405,6 +448,7 @@ export function formatImplementSpawnTaskBrief(input: {
 }): string {
   const pipelineLabel = input.pattern === "quick_fix" ? "quick fix" : "implement";
   const agentLabels: Record<string, string> = {
+    "phase-verify-task": "phase-verify-task (verify-only gate)",
     "phase-test": "phase-test",
     "phase-code": "phase-code",
     "review-test": `review-test — ${pipelineLabel} (pre-impl)`,
@@ -439,8 +483,9 @@ export function formatImplementSpawnTaskBrief(input: {
 }
 
 /**
- * Rich spawn brief for implementation pipeline agents. Returns `null` when
- * spec/plan/task context is missing or review-test preconditions are not met.
+ * Rich spawn brief for implementation pipeline agents.
+ * - `ok(null)` when spec/plan/task context is missing or review-test preconditions are not met.
+ * - `err` when owner_nonce sync fails (drift) before phase-test / phase-code spawn.
  */
 export function buildImplementSpawnTaskBrief(input: {
   workItemId: string;
@@ -450,23 +495,32 @@ export function buildImplementSpawnTaskBrief(input: {
   pattern: string;
   variant?: string;
   devConfig: DevHarnessConfig | null;
-}): string | null {
+}): Result<string | null> {
   if (!IMPLEMENT_SPAWN_AGENTS.has(input.dispatchAgent)) {
-    return null;
+    return ok(null);
   }
   if (!IMPLEMENT_SPAWN_PATTERNS.has(input.pattern)) {
-    return null;
+    return ok(null);
   }
 
   const wi = loadWorkItem(input.workItemId);
   if (!wi?.spec || !wi.plan) {
-    return null;
+    return ok(null);
   }
 
   const taskId = resolveActivePrimaryTaskId(wi) ?? wi.task_ids[0] ?? 1;
-  const sliced = sliceTaskRequirements(input.workItemId, taskId, input.devConfig);
+  const syncBeforeSpawn =
+    input.dispatchAgent === "phase-test" || input.dispatchAgent === "phase-code"
+      ? { dispatchAgent: input.dispatchAgent }
+      : undefined;
+  const sliced = sliceTaskRequirements(input.workItemId, taskId, input.devConfig, {
+    ...(syncBeforeSpawn ? { syncBeforeSpawn } : {}),
+  });
   if (!sliced.ok) {
-    return null;
+    if (syncBeforeSpawn && sliced.error.includes("owner_nonce drift")) {
+      return sliced;
+    }
+    return ok(null);
   }
   const slice = sliced.value;
 
@@ -474,29 +528,33 @@ export function buildImplementSpawnTaskBrief(input: {
     const testStrategy = (slice.quick_fix_contract as { test?: { strategy?: string } } | undefined)
       ?.test?.strategy;
     if (slice.test_files.length === 0 && testStrategy !== "no_test") {
-      return null;
+      return ok(null);
     }
     const preImplNote =
       testStrategy === "no_test"
         ? "quick_fix_contract.test.strategy is no_test — review scope, stubs, and contract only (no new test files)."
         : undefined;
-    return formatImplementSpawnTaskBrief({
+    return ok(
+      formatImplementSpawnTaskBrief({
+        agent: input.dispatchAgent,
+        pattern: input.pattern,
+        phase: input.phase,
+        title: input.title,
+        variant: input.variant,
+        slice,
+        preImplNote,
+      }),
+    );
+  }
+
+  return ok(
+    formatImplementSpawnTaskBrief({
       agent: input.dispatchAgent,
       pattern: input.pattern,
       phase: input.phase,
       title: input.title,
       variant: input.variant,
       slice,
-      preImplNote,
-    });
-  }
-
-  return formatImplementSpawnTaskBrief({
-    agent: input.dispatchAgent,
-    pattern: input.pattern,
-    phase: input.phase,
-    title: input.title,
-    variant: input.variant,
-    slice,
-  });
+    }),
+  );
 }

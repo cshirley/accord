@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "return-schemas/phase-verify-task.json",
+  "title": "phase-verify-task return packet",
+  "description": "Return packet for verify-only plan tasks (steps are exclusively tag: verify). No test_files or red_confirmed.",
+  "type": "object",
+  "required": ["status", "usage"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["done", "stuck"] },
+    "verify_output": {
+      "type": "string",
+      "maxLength": 65536,
+      "description": "Truncated stdout/stderr from verification commands"
+    },
+    "ac_covered": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "AC ids exercised by the verification gate"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Blocking question (when status=stuck)"
+    },
+    "context": {
+      "type": "string",
+      "description": "Context for the blocking question (when status=stuck)"
+    },
+    "tried": {
+      "type": "string",
+      "description": "Approaches tried before getting stuck (when status=stuck)"
+    },
+    "usage": {
+      "type": "object",
+      "required": ["prompt_tokens", "completion_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "stuck" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["question", "context"] }
+    }
+  ]
+}

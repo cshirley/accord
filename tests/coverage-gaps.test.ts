@@ -141,7 +141,7 @@ describe("devTasks dashboard", () => {
     process.chdir(project);
     const r = devTasks();
     expect(r.rows).toEqual([]);
-    expect(r.formatted).toContain("No active work items.");
+    expect(r.formatted).toContain("No work items in `.tasks/`.");
   });
 
   test("aggregates tasks, decisions, deviations, and formatting", () => {
@@ -150,7 +150,7 @@ describe("devTasks dashboard", () => {
     devBootstrap("DASH-1", "t1", "implement", "standard");
     const wiPath = join(".tasks", "DASH-1.json");
     const wi = JSON.parse(readFileSync(wiPath, "utf8"));
-    wi.task_ids = [1, 2];
+    wi.task_ids = [1, 2, 3];
     wi.decisions = [
       {
         id: "d1",
@@ -167,6 +167,7 @@ describe("devTasks dashboard", () => {
 
     writeJson(join(".tasks", "DASH-1-task-1.json"), { status: "done" });
     writeJson(join(".tasks", "DASH-1-task-2.json"), { status: "blocked" });
+    writeJson(join(".tasks", "DASH-1-task-3.json"), { status: "in_progress" });
 
     devBootstrap("DASH-2", "t2", "quick_fix");
     const wi2 = JSON.parse(readFileSync(join(".tasks", "DASH-2.json"), "utf8"));
@@ -178,16 +179,26 @@ describe("devTasks dashboard", () => {
     const first = r.rows[0];
     expect(first.id).toBe("DASH-1");
     expect(first.pattern).toBe("implement/standard");
+    expect(r.formatted).toMatch(/imp\/std/);
     expect(first.tasks_done).toBe(1);
-    expect(first.tasks_total).toBe(2);
+    expect(first.tasks_total).toBe(3);
     expect(first.tasks_blocked).toBe(1);
+    expect(first.tasks_in_progress).toBe(1);
     expect(first.pending_decisions).toBe(1);
-    expect(first.deviations).toBe(1);
+    expect(first.pending_deviations).toBe(1);
+    expect(first.deviations_total).toBe(1);
+    expect(first.title).toBe("t1");
     expect(r.total_pending).toBe(1);
+    expect(r.total_pending_deviations).toBe(1);
+    expect(r.total_blocked_tasks).toBe(1);
     expect(r.total_cost).toBeCloseTo(1.25, 2);
+    expect(r.attention_summary).toContain("pending decision");
+    expect(r.attention_summary).toContain("blocked task");
     expect(r.formatted).toMatch(/DASH-1/);
+    expect(r.formatted).toMatch(/1\/3·1b·1↑/);
+    expect(r.formatted).toMatch(/ID\s+PAT/);
     expect(first.phase).toBe("aligning");
-    expect(r.formatted).toMatch(/pending decisions/);
+    expect(r.formatted).toMatch(/\/dev review/);
   });
 });
 

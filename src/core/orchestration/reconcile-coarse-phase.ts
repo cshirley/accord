@@ -148,14 +148,22 @@ export function reconcileCoarsePhaseBeforeResume(workItemId: string): ReconcileC
 
 /** Advance repeatedly until coarse phase matches artifacts (bounded). */
 export function reconcileCoarsePhaseUntilStable(workItemId: string): number {
+  return reconcileCoarsePhaseWithMessages(workItemId).steps;
+}
+
+/** Like {@link reconcileCoarsePhaseUntilStable} but returns each advance for orchestrator messaging. */
+export function reconcileCoarsePhaseWithMessages(workItemId: string): {
+  steps: number;
+  advances: ReconcileCoarsePhaseResult[];
+} {
   const maxSteps = 8;
-  let steps = 0;
+  const advances: ReconcileCoarsePhaseResult[] = [];
   for (let i = 0; i < maxSteps; i++) {
     const result = reconcileCoarsePhaseBeforeResume(workItemId);
     if (!result.advanced) {
       break;
     }
-    steps += 1;
+    advances.push(result);
   }
-  return steps;
+  return { steps: advances.length, advances };
 }

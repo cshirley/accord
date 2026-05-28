@@ -26,6 +26,7 @@
         "phase-code",
         "review-code",
         "phase-verify-code",
+        "phase-verify-task",
         "phase-verify-acceptance"
       ],
       "description": "Per-task pipeline position. `review-test` is used between phase-test and phase-code (quick_fix new_red_test and implement). `review-code` is optional after phase-code when policy or plan requests it."
@@ -39,7 +40,12 @@
     },
     "red_confirmed": {
       "type": "boolean",
-      "description": "Whether tests fail as expected before implementation"
+      "description": "Whether tests fail as expected before implementation (not used for phase-verify-task)"
+    },
+    "verify_output": {
+      "type": "string",
+      "maxLength": 65536,
+      "description": "Truncated verification gate output (phase-verify-task)"
     },
     "test_output": {
       "type": "string",

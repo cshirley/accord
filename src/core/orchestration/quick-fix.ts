@@ -13,49 +13,42 @@ import { buildImplementSpawnTaskBrief } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/types.js";
 import { readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
 import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
+import { findingsTriggerReviewRetry } from "./policy.js";
 import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback.js";
 
 export { RESUMABLE_PIPELINE_TASK_PHASES } from "../types/phases.js";
+export { findingsTriggerReviewRetry, maxFindingSeverityRank } from "./policy.js";
 export type { ReviewTestVerdict } from "./review-feedback.js";
 
 import type { ReviewTestVerdict } from "./review-feedback.js";
 
-const SEVERITY_RANK: Record<string, number> = {
-  suggestion: 1,
-  warning: 2,
-  critical: 3,
-};
-
-/** Highest numeric rank among finding severities (0 when there are no findings). */
-export function maxFindingSeverityRank(findings: ReadonlyArray<{ severity?: string }>): number {
-  let maxRank = 0;
-  for (const finding of findings) {
-    const rank = SEVERITY_RANK[finding.severity ?? ""] ?? 0;
-    if (rank > maxRank) maxRank = rank;
-  }
-  return maxRank;
-}
-
 /**
  * When `review-test` verdict is `issues`, only findings at or above `severityGate`
  * consume a quick-fix retry slot (see `QuickFixLoopPolicy.severityGate`).
- * `none` disables the gate (any issue behaves like a retry-worthy issue).
  */
 export function reviewIssuesConsumeQuickFixRetrySlot(
   findings: ReadonlyArray<{ severity?: string }>,
   gate: PolicySeverityGate,
 ): boolean {
-  if (gate === "none") {
-    return true;
-  }
-  const maxRank = maxFindingSeverityRank(findings);
-  if (gate === "warn") {
-    return maxRank >= SEVERITY_RANK.warning;
-  }
-  if (gate === "block") {
-    return maxRank >= SEVERITY_RANK.critical;
-  }
-  return true;
+  return findingsTriggerReviewRetry(findings, gate);
+}
+
+function devConfigFromQuickFixPolicy(policy: QuickFixLoopPolicy): DevHarnessConfig {
+  return {
+    schema_version: "1.0",
+    language: "unknown",
+    test: { command: "true" },
+    type_check: null,
+    lint: null,
+    format: null,
+    verification_commands: [],
+    orchestration: {
+      quick_fix_loop: {
+        max_test_review_loops: policy.maxTestReviewLoops,
+        severity_gate: policy.severityGate,
+      },
+    },
+  };
 }
 
 export function readQuickFixLoopCounters(task: Record<string, unknown>): {
@@ -99,16 +92,14 @@ export function decideQuickFixAfterReviewPacket(
 ):
   | { nextAgent: "phase-test" | "phase-code"; bumpCycle: boolean }
   | { blocked: true; reason: string } {
-  const devConfig = {
-    orchestration: { review_loop: { max_critical_retries: policy.maxTestReviewLoops } },
-  } as DevHarnessConfig;
   const decision = decideAfterReviewTest(
     {
       test_review_retries_used: counters.test_review_cycles_used,
       code_review_retries_used: 0,
     },
     { verdict: packet.verdict, findings: [...packet.findings] },
-    devConfig,
+    devConfigFromQuickFixPolicy(policy),
+    "quick_fix",
   );
   if ("blocked" in decision) {
     return { blocked: true, reason: decision.reason };
@@ -151,7 +142,7 @@ export function buildQuickFixPreImplReviewTestBrief(input: {
   if (input.dispatchAgent !== "review-test") {
     return null;
   }
-  return buildImplementSpawnTaskBrief({
+  const brief = buildImplementSpawnTaskBrief({
     workItemId: input.workItemId,
     dispatchAgent: input.dispatchAgent,
     phase: input.phase,
@@ -160,4 +151,8 @@ export function buildQuickFixPreImplReviewTestBrief(input: {
     variant: input.variant,
     devConfig: input.devConfig ?? null,
   });
+  if (!brief.ok) {
+    return null;
+  }
+  return brief.value;
 }

@@ -11,20 +11,9 @@ import { devTasks } from "../../core/queries/dashboard.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { formatWorkflowCostForFinish } from "../../core/queries/workflow-cost.js";
 import type { HookState } from "./hook-state.js";
+import { notifyTruncated } from "./notify.js";
+import { displayTasksDashboard } from "./tasks-dashboard-display.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
-
-const NOTIFY_SLICE = 3500;
-
-function notifyTruncated(
-  ctx: ExtensionCommandContext,
-  body: string,
-  level: "info" | "warning",
-): void {
-  ctx.ui.notify(
-    body.length > NOTIFY_SLICE ? `${body.slice(0, NOTIFY_SLICE)}\n…(truncated)` : body,
-    level,
-  );
-}
 
 /**
  * @returns `handled` when the core path consumed the command; `forward` to use `/skill:accord`.
@@ -52,7 +41,7 @@ export async function tryFinishViaCoreOrchestrator(
   }
 
   notifyTruncated(ctx, devReviewQueue().formatted, "info");
-  notifyTruncated(ctx, devTasks().formatted, "info");
+  displayTasksDashboard(pi, ctx, devTasks().formatted);
 
   const result = await runFinishOrchestrationFromResolution(
     resolution,

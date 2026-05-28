@@ -42,6 +42,10 @@ export function resumeResolutionToNextSteps(resolution: ResumeOrchestrationResol
       ];
     case "spawn":
       return [
+        ...(resolution.messages ?? []).map((message) => ({
+          kind: "notify_user" as const,
+          message,
+        })),
         {
           kind: "spawn_subagent" as const,
           workItemId: resolution.workItemId,

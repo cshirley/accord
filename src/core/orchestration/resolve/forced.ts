@@ -74,16 +74,24 @@ export function resolveForcedAgentOrchestration(
     ? `subcommand: /dev ${options.subcommand} ${workItemId}`
     : `forced_agent: ${agentId}`;
 
+  const implementBrief = buildImplementSpawnTaskBrief({
+    workItemId: state.id,
+    phase: state.phase,
+    title: state.title,
+    pattern: state.pattern,
+    variant: state.variant,
+    dispatchAgent: agentId,
+    devConfig,
+  });
+  if (!implementBrief.ok) {
+    return {
+      outcome: "blocked",
+      messages: [{ level: "warning", text: implementBrief.error }],
+    };
+  }
+
   const baseTask =
-    buildImplementSpawnTaskBrief({
-      workItemId: state.id,
-      phase: state.phase,
-      title: state.title,
-      pattern: state.pattern,
-      variant: state.variant,
-      dispatchAgent: agentId,
-      devConfig,
-    }) ??
+    implementBrief.value ??
     buildResumeTaskBrief({
       workItemId: state.id,
       phase: state.phase,

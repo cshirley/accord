@@ -16,6 +16,7 @@ import {
   artifactFileName,
   artifactLooksComplete,
   bootstrapImplementTasksFromPlan,
+  reconcileVerifyOnlyTasksFromPlan,
   resolveArtifactPath,
   resolveDevArtifactPathForId,
 } from "../../work-items/artifact-discovery.js";
@@ -44,6 +45,12 @@ export function resolvePrimaryTaskResumeAgentId(workItemId: string): string | nu
   const coarseGate = PRIMARY_TASK_COARSE_PHASES[wi.pattern];
   if (!coarseGate || wi.phase !== coarseGate) {
     return null;
+  }
+  if (wi.pattern === "implement" && wi.phase === "implementing") {
+    const planPath = resolvePlanPathForBootstrap(workItemId);
+    if (planPath) {
+      reconcileVerifyOnlyTasksFromPlan(workItemId, planPath);
+    }
   }
   const primaryTaskId = resolveActivePrimaryTaskId(wi);
   if (primaryTaskId === null) {
@@ -100,8 +107,14 @@ export function resolveImplementingResumeAgentId(workItemId: string): string | n
     return null;
   }
 
+  reconcileVerifyOnlyTasksFromPlan(workItemId, planPath);
   const bootstrapped = bootstrapImplementTasksFromPlan(workItemId, planPath);
   if (bootstrapped > 0) {
+    return resolvePrimaryTaskResumeAgentId(workItemId);
+  }
+
+  const reconciled = reconcileVerifyOnlyTasksFromPlan(workItemId, planPath);
+  if (reconciled > 0) {
     return resolvePrimaryTaskResumeAgentId(workItemId);
   }
 

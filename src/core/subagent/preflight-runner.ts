@@ -3,7 +3,12 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
+import {
+  agentRequiresSpawnPreflight,
+  runSubagentSpawnPreflightCheck,
+} from "../queries/subagent-preflight.js";
 import type { HarnessHost } from "../types/host.js";
+import { firstSubagentAgentName } from "./entries.js";
 import { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
 import { runPipelineArtifactPreflightOnSubagentCall } from "./preflight/pipeline-artifacts.js";
 import { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
@@ -52,6 +57,21 @@ export async function runSubagentToolPreflight(
   const verify = await runVerifyPreflightOnSubagentCall(input, options.devConfig);
   if (verify.blockReason) {
     return verify;
+  }
+
+  const agent = firstSubagentAgentName(input);
+  if (agent && agentRequiresSpawnPreflight(agent)) {
+    const credential = runSubagentSpawnPreflightCheck(agent);
+    if (!credential.ok) {
+      return {
+        blockReason: [
+          `Subagent preflight failed for ${agent}:`,
+          ...credential.blocks.map((b) => `- ${b}`),
+          "",
+          "Run dev_subagent_preflight before retrying.",
+        ].join("\n"),
+      };
+    }
   }
 
   return {};

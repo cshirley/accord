@@ -8,6 +8,7 @@ import {
   artifactLooksComplete,
   artifactPathForWorkItem,
   bootstrapImplementTasksFromPlan,
+  reconcileVerifyOnlyTasksFromPlan,
   preferredDevArtifactRelPath,
   resolveDevArtifactPathForId,
 } from "../../work-items/artifact-discovery.js";
@@ -69,6 +70,7 @@ export function applyPhasePlanPostResult(workItemId: string, packet: unknown): s
   }
 
   const bootstrapped = bootstrapImplementTasksFromPlan(workItemId, resolvedPath);
+    reconcileVerifyOnlyTasksFromPlan(workItemId, resolvedPath);
   const taskNote = bootstrapped > 0 ? ` Bootstrapped ${String(bootstrapped)} task file(s).` : "";
 
   return [

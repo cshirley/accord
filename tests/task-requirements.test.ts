@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { devCodeBrief } from "../src/core/briefing/code-brief.js";
+import { syncTaskFileOwnerNonceForSpawn } from "../src/core/briefing/sync-task-owner-nonce.js";
 import {
   buildImplementSpawnTaskBrief,
   filterTestCasesForAcIds,
@@ -144,11 +146,13 @@ describe("task-requirements", () => {
       pattern: "implement",
       devConfig: minimalDevConfig(),
     });
-    expect(brief).not.toBeNull();
-    expect(brief).toContain("Task requirements");
-    expect(brief).toContain('"test_cases"');
-    expect(brief).toContain("aabbcc");
-    expect(brief).toContain("does thing");
+    expect(brief.ok).toBe(true);
+    if (!brief.ok) throw new Error(brief.error);
+    expect(brief.value).not.toBeNull();
+    expect(brief.value).toContain("Task requirements");
+    expect(brief.value).toContain('"test_cases"');
+    expect(brief.value).toContain("aabbcc");
+    expect(brief.value).toContain("does thing");
 
     const sliced = sliceTaskRequirements("TR-1", 1, minimalDevConfig());
     expect(sliced.ok).toBe(true);
@@ -240,13 +244,119 @@ describe("task-requirements", () => {
       pattern: "implement",
       devConfig: minimalDevConfig(),
     });
-    expect(brief).not.toBeNull();
-    expect(brief).toContain('"test_output": "FAIL: expected 401"');
-    expect(brief).toContain('"constraints"');
-    expect(brief).toContain('"scope_out"');
-    expect(brief).toContain('"rejected_alternatives"');
-    expect(brief).toContain('"ac_covered"');
-    expect(brief).toContain("convention");
+    expect(brief.ok).toBe(true);
+    if (!brief.ok) throw new Error(brief.error);
+    expect(brief.value).not.toBeNull();
+    expect(brief.value).toContain('"test_output": "FAIL: expected 401"');
+    expect(brief.value).toContain('"constraints"');
+    expect(brief.value).toContain('"scope_out"');
+    expect(brief.value).toContain('"rejected_alternatives"');
+    expect(brief.value).toContain('"ac_covered"');
+    expect(brief.value).toContain("convention");
+  });
+
+  test("dev_code_brief syncs minted owner_nonce to per-task file before phase-code", () => {
+    mkdirSync(join("docs", "dev", "TR-SYNC"), { recursive: true });
+    writeFileSync(
+      join("docs", "dev", "TR-SYNC", "spec.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        acceptance_criteria: [{ id: "AC-1", requirement: "MUST", type: "scenario", scenario: "s" }],
+        verification: {
+          commands: ["bun test"],
+          test_cases: [{ id: "TC-1", covers: "AC-1", scenario: "s", tier: "unit" }],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join("docs", "dev", "TR-SYNC", "plan.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        tasks: [
+          {
+            id: 1,
+            title: "t",
+            covers_ac: ["AC-1"],
+            challenge: false,
+            files: [{ path: "src/a.ts", action: "modify" }],
+            steps: [{ tag: "impl", description: "do it" }],
+          },
+        ],
+      })}\n`,
+      "utf8",
+    );
+    writeWorkItem("TR-SYNC", {
+      schema_version: "1.0",
+      id: "TR-SYNC",
+      title: "t",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "implementing",
+      spec: "docs/dev/TR-SYNC/spec.json",
+      plan: "docs/dev/TR-SYNC/plan.json",
+      verify: null,
+      brief: null,
+      task_ids: [1],
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeFileSync(
+      join(".tasks", "TR-SYNC-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "TR-SYNC",
+        task_id: 1,
+        owner_nonce: "not-hex",
+        phase: "phase-code",
+        status: "pending",
+        pre_impl_gates: "complete",
+        test_files: ["src/a.test.ts"],
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const result = devCodeBrief("TR-SYNC", "1", minimalDevConfig());
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.brief).toContain(`**owner_nonce:** ${result.value.owner_nonce}`);
+
+    const onDisk = JSON.parse(readFileSync(join(".tasks", "TR-SYNC-task-1.json"), "utf8")) as {
+      owner_nonce: string;
+    };
+    expect(onDisk.owner_nonce).toBe(result.value.owner_nonce);
+    expect(onDisk.owner_nonce).toMatch(/^[0-9a-f]{6}$/);
+  });
+
+  test("syncTaskFileOwnerNonceForSpawn blocks when assigned nonce disagrees with on-disk nonce", () => {
+    const taskFile = {
+      schema_version: "1.0",
+      work_item_id: "TR-DRIFT",
+      task_id: 1,
+      owner_nonce: "aabbcc",
+      phase: "phase-test",
+      status: "pending",
+      pre_impl_gates: "pending",
+      test_files: [],
+      events: [],
+    };
+    writeFileSync(join(".tasks", "TR-DRIFT-task-1.json"), `${JSON.stringify(taskFile)}\n`, "utf8");
+
+    const blocked = syncTaskFileOwnerNonceForSpawn({
+      workItemId: "TR-DRIFT",
+      taskId: 1,
+      ownerNonce: "111111",
+      minted: true,
+      dispatchAgent: "phase-test",
+      taskFile,
+    });
+    expect(blocked.ok).toBe(false);
+    if (blocked.ok) throw new Error("expected drift block");
+    expect(blocked.error).toContain("owner_nonce drift");
   });
 
   test("resolveResumeOrchestration uses rich brief for implementing phase-test", () => {

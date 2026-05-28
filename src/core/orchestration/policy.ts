@@ -15,6 +15,115 @@ export const DEFAULT_MAX_GATHER_ATTEMPTS = 3;
 
 export type PolicySeverityGate = "none" | "warn" | "block";
 
+export type ReviewLoopAgent = "review-test" | "review-code";
+
+const SEVERITY_RANK: Record<string, number> = {
+  suggestion: 1,
+  warning: 2,
+  critical: 3,
+};
+
+/** Highest numeric rank among finding severities (0 when there are no findings). */
+export function maxFindingSeverityRank(findings: ReadonlyArray<{ severity?: string }>): number {
+  let maxRank = 0;
+  for (const finding of findings) {
+    const rank = SEVERITY_RANK[finding.severity ?? ""] ?? 0;
+    if (rank > maxRank) maxRank = rank;
+  }
+  return maxRank;
+}
+
+/**
+ * When `review-test` or `review-code` verdict is `issues`, only findings at or above `gate`
+ * consume a retry slot (`none` = any finding).
+ */
+export function findingsTriggerReviewRetry(
+  findings: ReadonlyArray<{ severity?: string }>,
+  gate: PolicySeverityGate,
+): boolean {
+  if (gate === "none") {
+    return findings.length > 0;
+  }
+  const maxRank = maxFindingSeverityRank(findings);
+  if (gate === "warn") {
+    return maxRank >= SEVERITY_RANK.warning;
+  }
+  if (gate === "block") {
+    return maxRank >= SEVERITY_RANK.critical;
+  }
+  return true;
+}
+
+export function severityGateRemediationLabel(gate: PolicySeverityGate): string {
+  if (gate === "none") {
+    return "all reported findings";
+  }
+  if (gate === "warn") {
+    return "warning-or-critical findings";
+  }
+  return "critical findings";
+}
+
+export interface ResolvedReviewRetryPolicy {
+  severityGate: PolicySeverityGate;
+  maxRetries: number;
+}
+
+export function defaultReviewLoopPolicy(): ResolvedReviewRetryPolicy {
+  return {
+    severityGate: "block",
+    maxRetries: DEFAULT_MAX_CRITICAL_REVIEW_RETRIES,
+  };
+}
+
+function parseSeverityGate(raw: unknown, fallback: PolicySeverityGate): PolicySeverityGate {
+  if (typeof raw === "string" && SEVERITY_GATES.has(raw as PolicySeverityGate)) {
+    return raw as PolicySeverityGate;
+  }
+  return fallback;
+}
+
+/**
+ * Per-repo retry policy for **review-test** / **review-code** post-result routing.
+ * Quick-fix **review-test** uses `orchestration.quick_fix_loop`; implement (and quick-fix **review-code**) use `orchestration.review_loop`.
+ */
+export function reviewRetryPolicyForAgent(
+  config: DevHarnessConfig | null | undefined,
+  pattern: string,
+  agent: ReviewLoopAgent,
+): ResolvedReviewRetryPolicy {
+  if (pattern === "quick_fix" && agent === "review-test") {
+    const qf = quickFixLoopPolicyFromDevConfig(config);
+    return { severityGate: qf.severityGate, maxRetries: qf.maxTestReviewLoops };
+  }
+
+  const base = defaultReviewLoopPolicy();
+  let severityGate = base.severityGate;
+  let maxRetries = base.maxRetries;
+  const raw = config?.orchestration?.review_loop;
+  if (raw && typeof raw === "object") {
+    if (raw.severity_gate !== undefined) {
+      severityGate = parseSeverityGate(raw.severity_gate, severityGate);
+    }
+    const maxRaw = raw.max_critical_retries;
+    if (typeof maxRaw === "number" && Number.isFinite(maxRaw)) {
+      maxRetries = Math.max(0, Math.floor(maxRaw));
+    }
+    const agentRaw = agent === "review-test" ? raw.review_test : raw.review_code;
+    if (agentRaw && typeof agentRaw === "object") {
+      if (agentRaw.severity_gate !== undefined) {
+        severityGate = parseSeverityGate(agentRaw.severity_gate, severityGate);
+      }
+      const agentMax = agentRaw.max_retries;
+      if (typeof agentMax === "number" && Number.isFinite(agentMax)) {
+        maxRetries = Math.max(0, Math.floor(agentMax));
+      }
+    }
+  }
+
+  return { severityGate, maxRetries };
+}
+
 export interface QuickFixLoopPolicy {
   maxTestReviewLoops: number;
   /** When `review-test` reports this severity or higher, consume a retry slot. */
@@ -189,28 +298,10 @@ export function commitOnTaskDoneFromDevConfig(
   return config?.orchestration?.commit?.on_task_done === true;
 }
 
+/** @deprecated Use {@link reviewRetryPolicyForAgent} for severity gate + cap. */
 export function criticalReviewLoopPolicyFromDevConfig(
   config: DevHarnessConfig | null | undefined,
 ): CriticalReviewLoopPolicy {
-  const base = defaultCriticalReviewLoopPolicy();
-  const raw = config?.orchestration?.review_loop;
-  if (raw && typeof raw === "object") {
-    const maxRaw = raw.max_critical_retries;
-    if (typeof maxRaw === "number" && Number.isFinite(maxRaw)) {
-      const floored = Math.floor(maxRaw);
-      if (floored >= 0) {
-        return { maxCriticalRetries: floored };
-      }
-    }
-  }
-
-  const qf = config?.orchestration?.quick_fix_loop?.max_test_review_loops;
-  if (typeof qf === "number" && Number.isFinite(qf)) {
-    const floored = Math.floor(qf);
-    if (floored >= 0) {
-      return { maxCriticalRetries: floored };
-    }
-  }
-
-  return base;
+  const policy = reviewRetryPolicyForAgent(config, "implement", "review-test");
+  return { maxCriticalRetries: policy.maxRetries };
 }

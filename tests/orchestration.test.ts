@@ -10,6 +10,7 @@ import {
   applyReviewTestPostResult,
   buildDevOrchestratePayload,
   bumpQuickFixTestReviewCycle,
+  decideAfterReviewTest,
   decideQuickFixAfterReviewPacket,
   decideQuickFixAfterReviewTest,
   defaultQuickFixLoopPolicy,
@@ -20,6 +21,7 @@ import {
   resolveResumeAgentId,
   resolveResumeOrchestration,
   resumeResolutionToNextSteps,
+  reviewRetryPolicyForAgent,
   runFinishOrchestrationFromResolution,
   runResumeOrchestrationWithReplans,
   runUntilStop,
@@ -1596,5 +1598,60 @@ describe("implement phase-code harness hook", () => {
       phase: string;
     };
     expect(task.phase).toBe("review-code");
+  });
+});
+describe("review retry policy", () => {
+  test("reviewRetryPolicyForAgent: quick_fix review-test uses quick_fix_loop", () => {
+    const cfg: DevHarnessConfig = {
+      ...minimalDevConfig(),
+      orchestration: {
+        quick_fix_loop: { max_test_review_loops: 7, severity_gate: "block" },
+        review_loop: { severity_gate: "warn", max_critical_retries: 9 },
+      },
+    };
+    expect(reviewRetryPolicyForAgent(cfg, "quick_fix", "review-test")).toEqual({
+      severityGate: "block",
+      maxRetries: 7,
+    });
+    expect(reviewRetryPolicyForAgent(cfg, "quick_fix", "review-code")).toEqual({
+      severityGate: "warn",
+      maxRetries: 9,
+    });
+  });
+
+  test("decideAfterReviewTest: implement warn gate retries on warning findings", () => {
+    const cfg: DevHarnessConfig = {
+      ...minimalDevConfig(),
+      orchestration: { review_loop: { severity_gate: "warn", max_critical_retries: 2 } },
+    };
+    expect(
+      decideAfterReviewTest(
+        { test_review_retries_used: 0, code_review_retries_used: 0 },
+        {
+          verdict: "issues",
+          findings: [{ severity: "warning", issue: "weak assertion" }],
+        },
+        cfg,
+        "implement",
+      ),
+    ).toMatchObject({ nextPhase: "phase-test", bumpTestRetry: true });
+  });
+
+  test("decideAfterReviewTest: implement block gate skips warning-only issues", () => {
+    const cfg: DevHarnessConfig = {
+      ...minimalDevConfig(),
+      orchestration: { review_loop: { severity_gate: "block" } },
+    };
+    expect(
+      decideAfterReviewTest(
+        { test_review_retries_used: 0, code_review_retries_used: 0 },
+        {
+          verdict: "issues",
+          findings: [{ severity: "warning", issue: "nit" }],
+        },
+        cfg,
+        "implement",
+      ),
+    ).toMatchObject({ nextPhase: "phase-code", bumpTestRetry: false });
   });
 });

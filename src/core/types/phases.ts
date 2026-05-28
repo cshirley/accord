@@ -14,6 +14,7 @@ export const RESUMABLE_PIPELINE_TASK_PHASES: ReadonlySet<string> = new Set([
   "phase-code",
   "review-code",
   "phase-verify-code",
+  "phase-verify-task",
   "phase-verify-acceptance",
 ]);
 

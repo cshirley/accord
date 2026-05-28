@@ -87,6 +87,12 @@ const REGISTRY: Record<string, AgentMeta> = {
     verifyAfter: false,
     deferConfigGuard: false,
   },
+  "phase-verify-task": {
+    schemas: ["spec-schema.json", "task-schema.json", "return-schemas/phase-verify-task.json"],
+    requiresConfig: true,
+    verifyAfter: false,
+    deferConfigGuard: false,
+  },
   "phase-test": {
     schemas: ["spec-schema.json", "task-schema.json", "return-schemas/phase-test.json"],
     requiresConfig: true,

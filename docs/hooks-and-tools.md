@@ -70,6 +70,8 @@ All registered in `src/adapters/pi/tools.ts` as thin wrappers around core domain
 | `dev_spec_gaps` | `src/core/queries/spec-gaps.ts` | 10-point checklist against spec JSON |
 | `dev_code_brief` | `src/core/briefing/code-brief.ts` | Assemble phase-code brief from spec + plan + task + brief |
 | `dev_resume_state` | `src/core/queries/resume-state.ts` | Phase + checkpoint presence for dispatch routing |
+| `dev_work_item_status` | `src/core/queries/work-item-status.ts` | Single work item: tasks, next resume agent, `/dev finish` nudge; rehydrates + reconciles coarse phase |
+| `dev_subagent_preflight` | `src/core/queries/subagent-preflight.ts` | Credentials, profile, agent file, spawn timeout before phase spawns |
 | `dev_orchestrate` | `src/core/orchestration/runner.ts` | Deterministic **resume** or **finish** plan (`resolution` + `next_steps` JSON); MCP cannot spawn Pi subagents or run judgment LLM |
 | `dev_transition` | `src/core/work-items/lifecycle.ts` | Atomic phase transition with artifact path updates + checkpoint cleanup |
 | `dev_verify_summary` | `src/core/queries/verify-summary.ts` | Parse verify report, write verify.md, return verdict + per-AC counts + gaps |

@@ -1,5 +1,6 @@
 export { applyPhaseCodePostResult } from "./phase-code.js";
 export { applyPhaseTestPostResult } from "./phase-test.js";
+export { applyPhaseVerifyTaskPostResult } from "./phase-verify-task.js";
 export { applyPhaseVerifyAcceptancePostResult } from "./phase-verify-acceptance.js";
 export {
   advancePrimaryTask,

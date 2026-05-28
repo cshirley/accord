@@ -27,6 +27,8 @@ import type { DevHarnessConfig } from "../config/types.js";
 import { buildDevOrchestratePayload } from "../orchestration/plan.js";
 import { devTasks } from "../queries/dashboard.js";
 import { devResumeState } from "../queries/resume-state.js";
+import { devSubagentPreflight } from "../queries/subagent-preflight.js";
+import { devWorkItemStatus } from "../queries/work-item-status.js";
 import { devRetro } from "../queries/retro.js";
 import { devReviewQueue } from "../queries/review-queue.js";
 import { devSpecGaps } from "../queries/spec-gaps.js";
@@ -328,7 +330,11 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
       return {
         ok: true,
         text: result.value.brief,
-        details: { brief_length: result.value.brief.length },
+        details: {
+          brief_length: result.value.brief.length,
+          owner_nonce: result.value.owner_nonce,
+          task_file_path: result.value.task_file_path,
+        },
       };
     },
   }),
@@ -388,6 +394,47 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         ok: true,
         text: `${result.value.id}: phase=${result.value.phase}, checkpoint=${result.value.has_checkpoint}, pattern=${result.value.pattern}`,
         details: result.value,
+      };
+    },
+  }),
+
+  defineTool({
+    name: "dev_work_item_status",
+    label: "Work Item Status",
+    description:
+      "Single work-item dashboard: phase, tasks, next resume agent, finish nudge when all implementation tasks are terminal",
+    promptSnippet:
+      "Prefer over ad-hoc read/bash when the user asks where a work item is, what is next, or whether to run /dev finish. Rehydrates and reconciles coarse phase first.",
+    parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
+    handler(params, ctx) {
+      const result = devWorkItemStatus(params.id, ctx.getConfig());
+      if (!result.ok) return { ok: false, text: result.error };
+      return {
+        ok: true,
+        text: result.value.formatted,
+        details: result.value,
+      };
+    },
+  }),
+
+  defineTool({
+    name: "dev_subagent_preflight",
+    label: "Subagent Preflight",
+    description:
+      "Validate subagent.json profile, credentials, agent markdown, and spawn timeout before phase spawns",
+    promptSnippet:
+      "Run before phase-align/spec/plan/test/code or review agents when spawn timeouts or empty responses are suspected. Blocks resume orchestration when credentials are missing.",
+    parameters: Type.Object({
+      agent: Type.Optional(
+        Type.String({ description: "Dispatch agent id (default: phase-plan)" }),
+      ),
+    }),
+    handler(params) {
+      const check = devSubagentPreflight(params.agent);
+      return {
+        ok: check.ok,
+        text: check.formatted,
+        details: check,
       };
     },
   }),

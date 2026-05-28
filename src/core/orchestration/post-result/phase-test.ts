@@ -7,7 +7,10 @@
  * - `implement` + `implementing`: standard pipeline (same done packet shape).
  */
 
-import { advancePrimaryTask } from "./primary-task.js";
+import { loadWorkItem } from "../../work-items/io.js";
+import { advancePrimaryTask, resolveActivePrimaryTaskId } from "./primary-task.js";
+import { applyPhaseVerifyTaskPostResult } from "./phase-verify-task.js";
+import { resolvePlanTaskProfile } from "../../plan/load-task-profile.js";
 
 interface PhaseTestDonePacket {
   status: "done";
@@ -39,6 +42,20 @@ function isPhaseTestImplementDonePacket(packet: unknown): packet is PhaseTestDon
  * @returns Markdown to append for the orchestrator (empty when this path does not apply).
  */
 export function applyPhaseTestPostResult(workItemId: string, packet: unknown): string {
+  const wi = loadWorkItem(workItemId);
+  if (wi) {
+    const taskId = resolveActivePrimaryTaskId(wi);
+    if (taskId !== null) {
+      const resolved = resolvePlanTaskProfile(workItemId, taskId);
+      if (resolved?.profile.verifyOnly) {
+        const verifyFooter = applyPhaseVerifyTaskPostResult(workItemId, packet);
+        if (verifyFooter) {
+          return verifyFooter;
+        }
+      }
+    }
+  }
+
   if (!isPhaseTestImplementDonePacket(packet)) {
     return "";
   }

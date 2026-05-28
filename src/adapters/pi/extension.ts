@@ -27,6 +27,8 @@ import { loadDevHarnessConfig } from "../../core/config/index.js";
 import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import { devTasks } from "../../core/queries/dashboard.js";
+import { notifyTruncated } from "./notify.js";
+import { displayTasksDashboard, registerTasksDashboardRenderer } from "./tasks-dashboard-display.js";
 import { devRetro } from "../../core/queries/retro.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { devSpecGaps } from "../../core/queries/spec-gaps.js";
@@ -97,7 +99,7 @@ export default function (pi: ExtensionAPI) {
         return;
       }
       if (r.route === "dashboard") {
-        ctx.ui.notify(r.formatted, "info");
+        displayTasksDashboard(pi, ctx, r.formatted);
         return;
       }
     }
@@ -107,7 +109,7 @@ export default function (pi: ExtensionAPI) {
       return;
     }
     if (route.type === "known" && route.subcommand === "tasks") {
-      ctx.ui.notify(devTasks().formatted, "info");
+      displayTasksDashboard(pi, ctx, devTasks().formatted);
       return;
     }
     if (route.type === "known" && route.subcommand === "retro") {
@@ -298,5 +300,6 @@ export default function (pi: ExtensionAPI) {
 
   registerTools(pi, () => state.devConfig);
   registerPiHarnessHookListeners(pi, state);
+  registerTasksDashboardRenderer(pi);
   registerOrchestratorSubagentChatRenderer(pi, getSubagentToolRenderers() ?? {});
 }

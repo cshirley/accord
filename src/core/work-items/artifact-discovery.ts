@@ -6,6 +6,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { devNonce } from "../briefing/nonce.js";
+import {
+  planTaskPipelineProfile,
+  type PlanTaskStep,
+} from "../plan/task-pipeline-profile.js";
 import { findGitRoot } from "../config/git.js";
 import { loadWorkItem, readJson, TASKS_DIR, writeJson } from "./io.js";
 import type { TaskFile, WorkItem } from "./types.js";
@@ -176,7 +180,7 @@ export function resolveDevArtifactPathForId(
 interface PlanArtifact {
   schema_version?: string;
   work_item_id?: string;
-  tasks?: Array<{ id: number }>;
+  tasks?: Array<{ id: number; steps?: PlanTaskStep[] }>;
 }
 
 interface SpecArtifact {
@@ -259,14 +263,15 @@ export function bootstrapImplementTasksFromPlan(workItemId: string, planPath: st
     const existing = readJson<TaskFile>(taskPath);
     if (existing) continue;
 
+    const profile = planTaskPipelineProfile(task.steps);
     writeJson(taskPath, {
       schema_version: "1.0",
       work_item_id: workItemId,
       task_id: taskId,
       owner_nonce: devNonce(),
-      phase: "phase-test",
+      phase: profile.initialPhase,
       status: "pending",
-      pre_impl_gates: "pending",
+      pre_impl_gates: profile.preImplGates,
       test_files: [],
       events: [],
     } satisfies TaskFile);
@@ -277,3 +282,44 @@ export function bootstrapImplementTasksFromPlan(workItemId: string, planPath: st
   writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
   return created;
 }
+
+/**
+ * Fix existing task files that were bootstrapped before verify-only support
+ * (stuck at phase-test with pre_impl_gates pending).
+ */
+export function reconcileVerifyOnlyTasksFromPlan(workItemId: string, planPath: string): number {
+  const plan = readJson<PlanArtifact>(planPath);
+  if (!plan?.tasks?.length) return 0;
+
+  let updated = 0;
+  for (const task of plan.tasks) {
+    const taskId = task.id;
+    if (typeof taskId !== "number" || !Number.isFinite(taskId) || taskId < 1) continue;
+    const profile = planTaskPipelineProfile(task.steps);
+    if (!profile.verifyOnly) continue;
+
+    const taskPath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
+    const existing = readJson<TaskFile>(taskPath);
+    if (!existing || existing.status === "done" || existing.status === "blocked") continue;
+
+    const phase = typeof existing.phase === "string" ? existing.phase : "";
+    const needsPhase =
+      phase === "phase-test" ||
+      phase === "review-test" ||
+      phase === "phase-code" ||
+      phase === "review-code";
+    const needsGates = existing.pre_impl_gates !== "complete";
+
+    if (!needsPhase && !needsGates) continue;
+
+    existing.phase = "phase-verify-task";
+    existing.pre_impl_gates = "complete";
+    if (existing.status !== "in_progress") {
+      existing.status = "pending";
+    }
+    writeJson(taskPath, existing);
+    updated += 1;
+  }
+  return updated;
+}
+

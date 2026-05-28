@@ -17,6 +17,8 @@ export type ResumeOrchestrationResolution =
       workItemId: string;
       agent: string;
       task: string;
+      /** Reconcile / preflight notices surfaced before spawn (optional). */
+      messages?: OrchestrationMessage[];
     };
 
 /** Reason the outer loop stopped (extended over time). */

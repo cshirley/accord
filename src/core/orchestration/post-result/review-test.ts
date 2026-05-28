@@ -4,6 +4,7 @@
  */
 
 import type { DevHarnessConfig } from "../../config/types.js";
+import { severityGateRemediationLabel } from "../policy.js";
 import {
   decideAfterReviewTest,
   isReviewReturnPacket,
@@ -38,7 +39,7 @@ export function applyReviewTestPostResult(
     persistLastReviewFeedback(task, "review-test", packet, timestamp);
 
     const counters = readReviewLoopCounters(task);
-    const decision = decideAfterReviewTest(counters, packet, devConfig);
+    const decision = decideAfterReviewTest(counters, packet, devConfig, wi.pattern);
 
     if ("blocked" in decision) {
       task.status = "blocked";
@@ -81,10 +82,14 @@ export function applyReviewTestPostResult(
     }
 
     const label = onQuickFix ? "Quick-fix" : "Implement";
+    const gateLabel =
+      "retryPolicy" in decision
+        ? severityGateRemediationLabel(decision.retryPolicy.severityGate)
+        : "critical findings";
     const loopNote = decision.bumpTestRetry
-      ? `Critical findings — retrying **phase-test** (used ${String(readReviewLoopCounters(task).test_review_retries_used)} retry slot(s)).`
+      ? `Findings at or above repo gate (${gateLabel}) — retrying **phase-test** (used ${String(readReviewLoopCounters(task).test_review_retries_used)} retry slot(s); gate \`${decision.retryPolicy.severityGate}\`).`
       : packet.verdict === "issues"
-        ? "No critical findings — continuing to **phase-code** (advisory issues only)."
+        ? `No findings at or above repo gate (\`${"retryPolicy" in decision ? decision.retryPolicy.severityGate : "block"}\`) — continuing to **phase-code** (advisory only).`
         : "";
 
     footer = [

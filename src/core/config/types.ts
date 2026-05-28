@@ -19,11 +19,21 @@ export interface DevHarnessOrchestrationConfig {
     code_review_on_reviews_requested?: boolean;
   };
   /**
-   * Critical finding retries after **review-test** / **review-code** (persisted on the task file).
-   * Default max: 3 (`DEFAULT_MAX_CRITICAL_REVIEW_RETRIES`).
+   * Finding retries after **review-test** / **review-code** for **implement** (and quick-fix **review-code**).
+   * Default: `severity_gate` `block`, max 3 (`DEFAULT_MAX_CRITICAL_REVIEW_RETRIES`).
    */
   review_loop?: {
     max_critical_retries?: number;
+    /** `block` = critical only; `warn` = warning+critical; `none` = any finding. Default: `block`. */
+    severity_gate?: "none" | "warn" | "block";
+    review_test?: {
+      severity_gate?: "none" | "warn" | "block";
+      max_retries?: number;
+    };
+    review_code?: {
+      severity_gate?: "none" | "warn" | "block";
+      max_retries?: number;
+    };
   };
   /**
    * Bounded LLM output merged into resume task text (Phase 5). Never selects agents —
@@ -35,6 +45,13 @@ export interface DevHarnessOrchestrationConfig {
     /** Dispatch agent registry ids that receive judgment (default: review-test, phase-test). */
     agents?: string[];
     max_tokens?: number;
+  };
+  /**
+   * Review spawn behaviour hints (orchestrator messaging; does not auto-spawn).
+   */
+  review?: {
+    /** When true, parallel review-test + review-code timeouts suggest sequential re-run (default: true). */
+    parallel_prefer_sequential_on_timeout?: boolean;
   };
   /**
    * `/dev resume` replan loop: which agents may chain in one command and how many spawns max.
