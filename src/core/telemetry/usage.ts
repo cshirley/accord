@@ -9,8 +9,10 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { EXT_DIR } from "../config/paths.js";
 import { createLogger } from "../logging.js";
 import {
+  listWorkItemFileRefs,
   mutateJson,
-  WORK_ITEM_FILE_PATTERN,
+  resolveTasksDir,
+  workItemJsonPath,
   WORK_ITEM_ID_PATTERN,
   writeJson,
 } from "../work-items/io.js";
@@ -77,7 +79,9 @@ export interface WorkItemSummary {
 
 // ── Pricing ────────────────────────────────────────────────
 
-const HARNESS_RUN_META_PATH = path.join(".tasks", ".harness-run.json");
+function harnessRunMetaPath(cwd?: string): string {
+  return path.join(resolveTasksDir(undefined, cwd ?? process.cwd()), ".harness-run.json");
+}
 
 const DEFAULT_PRICING: PricingConfig = {
   unit: "usd_per_million_tokens",
@@ -99,8 +103,8 @@ function resolvePricingPath(): string | null {
 
 export function readHarnessRunMeta(): HarnessRunMeta | null {
   try {
-    if (!fs.existsSync(HARNESS_RUN_META_PATH)) return null;
-    const raw = JSON.parse(fs.readFileSync(HARNESS_RUN_META_PATH, "utf8"));
+    if (!fs.existsSync(harnessRunMetaPath())) return null;
+    const raw = JSON.parse(fs.readFileSync(harnessRunMetaPath(), "utf8"));
     if (raw && typeof raw.run_id === "string" && typeof raw.tag === "string")
       return raw as HarnessRunMeta;
   } catch {
@@ -132,7 +136,7 @@ export function setHarnessRunTag(label: string, opts?: { newRunId?: boolean }): 
   };
   // writeJson is atomic (tmp + fsync + rename) so concurrent readers in
   // hooks never observe a torn file.
-  writeJson(HARNESS_RUN_META_PATH, meta);
+  writeJson(harnessRunMetaPath(), meta);
   return meta;
 }
 
@@ -158,7 +162,7 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
         work_item_ids: ids,
         updated_at: new Date().toISOString(),
       };
-      writeJson(HARNESS_RUN_META_PATH, meta);
+      writeJson(harnessRunMetaPath(), meta);
     } catch (e) {
       log.warn(`failed to update harness run meta: ${e}`);
     }
@@ -173,7 +177,7 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
       auto: true,
       work_item_ids: [workItemId],
     };
-    writeJson(HARNESS_RUN_META_PATH, meta);
+    writeJson(harnessRunMetaPath(), meta);
   } catch (e) {
     log.warn(`failed to write harness run meta: ${e}`);
   }
@@ -181,7 +185,7 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
 
 export function clearHarnessRunTag(): void {
   try {
-    if (fs.existsSync(HARNESS_RUN_META_PATH)) fs.unlinkSync(HARNESS_RUN_META_PATH);
+    if (fs.existsSync(harnessRunMetaPath())) fs.unlinkSync(harnessRunMetaPath());
   } catch {
     /* ignore */
   }
@@ -216,7 +220,7 @@ export function extractTaskIdFromTaskText(task: string): number | null {
 }
 
 export function readUsageLines(workItemId: string): UsageLine[] {
-  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  const jsonlPath = path.join(resolveTasksDir(workItemId), `${workItemId}-usage.jsonl`);
   if (!fs.existsSync(jsonlPath)) return [];
   const out: UsageLine[] = [];
   try {
@@ -369,9 +373,9 @@ export function extractWorkItemId(task: string, opts?: { mustExist?: boolean }):
 // ── Usage persistence ──────────────────────────────────────
 
 export function appendUsageLine(workItemId: string, line: UsageLine): void {
-  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  const jsonlPath = path.join(resolveTasksDir(workItemId), `${workItemId}-usage.jsonl`);
   try {
-    fs.mkdirSync(".tasks", { recursive: true });
+    fs.mkdirSync(resolveTasksDir(workItemId), { recursive: true });
     const ctx = resolveHarnessRunContext();
     const merged: UsageLine = {
       ...line,
@@ -385,7 +389,7 @@ export function appendUsageLine(workItemId: string, line: UsageLine): void {
 }
 
 export function recomputeCost(workItemId: string, pricing: PricingConfig): number {
-  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  const jsonlPath = path.join(resolveTasksDir(workItemId), `${workItemId}-usage.jsonl`);
   if (!fs.existsSync(jsonlPath)) return 0;
 
   let totalCost = 0;
@@ -413,7 +417,7 @@ export function computeLineCost(line: UsageLine, pricing: PricingConfig): number
 }
 
 export function updateWorkItemCost(workItemId: string, cost: number): void {
-  const wiPath = path.join(".tasks", `${workItemId}.json`);
+  const wiPath = workItemJsonPath(workItemId);
   if (!fs.existsSync(wiPath)) return;
   try {
     mutateJson<WorkItem>(wiPath, (wi) => {
@@ -429,28 +433,20 @@ export function updateWorkItemCost(workItemId: string, cost: number): void {
 // ── Work item discovery ────────────────────────────────────
 
 export function discoverWorkItems(): WorkItemSummary[] {
-  const tasksDir = ".tasks";
-  if (!fs.existsSync(tasksDir)) return [];
-
   const items: WorkItemSummary[] = [];
-  try {
-    for (const file of fs.readdirSync(tasksDir)) {
-      if (!WORK_ITEM_FILE_PATTERN.test(file)) continue;
-      try {
-        const wi = JSON.parse(fs.readFileSync(path.join(tasksDir, file), "utf8"));
-        items.push({
-          id: wi.id,
-          phase: wi.phase,
-          pattern: wi.pattern,
-          cost_usd: wi.cost_usd || 0,
-          decisions_pending: (wi.decisions || []).filter(
-            (d: unknown) => (d as { status?: string }).status === "pending",
-          ).length,
-        });
-      } catch {}
-    }
-  } catch {
-    /* .tasks not readable */
+  for (const ref of listWorkItemFileRefs()) {
+    try {
+      const wi = JSON.parse(fs.readFileSync(path.join(ref.tasksDir, ref.fileName), "utf8"));
+      items.push({
+        id: wi.id,
+        phase: wi.phase,
+        pattern: wi.pattern,
+        cost_usd: wi.cost_usd || 0,
+        decisions_pending: (wi.decisions || []).filter(
+          (d: unknown) => (d as { status?: string }).status === "pending",
+        ).length,
+      });
+    } catch {}
   }
   return items;
 }

@@ -8,6 +8,7 @@ import {
 } from "../src/core/work-items/artifact-discovery.js";
 
 const tmpRoot = join(import.meta.dirname, ".tmp-verify-only");
+const originalCwd = process.cwd();
 
 function writeJson(path: string, data: unknown) {
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
@@ -67,6 +68,7 @@ function setupProject() {
 }
 
 afterEach(() => {
+  process.chdir(originalCwd);
   try {
     rmSync(tmpRoot, { recursive: true, force: true });
   } catch {

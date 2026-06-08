@@ -2,13 +2,14 @@
  * Deterministic handling for `/dev` free-text (classify) before orchestration continues.
  *
  * Same rules as `dev_intent`, then optional `dev_bootstrap` when the line is unambiguous
- * (ticket + title, high-confidence intent, work item missing).
+ * (ticket-only, ticket + title, high-confidence intent, work item missing).
  */
 
 import { loadWorkItem } from "../work-items/io.js";
 import { devBootstrap, type IntentContractInput } from "../work-items/lifecycle.js";
 import { ensureWorkItemHydrated } from "../work-items/rehydrate.js";
 import type { WorkItemPattern } from "../work-items/types.js";
+import { DEV_WORK_ITEM_ID_PATTERN } from "./dispatch.js";
 import {
   formatIntentRecommendation,
   type IntentRecommendation,
@@ -25,6 +26,15 @@ export interface ClassifyPreflightResult {
   intentBlock: string;
   /** User-visible line when deterministic bootstrap ran or was intentionally skipped. */
   bootstrapNotice?: string;
+}
+
+export interface ClassifyBootstrapInput {
+  id: string;
+  title: string;
+  text: string;
+  intent: IntentRecommendation;
+  /** Ticket-only lines (`STEP-11488`) — explicit harness start on that work item. */
+  ticketOnly: boolean;
 }
 
 function resolveBootstrapPatternVariant(
@@ -74,6 +84,20 @@ function resolveBootstrapPatternVariant(
   }
 }
 
+/** Intent contract for `/dev STEP-11488` — named ticket is explicit consent to start the harness. */
+function intentForTicketOnlyBootstrap(base: IntentRecommendation): IntentRecommendation {
+  return {
+    ...base,
+    intent_mode: "pipeline",
+    confidence: "high",
+    needs_confirmation: false,
+    escalation_ceiling: "pipeline_allowed",
+    recommended_pattern: "implement",
+    recommended_variant: "standard",
+    reasons: [...base.reasons, "ticket-only input: start implement/standard on the named work item"],
+  };
+}
+
 function parseLeadingTicketAndTitle(text: string): { id: string; title: string } | null {
   const trimmed = text.trim();
   const match = LEADING_TICKET_TITLE.exec(trimmed);
@@ -84,43 +108,51 @@ function parseLeadingTicketAndTitle(text: string): { id: string; title: string }
   return { id, title };
 }
 
+/** Input is only a tracker key (no description suffix). */
+export function parseTicketIdOnly(text: string): string | null {
+  const trimmed = text.trim();
+  if (!DEV_WORK_ITEM_ID_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
+
 /**
- * Runs deterministic intent classification and optional `dev_bootstrap` for a
- * single-line ticket bootstrap. Always safe to call before forwarding to the skill.
+ * Create `.tasks/<ID>.json` when classify preflight allows it.
+ * Idempotent when the work item already exists or rehydrate succeeds.
  */
-export function classifyPreflight(text: string): ClassifyPreflightResult {
-  const intent = recommendIntentMode(text);
-  const intentBlock = `Deterministic intent (same rules as \`dev_intent\`):\n${formatIntentRecommendation(intent)}`;
+export function attemptClassifyBootstrap(
+  input: ClassifyBootstrapInput,
+): { bootstrapNotice?: string } {
+  const intent = input.ticketOnly ? intentForTicketOnlyBootstrap(input.intent) : input.intent;
 
-  let bootstrapNotice: string | undefined;
-  const parsed = parseLeadingTicketAndTitle(text);
-
-  if (!parsed) {
-    return { intent, intentBlock, bootstrapNotice };
+  if (!input.ticketOnly && intent.needs_confirmation) {
+    return {
+      bootstrapNotice: `Ticket-shaped input \`${input.id}\` detected; automatic bootstrap skipped because needs_confirmation is true.`,
+    };
   }
 
-  if (intent.needs_confirmation) {
-    bootstrapNotice = `Ticket-shaped input \`${parsed.id}\` detected; automatic bootstrap skipped because needs_confirmation is true.`;
-    return { intent, intentBlock, bootstrapNotice };
-  }
+  const patternVariant = input.ticketOnly
+    ? { pattern: "implement" as const, variant: "standard" as const }
+    : resolveBootstrapPatternVariant(intent, input.text);
 
-  const patternVariant = resolveBootstrapPatternVariant(intent, text);
   if (!patternVariant) {
-    bootstrapNotice = `Ticket \`${parsed.id}\` detected; intent_mode \`${intent.intent_mode}\` does not auto-bootstrap.`;
-    return { intent, intentBlock, bootstrapNotice };
+    return {
+      bootstrapNotice: `Ticket \`${input.id}\` detected; intent_mode \`${intent.intent_mode}\` does not auto-bootstrap.`,
+    };
   }
 
-  const existing = loadWorkItem(parsed.id);
+  const existing = loadWorkItem(input.id);
   if (existing) {
-    bootstrapNotice = `Work item \`${parsed.id}\` already exists (phase: ${existing.phase}) — skipping bootstrap.`;
-    return { intent, intentBlock, bootstrapNotice };
+    return {
+      bootstrapNotice: `Work item \`${input.id}\` already exists (phase: ${existing.phase}) — skipping bootstrap.`,
+    };
   }
 
   if (patternVariant.pattern === "implement") {
-    const rehydrated = ensureWorkItemHydrated(parsed.id);
+    const rehydrated = ensureWorkItemHydrated(input.id);
     if (rehydrated.ok && rehydrated.value.rehydrated) {
-      bootstrapNotice = `${rehydrated.value.message} Run \`/dev resume ${parsed.id}\` to continue.`;
-      return { intent, intentBlock, bootstrapNotice };
+      return {
+        bootstrapNotice: `${rehydrated.value.message} Run \`/dev resume ${input.id}\` to continue.`,
+      };
     }
   }
 
@@ -130,12 +162,55 @@ export function classifyPreflight(text: string): ClassifyPreflightResult {
     escalation_ceiling: intent.escalation_ceiling,
     target_paths: intent.target_paths.length ? intent.target_paths : undefined,
     out_of_scope: intent.out_of_scope.length ? intent.out_of_scope : undefined,
-    expected_finish: parsed.title.slice(0, 240),
+    expected_finish: input.ticketOnly
+      ? `Deliver ${input.id} per tracker ticket (phase-gather will load ticket details).`
+      : input.title.slice(0, 240),
   };
 
   const { pattern, variant } = patternVariant;
-  const boot = devBootstrap(parsed.id, parsed.title, pattern, variant, intentContract);
-  bootstrapNotice = `Created work item \`${boot.work_item.id}\` (${pattern}${variant ? `/${variant}` : ""}) at ${boot.path}. Orchestration will continue via /dev resume when an ID is present.`;
+  const boot = devBootstrap(input.id, input.title, pattern, variant, intentContract);
+  const gatherNote = input.ticketOnly ? " Orchestration will run gather/align via /dev resume." : "";
+  return {
+    bootstrapNotice: `Created work item \`${boot.work_item.id}\` (${pattern}${variant ? `/${variant}` : ""}) at ${boot.path}.${gatherNote}`,
+  };
+}
+
+/**
+ * Runs deterministic intent classification and optional `dev_bootstrap` for a
+ * single-line ticket bootstrap. Always safe to call before orchestration resume.
+ */
+export function classifyPreflight(text: string): ClassifyPreflightResult {
+  const intent = recommendIntentMode(text);
+  const intentBlock = `Deterministic intent (same rules as \`dev_intent\`):\n${formatIntentRecommendation(intent)}`;
+
+  const ticketOnlyId = parseTicketIdOnly(text);
+  if (ticketOnlyId) {
+    const { bootstrapNotice } = attemptClassifyBootstrap({
+      id: ticketOnlyId,
+      title: ticketOnlyId,
+      text,
+      intent,
+      ticketOnly: true,
+    });
+    return {
+      intent: intentForTicketOnlyBootstrap(intent),
+      intentBlock,
+      bootstrapNotice,
+    };
+  }
+
+  const parsed = parseLeadingTicketAndTitle(text);
+  if (!parsed) {
+    return { intent, intentBlock };
+  }
+
+  const { bootstrapNotice } = attemptClassifyBootstrap({
+    id: parsed.id,
+    title: parsed.title,
+    text,
+    intent,
+    ticketOnly: false,
+  });
 
   return { intent, intentBlock, bootstrapNotice };
 }

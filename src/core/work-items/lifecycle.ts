@@ -11,7 +11,7 @@ import {
 } from "../subagent/preflight/pipeline-artifacts.js";
 import { err, ok, type Result } from "../types/result.js";
 import { devCheckpointDelete } from "./checkpoint.js";
-import { loadTaskFile, loadWorkItem, now, TASKS_DIR, writeJson } from "./io.js";
+import { loadTaskFile, loadWorkItem, now, resolveTasksDir, writeJson, workItemJsonPath } from "./io.js";
 import type {
   IntentConfidence,
   IntentMode,
@@ -90,7 +90,7 @@ export function devBootstrap(
 
   if (!wi.variant) wi.variant = undefined;
 
-  const wiPath = path.join(TASKS_DIR, `${id}.json`);
+  const wiPath = workItemJsonPath(id);
   writeJson(wiPath, wi);
   return { path: wiPath, work_item: wi };
 }
@@ -121,7 +121,7 @@ export function devTransition(
   if (updates?.verify) wi.verify = updates.verify;
   if (updates?.brief) wi.brief = updates.brief;
 
-  writeJson(path.join(TASKS_DIR, `${id}.json`), wi);
+  writeJson(workItemJsonPath(id), wi);
   devCheckpointDelete(id);
 
   return ok({ work_item: wi });
@@ -164,7 +164,7 @@ export function devFinalizeWorkItem(
   if (input.shift_left_findings) wi.shift_left_findings = input.shift_left_findings;
   wi.updated = timestamp;
 
-  writeJson(path.join(TASKS_DIR, `${id}.json`), wi);
+  writeJson(workItemJsonPath(id), wi);
   return ok({ work_item: wi });
 }
 
@@ -261,7 +261,7 @@ export function devPromoteEvents(workItemId: string, taskId: string): PromotionR
 
   if (escalations > 0 || devs > 0) {
     wi.updated = now();
-    writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+    writeJson(workItemJsonPath(workItemId), wi);
   }
 
   return {
@@ -279,7 +279,7 @@ export function devWritePreflightReceipt(
   commands: string[],
   exitCodes: number[],
 ): { path: string } {
-  const receiptPath = path.join(TASKS_DIR, `.verify-preflight-${workItemId}.json`);
+  const receiptPath = path.join(resolveTasksDir(workItemId), `.verify-preflight-${workItemId}.json`);
   writeJson(receiptPath, {
     work_item_id: workItemId,
     ran_at: Math.floor(Date.now() / 1000),

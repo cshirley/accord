@@ -10,7 +10,7 @@ import {
 } from "./dashboard-hints.js";
 import { formatTasksDashboard } from "./dashboard-format.js";
 import { devCheckpointRead } from "../work-items/checkpoint.js";
-import { listWorkItemFiles, readJson, TASKS_DIR } from "../work-items/io.js";
+import { listWorkItemFileRefs, readJson, taskJsonPath } from "../work-items/io.js";
 import type { Deviation, TaskFile, WorkItem } from "../work-items/types.js";
 
 export interface TasksDashboardRow {
@@ -104,11 +104,10 @@ function buildAttentionSummary(
 }
 
 export function devTasks(): TasksDashboardResult {
-  const files = listWorkItemFiles();
   const rows: TasksDashboardRow[] = [];
 
-  for (const file of files) {
-    const wi = readJson<WorkItem>(path.join(TASKS_DIR, file));
+  for (const ref of listWorkItemFileRefs()) {
+    const wi = readJson<WorkItem>(path.join(ref.tasksDir, ref.fileName));
     if (!wi) continue;
 
     let done = 0,
@@ -118,7 +117,7 @@ export function devTasks(): TasksDashboardResult {
       pending = 0;
     for (const tid of wi.task_ids || []) {
       total++;
-      const tf = readJson<TaskFile>(path.join(TASKS_DIR, `${wi.id}-task-${tid}.json`));
+      const tf = readJson<TaskFile>(taskJsonPath(wi.id, tid));
       if (tf?.status === "done") done++;
       else if (tf?.status === "blocked") blocked++;
       else if (tf?.status === "in_progress") inProgress++;

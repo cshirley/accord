@@ -3,7 +3,7 @@
  */
 
 import * as path from "node:path";
-import { listWorkItemFiles, readJson, TASKS_DIR } from "../work-items/io.js";
+import { listWorkItemFileRefs, readJson } from "../work-items/io.js";
 import type { Decision, Deviation, WorkItem } from "../work-items/types.js";
 
 export interface ReviewQueueItem {
@@ -18,12 +18,12 @@ export interface ReviewQueueResult {
 }
 
 export function devReviewQueue(): ReviewQueueResult {
-  const files = listWorkItemFiles();
+  const refs = listWorkItemFileRefs();
   const pendingDecisions: ReviewQueueItem[] = [];
   const deviations: { work_item_id: string; deviation: Deviation }[] = [];
 
-  for (const file of files) {
-    const wi = readJson<WorkItem>(path.join(TASKS_DIR, file));
+  for (const ref of refs) {
+    const wi = readJson<WorkItem>(path.join(ref.tasksDir, ref.fileName));
     if (!wi) continue;
 
     for (const d of wi.decisions || []) {

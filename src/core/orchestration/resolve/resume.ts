@@ -21,6 +21,7 @@ import {
   resolveImplementingResumeAgentId,
   resolvePrimaryTaskResumeAgentId,
 } from "./primary-task.js";
+import { buildAlignResumeTaskOrGeneric } from "./align-task.js";
 
 export function parseLeadingWorkItemId(args: string): string | null {
   const trimmed = args.trim();
@@ -202,13 +203,14 @@ export function resolveResumeOrchestration(
 
   const baseTask =
     implementBrief.value ??
-    buildResumeTaskBrief({
+    buildAlignResumeTaskOrGeneric({
       workItemId: stateAfterReconcile.id,
       phase,
       title: stateAfterReconcile.title,
       pattern: stateAfterReconcile.pattern,
       variant: stateAfterReconcile.variant,
       dispatchAgent: agent,
+      devConfig,
     });
   const task = appendReviewFeedbackToResumeBrief(workItemId, baseTask, agent);
 

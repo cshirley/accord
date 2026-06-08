@@ -512,6 +512,28 @@ describe("harness processSubagentToolResult", () => {
     expect(out).toContain("phase-code");
   });
 
+  test("accepts streamed output when assistant message content is empty", async () => {
+    const packet = { status: "done", summary: "planned" };
+    const out = await processSubagentToolResult({
+      details: {
+        results: [
+          {
+            agent: "phase-align",
+            task: "ACCORD-STREAM-1 align",
+            exitCode: 0,
+            messages: [{ role: "assistant", content: [] }],
+            output: `Done\n\`\`\`json\n${JSON.stringify(packet)}\n\`\`\``,
+            liveActivity: { streamingText: `Done\n\`\`\`json\n${JSON.stringify(packet)}\n\`\`\`` },
+          },
+        ],
+      },
+      state: emptyHarnessState(),
+      pricing: loadPricing(),
+    });
+    expect(out).not.toContain("empty response");
+    expect(out).toContain("phase-align Return Packet");
+  });
+
   test("runs post-code verification when devConfig supplies type_check", async () => {
     const project = tempProject();
     process.chdir(project);

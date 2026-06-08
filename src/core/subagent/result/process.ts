@@ -119,7 +119,18 @@ export async function processSubagentToolResult(
     );
     const lastAssistant = assistantMsgs[assistantMsgs.length - 1];
     const lastContent = lastAssistant?.content as unknown;
-    const hasContent = Array.isArray(lastContent) ? lastContent.length > 0 : !!lastContent;
+    const resultRecord = result as Record<string, unknown>;
+    const outputText =
+      typeof resultRecord.output === "string" ? resultRecord.output.trim() : "";
+    const streamedText = (() => {
+      const live = resultRecord.liveActivity as { streamingText?: string } | undefined;
+      return typeof live?.streamingText === "string" ? live.streamingText.trim() : "";
+    })();
+    const hasAssistantBlocks = Array.isArray(lastContent)
+      ? lastContent.length > 0
+      : !!lastContent;
+    const hasContent =
+      hasAssistantBlocks || outputText.length > 0 || streamedText.length > 0;
     const packet = agentName ? extractReturnPacketFromSubagentResult(result) : null;
 
     if (result.timedOut === true) {
@@ -154,23 +165,41 @@ export async function processSubagentToolResult(
     }
 
     if (agentName && !hasContent && !packet) {
+      if (workItemId && COARSE_PHASE_AGENTS.has(agentName) && result.exitCode === 0) {
+        const steps = reconcileCoarsePhaseUntilStable(workItemId);
+        if (steps > 0) {
+          contentAppend += [
+            ``,
+            `✓ **${agentName}** wrote a complete artifact on disk — work item coarse phase reconciled (${String(steps)} step(s)).`,
+            `Run \`/dev resume ${workItemId}\` to continue — do not respawn ${agentName}.`,
+          ].join("\n");
+          continue;
+        }
+      }
+
       const stderrTail = typeof result.stderr === "string" ? result.stderr.slice(-300).trim() : "";
+      const usage = result.usage as { output?: number } | undefined;
+      const billedOutput = typeof usage?.output === "number" ? usage.output : 0;
       log.error(
-        `agent=${agentName} EMPTY RESPONSE stopReason=${result.stopReason} exitCode=${result.exitCode} model=${result.model}`,
+        `agent=${agentName} EMPTY RESPONSE stopReason=${result.stopReason} exitCode=${result.exitCode} model=${result.model} billedOutputTokens=${String(billedOutput)}`,
       );
       if (stderrTail) log.error(`stderr: ${stderrTail}`);
+      const billedHint =
+        billedOutput > 0
+          ? `The subagent billed ~${String(billedOutput)} output tokens but returned no harvestable text or return packet. If using \`cursor-agent\`, set \`hideThinkingBlock\` to \`false\` in Pi settings or ensure the agent ends with a \`\`\`json return block.`
+          : `This usually means the model or provider is not available in the subagent process. Check credentials (\`dev_subagent_preflight\`) and that the model profile matches your API keys.`;
       contentAppend += [
         `\n\n❌ **${agentName} returned an empty response — pipeline cannot continue.**`,
         ``,
         `- model: \`${String(result.model ?? "unknown")}\``,
         `- stopReason: ${String(result.stopReason ?? "unknown")}`,
         `- exitCode: ${String(result.exitCode ?? "unknown")}`,
+        billedOutput > 0 ? `- output tokens: ${String(billedOutput)}` : "",
         stderrTail ? `- stderr: ${stderrTail}` : "",
         ``,
-        `This usually means the model or provider is not available in the subagent process.`,
-        `Check that the model is configured for a direct provider (e.g. Anthropic, Google) rather than a host-only provider (e.g. cursor-agent).`,
+        billedHint,
         ``,
-        `**Stop the pipeline. Do not retry without fixing the model configuration.**`,
+        `**Stop the pipeline. Do not retry until output or on-disk artifacts are fixed.**`,
       ]
         .filter(Boolean)
         .join("\n");

@@ -129,9 +129,14 @@ export async function spawnSubagent(params: SpawnSubagentParams): Promise<SpawnS
     output: "",
   };
 
+  const resolveOutput = () => {
+    const snap = activity.snapshot();
+    currentResult.liveActivity = snap;
+    return getFinalOutput(currentResult.messages, snap.streamingText);
+  };
+
   const emitUpdate = () => {
-    currentResult.liveActivity = activity.snapshot();
-    currentResult.output = getFinalOutput(currentResult.messages);
+    currentResult.output = resolveOutput();
     const snapshot = { ...currentResult };
     params.onUpdate?.({ result: snapshot });
     if (params.onEvent) {
@@ -265,7 +270,7 @@ export async function spawnSubagent(params: SpawnSubagentParams): Promise<SpawnS
     });
 
     currentResult.exitCode = exitCode;
-    currentResult.output = getFinalOutput(currentResult.messages);
+    currentResult.output = resolveOutput();
     currentResult.parsedReturn = parseSubagentReturnJson(currentResult.output);
     if (wasAborted) {
       const reason = params.signal?.reason;

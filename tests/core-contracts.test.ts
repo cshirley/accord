@@ -195,6 +195,20 @@ describe("subcommand routing", () => {
 });
 
 describe("classifyPreflight", () => {
+  test("creates work item for ticket-only input (regression: /dev STEP-11488)", () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    const pre = classifyPreflight("STEP-11488");
+    expect(pre.bootstrapNotice).toContain("Created work item `STEP-11488`");
+    expect(existsSync(join(project, ".tasks", "STEP-11488.json"))).toBe(true);
+    const wi = JSON.parse(readFileSync(join(project, ".tasks", "STEP-11488.json"), "utf8"));
+    expect(wi.phase).toBe("aligning");
+    expect(wi.pattern).toBe("implement");
+    expect(wi.variant).toBe("standard");
+    expect(pre.intent.needs_confirmation).toBe(false);
+  });
+
   test("creates work item for unambiguous ticket bootstrap", () => {
     const project = tempProject();
     process.chdir(project);
@@ -499,6 +513,4 @@ describe("quick_fix pattern contracts", () => {
       validateArtifact(join(project, "docs", "dev", "FIX-1", "plan.json")),
     ).resolves.toEqual({ valid: true, errors: [] });
   });
-
-
-[thrift: 500/1259 lines (16.9KB/42.8KB). 759 lines (25.9KB) omitted. IMPORTANT: file was truncated. Before editing lines beyond this point, re-read the target region with offset/limit.]
+});

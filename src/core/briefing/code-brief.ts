@@ -10,7 +10,7 @@ import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
 import { err, ok, type Result } from "../types/result.js";
-import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { loadWorkItem, now, readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
 import { devNonce } from "./nonce.js";
 import { formatCodeTaskBrief, sliceTaskRequirements } from "./task-requirements.js";
 
@@ -211,7 +211,7 @@ export function devQuickFixBrief(
   if (wi.pattern !== "quick_fix") return err(`Work item ${workItemId} is not a quick_fix item`);
 
   const taskId = "1";
-  const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
+  const taskFilePath = taskJsonPath(workItemId, taskId);
   const existingTask = readJson<Record<string, unknown>>(taskFilePath);
   const rawNonce =
     existingTask && typeof existingTask.owner_nonce === "string" ? existingTask.owner_nonce : "";
@@ -250,7 +250,7 @@ export function devQuickFixBrief(
   wi.spec = specPath;
   wi.plan = planPath;
   wi.updated = now();
-  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+  writeJson(workItemJsonPath(workItemId), wi);
 
   const _verificationCommands =
     config?.verification_commands ??
@@ -347,7 +347,7 @@ export function devQuickFixBrief(
   writeFileSync(briefPath, briefContent, "utf8");
   wi.brief = briefPath;
   wi.updated = now();
-  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+  writeJson(workItemJsonPath(workItemId), wi);
 
   return ok({
     brief: briefContent,

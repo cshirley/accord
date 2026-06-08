@@ -8,7 +8,7 @@ import type { DevHarnessConfig } from "../config/index.js";
 import type { PlanTaskStep } from "../plan/task-pipeline-profile.js";
 import { resolveActivePrimaryTaskId } from "../orchestration/post-result/primary-task.js";
 import { err, ok, type Result } from "../types/result.js";
-import { loadWorkItem, readJson, TASKS_DIR } from "../work-items/io.js";
+import { loadWorkItem, readJson, workItemJsonPath, taskJsonPath } from "../work-items/io.js";
 import {
   NONCE_SYNC_SPAWN_AGENTS,
   resolveOwnerNonce,
@@ -129,7 +129,7 @@ export function sliceTaskRequirements(
   const coveredAcs = filterCoveredAcceptanceCriteria(spec, coveredAcIds);
   const testCases = filterTestCasesForAcIds(spec, coveredAcIds);
 
-  const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${String(taskId)}.json`);
+  const taskFilePath = taskJsonPath(workItemId, String(taskId));
   let taskFile = readJson<Record<string, unknown>>(taskFilePath);
   const rawNonce = taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
   const { ownerNonce, minted } = resolveOwnerNonce(rawNonce);

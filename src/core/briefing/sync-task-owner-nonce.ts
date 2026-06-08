@@ -9,7 +9,7 @@ import {
   type PlanTaskStep,
 } from "../plan/task-pipeline-profile.js";
 import { err, ok, type Result } from "../types/result.js";
-import { readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
 import { devNonce } from "./nonce.js";
 
 const OWNER_NONCE_RE = /^[0-9a-f]{6}$/;
@@ -77,7 +77,7 @@ export function syncTaskFileOwnerNonceForSpawn(input: {
   planTaskSteps?: PlanTaskStep[];
   taskFile?: Record<string, unknown> | null;
 }): Result<{ ownerNonce: string; taskFilePath: string }> {
-  const taskFilePath = path.join(TASKS_DIR, `${input.workItemId}-task-${String(input.taskId)}.json`);
+  const taskFilePath = taskJsonPath(input.workItemId, String(input.taskId));
   const taskFile = input.taskFile ?? readJson<Record<string, unknown>>(taskFilePath);
   const onDisk =
     taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";

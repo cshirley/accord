@@ -11,7 +11,7 @@
 import * as path from "node:path";
 import { buildImplementSpawnTaskBrief } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/types.js";
-import { readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
 import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
 import { findingsTriggerReviewRetry } from "./policy.js";
 import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback.js";
@@ -114,7 +114,7 @@ export function bumpQuickFixTestReviewCycle(
   workItemId: string,
   taskId: number,
 ): { ok: true; test_review_cycles_used: number } | { ok: false; error: string } {
-  const filePath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
+  const filePath = taskJsonPath(workItemId, taskId);
   const raw = readJson<Record<string, unknown>>(filePath);
   if (!raw) {
     return { ok: false, error: `Missing task file ${filePath}` };

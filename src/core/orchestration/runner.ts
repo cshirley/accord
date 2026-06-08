@@ -25,9 +25,36 @@ import { resumeAllowsAutoReplanToAgent, resumeReplanPolicyFromDevConfig } from "
 import { reconcileCoarsePhaseUntilStable } from "./reconcile-coarse-phase.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
 import { resolveDevSubcommandOrchestration } from "./resolve/subcommand.js";
+import {
+  postSpawnReplanDecision,
+  runSpawnFollowUpChain,
+} from "./spawn-followup.js";
 import type { NextStep, ResumeOrchestrationResolution, RunUntilStopResult } from "./types.js";
 
 export type ResumeOrchestrationStallReason = "repeat_spawn";
+
+async function applySpawnFollowUps(
+  workItemId: string,
+  devConfig: DevHarnessConfig | null,
+  host: OrchestrationRuntimeHost,
+  lastRun: RunUntilStopResult,
+): Promise<RunUntilStopResult> {
+  const initial = lastRun.lastSpawn;
+  if (!initial || initial.exitCode !== 0) {
+    return lastRun;
+  }
+
+  return runSpawnFollowUpChain({
+    workItemId,
+    host,
+    devConfig,
+    initial: {
+      agent: initial.agent,
+      exitCode: initial.exitCode,
+      parsedReturn: initial.parsedReturn,
+    },
+  });
+}
 
 export interface RunResumeOrchestrationWithReplansResult {
   firstResolution: ResumeOrchestrationResolution;
@@ -110,6 +137,15 @@ export async function runResumeOrchestrationWithReplans(
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
     if (resolution.outcome !== "spawn") {
+      return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
+    }
+
+    lastRun = await applySpawnFollowUps(workItemId, devConfig, host, lastRun);
+
+    if (
+      lastRun.lastSpawn &&
+      postSpawnReplanDecision(lastRun.lastSpawn.parsedReturn, lastRun.lastSpawn.agent) === "stop"
+    ) {
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
 
@@ -221,6 +257,15 @@ export async function runDevSubcommandOrchestrationWithReplans(
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
     if (resolution.outcome !== "spawn") {
+      return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
+    }
+
+    lastRun = await applySpawnFollowUps(workItemId, devConfig, host, lastRun);
+
+    if (
+      lastRun.lastSpawn &&
+      postSpawnReplanDecision(lastRun.lastSpawn.parsedReturn, lastRun.lastSpawn.agent) === "stop"
+    ) {
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
 
@@ -339,7 +384,7 @@ export async function runUntilStop(
   steps: readonly NextStep[],
   host: OrchestrationRuntimeHost,
 ): Promise<RunUntilStopResult> {
-  let lastSpawn: { agent: string; exitCode: number } | undefined;
+  let lastSpawn: RunUntilStopResult["lastSpawn"];
 
   for (const step of steps) {
     if (step.kind === "notify_user") {
@@ -348,11 +393,19 @@ export async function runUntilStop(
       return { stopReason: step.reason, lastSpawn };
     } else if (step.kind === "spawn_subagent") {
       const r = await host.spawnSubagent(step.request);
-      lastSpawn = { agent: step.request.agent, exitCode: r.exitCode };
+      lastSpawn = {
+        agent: step.request.agent,
+        exitCode: r.exitCode,
+        parsedReturn: r.parsedReturn,
+      };
     } else if (step.kind === "spawn_chain") {
       for (const request of step.request.steps) {
         const r = await host.spawnSubagent(request);
-        lastSpawn = { agent: request.agent, exitCode: r.exitCode };
+        lastSpawn = {
+          agent: request.agent,
+          exitCode: r.exitCode,
+          parsedReturn: r.parsedReturn,
+        };
         if (r.exitCode !== 0) break;
       }
     } else if (step.kind === "spawn_parallel") {
@@ -363,10 +416,15 @@ export async function runUntilStop(
         lastSpawn = {
           agent: tasks[firstBadIndex].agent,
           exitCode: results[firstBadIndex].exitCode,
+          parsedReturn: results[firstBadIndex].parsedReturn,
         };
       } else if (tasks.length > 0) {
         const lastIndex = tasks.length - 1;
-        lastSpawn = { agent: tasks[lastIndex].agent, exitCode: results[lastIndex].exitCode };
+        lastSpawn = {
+          agent: tasks[lastIndex].agent,
+          exitCode: results[lastIndex].exitCode,
+          parsedReturn: results[lastIndex].parsedReturn,
+        };
       }
     }
   }

@@ -105,6 +105,7 @@ function contentBlocksToText(content: unknown): string {
       if (typeof part === "string") return part;
       const p = part as Record<string, unknown>;
       if (p.type === "text" && typeof p.text === "string") return p.text;
+      if (p.type === "thinking" && typeof p.thinking === "string") return p.thinking;
       if (typeof p.text === "string") return p.text;
       return "";
     })
@@ -170,6 +171,15 @@ export function extractReturnPacketFromSubagentResult(
   }
 
   const candidates: string[] = [];
+
+  const liveActivity = r.liveActivity as { streamingText?: string } | undefined;
+  if (typeof liveActivity?.streamingText === "string" && liveActivity.streamingText.trim()) {
+    candidates.push(liveActivity.streamingText);
+  }
+
+  if (typeof r.output === "string" && r.output.trim()) {
+    candidates.push(r.output);
+  }
 
   if (Array.isArray(r.messages)) {
     const assistantMessages = [...r.messages]

@@ -56,6 +56,14 @@ export type NextStep =
 /** Minimal spawn result for runner / tests (Pi adapter fills from `runSubagent`). */
 export interface SubagentSpawnResult {
   exitCode: number;
+  /** Parsed JSON return packet when the subagent emitted one. */
+  parsedReturn?: unknown;
+}
+
+export interface LastSpawnSummary {
+  agent: string;
+  exitCode: number;
+  parsedReturn?: unknown;
 }
 
 /** Result of {@link runUntilStop} — includes last subagent spawn for sequential replan loops. */
@@ -63,7 +71,7 @@ export interface RunUntilStopResult {
   stopReason: OrchestrationStopReason;
   delegateReason?: string;
   /** Set when the terminal step was a successful or failed subagent invocation (single, chain tail, or parallel). */
-  lastSpawn?: { agent: string; exitCode: number };
+  lastSpawn?: LastSpawnSummary;
 }
 
 export interface OrchestrationGraphNode {

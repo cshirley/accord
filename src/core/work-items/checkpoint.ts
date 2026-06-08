@@ -5,7 +5,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createLogger } from "../logging.js";
-import { readJson, TASKS_DIR, writeJson } from "./io.js";
+import { checkpointJsonPath, readJson, writeJson } from "./io.js";
 import type { Checkpoint } from "./types.js";
 
 const log = createLogger("checkpoint");
@@ -13,7 +13,7 @@ const log = createLogger("checkpoint");
 const CURRENT_CHECKPOINT_SCHEMA_VERSION = "1.0";
 
 export function devCheckpointRead(id: string): Checkpoint | null {
-  return readJson<Checkpoint>(path.join(TASKS_DIR, `${id}-checkpoint.json`));
+  return readJson<Checkpoint>(checkpointJsonPath(id));
 }
 
 /**
@@ -23,7 +23,7 @@ export function devCheckpointRead(id: string): Checkpoint | null {
  * version we log it at debug level so migrations are visible.
  */
 export function devCheckpointWrite(id: string, data: Checkpoint): { path: string } {
-  const cpPath = path.join(TASKS_DIR, `${id}-checkpoint.json`);
+  const cpPath = checkpointJsonPath(id);
   if (data.schema_version && data.schema_version !== CURRENT_CHECKPOINT_SCHEMA_VERSION) {
     log.debug(
       `normalising checkpoint schema_version "${data.schema_version}" → "${CURRENT_CHECKPOINT_SCHEMA_VERSION}" for ${id}`,
@@ -34,7 +34,7 @@ export function devCheckpointWrite(id: string, data: Checkpoint): { path: string
 }
 
 export function devCheckpointDelete(id: string): boolean {
-  const cpPath = path.join(TASKS_DIR, `${id}-checkpoint.json`);
+  const cpPath = checkpointJsonPath(id);
   if (fs.existsSync(cpPath)) {
     fs.unlinkSync(cpPath);
     return true;

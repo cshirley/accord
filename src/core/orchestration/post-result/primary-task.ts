@@ -13,8 +13,9 @@ import {
   loadWorkItem,
   now,
   readJson,
-  TASKS_DIR,
+  taskJsonPath,
   writeJson,
+  workItemJsonPath,
 } from "../../work-items/io.js";
 import type { WorkItem } from "../../work-items/types.js";
 
@@ -73,7 +74,7 @@ export function advancePrimaryTask(
   }
 
   const primaryTaskId = resolvePrimaryTaskIdForMutation(wi);
-  const taskPath = path.join(TASKS_DIR, `${workItemId}-task-${primaryTaskId}.json`);
+  const taskPath = taskJsonPath(workItemId, primaryTaskId);
   const task = readJson<Record<string, unknown>>(taskPath);
   if (!task) {
     return false;
@@ -95,6 +96,6 @@ export function advancePrimaryTask(
   // do not clobber decisions/deviations written during `mutate`.
   const wiToWrite = loadWorkItem(workItemId) ?? wi;
   wiToWrite.updated = timestamp;
-  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wiToWrite);
+  writeJson(workItemJsonPath(workItemId), wiToWrite);
   return true;
 }

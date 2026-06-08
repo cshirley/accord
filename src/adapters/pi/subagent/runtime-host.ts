@@ -194,7 +194,7 @@ export function createResumeOrchestrationRuntimeHost(
         singleResult.exitCode === 0 ? "info" : "warning",
       );
 
-      return { exitCode: singleResult.exitCode };
+      return { exitCode: singleResult.exitCode, parsedReturn: singleResult.parsedReturn };
     },
 
     async runJudgment(request) {

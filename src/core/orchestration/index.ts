@@ -19,5 +19,6 @@ export * from "./resolve/index.js";
 export { parseLeadingWorkItemId } from "./resolve/resume.js";
 export * from "./review-feedback.js";
 export * from "./runner.js";
+export * from "./spawn-followup.js";
 export * from "./task-agent-audit.js";
 export * from "./types.js";

@@ -4,7 +4,7 @@
 
 import * as path from "node:path";
 import { devTasks } from "../queries/dashboard.js";
-import { listWorkItemFiles, readJson, TASKS_DIR } from "../work-items/io.js";
+import { listWorkItemFileRefs, readJson } from "../work-items/io.js";
 import type { WorkItem } from "../work-items/types.js";
 
 export type EmptyInputRoute =
@@ -113,11 +113,11 @@ export function devDispatch(input: string): SubcommandRoute {
 }
 
 export function devEmptyInputRoute(): EmptyInputRoute {
-  const files = listWorkItemFiles();
-  if (files.length === 0) return { route: "help" };
+  const refs = listWorkItemFileRefs();
+  if (refs.length === 0) return { route: "help" };
 
-  if (files.length === 1) {
-    const wi = readJson<WorkItem>(path.join(TASKS_DIR, files[0]));
+  if (refs.length === 1) {
+    const wi = readJson<WorkItem>(path.join(refs[0].tasksDir, refs[0].fileName));
     if (wi) return { route: "suggest_resume", id: wi.id, title: wi.title, phase: wi.phase };
   }
 

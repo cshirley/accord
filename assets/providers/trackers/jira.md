@@ -2,7 +2,7 @@
 
 ## Fetch instructions
 
-Use the Atlassian MCP tool (`mcp__claude_ai_Atlassian__getJiraIssue` or `mcp__atlassian__jira_get_issue`) to fetch the issue by key.
+Use `atlassian-getJiraIssue` (pi-tools), or the Atlassian MCP `getJiraIssue` tool (`mcp__atlassian__getJiraIssue`, `mcp__claude_ai_Atlassian__getJiraIssue`, or `mcp_pi-agent_atlassian-getJiraIssue` in Cursor). Pass `cloudId`: `babylonpartners.atlassian.net` and `issueIdOrKey` / `issueKey` for the work item id.
 
 ### Fields to capture
 

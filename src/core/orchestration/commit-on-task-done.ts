@@ -11,7 +11,7 @@ import {
   gitRoot,
   isSecretFile,
 } from "../git/helpers.js";
-import { loadTaskFile, loadWorkItem, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { loadTaskFile, loadWorkItem, readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
 import { commitOnTaskDoneFromDevConfig } from "./policy.js";
 
 export interface CommitOnTaskDoneResult {
@@ -137,7 +137,7 @@ export async function tryCommitOnTaskDone(
   const message = buildCommitMessage(workItemId, taskId, planTask?.title ?? "implementation");
   try {
     const { hash } = await commitWithMessage(root, files, message, signal);
-    const taskPath = path.join(TASKS_DIR, `${workItemId}-task-${String(taskId)}.json`);
+    const taskPath = taskJsonPath(workItemId, String(taskId));
     const fresh = readJson<Record<string, unknown>>(taskPath);
     if (fresh) {
       const events = Array.isArray(fresh.events) ? [...(fresh.events as unknown[])] : [];

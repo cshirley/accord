@@ -18,7 +18,7 @@ import {
   readTitleFromBrief,
   resolveDevArtifactPathForId,
 } from "./artifact-discovery.js";
-import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "./io.js";
+import { loadWorkItem, now, readJson, taskJsonPath, writeJson, workItemJsonPath } from "./io.js";
 import type { WorkItem, WorkItemPattern } from "./types.js";
 
 const log = createLogger("work-items");
@@ -194,7 +194,7 @@ export function rehydrateWorkItemFromArtifacts(
     escalation_ceiling: "pipeline_allowed",
   };
 
-  const wiPath = path.join(TASKS_DIR, `${workItemId}.json`);
+  const wiPath = workItemJsonPath(workItemId);
   writeJson(wiPath, wi);
 
   let tasksBootstrapped = 0;

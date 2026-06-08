@@ -32,6 +32,7 @@ import {
   describeHarnessRunMeta,
   discoverWorkItems,
   ensureAutoHarnessRunMeta,
+  loadPricing,
   normalizeUsageCostFields,
   pricingFor,
   recomputeCost,
@@ -478,6 +479,25 @@ describe("usage helpers", () => {
       models: { "acme/foo.bar": { input: 10, output: 20 } },
     };
     expect(pricingFor(pricing, "vendor/acme/foo.bar")).toEqual({ input: 10, output: 20 });
+  });
+
+  test("bundled pricing prices cursor-claude + session-default models off the default", () => {
+    const pricing = loadPricing();
+    // Exact-equality matcher: each embedded cursor variant the cursor-claude
+    // profile or the orchestrator session can log must resolve to a real entry,
+    // not silently fall back to `default` (which would mis-count Cursor runs).
+    const opus = { input: 15.0, output: 75.0 };
+    expect(pricingFor(pricing, "claude-opus-4-8-thinking-xhigh")).toEqual(opus); // reasoning tier
+    expect(pricingFor(pricing, "claude-opus-4-8-thinking-high")).toEqual(opus); // session default
+    expect(pricingFor(pricing, "composer-2.5")).toEqual({ input: 1.25, output: 6.0 }); // workhorse
+
+    for (const id of [
+      "claude-opus-4-8-thinking-xhigh",
+      "claude-opus-4-8-thinking-high",
+      "composer-2.5",
+    ]) {
+      expect(pricingFor(pricing, id)).not.toEqual(pricing.default);
+    }
   });
 
   test("harness run meta file and env describe paths", () => {

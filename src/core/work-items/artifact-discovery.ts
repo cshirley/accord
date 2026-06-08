@@ -11,7 +11,7 @@ import {
   type PlanTaskStep,
 } from "../plan/task-pipeline-profile.js";
 import { findGitRoot } from "../config/git.js";
-import { loadWorkItem, readJson, TASKS_DIR, writeJson } from "./io.js";
+import { loadWorkItem, readJson, workItemJsonPath, taskJsonPath, writeJson } from "./io.js";
 import type { TaskFile, WorkItem } from "./types.js";
 
 export type ArtifactKind = "brief" | "spec" | "plan";
@@ -259,7 +259,7 @@ export function bootstrapImplementTasksFromPlan(workItemId: string, planPath: st
     if (typeof taskId !== "number" || !Number.isFinite(taskId) || taskId < 1) continue;
     taskIds.add(taskId);
 
-    const taskPath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
+    const taskPath = taskJsonPath(workItemId, taskId);
     const existing = readJson<TaskFile>(taskPath);
     if (existing) continue;
 
@@ -279,7 +279,7 @@ export function bootstrapImplementTasksFromPlan(workItemId: string, planPath: st
   }
 
   wi.task_ids = [...taskIds].sort((a, b) => a - b);
-  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+  writeJson(workItemJsonPath(workItemId), wi);
   return created;
 }
 
@@ -298,7 +298,7 @@ export function reconcileVerifyOnlyTasksFromPlan(workItemId: string, planPath: s
     const profile = planTaskPipelineProfile(task.steps);
     if (!profile.verifyOnly) continue;
 
-    const taskPath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
+    const taskPath = taskJsonPath(workItemId, taskId);
     const existing = readJson<TaskFile>(taskPath);
     if (!existing || existing.status === "done" || existing.status === "blocked") continue;
 

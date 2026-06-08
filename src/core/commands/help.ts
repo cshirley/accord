@@ -43,6 +43,7 @@ ${subLines}
 Examples:
   /dev                              list active work or show this help
   /dev init                         configure harness for this project
+ /dev STEP-11488                    start from ticket id only (bootstrap + resume → gather/align)
  /dev ACCORD-1234 add refresh tokens start a new implement/standard work item
  /dev align ACCORD-1234            collaborative problem framing
  /dev spec ACCORD-1234             resume the spec interview

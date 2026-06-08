@@ -5,6 +5,24 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { TaskFile, WorkItem } from "./types.js";
+import {
+  listWorkItemFileRefs,
+  resolveTasksDir,
+  workItemJsonPath,
+  taskJsonPath,
+} from "./tasks-dir.js";
+
+export {
+  enrichmentsDirForWorkItem,
+  enrichmentsDirRelForWorkItem,
+  listTasksDirCandidates,
+  listWorkItemFileRefs,
+  resolveTasksDir,
+  resolveWorkItemFilePath,
+  workItemJsonPath,
+  taskJsonPath,
+  checkpointJsonPath,
+} from "./tasks-dir.js";
 
 export const TASKS_DIR = ".tasks";
 
@@ -78,15 +96,18 @@ export function isWorkItemFile(name: string): boolean {
   return WORK_ITEM_FILE_PATTERN.test(name);
 }
 
-export function listWorkItemFiles(): string[] {
-  if (!fs.existsSync(TASKS_DIR)) return [];
-  return fs.readdirSync(TASKS_DIR).filter(isWorkItemFile);
+export function listWorkItemFiles(cwd?: string): string[] {
+  return listWorkItemFileRefs(cwd).map((ref) => ref.fileName);
 }
 
-export function loadWorkItem(id: string): WorkItem | null {
-  return readJson<WorkItem>(path.join(TASKS_DIR, `${id}.json`));
+export function loadWorkItem(id: string, cwd?: string): WorkItem | null {
+  return readJson<WorkItem>(workItemJsonPath(id, cwd));
 }
 
-export function loadTaskFile(workItemId: string, taskId: string): TaskFile | null {
-  return readJson<TaskFile>(path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`));
+export function loadTaskFile(
+  workItemId: string,
+  taskId: string,
+  cwd?: string,
+): TaskFile | null {
+  return readJson<TaskFile>(taskJsonPath(workItemId, taskId, cwd));
 }
