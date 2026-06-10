@@ -7,14 +7,14 @@ flowchart TB
   A["assets/"] --> M["manifest.json"]
   A --> L["lang-profiles/*.json"]
   A --> SK["skills/"]
-  SK --> SA["accord, dev, commit, pr, review — SKILL.md"]
-  A --> AG["agents/ — phase-*.md, review-*.md"]
+  SK --> SA["commit, pr, review — SKILL.md"]
+  A --> AG["agents/accord/ — phase-*.md, review-*.md"]
   A --> PR["providers/"]
   PR --> TR["trackers/(name).md + .json"]
   PR --> EN["enrichments/(name).md + .json"]
 ```
 
-`package.json` advertises these through the `pi.skills`, `pi.agents`, and `accord.assetManifest` fields. The Pi adapter drives workflow via `/dev` and the core orchestrator (programmatic `subagent` spawns). Companion skills (`commit`, `pr`, `review`) and phase agents install via the asset linker.
+`package.json` advertises these through the `pi.skills`, `pi.agents`, and `accord.assetManifest` fields. The Pi extension drives workflow via `/dev` and the **core orchestrator** (`src/core/orchestration/`, programmatic `subagent` spawns). Companion skills (`commit`, `pr`, `review`) and phase agents install via the asset linker. There is no bundled `accord` orchestrator skill — routing lives in core.
 
 ## Installer
 

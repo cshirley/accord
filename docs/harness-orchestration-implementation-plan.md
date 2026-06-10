@@ -9,7 +9,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 1. **Graph and transition policy** live in `src/core/` as declarative config + interpreter, with unit tests.
 2. **Orchestrator** owns boundary validation and routing; **components** (agents, briefers) own domain validation.
 3. **`src/adapters/pi`** implements **host ports only** (especially programmatic or equivalent `spawnSubagent`); no workflow graph in the adapter.
-4. **`assets/skills/accord/SKILL.md`** shrinks to non-authoritative user hints for paths not yet covered by the runner (until fully retired for those flows).
+4. **`assets/skills/accord/SKILL.md`** — **removed** (D3 complete). Orchestration prose lives in core; companion skills (`commit`, `pr`, `review`) remain bundled.
 
 ---
 
@@ -97,11 +97,11 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 ### Status (landed slice)
 
-- **Env flag:** set `ACCORD_CORE_ORCHESTRATOR=1` to enable the core **resume** and **finish** paths (default remains skill-forwarding).
-- **Resume:** when the effective phase resolves to a registered agent id, `/dev resume <ID>` runs that subagent via `runSubagent()` without `/skill:accord`. **Coarse WI phases** map in core (`phase-coarse-routing.ts`): `aligning`→`phase-align`, `speccing`→`phase-spec`, `planning`→`phase-plan`, `gathering`→`phase-gather`, `exploring`→`phase-explore`; `researching`→`phase-gather` **only** for pattern `analyse`. **`implement` + `implementing`:** primary task file `phase` → harness agent when in `RESUMABLE_PIPELINE_TASK_PHASES` (`implement-resume.ts`); otherwise forward. **`quick_fix` + `fixing`:** same per-task phases via `quick-fix.ts`. Other coarse values still **forward** to the accord skill. Agents that `requiresConfig` block when no dev harness config is loaded.
-- **Finish:** `/dev finish <ID>` (same flag) surfaces **review queue** + **tasks**, then runs `runFinishOrchestrationFromResolution` → **phase-verify-acceptance**; on exit 0 runs **dev_verify_summary** + **dev_finalize** (`finish-orchestration.ts`).
-- **Adapter files:** `resume-orchestration.ts` drives `runResumeOrchestrationWithReplans` → `runUntilStop` (per iteration) with `createResumeOrchestrationRuntimeHost` (`orchestration-runtime-host.ts`: preflight + `runSubagent()` + `processSubagentToolResult`). Replans after each successful spawn until a non-spawn outcome, duplicate spawn fingerprint, subagent failure, or sequential cap.
-- **Core module:** `src/core/orchestration/*` — `resume-resolve`, `finish-resolve`, `runner` (`planDevResumeOrchestration`, `planDevFinishOrchestration`, `buildDevOrchestratePayload`, `runFinishOrchestration*`), `graph`/`interpreter`/`policy`, types, env flag.
+- **Env flag:** `ACCORD_CORE_ORCHESTRATOR` defaults **on**; set `0`/`false` to disable programmatic spawns (accord skill removed — not recommended).
+- **Resume:** when the effective phase resolves to a registered agent id, `/dev resume <ID>` runs that subagent via `runSubagent()`. **Coarse WI phases** map in core (`phase-coarse-routing.ts`): `aligning`→`phase-align`, `speccing`→`phase-spec`, `planning`→`phase-plan`, `gathering`→`phase-gather`, `exploring`→`phase-explore`; `researching`→`phase-gather` **only** for pattern `analyse`. **`implement` + `implementing`:** primary task file `phase` → harness agent via `resolve/primary-task.ts` and `post-result/`. **`quick_fix` + `fixing`:** per-task phases via `quick-fix.ts`. Agents that `requiresConfig` block when no dev harness config is loaded.
+- **Finish:** `/dev finish <ID>` surfaces **review queue** + **tasks**, then runs `runFinishOrchestrationFromResolution` → **phase-verify-acceptance**; on exit 0 runs **dev_verify_summary** + **dev_finalize** (`finish-orchestration.ts`).
+- **Adapter files:** `workflow-orchestration.ts` drives `runResumeOrchestrationWithReplans` / `runDevSubcommandOrchestrationWithReplans` with `createResumeOrchestrationRuntimeHost` (`subagent/runtime-host.ts`: preflight + `runSubagent()` + `processSubagentToolResult`). Replans after each successful spawn until a non-spawn outcome, duplicate spawn fingerprint, subagent failure, or sequential cap.
+- **Core module:** `src/core/orchestration/*` — `resolve/` (resume, finish, subcommand), `runner`, `graph`/`interpreter`/`policy`, `post-result/`, types, `env.ts`.
 
 ---
 
@@ -120,7 +120,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 - Graph nodes/edges + guard + **policy module** (`policy.ts`: max respawns, severity enums; **D2:** persist loop counters on the **task file**).
 - Fixture tests for each branch (respawn, proceed-with-warning, blocked).
-- (**D3 — big-bang:**) Do **not** trim `assets/skills/accord/SKILL.md` orchestration per slice. Track behavioural parity in tests and this doc; remove conflicting skill prose in **Phase 7** as one coordinated edit once the runner owns all targeted flows.
+- (**D3 — big-bang:**) **Done** — `assets/skills/accord/SKILL.md` removed; orchestration owned entirely by core.
 
 ### Acceptance criteria
 
@@ -138,7 +138,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 ## Phase 4 — Subcommand coverage + classify / bootstrap
 
-**Objective:** Reduce `/skill:accord` forwarding to **edge cases** only.
+**Objective:** ~~Reduce `/skill:accord` forwarding to edge cases only.~~ **Complete** — accord skill removed; all workflow subcommands owned by core orchestrator or extension-local handlers.
 
 ### Deliverables
 
@@ -156,8 +156,8 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 ### Status (Phase 4 — landed)
 
-1. **Routing table** — `src/core/commands/subcommand-routing.ts` maps every `DEV_SUBCOMMANDS` entry to `extension_local`, `core_orchestrator_when_flagged`, or `skill` (`assertSubcommandRoutingComplete` enforces parity with `DEV_SUBCOMMANDS`). `isPlanModeReadOnlyDevSubcommand` centralises Pi plan-mode allowlist (`help`, `tasks`, `retro`).
-2. **Classify / free text** — `src/core/commands/classify-dispatch.ts` (`classifyPreflight`): runs `recommendIntentMode` (same rules as `dev_intent`); optional deterministic `dev_bootstrap` when input is `TICKET title…`, `needs_confirmation` is false, intent supports a persisted pattern, and the work item id is not already present. Pi `extension.ts` notifies intent (and bootstrap outcome) before `/skill:accord` follow-up.
+1. **Routing table** — `src/core/commands/subcommand-routing.ts` maps every `DEV_SUBCOMMANDS` entry to `extension_local` or `core_orchestrator` (`assertSubcommandRoutingComplete` enforces parity with `DEV_SUBCOMMANDS`). `isPlanModeReadOnlyDevSubcommand` centralises Pi plan-mode allowlist (`help`, `tasks`, `retro`).
+2. **Classify / free text** — `src/core/commands/classify-dispatch.ts` (`classifyPreflight`): runs `recommendIntentMode` (same rules as `dev_intent`); optional deterministic `dev_bootstrap` when input is `TICKET title…`, `needs_confirmation` is false, intent supports a persisted pattern, and the work item id is not already present. Pi `extension.ts` notifies intent, then `tryClassifyFollowUpViaCoreOrchestrator` or in-session follow-up with `dev_*` tools.
 3. **`devDispatch` extension** — `parseKnownDevSubcommandArgs` + `DEV_WORK_ITEM_ID_PATTERN` in `dispatch.ts` for structured tails (flags vs leading work item id).
 4. **Help** — `help.ts` documents local vs flagged orchestrator vs skill vs free-text routing.
 5. **Tests** — `tests/core-contracts.test.ts` covers `parseKnownDevSubcommandArgs`, routing completeness, and `classifyPreflight` bootstrap / skip paths.
@@ -168,10 +168,10 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 
 | Subcommand | Owner | Notes |
 | --- | --- | --- |
-| `<free text>` | Core preflight → skill | `classifyPreflight` (`recommendIntentMode` + optional ticket `dev_bootstrap`); then `/skill:accord` |
-| `help`, `tasks`, `retro`, `tag` | **extension** (local) | `extension.ts` — no skill |
-| `resume`, `finish` | **core orchestrator** (flagged) | `ACCORD_CORE_ORCHESTRATOR=1` → runner + runtime host; else skill |
-| `init`, `align`, `spec`, `plan`, `check`, `gaps`, `review`, `deviations`, `amend-spec`, `spec-gaps` | **skill** | `/skill:accord` |
+| `<free text>` | Core preflight → orchestrator or session | `classifyPreflight` + optional `dev_bootstrap`; then `tryClassifyFollowUpViaCoreOrchestrator` or in-session `dev_*` follow-up |
+| `help`, `tasks`, `retro`, `tag`, `rehydrate`, `init`, `spec-gaps`, `review` | **extension** (local) | `extension.ts` — no programmatic spawn |
+| `gaps`, `deviations` | **extension** (display) + **orchestrator** (spawn) | List locally; `--tickets` / `review` action spawns phase agent when orchestrator enabled |
+| `resume`, `finish`, `align`, `spec`, `plan`, `check`, `amend-spec` | **core orchestrator** | `workflow-orchestration.ts` + runtime host (default on; `ACCORD_CORE_ORCHESTRATOR=0` disables) |
 
 ---
 
@@ -221,7 +221,7 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 
 ## Phase 7 — Cleanup and guardrails
 
-1. **Skill minimisation (D3)** — **Single** coordinated reduction of `SKILL.md` orchestration so it no longer contradicts core; ship alongside the cutover that enables the runner for all covered subcommands (feature flag off by default until then). Re-run `validate:assets` / manifest checks after skill edits.
+1. **Skill minimisation (D3)** — **Done.** `assets/skills/accord/SKILL.md` removed; manifest lists only `commit`, `pr`, `review` skills.
 2. **Telemetry / retro** — harness-run markers and insights still correlate; add test or doc note.
 3. **Remove dead code** — unused skill sections, duplicate tool prompt snippets on Pi if runner subsumes them.
 4. **Performance** — sequential spawns: document expected latency vs old single-turn skill.
@@ -231,15 +231,14 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 - **`dev_retro` + `dev-harness-run`:** `tests/dev-retro-harness-marker.test.ts` locks in that a Pi session JSONL line with `customType: "dev-harness-run"` yields `associated_by: "marker"` (no reliance on the legacy `/dev` / `.tasks/` text heuristic when `include_legacy_heuristic: false`).
 - **Core orchestrator parity:** flagged `/dev resume` still flows through `processSubagentToolResult` and `ensureAutoHarnessRunMeta` like skill-driven subagents; `syncHarnessRunSessionEntry` (`hook-state.ts`) still appends the same transcript marker when run id/tag exist.
 
-### Status (partial — skill / docs, not full D3 cutover)
+### Status (D3 complete)
 
-- **`assets/skills/accord/SKILL.md`** — Added §**Extension vs this skill (routing)** (orchestrator flag, local subcommands, `dev_orchestrate`), **`dev_orchestrate`** in the tools table, corrected **help** sourcing (`help.ts` / `DEV_HELP_TEXT`), and clarified **finish** + **spawn** rows when the extension runs programmatic spawns.
-- **D3 prose slice (done in this branch):** Removed the long **Quick fix loop** / **Code loop** duplicate (and a corrupted thrift truncation line). Replaced the tail with **§Multi-turn checkpoints**, a slimmer **phase→agent** table, **policy source of truth** (`orchestration.quick_fix_loop` default 5 + `implement_loop`, no hardcoded “max 2 respawns”), condensed **per-task** steps, and short **align/spec/plan**, **resume**, **finish**, and **check/gaps/…** sections that defer detail to agents + `resume-resolve.ts`.
-- **D3 follow-up slice:** Collapsed **Runtime architecture** (pointer to `docs/hooks-and-tools.md`), **Orchestrator tools** (ordered list + parity test pointer, no per-row table), **init** (numbered flow + `init-detect` / `init-write` / `configuration.md`), and **default dispatch** (intent/bootstrap pointers to `intent.ts`, `lifecycle.ts`, `classify-dispatch.ts` + retained pattern/entry tables). **Still partial for “full D3”** if we later want the skill to be *only* routing glue with zero step lists — that would require core-owned copy or accepting thinner operator UX in the skill.
+- **`assets/skills/accord/SKILL.md`** — **Removed.** Orchestration routing, policy, and help text live in `src/core/orchestration/` and `src/core/commands/help.ts`.
+- **Docs** — `docs/` updated to describe core-orchestrator-default behaviour (this pass).
 
 ### Status (partial — performance note)
 
-- **Sequential replans:** each `/dev resume` spawn under `ACCORD_CORE_ORCHESTRATOR=1` is a separate isolated `pi` child process (same as the `subagent` tool). Chaining `phase-test` → `review-test` in one user command can cost **multiple cold starts** versus a single skill turn that only describes the chain in chat — acceptable trade-off for deterministic routing and identical hooks/usage.
+- **Sequential replans:** each `/dev resume` spawn (orchestrator on by default) is a separate isolated `pi` child process (same as the `subagent` tool). Chaining `phase-test` → `review-test` in one user command can cost **multiple cold starts** — acceptable trade-off for deterministic routing and identical hooks/usage.
 
 ---
 
@@ -247,7 +246,7 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 
 | Practice | Application |
 |-----------|-------------|
-| **Feature flag** | `ACCORD_CORE_ORCHESTRATOR=1` enables the core `/dev resume` and `/dev finish` orchestration paths; unset or any other value keeps skill forwarding for those subcommands. |
+| **Feature flag** | `ACCORD_CORE_ORCHESTRATOR` defaults **on**; set `0`/`false`/`no`/`off` to disable programmatic orchestration spawns (accord skill removed). |
 | **PR size** | Prefer small PRs for **core and adapter code** (one subgraph or subsystem at a time). **D3:** skill orchestration removal stays **one** Phase 7 PR, not dribbled per subcommand. |
 | **Docs** | Update [`pipeline.md`](pipeline.md) diagrams with "harness runner" swimlane when behaviour changes. |
 | **Biome / check** | Full `npm run check` before merge. |
@@ -277,7 +276,7 @@ Phases 3–4 can split into parallel streams **after** Phase 2 proves the host p
 |----|-----------|---------------|--------|
 | **D1** | Graph notation | **Hand-rolled TypeScript** | Declarative config + small interpreter in `src/core/orchestration/`; no third-party FSM library. Keeps dependency surface minimal and matches repo style. |
 | **D2** | Where retry counters live | **Task file** (e.g. per-task JSON under `.tasks/`) | Loop caps and pre-impl gate state for test/review adversary flows stay on the task artifact; work item JSON stays high-level. Align new fields with existing task shape where possible. |
-| **D3** | Skill removal aggressiveness | **Big-bang** | Do not run a long period of per-subcommand skill slimming for orchestration prose. Ship the core runner + Pi host for **all** covered flows in one coordinated cutover, then strip `assets/skills/accord/SKILL.md` orchestration in the same release window. **Implication:** Phases 1–3 can still land incrementally in development, but **production-facing** merge strategy should gate on full subgraph coverage + `npm run check` + manual smoke so the skill is not left contradicting core after partial merges. |
+| **D3** | Skill removal aggressiveness | **Big-bang** | **Done.** `assets/skills/accord/SKILL.md` removed after core runner + Pi host covered workflow subcommands. |
 
 Further options remain open on other topics; add new rows (D4, …) as they arise.
 

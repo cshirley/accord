@@ -35,6 +35,7 @@ One per agent in `return-schemas/`. Define the JSON packet agents must emit as t
 | `phase-gaps.json` | `done`, `needs_input`, `stuck` |
 | `phase-hypothesise.json` | `done` |
 | `phase-verify-acceptance.json` | `done` |
+| `phase-verify-task.json` | `done`, `stuck` |
 | `phase-verify-infra.json` | `done` |
 | `review.json` | `clean`, `issues` (uses `verdict`, not `status`) |
 
@@ -47,7 +48,7 @@ One per agent in `return-schemas/`. Define the JSON packet agents must emit as t
 
 ```bash
 node schemas/examples/validate-examples.mjs
-# 23 passed, 0 failed
+# 24 passed, 0 failed
 ```
 
 Run after any schema change to catch drift.

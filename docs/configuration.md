@@ -66,6 +66,10 @@ Optional **Phase 5** bounded LLM step before certain `/dev resume` subagent spaw
 
 Also set **`ACCORD_ORCHESTRATION_JUDGMENT=1`** in the Pi environment so the extension actually calls the configured model. Without that env var, judgment is skipped at the host and the harness uses the template appendix when `enabled` is true.
 
+## Core orchestrator (`ACCORD_CORE_ORCHESTRATOR`)
+
+Programmatic `/dev` workflow routing (align, spec, plan, resume, finish, check, amend-spec, and conditional gaps/deviations spawns) runs through **`src/core/orchestration/`** by default. The env var **`ACCORD_CORE_ORCHESTRATOR`** defaults to **on** when unset; set to `0`, `false`, `no`, or `off` to disable programmatic spawns. The bundled accord skill was removed — disabling the orchestrator leaves only local extension handlers and in-session `dev_*` / `subagent` tooling.
+
 Global defaults can live in `~/.config/pi/agent/accord.json` under `orchestration` (merged into each project's Dev Harness block; project subsections override). Per-project overrides still go in the `## Dev Harness` JSON in `AGENTS.md`.
 
 ## Resume replan loop (`orchestration.resume`)

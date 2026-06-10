@@ -64,8 +64,8 @@ flowchart TB
         STATUS["status bar"]
     end
 
-    subgraph Skill["accord skill"]
-        SK["orchestrator"]
+    subgraph CoreOrch["core orchestrator"]
+        SK["src/core/orchestration"]
     end
 
     subgraph Phases["Phase agents"]
@@ -112,14 +112,14 @@ flowchart TB
 
 | Layer        | Lives in              | Responsibilities                                                                |
 | ------------ | --------------------- | ------------------------------------------------------------------------------- |
-| Pi extension | `src/adapters/pi/`    | `/dev` command, autocomplete, deterministic subcommands, lifecycle hooks, tools |
-| `accord` skill | `assets/skills/accord/SKILL.md` | Routes phases, holds work item JSON, processes return packets             |
+| Pi extension | `src/adapters/pi/`    | `/dev` command, autocomplete, local subcommands, orchestrator host, lifecycle hooks, tools |
+| Core orchestrator | `src/core/orchestration/` | Deterministic workflow routing, resume/finish loops, return-packet policy, programmatic spawns |
 | Phase agents | `assets/agents/accord/phase-*.md` | Do the work; each runs in an isolated subagent process                |
 | Review agents | `assets/agents/accord/review-*.md` | Read-only critique; each runs in an isolated subagent process       |
-| Core         | `src/core/`           | Host-neutral logic (config, artifacts, queries, briefing, telemetry)            |
+| Core         | `src/core/`           | Host-neutral logic (config, artifacts, queries, briefing, telemetry, verification) |
 | Schemas      | `schemas/`            | Source of truth for every artifact and every agent return packet                |
 
-Every phase and review agent is a fresh subagent process — a separate Pi conversation with its own context window. The orchestrator (the `accord` skill) carries only the work item JSON (~1KB) and the structured return packets it reads back. Total orchestrator context stays under 5% of the window even mid-pipeline.
+Every phase and review agent is a fresh subagent process — a separate Pi conversation with its own context window. The core orchestrator reads work item JSON on disk and structured return packets from each spawn; the main Pi session does not accumulate phase-agent context. Companion skills (`commit`, `pr`, `review`) ship under `assets/skills/` for post-implementation workflows.
 
 ---
 
@@ -130,9 +130,9 @@ ACCORD selects a pattern from the free-text request via `dev_intent` (keyword he
 | Pattern            | Variant       | When                                                       | Pipeline shape                                                                              |
 | ------------------ | ------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `implement`        | `standard`    | Default for "add / implement / build / feature" + ticket   | align → gather → spec → plan → (test → code) per task → verify-acceptance                  |
-| `implement`        | `express`     | "quick one", "no ceremony"                                 | gather → code → verify-code → optional review                                                |
+| `implement`        | `express`     | "quick one", "no ceremony"                                 | gather → code → post-code hook → optional review                                                |
 | `implement`        | `orchestrated`| 3+ parallelisable tasks                                    | align → gather → spec → plan → parallel code worktrees → sequential merge → verify          |
-| `quick_fix`        | —             | "fix a typo", one-line, target path obvious                | dev_quick_fix_brief → optional test → code → verify-code                                    |
+| `quick_fix`        | —             | "fix a typo", one-line, target path obvious                | dev_quick_fix_brief → optional test → code → post-code hook                                    |
 | `investigate`      | —             | "why", "root cause", "investigate"                         | gather → explore → hypothesise → test → report                                              |
 | `infra`            | —             | Terraform, Helm, Kubernetes, Pulumi, CloudFormation        | gather → explore → code (IaC) → verify-infra → report                                       |
 | `analyse`          | —             | "ADR", "design doc", "compare options"                     | gather → explore → draft → review-design → report                                           |
@@ -181,13 +181,13 @@ flowchart TD
 
 ### Phase boundaries
 
-Each phase is dispatched as a separate subagent process. The orchestrator:
+Each phase is dispatched as a separate subagent process. The core orchestrator (via the Pi adapter host):
 
 1. **Constructs a brief** for the phase from the work item, the relevant slice of the spec/plan, the active decisions, and the preflight report.
-2. **Spawns the agent** via the `subagent` extension. The brief is the only context the agent has.
+2. **Spawns the agent** programmatically (`runSubagent`, same isolated child process as the `subagent` tool). The brief is the only context the agent has.
 3. **Reads the return packet** — a JSON blob in the agent's final assistant message, validated against `schemas/return-schemas/<agent>.json`.
 4. **Processes the packet**: writes artifacts, updates work item phase, promotes events (escalations → decisions, deviations → deviations), increments cost.
-5. **Routes to the next phase** based on the packet's `status` field (`done`, `needs_input`, `stuck`, `blocked`).
+5. **Routes to the next phase** based on the packet's `status` field (`done`, `needs_input`, `stuck`, `blocked`) and orchestration policy (retry caps, severity gates).
 
 Multi-turn phases (`spec`, `plan`) loop spawn → return → answer → respawn. Each respawn is a fresh process; continuity comes from the checkpoint (`/.tasks/<ID>-checkpoint.json`) which carries the partial draft and the answered/pending question lists.
 
@@ -225,6 +225,7 @@ All phase agents have isolated context. Tools and write permission vary by role.
 | `phase-code`            | read, write, edit, bash | Task, ACs, steps                               | `{ status, files_changed, tests_passing, deviations?, question? }`     |
 | `phase-hypothesise`     | read, bash              | Investigation log                              | `{ hypotheses: [{ statement, evidence, test_plan }] }`                  |
 | `phase-verify-acceptance` | read, bash            | Spec, plan, code, tests                        | `{ verdict, criteria: [{ ac_id, status, evidence }], summary }`         |
+| `phase-verify-task`     | read, bash              | Verify-only plan task, AC slice                | `{ status, evidence }` — used when a plan task has no code step           |
 | `phase-verify-infra`    | read, bash              | IaC paths                                      | `{ valid, preview, resources }`                                         |
 | `phase-gaps`            | read, write             | verify.json, existing tickets                  | `{ gaps: [{ ac_id, suggested_action, recommended_ticket }] }`           |
 
@@ -235,7 +236,7 @@ Every agent's return shape is enforced by `schemas/return-schemas/<agent>.json` 
 | Pattern                | Phase sequence                                                                                                          |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `implement/standard`   | align → gather → spec* → plan* → (test → review-test → code → post-code-hook → [review-code]) per task → verify-acceptance |
-| `implement/express`    | gather → code → post-code-hook → [review-code]                                                                          |
+| `implement/express`    | gather → code → post-code hook → [review-code]                                                                          |
 | `implement/orchestrated` | align → gather → spec* → plan* → parallel-worktrees(test → code) → sequential merge → verify-acceptance                |
 | `quick_fix`            | quick_fix_brief → [test → review-test] → code → post-code-hook                                                          |
 | `investigate`          | gather → explore → hypothesise → test → report                                                                          |
@@ -386,27 +387,30 @@ The schema-validation, config-guard, and post-code-verification hooks are the st
 
 ## Commands
 
-`/dev` is the only entry point. The Pi extension handles deterministic subcommands locally and forwards everything else to `/skill:accord`.
+`/dev` (alias `/accord`) is the only entry point. Routing is deterministic — see `src/core/commands/subcommand-routing.ts` and `src/core/commands/help.ts`.
 
 ```
-/dev init                    — detect stack, write ## Dev Harness block to AGENTS.md
-/dev <description>           — classify intent, bootstrap a work item, dispatch
-/dev align <ID>              — restart at align phase
-/dev spec <ID>               — restart at spec phase
-/dev plan <ID>               — restart at plan phase
-/dev resume <ID>             — continue from current phase + checkpoint
-/dev finish <ID>             — run verify-acceptance, emit completion packet
-/dev check <ID>              — re-run lower-level acceptance checks without finalising
-/dev gaps <ID>               — surface verification gaps as actionable items
-/dev review                  — batch-review pending decisions and deviations
+/dev init                    — detect stack, write ## Dev Harness block to AGENTS.md (in-session dev_init_* flow)
+/dev <description>           — classify intent, optional bootstrap, resume when ID present; else in-session follow-up
+/dev align <ID>              — core orchestrator → phase-align
+/dev spec <ID>               — core orchestrator → phase-spec
+/dev plan <ID>               — core orchestrator → phase-plan
+/dev resume <ID>             — core orchestrator: continue from current phase + checkpoint (replans in one command)
+/dev rehydrate <ID>          — recreate .tasks/ state from committed docs/dev/<ID>/ artifacts
+/dev finish <ID>             — core orchestrator: verify-acceptance → dev_verify_summary → dev_finalize
+/dev check <ID>              — core orchestrator: lower-level acceptance checks
+/dev gaps <ID>               — list verify gaps (--tickets spawns phase-gaps via orchestrator)
+/dev review                  — decision queue dashboard
 /dev tasks                   — dashboard: status, phase, cost per work item
-/dev deviations <ID>         — list deviations awaiting accept/revert
-/dev amend-spec <ID>         — open a controlled spec amendment cycle
+/dev deviations <ID>         — list/accept/revert deviations (review spawns review-deviation)
+/dev amend-spec <ID>         — core orchestrator: controlled spec amendment
 /dev spec-gaps <ID>          — 10-point spec checklist
 /dev retro                   — analyse harness sessions for shift-left improvements
-/dev tag                     — work item tagging
+/dev tag                     — label session for usage analytics
 /dev help                    — list subcommands
 ```
+
+Set `ACCORD_CORE_ORCHESTRATOR=0` to disable programmatic spawns (not recommended — the bundled accord skill was removed).
 
 The canonical happy path is short:
 

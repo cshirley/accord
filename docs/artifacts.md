@@ -11,7 +11,7 @@ flowchart TB
     spec["spec.json — phase-spec (contract)"]
     specmd["spec.md — generated from spec.json"]
     plan["plan.json — phase-plan"]
-    vjson["verify.json — phase-verify"]
+    vjson["verify.json — phase-verify-acceptance"]
     vmd["verify.md — dev_verify_summary"]
     wcjson["workflow-cost.json — dev_finalize"]
     wcmd["workflow-cost.md — generated from workflow-cost.json"]

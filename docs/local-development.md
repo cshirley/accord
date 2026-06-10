@@ -9,7 +9,7 @@ A working install needs **two** pieces under `~/.config/pi/agent/`:
 | Piece | How | Why |
 |---|---|---|
 | **This repo as a Pi package** | Add the repo root to global `settings.json` → **`packages`** via **`pi install <path>`** (see [One-time setup](#one-time-setup)). Pi reads `package.json` → **`pi`** and loads **`pi.extensions`** (six modules: `packages/pi-subagent`, `packages/pi-worktree`, `packages/pi-thrift`, `packages/pi-git-tools`, `packages/pi-tools`, then `src/index.ts` for `/dev`, `dev_*` tools, hooks) plus **`pi.skills`** / **`pi.prompts`** / **`pi.themes`** from the checkout. Same manifest-driven behaviour as the old `extensions/accord` symlink, without linking into `extensions/`. |
-| **`{skills,agents,providers}/...` → bundled assets** | The extension's auto-install (or `bun run install:assets`) | Agent/provider prompts and the `accord` skill paths the harness expects at runtime. |
+| **`{skills,agents,providers}/...` → bundled assets** | The extension's auto-install (or `bun run install:assets`) | Agent/provider prompts and companion skills (`commit`, `pr`, `review`) the harness expects at runtime. |
 
 You register the package once with the Pi CLI (or by editing `settings.json` yourself). The asset links are created automatically on Pi startup unless you opt out (see [Auto-install](#auto-install)); run `bun run install:assets` manually if you've opted out or want to install before the first Pi launch.
 
@@ -58,7 +58,7 @@ The extension's bootstrap behaviour:
 
 ### Opting out
 
-You can disable auto-install (e.g. you maintain hand-edited copies under `~/.config/pi/agent/skills/accord/`) in two places. They resolve in this order — first defined wins:
+You can disable auto-install (e.g. you maintain hand-edited copies under `~/.config/pi/agent/skills/review/`) in two places. They resolve in this order — first defined wins:
 
 | Source | Where | Notes |
 |---|---|---|
@@ -104,14 +104,14 @@ If pi loads but `/dev` is missing, check:
 
 - `jq '.packages' ~/.config/pi/agent/settings.json` — should include the **real path** to this checkout (and any other roots you added with further **`pi install`** runs). Plain strings are local package roots; `npm:…` entries are unrelated npm Pi packages.
 - From the repo: `jq '.pi.extensions' package.json` — should list the six `./packages/.../src/index.ts` entries and `./src/index.ts`.
-- `ls ~/.config/pi/agent/skills/accord ~/.config/pi/agent/agents/accord ~/.config/pi/agent/providers` — all three should resolve (from auto-install / `install:assets`).
+- `ls ~/.config/pi/agent/skills/{commit,pr,review} ~/.config/pi/agent/agents/accord ~/.config/pi/agent/providers` — should resolve (from auto-install / `install:assets`).
 - `cat ~/.config/pi/agent/.accord-assets.json` — confirms the bootstrap ran. If absent, the auto-install was either disabled (check `ACCORD_AUTO_INSTALL_ASSETS` and `asset_bootstrap.auto_install` in `~/.config/pi/agent/accord.json`) or failed silently — check the Pi notifications log.
 
 ## Edit-test loop
 
 - TypeScript edits under `src/` or `packages/` take effect on the next pi session restart (Pi loads extension modules from the registered checkout, so there's no rebuild step).
 - Prompt edits under `assets/agents/` and `assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
-- Skill edits under `assets/skills/accord/SKILL.md` take effect on the next `/skill:accord` invocation.
+- Skill edits under `assets/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation.
 - Schema edits require running `node schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
 
 Run `npm run check` before any structural change you intend to keep — the suite covers tests, schemas, asset/manifest consistency, type-check, bundle, and a runtime smoke.
@@ -133,8 +133,8 @@ rm -f ~/.config/pi/agent/extensions/accord
 Then remove linked assets if you no longer need them:
 
 ```bash
-rm ~/.config/pi/agent/skills/accord
-rm ~/.config/pi/agent/agents/accord
+rm ~/.config/pi/agent/skills/{commit,pr,review}
+rm -r ~/.config/pi/agent/agents/accord
 rm ~/.config/pi/agent/providers
 rm ~/.config/pi/agent/.accord-assets.json   # optional metadata
 ```

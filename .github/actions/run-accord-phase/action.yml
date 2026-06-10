@@ -3,7 +3,7 @@
 # JSON-event parsing + cost-cap pre-check + terminal-action dispatch.
 
 name: Run ACCORD phase
-description: Invoke `pi -p --mode json /skill:accord <phase> <ticket>` and dispatch the terminal action.
+description: Invoke `pi -p --mode json /dev <phase> <ticket>` and dispatch the terminal action.
 
 inputs:
   phase:

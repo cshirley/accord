@@ -16,7 +16,7 @@ import { displayTasksDashboard } from "./dev-formatted-display.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
 
 /**
- * @returns `handled` when the core path consumed the command; `forward` to use `/skill:accord`.
+ * @returns `handled` when the core path consumed the command; `forward` when orchestrator is disabled.
  */
 export async function tryFinishViaCoreOrchestrator(
   args: string,

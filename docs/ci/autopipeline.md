@@ -60,7 +60,7 @@ The workflow accepts two triggers:
 | Gate fail — Jira completeness | AC-3 sub-check fails | `Needs Triage` | 0 | yes |
 | `needs_input` | Any phase returns `status: needs_input` | `Needs Author Input` | 0 | yes |
 | `blocked` | Any phase returns `status: blocked` | `Blocked` | 0 | yes |
-| `gaps` | `phase-verify` returns `status: gaps` | `Gaps Reported` | 0 | yes |
+| `gaps` | `phase-verify-acceptance` returns `status: gaps` | `Gaps Reported` | 0 | yes |
 | `cost_exceeded` | Cumulative cost ≥ `max_cost_usd` (AC-7) | `Cost Exceeded` | 0 | yes |
 | Complete | Happy path through verify | `In Review` + PR opened | 0 | yes |
 
@@ -145,7 +145,7 @@ already tuned for non-interactive runs.
 Phase orchestration is exclusively via the CLI:
 
 ```
-pi -p --mode json /skill:accord <phase> <ticket>
+pi -p --mode json /dev <phase> <ticket>
 ```
 
 There is **no SDK import** — `packages/pi-accord-ci/tests/no-extra-pi-spawns.test.ts` walks

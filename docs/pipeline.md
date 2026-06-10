@@ -6,7 +6,7 @@ The `/dev` autocomplete and help output list subcommands in the order a develope
 
 ```mermaid
 flowchart TD
-    INIT["/dev init"] --> DESC["/dev description"]
+    INIT["/dev init"] --> DESC["/dev <free text>"]
     DESC --> AGREE["/dev align ID<br/>/dev spec ID<br/>/dev plan ID"]
     AGREE --> RESUME["/dev resume ID"]
     RESUME --> FINISH["/dev finish ID"]
@@ -21,7 +21,7 @@ Optional: `/dev check <ID>` reruns lower-level acceptance checks without finaliz
 The canonical subcommand order is:
 
 ```
-init → align → spec → plan → resume → finish → check → gaps → review → deviations → amend-spec → spec-gaps → tasks → retro → tag → help
+init → align → spec → plan → resume → rehydrate → finish → check → gaps → review → deviations → amend-spec → spec-gaps → tasks → retro → tag → help
 ```
 
 ## Pipeline
@@ -30,7 +30,7 @@ The `implement/standard` pipeline. Hooks fire at marked points (`⚡`). Dotted l
 
 ```mermaid
 flowchart TD
-    START(["/dev description"]) --> ALIGN
+    START(["/dev <free text>"]) --> ALIGN
     RESUME1(["/dev resume"]) -.-> ALIGN
     ALIGN["phase-align<br/>⚡ config guard<br/>⚡ schema inject"] --> ALIGN_DEC{return}
     ALIGN_DEC -.->|needs_input| PAUSE1[/"checkpoint (pause)"/]
@@ -78,7 +78,7 @@ flowchart TD
     BRIEF --> STRAT{test strategy}
     STRAT -->|new_red_test| TEST["phase-test<br/>writes narrow regression test<br/>confirms RED"]
     STRAT -->|existing_tests / no_test| CODEBR
-    TEST --> RT["review-test<br/>(pre-impl mode, has stub AC context)<br/>advisory — critical findings<br/>respawn phase-test (max 2)"]
+    TEST --> RT["review-test<br/>(pre-impl mode, has stub AC context)<br/>advisory — gated findings<br/>respawn phase-test (policy cap)"]
     RT --> CODEBR["dev_code_brief (reads stubs)"]
     CODEBR --> CODE["phase-code<br/>implements the fix → tests GREEN<br/>⚡ post-code verify<br/>type_check (hard gate)<br/>test (advisory)"]
     CODE --> PROMOTE["dev_promote_events (task_id: 1)"]
@@ -99,7 +99,7 @@ flowchart TD
     INTENT --> BOOT["dev_bootstrap<br/>pattern: implement, variant: express<br/>phase: implementing"]
     BOOT --> GATHER["phase-gather<br/>context collection"]
     GATHER --> CODE["phase-code<br/>implement<br/>⚡ post-code verify<br/>type_check + test"]
-    CODE --> VERIFY["verify-code"]
+    CODE --> VERIFY["post-code verify hook"]
     VERIFY --> RC["review-code if needed"]
     RC --> REPORT(["report → /commit → /pr"])
 ```
@@ -175,6 +175,6 @@ When confidence is medium/low and a ticket ID is present, `dev_intent_enrich` fe
 
 All pipelines share the same hooks. `/dev finish <ID>` is the developer-facing post-implementation command; `/dev check <ID>` is the lower-level acceptance verification step.
 
-## Harness orchestration (design direction)
+## Harness orchestration
 
-The diagrams above describe **current** behaviour (skill-driven orchestration plus deterministic hooks). The **target** architecture moves the workflow graph and outer loop into **`src/core/`** with a declarative in-code state machine, validation boundaries, and a thin Pi adapter that only implements host ports (e.g. `spawnSubagent`). See [`harness-orchestration.md`](harness-orchestration.md) for the full design, patterns, and success criteria, and [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md) for the phased build plan (spikes through MCP and cleanup). **Stdio MCP** consumers use the **`dev_orchestrate`** tool for the same `resolution` / `next_steps` JSON as Pi (without programmatic spawn or judgment LLM); see [`hooks-and-tools.md`](hooks-and-tools.md).
+The diagrams above reflect **current** behaviour: deterministic hooks plus the **core orchestrator** (`src/core/orchestration/`) driving `/dev` workflow subcommands via programmatic `subagent` spawns (default on; set `ACCORD_CORE_ORCHESTRATOR=0` to disable). The Pi adapter implements host ports (`spawnSubagent`, optional `runJudgment`) in `src/adapters/pi/subagent/`. See [`harness-orchestration.md`](harness-orchestration.md) for design rationale and [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md) for delivery history. **Stdio MCP** consumers use the **`dev_orchestrate`** tool for the same `resolution` / `next_steps` JSON as Pi (without programmatic spawn or judgment LLM); see [`hooks-and-tools.md`](hooks-and-tools.md).

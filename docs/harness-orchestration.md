@@ -1,18 +1,16 @@
 # Harness orchestration (design)
 
-This document captures the **target architecture** for ACCORD workflow control: deterministic routing, an in-code workflow graph, validation boundaries, and the shrinking role of the Pi adapter. It reflects design decisions agreed in harness planning (not necessarily the full current implementation).
+This document captures the **architecture** for ACCORD workflow control: deterministic routing, an in-code workflow graph, validation boundaries, and a thin Pi adapter that implements host ports only. The bundled `accord` orchestrator skill has been **removed**; routing lives in `src/core/orchestration/` (on by default).
 
-For today's runtime behaviour and diagrams, see [`pipeline.md`](pipeline.md). For directory layout, see [`file-structure.md`](file-structure.md).
+For runtime behaviour and diagrams, see [`pipeline.md`](pipeline.md). For directory layout, see [`file-structure.md`](file-structure.md). For delivery history, see [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md).
 
 ---
 
-## Problem statement
+## Problem statement (resolved)
 
-Today much of the **orchestration playbook** lives in the bundled **accord skill** (`assets/skills/accord/SKILL.md`). The main-session model is instructed to parse `/dev` subcommands, classify free text, and call the `subagent` tool with explicit `agent` names.
+Previously the **orchestration playbook** lived in a bundled **accord skill**. The main-session model parsed `/dev` subcommands, classified free text, and chose `subagent({ agent })` names — coupling **infrastructure** to **model behaviour**.
 
-That couples **infrastructure** (which isolated phase agent runs next) to **model behaviour**. When the host or provider changes (e.g. Anthropic ↔ Cursor), the model may mis-route, omit agents, or diverge from the playbook — even though subagents are a **harness concern**, not a provider capability the model must know about.
-
-**Goal:** Move **routing and the outer execution loop** into **`src/core/`**, keep the graph as **maintainable in-code configuration**, and leave **`src/adapters/pi`** as a **thin Pi façade** (commands, hooks, tools, UI — no workflow graph).
+**Solution (shipped):** **Routing and the outer execution loop** live in **`src/core/orchestration/`**. The Pi extension (`src/adapters/pi/`) is a **thin façade**: commands, hooks, tools, UI, and `OrchestrationHost` implementation (`subagent/runtime-host.ts`) — no workflow graph in the adapter. Free-text `/dev` input still uses deterministic `dev_intent` / bootstrap in core, then either programmatic resume or an in-session follow-up with `dev_*` tools.
 
 ---
 
@@ -101,29 +99,23 @@ The executable phased plan (spikes, deliverables per phase, acceptance criteria,
 
 ---
 
-## Role of `src/adapters/pi` (before vs after)
-
-### Before (current direction)
+## Role of `src/adapters/pi`
 
 - Registers `/dev` / `/accord`, tools, hooks, autocomplete, status bar.
-- Handles a **subset** of subcommands locally; on **free-text** `/dev` input the extension runs the same deterministic **`dev_intent`** rules in core (`classifyPreflight`, optional ticket **`dev_bootstrap`**) and then forwards to `/skill:accord`. **`resume` / `finish`** can be handled by the core orchestrator when `ACCORD_CORE_ORCHESTRATOR=1` (see the implementation plan).
+- Routes workflow subcommands through **`workflow-orchestration.ts`** → core runner + **`subagent/runtime-host.ts`** (programmatic spawns; default on).
+- Handles read-only / local subcommands in **`extension.ts`** (`tasks`, `review`, `init`, …) per `subcommand-routing.ts`.
+- On **free-text** input: `classifyPreflight` → optional bootstrap → `tryClassifyFollowUpViaCoreOrchestrator` or in-session follow-up (no accord skill).
 - Maps Pi lifecycle events to **`src/core/harness/`** (preflight, validation, usage, subagent prep/results).
 
-### After (target)
-
-- **Unchanged:** registration surfaces and Pi event → core harness mapping.
-- **Shrinks:** **no** phase graph in the adapter; **no** “launch skill to orchestrate” for flows owned by core.
-- **Grows slightly in one place:** explicit **implementation of `OrchestrationHost.spawnSubagent`** (and related UI), so the core runner can drive subagents without the main model choosing agent names.
-
-**One-line summary:** `adapters/pi` remains **“ACCORD on Pi”** — wiring and host I/O only; **orchestration is a core product**.
+**One-line summary:** `adapters/pi` is **“ACCORD on Pi”** — wiring and host I/O only; **orchestration is a core product**.
 
 ---
 
 ## Success criteria
 
-- Workflow graph and transition policy live in **`src/core/`**, validated by tests.
-- `assets/skills/accord/SKILL.md` no longer contradicts core (ideally minimal orchestration prose).
-- `src/adapters/pi/extension.ts` stays a thin: **parse → core runner → map outcome to Pi UI / host calls**.
+- Workflow graph and transition policy live in **`src/core/orchestration/`**, validated by tests.
+- Bundled **`accord` orchestrator skill removed**; companion skills (`commit`, `pr`, `review`) remain under `assets/skills/`.
+- `src/adapters/pi/extension.ts` stays thin: **parse → core runner → map outcome to Pi UI / host calls**.
 - Cross-provider behaviour depends on **code + schemas**, not on whether the chat model recalled the playbook.
 - **`/dev retro`** keeps correlating Pi insights sessions with harness work via the `dev-harness-run` transcript marker (regression: `tests/dev-retro-harness-marker.test.ts`).
 

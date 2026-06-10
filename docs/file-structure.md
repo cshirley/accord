@@ -18,7 +18,10 @@ src/
     artifacts/                   Artifact and return-packet validation
     config/                      Config types, globals, AGENTS.md parsing, placement, detection
       detect/                    Project stack, monorepo, tracker, and command inference
-    commands/                    Host-neutral /dev dispatch, help, intent classification, classify-preflight, subcommand routing
+    commands/                    Host-neutral /dev dispatch, help, intent classification, classify-dispatch, subcommand-routing
+    asset-install.ts             Pi asset symlink installer (CLI wrapper: scripts/install-assets.ts)
+    plan/                        Task pipeline profile loading
+    git/                         Git helpers for orchestration commits
     orchestration/               Workflow graph (`graph.ts`, `guards.ts`, `interpreter.ts`), host ports (`host.ts`), planning (`plan.ts` — `buildDevOrchestratePayload`, `planDevResume/Finish`), runner (`runner.ts` — `runResumeOrchestrationWithReplans`, `runFinishOrchestration`, `runUntilStop`), `judgment.ts`, `policy.ts`, `quick-fix.ts`, `phase-coarse-routing.ts`, `post-result/` (per-agent post-spawn handlers + shared `advancePrimaryTask`), `resolve/` (resume + finish resolution; unified `resolvePrimaryTaskResumeAgentId`)
     queries/                     Read-only dashboards, review queue, verify summaries, retro
     briefing/                    Context router: code briefs, decision packets, intent contract briefs
@@ -38,11 +41,12 @@ src/
       runtime-host.ts            Preflight, runSubagent, processSubagentToolResult
       command-preflight.ts       Plan mode + work-item-id gate for resume + finish
       spawn-bridge.ts            runOrchestrationSubagent / mapSpawnResultToSingle
+      spawn-ui.ts                Spawn progress UI wiring
       chat-display.ts            In-chat progress row during orchestration spawns
       spawn-status.ts            Footer widget + heartbeat during spawns
       judgment.ts                Optional LLM judgment for resume task supplements
-    resume-orchestration.ts      `/dev resume` core path when ACCORD_CORE_ORCHESTRATOR=1
-    finish-orchestration.ts      `/dev finish` core path when ACCORD_CORE_ORCHESTRATOR=1
+    workflow-orchestration.ts    Core orchestrator entry for `/dev` workflow subcommands (default on)
+    finish-orchestration.ts      `/dev finish` closeout (verify → dev_verify_summary → dev_finalize)
     command/autocomplete.ts      Pi autocomplete wiring for /dev arguments
     pi-hook-listeners.ts         Pi lifecycle event handlers (host-neutral harness hooks + UI wiring)
     hook-state.ts                Shared Pi hook state and session marker sync
@@ -57,9 +61,9 @@ src/
 assets/
   manifest.json                  Install-time manifest for bundled Pi prompt assets
   lang-profiles/*.json           Per-language defaults
-  skills/accord/SKILL.md         Canonical ACCORD orchestrator skill
-  skills/dev/SKILL.md            Legacy alias skill
-  agents/*.md                    Phase and review agent definitions
+  skills/{commit,pr,review}/SKILL.md  Companion skills (commit, PR, review)
+  agents/accord/*.md             Phase and review agent definitions
+  agents/default.md              Default agent stub
   providers/trackers/*.md        Primary tracker fetch playbooks
   providers/trackers/*.json      Tracker connectivity sidecars
   providers/enrichments/*.md     Enrichment fetch playbooks
@@ -71,7 +75,7 @@ schemas/                         Source of truth for artifact shapes
   examples/*.json                Validated example payloads
   examples/validate-examples.mjs
 
-scripts/install-assets.ts         Link bundled Pi assets into the host agent config dir (`install:assets`)
+scripts/install-assets.ts         CLI wrapper for `src/core/asset-install.ts` (`install:assets`)
 scripts/install-dev.sh            Run `pi install` on this repo then `install:assets` (`install:dev`)
 scripts/runtime-smoke.ts          Lightweight runtime smoke (`check:runtime`)
 scripts/validate-assets.ts        Manifest + registry consistency (`validate:assets`)
@@ -81,7 +85,7 @@ tests/*.test.ts                   Bun unit tests (`core-contracts`, `harness`, `
 ## Navigation guide
 
 - Change `/dev` command routing or intent classification in `src/core/commands/`.
-- Change harness orchestration (`src/core/orchestration/`) — see [`docs/harness-orchestration.md`](harness-orchestration.md) and [`docs/harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md). Resume resolution + `ACCORD_CORE_ORCHESTRATOR=1` `/dev resume` path is implemented; full graph coverage is still in progress.
+- Change harness orchestration (`src/core/orchestration/`) — see [`docs/harness-orchestration.md`](harness-orchestration.md) and [`docs/harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md). The core orchestrator owns `/dev` workflow routing by default (`ACCORD_CORE_ORCHESTRATOR` off only disables programmatic spawns).
 - Change Pi-specific command behavior, autocomplete, hook listeners, status, or tool envelope wrapping in `src/adapters/pi/`.
 - Change work item state and `.tasks/` handling in `src/core/work-items/`.
 - Change agent brief construction in `src/core/briefing/`.

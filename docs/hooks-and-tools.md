@@ -4,7 +4,7 @@ The harness exposes two runtime extension surfaces: **event hooks** that fire on
 
 ## Event hooks
 
-Registered by `src/adapters/pi/hooks.ts`, which delegates behaviour to `src/core/harness/` so the same logic can be invoked from Cursor hook scripts or tests without Pi types.
+Registered by `src/adapters/pi/pi-hook-listeners.ts`, which delegates behaviour to `src/core/harness/` so the same logic can be invoked from Cursor hook scripts or tests without Pi types.
 
 ### Schema validation (tool_result → write/edit)
 
@@ -80,6 +80,8 @@ All registered in `src/adapters/pi/tools.ts` as thin wrappers around core domain
 | `dev_intent` | `src/core/commands/intent.ts` | Deterministic intent classification from free-text input |
 | `dev_intent_enrich` | `src/core/commands/intent.ts` | Refine intent recommendation using ticket metadata signals |
 | `dev_quick_fix_brief` | `src/core/briefing/code-brief.ts` | Create quick_fix task state, write spec/plan stubs, and assemble phase-test or phase-code brief |
+| `dev_rehydrate` | `src/core/work-items/rehydrate.ts` | Recreate `.tasks/<ID>.json` (and task files) from `docs/dev/<ID>/` when runtime state was lost |
+| `dev_workflow_cost` | `src/core/queries/workflow-cost.ts` | Token and estimated USD cost rollup from `.tasks/<ID>-usage.jsonl` |
 | `dev_finalize` | `src/core/work-items/lifecycle.ts` | Persist terminal outcome, next action, retro, shift-left findings |
 | `dev_retro` | `src/core/queries/retro.ts` | Analyse harness sessions for shift-left improvements |
 | `dev_init_detect` | `src/core/config/init-detect.ts` | Detect project stack, infer commands, resolve config placement |
@@ -93,6 +95,6 @@ ACCORD_CWD=/path/to/your/repo bun run mcp
 
 `ACCORD_CWD` is optional; when set, the server `chdir`s there so `.tasks/` and `docs/dev/` resolve like the Pi extension. MCP does not run Pi event hooks (on-write schema validation, post-code verification, subagent brief injection)—add Cursor hooks or CI steps if you need that parity.
 
-The **`dev_orchestrate`** tool (`command`: **`resume`** | **`finish`**) returns the same structured routing the core harness uses for `/dev resume` and `/dev finish` when `ACCORD_CORE_ORCHESTRATOR=1`: a `resolution` plus machine-readable `next_steps` (`spawn_subagent`, `notify_user`, `delegate_to_skill`, …). **finish** plans **phase-verify-acceptance** (it does not run `dev_verify_summary` / `dev_finalize` — those execute only after a successful Pi subagent spawn on the finish orchestration path). The payload marks `programmatic_spawn_supported: false` on stdio MCP; clients that need an isolated phase agent must spawn their own process or forward to the bundled accord skill. For **`resume`** spawns where judgment is configured in Dev Harness, the payload also includes `judgment_configured_for_spawn` and, when true, `spawn_task_after_template_judgment` — the same **template-only** task body the harness uses when `runJudgment` is absent or returns nothing parseable (headless parity with Pi when the judgment LLM is off or fails; it can still diverge from Pi when the model returns valid JSON).
+The **`dev_orchestrate`** tool (`command`: **`resume`** | **`finish`**) returns the same structured routing the core harness uses for `/dev resume` and `/dev finish` (orchestrator on by default): a `resolution` plus machine-readable `next_steps` (`spawn_subagent`, `notify_user`, …). **finish** plans **phase-verify-acceptance** (it does not run `dev_verify_summary` / `dev_finalize` — those execute only after a successful Pi subagent spawn on the finish orchestration path). The payload marks `programmatic_spawn_supported: false` on stdio MCP; clients that need an isolated phase agent must spawn their own process (e.g. `pi -p --mode json /dev <phase> <ID>`) or use a host that implements programmatic spawns. For **`resume`** spawns where judgment is configured in Dev Harness, the payload also includes `judgment_configured_for_spawn` and, when true, `spawn_task_after_template_judgment` — the same **template-only** task body the harness uses when `runJudgment` is absent or returns nothing parseable (headless parity with Pi when the judgment LLM is off or fails; it can still diverge from Pi when the model returns valid JSON).
 
 **Orchestration judgment (Phase 5, Pi only):** when `orchestration.judgment.enabled` is true in the Dev Harness JSON **and** `ACCORD_ORCHESTRATION_JUDGMENT=1`, resume spawns for allowed dispatch agents (default `review-test`, `phase-test`) may call a **bounded** `completeSimple` completion; the model must return JSON matching `schemas/orchestration-judgment-packet.json`. Core validates and merges a supplement into the outbound task, or appends a **template** appendix when the model output is missing or invalid. MCP / stdio clients do not implement `runJudgment` — use `spawn_task_after_template_judgment` from `dev_orchestrate` for the deterministic template path, or configure judgment only for interactive Pi sessions with a configured model and API credentials.

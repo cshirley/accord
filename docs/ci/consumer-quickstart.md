@@ -45,7 +45,7 @@ block to reflect your stack:
 
 - `test.command` is required (non-empty string).
 - `type_check`, `lint`, `format` are optional strings or `null`.
-- `verification_commands` is the command list that `phase-verify` runs.
+- `verification_commands` is the command list the harness runs before verify agents (and in post-code hooks).
 
 ## 4 — Atlassian Automation rule
 
