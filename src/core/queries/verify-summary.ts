@@ -4,6 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, readJson } from "../work-items/io.js";
 
 export interface VerifySummary {
@@ -69,11 +70,22 @@ function renderMarkdownReport(
   },
 ): string {
   const defaultBase = path.join("docs", "dev", id);
+  const specJsonPath =
+    typeof wi.spec === "string" && wi.spec.trim()
+      ? wi.spec.trim()
+      : path.join(defaultBase, "spec.json");
+  const workflowCostJson =
+    typeof wi.workflow_cost === "string" && wi.workflow_cost.trim()
+      ? wi.workflow_cost.trim()
+      : path.join(defaultBase, "workflow-cost.json");
   const artifactPaths = [
-    ["Brief", wi?.brief || path.join(defaultBase, "brief.md")],
-    ["Spec", wi?.spec || path.join(defaultBase, "spec.json")],
+    ["Brief", wi.brief || path.join(defaultBase, "brief.md")],
+    ["Spec (JSON)", specJsonPath],
+    ["Spec (readable)", path.join(path.dirname(specJsonPath), "spec.md")],
     ["Plan", wi?.plan || path.join(defaultBase, "plan.json")],
     ["Machine-readable verify", verifyPath],
+    ["Workflow cost (JSON)", workflowCostJson],
+    ["Workflow cost (readable)", path.join(path.dirname(workflowCostJson), "workflow-cost.md")],
   ];
 
   const lines: string[] = [
@@ -147,7 +159,7 @@ function renderMarkdownReport(
   return `${lines.join("\n").replace(/\n{3,}/g, "\n\n")}\n`;
 }
 
-export function devVerifySummary(id: string): VerifySummary | { error: string } {
+export function devVerifySummary(id: string): Result<VerifySummary> {
   const wi = loadWorkItem(id);
   const candidates = [
     wi?.verify,
@@ -169,7 +181,7 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
       break;
     }
   }
-  if (!report) return { error: `Verify report not found. Tried: ${Array.from(seen).join(", ")}` };
+  if (!report) return err(`Verify report not found. Tried: ${Array.from(seen).join(", ")}`);
 
   let pass = 0,
     fail = 0,
@@ -231,7 +243,7 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
   lines.push(`Markdown: ${markdownPath}`);
   lines.push("", report.verdict === "pass" ? "Next: /commit → /pr" : `Next: /dev gaps ${id}`);
 
-  return {
+  return ok({
     verdict: String(report.verdict),
     verify_path: verifyPath,
     markdown_path: markdownPath,
@@ -241,5 +253,5 @@ export function devVerifySummary(id: string): VerifySummary | { error: string } 
     not_verified: notVerified,
     gaps,
     formatted: lines.join("\n"),
-  };
+  });
 }

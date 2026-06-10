@@ -14,7 +14,7 @@ flowchart TB
   PR --> EN["enrichments/(name).md + .json"]
 ```
 
-`package.json` advertises these through the `pi.skills`, `pi.agents`, and `accord.assetManifest` fields. The current Pi adapter still depends on the host exposing `/skill:accord` and the `subagent` tool at runtime, but the package now carries the source prompt assets so an installer can link them into the host's skill/agent directories.
+`package.json` advertises these through the `pi.skills`, `pi.agents`, and `accord.assetManifest` fields. The Pi adapter drives workflow via `/dev` and the core orchestrator (programmatic `subagent` spawns). Companion skills (`commit`, `pr`, `review`) and phase agents install via the asset linker.
 
 ## Installer
 

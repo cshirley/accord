@@ -23,7 +23,7 @@ on:
         type: string
         required: true
       pi_version:
-        description: npm tag or version of @mariozechner/pi-coding-agent.
+        description: npm tag or version of @earendil-works/pi-coding-agent.
         type: string
         required: false
         default: latest
@@ -141,7 +141,7 @@ jobs:
           # repository_dispatch must have arrived via workflow_call.
           ACCORD_DISPATCH_KIND: ${{ github.event_name == 'repository_dispatch' && 'repository_dispatch' || 'workflow_call' }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-        run: bun run scripts/ci/dispatch.ts
+        run: bun run .accord-ci/packages/pi-accord-ci/src/dispatch.ts
 
       - name: Download prior accord-state-${{ inputs.ticket }} artifact (cross-run resume; AC-14)
         id: prior_state
@@ -154,23 +154,23 @@ jobs:
 
       - name: AGENTS.md gate (AC-2)
         id: agents_md_gate
-        run: bun run scripts/ci/gate-agents-md.ts > "${GITHUB_OUTPUT}.gate.json" || true
+        run: bun run .accord-ci/packages/pi-accord-ci/src/gate-agents-md.ts > "${GITHUB_OUTPUT}.gate.json" || true
 
       - name: Jira-ticket completeness gate (AC-3)
         id: ticket_gate
-        run: bun run scripts/ci/gate-ticket.ts > "${GITHUB_OUTPUT}.ticket-gate.json" || true
+        run: bun run .accord-ci/packages/pi-accord-ci/src/gate-ticket.ts > "${GITHUB_OUTPUT}.ticket-gate.json" || true
 
       - name: Seed brief.md from Jira ticket (AC-5)
         id: seed_brief
-        run: bun run scripts/ci/seed-brief.ts
+        run: bun run .accord-ci/packages/pi-accord-ci/src/seed-brief.ts
 
       - name: Bootstrap work item (AC-5 / AC-6)
         id: bootstrap
-        run: bun run scripts/ci/bootstrap-work-item.ts
+        run: bun run .accord-ci/packages/pi-accord-ci/src/bootstrap-work-item.ts
 
       - name: Decide resume vs fresh (AC-16)
         id: decide_resume
-        run: bun run scripts/ci/decide-resume.ts
+        run: bun run .accord-ci/packages/pi-accord-ci/src/decide-resume.ts
 
       - name: phase-spec
         id: phase_spec
@@ -206,32 +206,32 @@ jobs:
       - name: Cost-cap pre-check between phases (AC-7)
         id: cost_cap
         if: ${{ always() }}
-        run: bun run scripts/ci/parse-phase-result.ts --check-cost --ticket "${{ inputs.ticket }}" --max "${{ inputs.max_cost_usd }}"
+        run: bun run .accord-ci/packages/pi-accord-ci/src/parse-phase-result.ts --check-cost --ticket "${{ inputs.ticket }}" --max "${{ inputs.max_cost_usd }}"
 
       - name: Terminal — needs_input (AC-4)
         id: terminal_needs_input
         if: ${{ steps.phase_spec.outputs.status == 'needs_input' || steps.phase_plan.outputs.status == 'needs_input' || steps.phase_code.outputs.status == 'needs_input' || steps.phase_verify.outputs.status == 'needs_input' }}
-        run: bun run scripts/ci/parse-phase-result.ts --terminal needs_input --ticket "${{ inputs.ticket }}"
+        run: bun run .accord-ci/packages/pi-accord-ci/src/parse-phase-result.ts --terminal needs_input --ticket "${{ inputs.ticket }}"
 
       - name: Terminal — blocked (AC-10)
         id: terminal_blocked
         if: ${{ steps.phase_spec.outputs.status == 'blocked' || steps.phase_plan.outputs.status == 'blocked' || steps.phase_code.outputs.status == 'blocked' || steps.phase_verify.outputs.status == 'blocked' }}
-        run: bun run scripts/ci/parse-phase-result.ts --terminal blocked --ticket "${{ inputs.ticket }}"
+        run: bun run .accord-ci/packages/pi-accord-ci/src/parse-phase-result.ts --terminal blocked --ticket "${{ inputs.ticket }}"
 
       - name: Terminal — gaps (AC-10)
         id: terminal_gaps
         if: ${{ steps.phase_verify.outputs.status == 'gaps' }}
-        run: bun run scripts/ci/parse-phase-result.ts --terminal gaps --ticket "${{ inputs.ticket }}"
+        run: bun run .accord-ci/packages/pi-accord-ci/src/parse-phase-result.ts --terminal gaps --ticket "${{ inputs.ticket }}"
 
       - name: Terminal — cost_exceeded (AC-7)
         id: terminal_cost
         if: ${{ steps.cost_cap.outputs.tripped == 'true' }}
-        run: bun run scripts/ci/parse-phase-result.ts --terminal cost_exceeded --ticket "${{ inputs.ticket }}"
+        run: bun run .accord-ci/packages/pi-accord-ci/src/parse-phase-result.ts --terminal cost_exceeded --ticket "${{ inputs.ticket }}"
 
       - name: Commit + open PR (happy path → in_review; AC-8 / AC-9 / AC-11)
         id: commit_and_pr
         if: ${{ steps.phase_verify.outputs.status == 'done' && steps.cost_cap.outputs.tripped != 'true' }}
-        run: bun run scripts/ci/commit-and-pr.ts
+        run: bun run .accord-ci/packages/pi-accord-ci/src/commit-and-pr.ts
 
       - name: Upload accord-state artifact (terminal canonical; AC-14)
         id: upload_state

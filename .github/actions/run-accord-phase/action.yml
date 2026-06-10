@@ -1,4 +1,4 @@
-# Thin composite invoking `bun run scripts/ci/run-phase.ts` so the main
+# Thin composite invoking `bun run packages/pi-accord-ci/src/run-phase.ts` so the main
 # workflow keeps its conditional branching readable. The script handles all
 # JSON-event parsing + cost-cap pre-check + terminal-action dispatch.
 
@@ -29,7 +29,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Run phase via scripts/ci/run-phase.ts
+    - name: Run phase via pi-accord-ci run-phase.ts
       id: runphase
       shell: bash
       working-directory: .accord-ci
@@ -44,4 +44,4 @@ runs:
         if [ -n "${{ inputs.owner_nonce }}" ]; then
           EXTRA_ARGS+=("--owner-nonce=${{ inputs.owner_nonce }}")
         fi
-        bun run scripts/ci/run-phase.ts --phase "${{ inputs.phase }}" --ticket "${{ inputs.ticket }}" "${EXTRA_ARGS[@]}"
+        bun run packages/pi-accord-ci/src/run-phase.ts --phase "${{ inputs.phase }}" --ticket "${{ inputs.ticket }}" "${EXTRA_ARGS[@]}"

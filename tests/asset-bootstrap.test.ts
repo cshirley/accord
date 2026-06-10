@@ -56,7 +56,7 @@ describe("installPiAssets", () => {
     // Top-level symlinks created (the targets themselves; not asserting
     // through-link reads which break under macOS /var → /private/var
     // canonicalisation when readlink returns a relative path).
-    expect(readlinkSync(join(target, "skills", "accord"))).toContain("assets/skills/accord");
+    expect(readlinkSync(join(target, "skills", "commit"))).toContain("assets/skills/commit");
     expect(readlinkSync(join(target, "agents", "accord"))).toContain("assets/agents/accord");
     expect(readlinkSync(join(target, "providers"))).toContain("assets/providers");
     expect(existsSync(result.metadataPath)).toBe(true);
@@ -79,7 +79,7 @@ describe("installPiAssets", () => {
     const target = tempPiAgent();
     const result = installPiAssets({ target, dryRun: true });
     expect(result.linked.length).toBeGreaterThan(0);
-    expect(existsSync(join(target, "skills", "accord"))).toBe(false);
+    expect(existsSync(join(target, "skills", "commit"))).toBe(false);
     expect(existsSync(join(target, "agents", "accord"))).toBe(false);
     expect(existsSync(join(target, "providers"))).toBe(false);
     expect(existsSync(result.metadataPath)).toBe(false);
@@ -124,10 +124,10 @@ describe("installPiAssets", () => {
 
   test("reports conflicts when a target exists with different content and force is false", () => {
     const target = tempPiAgent();
-    // Pre-create skills/accord as a regular file (not a symlink) so the installer flags it
+    // Pre-create skills/commit as a regular file (not a symlink) so the installer flags it
     const skillsDir = join(target, "skills");
     mkdirSync(skillsDir, { recursive: true });
-    writeFileSync(join(skillsDir, "accord"), "user content", "utf8");
+    writeFileSync(join(skillsDir, "commit"), "user content", "utf8");
 
     const result = installPiAssets({ target });
     expect(result.conflicts.length).toBeGreaterThan(0);
@@ -217,7 +217,7 @@ describe("maybeAutoInstallAssets", () => {
     const meta = JSON.parse(readFileSync(metaPath, "utf8"));
     meta.version = "0.0.0-stale";
     writeFileSync(metaPath, JSON.stringify(meta));
-    rmSync(join(target, "skills", "accord"));
+    rmSync(join(target, "skills", "commit"));
     rmSync(join(target, "agents", "accord"));
     rmSync(join(target, "providers"));
 
@@ -366,7 +366,7 @@ describe("maybeAutoInstallAssets", () => {
   test("conflicts → warns with --force hint, status conflicts", () => {
     const target = tempPiAgent();
     mkdirSync(join(target, "skills"), { recursive: true });
-    writeFileSync(join(target, "skills", "accord"), "user content", "utf8");
+    writeFileSync(join(target, "skills", "commit"), "user content", "utf8");
 
     const { host, events } = captureNotifies();
     const r = maybeAutoInstallAssets(host, { target, env: {} });
@@ -406,9 +406,9 @@ describe("maybeAutoInstallAssets", () => {
     const target = tempPiAgent();
     maybeAutoInstallAssets({ notify: () => {} }, { target, env: {} });
 
-    const skillSymlink = join(target, "skills", "accord");
+    const skillSymlink = join(target, "skills", "commit");
     const linkTarget = readlinkSync(skillSymlink);
-    expect(linkTarget).toContain("assets/skills/accord");
+    expect(linkTarget).toContain("assets/skills/commit");
   });
 
   test("first install via the bootstrap also seeds accord.json", () => {

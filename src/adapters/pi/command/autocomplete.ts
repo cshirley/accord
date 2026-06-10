@@ -1,10 +1,11 @@
+import * as path from "node:path";
 import type {
   AutocompleteItem,
   AutocompleteProvider,
   AutocompleteSuggestions,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import { DEV_SUBCOMMANDS } from "../../../core/commands/dispatch.js";
-import { listWorkItemFiles, readJson, TASKS_DIR } from "../../../core/work-items/io.js";
+import { listWorkItemFileRefs, loadWorkItem, readJson } from "../../../core/work-items/io.js";
 import type { WorkItem } from "../../../core/work-items/types.js";
 
 export const WORK_ITEM_ID_SUBCOMMANDS = new Set([
@@ -31,8 +32,8 @@ const DEVIATION_ACTIONS: AutocompleteItem[] = [
 
 function getWorkItemCompletions(subcommand: string, query: string): AutocompleteItem[] | null {
   const q = query.toLowerCase();
-  const items = listWorkItemFiles()
-    .map((file) => readJson<WorkItem>(`${TASKS_DIR}/${file}`))
+  const items = listWorkItemFileRefs()
+    .map((ref) => readJson<WorkItem>(path.join(ref.tasksDir, ref.fileName)))
     .filter((wi): wi is WorkItem => wi !== null)
     .filter((wi) => {
       const haystack = `${wi.id} ${wi.title} ${wi.phase}`.toLowerCase();
@@ -66,7 +67,7 @@ function getDeviationTaskCompletions(
   action: string,
   query: string,
 ): AutocompleteItem[] | null {
-  const wi = readJson<WorkItem>(`${TASKS_DIR}/${workItemId}.json`);
+  const wi = loadWorkItem(workItemId);
   if (!wi) return null;
 
   const q = query.toLowerCase();

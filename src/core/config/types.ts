@@ -1,3 +1,83 @@
+/** Optional harness orchestration overrides (see `schemas/accord-schema.json`). */
+export interface DevHarnessOrchestrationConfig {
+  /**
+   * Caps and severity gating for quick-fix `review-test` → `phase-test` retries.
+   * Omitted fields fall back to `defaultQuickFixLoopPolicy()` in `src/core/orchestration/policy.ts`.
+   */
+  quick_fix_loop?: {
+    /** Max post-review-test retries toward `phase-test` before task `status` is set to `blocked`. */
+    max_test_review_loops?: number;
+    /** Which finding severities consume a retry slot when verdict is `issues`. */
+    severity_gate?: "none" | "warn" | "block";
+  };
+  /**
+   * Optional **implement** pipeline gates (challenge / `reviews_requested` → **review-code** before verify).
+   * Omitted fields fall back to {@link defaultImplementCodeReviewPolicy} in `src/core/orchestration/policy.ts`.
+   */
+  implement_loop?: {
+    code_review_on_challenge?: boolean;
+    code_review_on_reviews_requested?: boolean;
+  };
+  /**
+   * Finding retries after **review-test** / **review-code** for **implement** (and quick-fix **review-code**).
+   * Default: `severity_gate` `block`, max 3 (`DEFAULT_MAX_CRITICAL_REVIEW_RETRIES`).
+   */
+  review_loop?: {
+    max_critical_retries?: number;
+    /** `block` = critical only; `warn` = warning+critical; `none` = any finding. Default: `block`. */
+    severity_gate?: "none" | "warn" | "block";
+    review_test?: {
+      severity_gate?: "none" | "warn" | "block";
+      max_retries?: number;
+    };
+    review_code?: {
+      severity_gate?: "none" | "warn" | "block";
+      max_retries?: number;
+    };
+  };
+  /**
+   * Bounded LLM output merged into resume task text (Phase 5). Never selects agents —
+   * only the shape in `schemas/orchestration-judgment-packet.json`. Pi calls the model when
+   * `ACCORD_ORCHESTRATION_JUDGMENT=1` and `enabled` is true; invalid JSON falls back to a template appendix.
+   */
+  judgment?: {
+    enabled?: boolean;
+    /** Dispatch agent registry ids that receive judgment (default: review-test, phase-test). */
+    agents?: string[];
+    max_tokens?: number;
+  };
+  /**
+   * Review spawn behaviour hints (orchestrator messaging; does not auto-spawn).
+   */
+  review?: {
+    /** When true, parallel review-test + review-code timeouts suggest sequential re-run (default: true). */
+    parallel_prefer_sequential_on_timeout?: boolean;
+  };
+  /**
+   * `/dev resume` replan loop: which agents may chain in one command and how many spawns max.
+   * Defaults match `src/core/orchestration/policy.ts`.
+   */
+  resume?: {
+    /**
+     * Registry agent ids that stop the replan loop when they are the *next* spawn
+     * (default: `["phase-code"]`). Set `[]` to allow chaining into implementation.
+     */
+    no_auto_chain_agents?: string[];
+    /** Max subagent spawns per `/dev resume` (default: 8). */
+    max_sequential_spawns?: number;
+  };
+  /**
+   * Git commit behaviour during orchestrated implementation (Pi host only).
+   */
+  commit?: {
+    /**
+     * After **review-code** marks a task `done`, stage task-scoped files and commit
+     * without interactive confirmation (default: false).
+     */
+    on_task_done?: boolean;
+  };
+}
+
 export interface DevHarnessConfig {
   schema_version: "1.0";
   language: string;
@@ -31,6 +111,7 @@ export interface DevHarnessConfig {
    */
   providers?: UserProviderDef[];
   log_level?: "debug" | "info" | "warn" | "error" | "silent";
+  orchestration?: DevHarnessOrchestrationConfig;
 }
 
 export interface ContextSourceConfig {
@@ -66,6 +147,11 @@ export interface UserProviderDef {
 
 export interface DevHarnessGlobalConfig {
   context_sources?: ContextSourceConfig[];
+  /**
+   * Default orchestration overrides for every project with a Dev Harness block.
+   * Project `orchestration` in AGENTS.md is shallow-merged on top (per subsection).
+   */
+  orchestration?: DevHarnessOrchestrationConfig;
   providers?: UserProviderDef[];
   /**
    * Per-developer-machine extension bootstrap preferences. Read by

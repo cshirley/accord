@@ -172,6 +172,153 @@
           "description": "Path to monorepo root relative to this AGENTS.md"
         }
       }
+    },
+    "orchestration": {
+      "type": "object",
+      "description": "Deterministic harness behaviour overrides (Phase 3+).",
+      "additionalProperties": false,
+      "properties": {
+        "quick_fix_loop": {
+          "type": "object",
+          "description": "Quick-fix adversarial test↔review loop: after each validated `review-test` packet, the harness may bump counters, set task `phase` to `phase-test` or `phase-code`, or mark the task `blocked` when the cap is reached.",
+          "additionalProperties": false,
+          "properties": {
+            "max_test_review_loops": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum `test_review_cycles_used` before further gated `issues` verdicts block the task. Default: 5."
+            },
+            "severity_gate": {
+              "type": "string",
+              "enum": ["none", "warn", "block"],
+              "description": "`none`: any `issues` verdict can consume a retry. `warn`: warning or critical findings consume a retry. `block`: only critical findings consume a retry. Default: warn."
+            }
+          }
+        },
+        "implement_loop": {
+          "type": "object",
+          "description": "Legacy **implement** review toggles. The harness always enqueues **review-code** after **phase-code**; `code_review_on_*` fields are ignored for routing.",
+          "additionalProperties": false,
+          "properties": {
+            "code_review_on_challenge": {
+              "type": "boolean",
+              "description": "When true (default), a plan task with `challenge: true` routes to **review-code** after `phase-code` completes successfully."
+            },
+            "code_review_on_reviews_requested": {
+              "type": "boolean",
+              "description": "When true (default), a `phase-code` return with `reviews_requested` > 0 routes to **review-code**."
+            }
+          }
+        },
+        "review_loop": {
+          "type": "object",
+          "description": "Finding retries after **review-test** or **review-code** for implement (and quick-fix **review-code**). Findings persisted on the task file as `last_review_feedback`.",
+          "additionalProperties": false,
+          "properties": {
+            "max_critical_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Max retries per loop when gated findings fire. Default: 3."
+            },
+            "severity_gate": {
+              "type": "string",
+              "enum": ["none", "warn", "block"],
+              "description": "Which severities consume a retry when verdict is `issues`: `block` = critical only (default), `warn` = warning or critical, `none` = any finding."
+            },
+            "review_test": {
+              "type": "object",
+              "description": "Optional override for **review-test** → **phase-test** retries (implement / quick-fix review-code path uses review_loop defaults when omitted).",
+              "additionalProperties": false,
+              "properties": {
+                "severity_gate": {
+                  "type": "string",
+                  "enum": ["none", "warn", "block"]
+                },
+                "max_retries": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "review_code": {
+              "type": "object",
+              "description": "Optional override for **review-code** → **phase-code** retries.",
+              "additionalProperties": false,
+              "properties": {
+                "severity_gate": {
+                  "type": "string",
+                  "enum": ["none", "warn", "block"]
+                },
+                "max_retries": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "judgment": {
+          "type": "object",
+          "description": "Optional bounded LLM step that appends a schema-validated brief fragment to resume task text (Phase 5). Requires `ACCORD_ORCHESTRATION_JUDGMENT=1` on Pi to call the model.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "When true, eligible resume spawns may call judgment before subagent execution (Pi only when env gate is set)."
+            },
+            "agents": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Dispatch agent ids (registry) that receive judgment. Default: review-test, phase-test."
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 256,
+              "maximum": 8192,
+              "description": "Max output tokens for the judgment completion. Default: 1536."
+            }
+          }
+        },
+        "review": {
+          "type": "object",
+          "description": "Review orchestration hints (messaging only).",
+          "additionalProperties": false,
+          "properties": {
+            "parallel_prefer_sequential_on_timeout": {
+              "type": "boolean",
+              "description": "When true (default), parallel review-test + review-code timeouts suggest sequential re-run in subagent result processing."
+            }
+          }
+        },
+        "resume": {
+          "type": "object",
+          "description": "Controls how many subagent spawns run in one `/dev resume` before pausing for the user.",
+          "additionalProperties": false,
+          "properties": {
+            "no_auto_chain_agents": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "When the next planned spawn is one of these agent ids, the replan loop stops in the same command. Default: [\"phase-code\"]. Use [] to chain through implementation."
+            },
+            "max_sequential_spawns": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum subagent spawns per `/dev resume` replan loop. Default: 8."
+            }
+          }
+        },
+        "commit": {
+          "type": "object",
+          "description": "Harness git commits during orchestrated implementation (Pi runtime host).",
+          "additionalProperties": false,
+          "properties": {
+            "on_task_done": {
+              "type": "boolean",
+              "description": "When true, after review-code marks a task done, stage task-scoped files and commit without interactive confirmation. Default: false."
+            }
+          }
+        }
+      }
     }
   }
 }

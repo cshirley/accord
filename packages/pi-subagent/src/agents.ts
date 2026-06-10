@@ -29,7 +29,8 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, parseFrontmatter } from "@mariozechner/pi-coding-agent";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { loadAgentFromFile } from "./agent-load.js";
 
 export type AgentScope = "user" | "project" | "both";
 
@@ -59,6 +60,11 @@ export interface SubagentConfig {
   activeProfile?: string;
   skills?: Record<string, SkillConfig>;
   profiles: Record<string, ProfileConfig>;
+  /**
+   * Default wall-clock limit for {@link runSubagent} when the call omits `timeoutMs`.
+   * Use `0` to disable. Falls back to 30 minutes when unset.
+   */
+  spawnTimeoutMs?: number;
 }
 
 export interface ResolvedModel {
@@ -110,6 +116,50 @@ const DEFAULT_CONFIG: SubagentConfig = {
 let _configCache: SubagentConfig | null = null;
 let _configCachePath: string | null = null;
 let _configWarned = false;
+let _credentialFallbackWarned = false;
+
+function hasCursorAgentCredentials(): boolean {
+  return Boolean(process.env.CURSOR_API_KEY || process.env.CURSOR_ACCESS_TOKEN);
+}
+
+function findCursorAgentProfileName(cfg: SubagentConfig): string | null {
+  if (cfg.profiles["cursor-claude"]?.provider === "cursor-agent") {
+    return "cursor-claude";
+  }
+  for (const [name, profile] of Object.entries(cfg.profiles)) {
+    if (profile.provider === "cursor-agent") return name;
+  }
+  return null;
+}
+
+/**
+ * When the chosen profile targets Anthropic directly but no API key is present,
+ * prefer a cursor-agent profile when Cursor credentials are available. Avoids
+ * child `pi` processes that hang until spawn timeout.
+ */
+export function resolveProfileForCredentials(
+  cfg: SubagentConfig,
+  requestedProfileName: string,
+): string {
+  const profile = cfg.profiles[requestedProfileName];
+  if (!profile || profile.provider !== "anthropic" || process.env.ANTHROPIC_API_KEY) {
+    return requestedProfileName;
+  }
+
+  const cursorProfile = findCursorAgentProfileName(cfg);
+  if (!cursorProfile || !hasCursorAgentCredentials()) {
+    return requestedProfileName;
+  }
+
+  if (!_credentialFallbackWarned) {
+    console.error(
+      `[subagent] profile "${requestedProfileName}" uses provider "anthropic" but ANTHROPIC_API_KEY is unset; ` +
+        `using "${cursorProfile}" (cursor-agent). Set ANTHROPIC_API_KEY or change activeProfile in subagent.json.`,
+    );
+    _credentialFallbackWarned = true;
+  }
+  return cursorProfile;
+}
 
 function isValidConfig(parsed: unknown): parsed is SubagentConfig {
   if (!parsed || typeof parsed !== "object") return false;
@@ -133,7 +183,8 @@ function isValidConfig(parsed: unknown): parsed is SubagentConfig {
   return true;
 }
 
-function loadConfig(): SubagentConfig {
+/** Load cached `subagent.json` from the Pi agent directory (creates defaults when missing). */
+export function loadSubagentConfig(): SubagentConfig {
   const configPath = path.join(getAgentDir(), "subagent.json");
   if (_configCache && _configCachePath === configPath) return _configCache;
 
@@ -230,7 +281,7 @@ export function resolveModelConfig(
   agent: AgentConfig,
   config?: SubagentConfig,
 ): ResolvedModel | null {
-  const cfg = config ?? loadConfig();
+  const cfg = config ?? loadSubagentConfig();
   const defaultProfile = cfg.profiles[cfg.defaultProfile];
   if (!defaultProfile) {
     console.error(`[subagent] defaultProfile "${cfg.defaultProfile}" not found in profiles map.`);
@@ -239,7 +290,10 @@ export function resolveModelConfig(
 
   const skillName = agent.namespace;
   const skillProfileName = skillName ? cfg.skills?.[skillName]?.profile : undefined;
-  const requestedProfileName = skillProfileName ?? cfg.activeProfile ?? cfg.defaultProfile;
+  const requestedProfileName = resolveProfileForCredentials(
+    cfg,
+    skillProfileName ?? cfg.activeProfile ?? cfg.defaultProfile,
+  );
   let targetProfile = cfg.profiles[requestedProfileName];
 
   if (!targetProfile) {
@@ -320,52 +374,7 @@ function tryLoadAgentFile(
   namespace: string | undefined,
   source: "user" | "project",
 ): AgentConfig | null {
-  let content: string;
-  try {
-    content = fs.readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const { frontmatter, body } = parseFrontmatter<Record<string, string>>(content);
-
-  // Plain markdown without agent frontmatter (e.g. provider snippets that the
-  // accord extension injects into briefs) is silently ignored. This is the
-  // safety net that lets us walk subdirectories without accidentally turning
-  // reference docs into invokable agents.
-  if (!frontmatter.name || !frontmatter.description) {
-    return null;
-  }
-
-  let tools: string[] | undefined;
-  const rawTools = frontmatter.tools;
-  if (typeof rawTools === "string") {
-    tools = rawTools
-      .split(",")
-      .map((t: string) => t.trim())
-      .filter(Boolean);
-  } else if (rawTools && typeof rawTools === "object") {
-    tools = Object.entries(rawTools)
-      .filter(([, v]) => v === true || v === "true")
-      .map(([k]) => k);
-  }
-
-  const tier = frontmatter.tier as ModelTier | undefined;
-  const thinking = frontmatter.thinking as ThinkingLevel | undefined;
-  const model = frontmatter.model as string | undefined;
-
-  return {
-    name: frontmatter.name,
-    description: frontmatter.description,
-    tools: tools && tools.length > 0 ? tools : undefined,
-    model,
-    tier,
-    thinking,
-    systemPrompt: body,
-    source,
-    filePath,
-    namespace,
-  };
+  return loadAgentFromFile(filePath, { source, namespace });
 }
 
 /**
@@ -501,6 +510,17 @@ export function discoverAgents(cwd: string, scope: AgentScope): AgentDiscoveryRe
   }
 
   return { agents: Array.from(agentMap.values()), projectAgentsDir };
+}
+
+/** Resolve absolute agent markdown path by discovered name. */
+export function resolveAgentFile(
+  agentName: string,
+  cwd: string,
+  scope: AgentScope = "user",
+): string | null {
+  const { agents } = discoverAgents(cwd, scope);
+  const match = agents.find((candidate) => candidate.name === agentName);
+  return match?.filePath ?? null;
 }
 
 export function formatAgentList(

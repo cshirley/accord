@@ -24,7 +24,7 @@ We want any GitHub repository to be able to opt into a fully autonomous Jira →
 
 `pi-accord` ships ACCORD as a Pi extension. The harness is fully usable interactively today via the `/dev` command and was designed from the start so that "every phase runs in a fresh window; all state persists to `.tasks/` and `docs/`" (see `assets/skills/accord/SKILL.md`). The persistence model means that the same skill that drives an interactive session can be driven by a sequence of headless `pi -p` calls without losing state between phases.
 
-Pi itself supports headless execution via `pi -p` (print mode) and `pi --mode json` (JSON-event-stream mode). Both are documented in `node_modules/@mariozechner/pi-coding-agent/docs/{quickstart,json,sdk,usage}.md`. The CLI exposes a stable contract; the SDK exists for embedding Pi in larger applications and has a richer but lower-level surface.
+Pi itself supports headless execution via `pi -p` (print mode) and `pi --mode json` (JSON-event-stream mode). Both are documented in `node_modules/@earendil-works/pi-coding-agent/docs/{quickstart,json,sdk,usage}.md`. The CLI exposes a stable contract; the SDK exists for embedding Pi in larger applications and has a richer but lower-level surface.
 
 Jira → GitHub triggering is solved at the integration layer: Atlassian Automation can fire `POST https://api.github.com/repos/<owner>/<repo>/dispatches` on a status transition, which surfaces in GitHub Actions as a `repository_dispatch` event with arbitrary `client_payload`.
 
@@ -38,7 +38,7 @@ This repository has no existing `.github/` directory and no CI scaffolding. `.gi
 
 **Consumer-side.** A repository owner adds one workflow file, four secrets, and an optional `AGENTS.md`, and one Jira automation rule (per Jira project, not per repo). When a ticket transitions to the configured status, a PR is opened against the consumer's repo within the runtime budget, or a Jira comment is posted explaining why the autopipeline declined.
 
-**Developer-side (Platform / DevX).** A reusable workflow + composite action live in `cshirley/accord` under `.github/`. The TypeScript scripts that implement the gate, the seed, the phase orchestration, the Jira reporting, and the commit/PR step live under `scripts/ci/` and are unit-tested with `bun test` against fixtures. A self-test workflow on this repo's PRs exercises the full pipeline in dry-run mode against fixture tickets so regressions are caught before consumers feel them.
+**Developer-side (Platform / DevX).** A reusable workflow + composite action live in `cshirley/accord` under `.github/`. The TypeScript scripts that implement the gate, the seed, the phase orchestration, the Jira reporting, and the commit/PR step live under `packages/pi-accord-ci/src/` and are unit-tested with `bun test` against fixtures. A self-test workflow on this repo's PRs exercises the full pipeline in dry-run mode against fixture tickets so regressions are caught before consumers feel them.
 
 **Behavioural contract (the most important success metric).**
 
@@ -74,8 +74,8 @@ This repository has no existing `.github/` directory and no CI scaffolding. `.gi
 - `.github/workflows/test-autopipeline.yml` — self-test on PRs.
 - `.github/actions/setup-pi/action.yml` — composite for installing Pi + ACCORD + warm-up.
 - `.github/actions/run-accord-phase/action.yml` — optional composite that wraps `run-phase.ts`.
-- `scripts/ci/*.ts` — gate, seed, bootstrap, run-phase, parse-phase-result, jira-comment, dev-init-if-missing, commit-and-pr.
-- `tests/ci/**` — fixtures + bun unit tests.
+- `packages/pi-accord-ci/src/*.ts` — gate, seed, bootstrap, run-phase, parse-phase-result, jira-comment, dev-init-if-missing, commit-and-pr.
+- `packages/pi-accord-ci/tests/**` — fixtures + bun unit tests.
 - `examples/consumer-repo/` — copy-paste starting kit for a consumer.
 - `docs/ci/{autopipeline,consumer-quickstart,atlassian-automation,troubleshooting}.md`.
 
@@ -101,7 +101,7 @@ This repository has no existing `.github/` directory and no CI scaffolding. `.gi
 
 | Path | Why |
 |---|---|
-| `~/.npm` | Speeds `npm i -g @mariozechner/pi-coding-agent` and any `npx` calls |
+| `~/.npm` | Speeds `npm i -g @earendil-works/pi-coding-agent` and any `npx` calls |
 | `~/.bun/install/cache` | Speeds `bun install` in the `.accord-ci` checkout |
 | `~/.config/pi/agent` (excluding `auth.json` and `sessions/`) | Skips `pi install` re-registration and asset-link work |
 | `.accord-ci/node_modules` | Skips `bun install` entirely on lockfile-unchanged hits |
@@ -143,7 +143,7 @@ flowchart LR
 
 **Rollback plan.** If a v1 release breaks consumers, we ship `v1.0.x` patch tagged off the previous good commit and re-point the moving `v1` tag. Consumers pinned to `v1` recover automatically; consumers pinned to a SHA are unaffected and can upgrade on their schedule.
 
-**External dependencies.** `@mariozechner/pi-coding-agent` (npm), Atlassian Cloud (Jira REST + Automation), GitHub Actions, Anthropic API. We pin Pi via the `pi_version` input.
+**External dependencies.** `@earendil-works/pi-coding-agent` (npm), Atlassian Cloud (Jira REST + Automation), GitHub Actions, Anthropic API. We pin Pi via the `pi_version` input.
 
 ## Scale & Performance
 
@@ -183,7 +183,7 @@ flowchart LR
 
 **Terminal-state reporting.** Every terminal branch (gate fail, `needs_input`, `gaps`, `blocked`, cost exceeded, complete) writes a Jira comment, optionally transitions the ticket, and uploads `docs/dev/<ID>/` + `.tasks/<ID>*` as workflow artifacts. Exit code 0 from all of these — the workflow successfully reported back. Hard-fail (≠0) is reserved for infra problems.
 
-**Self-test.** A `tests/ci/fixtures/jira/*.json` corpus drives gate unit tests. A `tests/ci/fixtures/return-packets/*.json` corpus drives parse-phase-result tests. A `dry_run: true` workflow input causes `run-phase.ts` to read mock return packets instead of invoking `pi -p`, and `jira-comment.ts` to write to a JSON log instead of POSTing. The `test-autopipeline.yml` workflow runs the full reusable workflow in dry-run on every PR.
+**Self-test.** A `packages/pi-accord-ci/tests/fixtures/jira/*.json` corpus drives gate unit tests. A `packages/pi-accord-ci/tests/fixtures/return-packets/*.json` corpus drives parse-phase-result tests. A `dry_run: true` workflow input causes `run-phase.ts` to read mock return packets instead of invoking `pi -p`, and `jira-comment.ts` to write to a JSON log instead of POSTing. The `test-autopipeline.yml` workflow runs the full reusable workflow in dry-run on every PR.
 
 ### Why CLI not SDK (the alternative we considered)
 
@@ -235,7 +235,7 @@ This brief was authored from the design discussion in plan mode; no Jira ticket 
 - `assets/agents/accord/phase-gather.md`, `assets/providers/trackers/jira.md` — informs the `seed-brief.ts` design (the `## Gathered Context` section and the field mappings from a Jira issue).
 - `assets/skills/{commit,pr}/SKILL.md` — the commit message and PR body templates the autopipeline must produce so output is indistinguishable from human-driven runs.
 - `docs/accord-workflow.md`, `docs/pipeline.md` — the canonical end-to-end description of phases, hooks, and the `implement/standard` pipeline shape.
-- `node_modules/@mariozechner/pi-coding-agent/docs/{quickstart,usage,json,sdk}.md` — Pi's headless surface (`pi -p`, `--mode json`) and the SDK alternative considered and declined for v1.
+- `node_modules/@earendil-works/pi-coding-agent/docs/{quickstart,usage,json,sdk}.md` — Pi's headless surface (`pi -p`, `--mode json`) and the SDK alternative considered and declined for v1.
 - `package.json` (this repo) — confirms the package is named `@clive.shirley/pi-accord`, the bundled extensions and skills, and the `bun run mcp` entry point that the SDK alternative would have used.
 - `.gitignore` — confirms `.tasks/` is transient and `docs/dev/` is committed; the autopipeline preserves both invariants.
 

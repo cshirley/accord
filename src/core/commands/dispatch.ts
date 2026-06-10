@@ -4,7 +4,7 @@
 
 import * as path from "node:path";
 import { devTasks } from "../queries/dashboard.js";
-import { listWorkItemFiles, readJson, TASKS_DIR } from "../work-items/io.js";
+import { listWorkItemFileRefs, readJson } from "../work-items/io.js";
 import type { WorkItem } from "../work-items/types.js";
 
 export type EmptyInputRoute =
@@ -25,11 +25,15 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
   { value: "spec", description: "Write/refine a spec" },
   { value: "plan", description: "Generate an implementation plan" },
   { value: "resume", description: "Resume a work item" },
+  {
+    value: "rehydrate",
+    description: "Recreate .tasks/ state from committed docs/dev/<ID>/ artifacts",
+  },
   { value: "finish", description: "Run deterministic post-implementation closeout" },
   { value: "check", description: "Run lower-level acceptance checks" },
-  { value: "gaps", description: "Find gaps in a step" },
+  { value: "gaps", description: "List verify gaps (--tickets spawns phase-gaps)" },
   { value: "review", description: "Decision queue" },
-  { value: "deviations", description: "Check deviations from spec" },
+  { value: "deviations", description: "List/accept/revert plan deviations (review spawns agent)" },
   { value: "amend-spec", description: "Amend the spec" },
   { value: "spec-gaps", description: "Find spec gaps" },
   { value: "tasks", description: "Task dashboard" },
@@ -43,6 +47,37 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
   },
   { value: "help", description: "Show usage" },
 ];
+
+/** First positional argument when it looks like `PROJ-1` / `ACCORD-1234`. */
+export const DEV_WORK_ITEM_ID_PATTERN = /^[A-Z]+(?:-[A-Z]+)*-\d+$/;
+
+export interface ParsedKnownDevSubcommandArgs {
+  rawArgs: string;
+  tokens: string[];
+  /** Positional tokens only (tokens that do not start with `-`). */
+  positional: string[];
+  /** First positional token when it matches {@link DEV_WORK_ITEM_ID_PATTERN}. */
+  leadingWorkItemId?: string;
+}
+
+/**
+ * Structured parse for known `/dev` subcommand tails (flags vs leading work item id).
+ * The runner can use this instead of ad-hoc `args.split` in adapters.
+ */
+export function parseKnownDevSubcommandArgs(
+  _subcommand: string,
+  rawArgs: string,
+): ParsedKnownDevSubcommandArgs {
+  const trimmed = rawArgs.trim();
+  if (!trimmed) {
+    return { rawArgs: trimmed, tokens: [], positional: [] };
+  }
+  const tokens = trimmed.split(/\s+/);
+  const positional = tokens.filter((token) => !token.startsWith("-"));
+  const first = positional[0];
+  const leadingWorkItemId = first && DEV_WORK_ITEM_ID_PATTERN.test(first) ? first : undefined;
+  return { rawArgs: trimmed, tokens, positional, leadingWorkItemId };
+}
 
 /** Split on first run of flags so multi-word labels stay intact. */
 export function parseHarnessTagArgs(
@@ -78,11 +113,11 @@ export function devDispatch(input: string): SubcommandRoute {
 }
 
 export function devEmptyInputRoute(): EmptyInputRoute {
-  const files = listWorkItemFiles();
-  if (files.length === 0) return { route: "help" };
+  const refs = listWorkItemFileRefs();
+  if (refs.length === 0) return { route: "help" };
 
-  if (files.length === 1) {
-    const wi = readJson<WorkItem>(path.join(TASKS_DIR, files[0]));
+  if (refs.length === 1) {
+    const wi = readJson<WorkItem>(path.join(refs[0].tasksDir, refs[0].fileName));
     if (wi) return { route: "suggest_resume", id: wi.id, title: wi.title, phase: wi.phase };
   }
 

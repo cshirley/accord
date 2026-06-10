@@ -1,7 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { GLOBAL_CONFIG_PATH } from "./paths.js";
-import type { ContextSourceConfig, DevHarnessGlobalConfig } from "./types.js";
+import type {
+  ContextSourceConfig,
+  DevHarnessGlobalConfig,
+  DevHarnessOrchestrationConfig,
+} from "./types.js";
 
 /**
  * Load the global accord.json from ~/.config/pi/agent/.
@@ -17,7 +21,7 @@ export function loadGlobalConfig(): DevHarnessGlobalConfig | null {
   if (!fs.existsSync(GLOBAL_CONFIG_PATH)) return null;
   try {
     const raw = fs.readFileSync(GLOBAL_CONFIG_PATH, "utf8");
-    return JSON.parse(stripJsonComments(raw));
+    return JSON.parse(stripJsonc(raw));
   } catch {
     return null;
   }
@@ -275,4 +279,33 @@ export function mergeContextSources(
   }
 
   return [...merged.values()].filter((s) => s.enabled !== false);
+}
+
+/**
+ * Merge global `~/.config/pi/agent/accord.json` orchestration defaults with a
+ * project's Dev Harness `orchestration` block. Each subsection is shallow-merged;
+ * project fields win when both define the same key.
+ */
+export function mergeOrchestrationConfig(
+  global: DevHarnessOrchestrationConfig | undefined,
+  project: DevHarnessOrchestrationConfig | undefined,
+): DevHarnessOrchestrationConfig | undefined {
+  if (!global && !project) return undefined;
+  const g = global ?? {};
+  const p = project ?? {};
+  const merged: DevHarnessOrchestrationConfig = {
+    ...(g.quick_fix_loop || p.quick_fix_loop
+      ? { quick_fix_loop: { ...g.quick_fix_loop, ...p.quick_fix_loop } }
+      : {}),
+    ...(g.implement_loop || p.implement_loop
+      ? { implement_loop: { ...g.implement_loop, ...p.implement_loop } }
+      : {}),
+    ...(g.review_loop || p.review_loop
+      ? { review_loop: { ...g.review_loop, ...p.review_loop } }
+      : {}),
+    ...(g.judgment || p.judgment ? { judgment: { ...g.judgment, ...p.judgment } } : {}),
+    ...(g.resume || p.resume ? { resume: { ...g.resume, ...p.resume } } : {}),
+    ...(g.commit || p.commit ? { commit: { ...g.commit, ...p.commit } } : {}),
+  };
+  return Object.keys(merged).length > 0 ? merged : undefined;
 }

@@ -410,6 +410,39 @@
     "jira_context": {
       "type": "string"
     },
+    "diagrams": {
+      "type": "array",
+      "description": "Optional Mermaid diagrams rendered into spec.md (harness-generated). Each diagram must duplicate facts already stated in prose/AC fields — not a second source of requirements.",
+      "items": {
+        "type": "object",
+        "required": ["section", "mermaid"],
+        "additionalProperties": false,
+        "properties": {
+          "section": {
+            "type": "string",
+            "enum": [
+              "overview",
+              "proposed_solution",
+              "scope",
+              "verification",
+              "security_topology",
+              "api_contract",
+              "deployment"
+            ],
+            "description": "Where the diagram appears in spec.md relative to rendered sections."
+          },
+          "caption": {
+            "type": "string",
+            "description": "Optional short label shown above the diagram in spec.md."
+          },
+          "mermaid": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Mermaid source (flowchart, sequenceDiagram, etc.). Keep to 5–12 nodes."
+          }
+        }
+      }
+    },
     "deployment": {
       "type": "object",
       "additionalProperties": true,

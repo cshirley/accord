@@ -1,17 +1,18 @@
 /**
- * Usage tracking - pricing, cost accounting, return packet extraction,
- * and work item discovery.
+ * Usage tracking — pricing, cost accounting, run tags, and work item discovery.
  */
 
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { EXT_DIR } from "../config/paths.js";
 import { createLogger } from "../logging.js";
 import {
+  listWorkItemFileRefs,
   mutateJson,
-  WORK_ITEM_FILE_PATTERN,
+  resolveTasksDir,
+  workItemJsonPath,
   WORK_ITEM_ID_PATTERN,
   writeJson,
 } from "../work-items/io.js";
@@ -37,6 +38,8 @@ export interface UsageLine {
   work_item_id: string;
   /** Logical phase slot: phase agent name or "orchestrator" for the main session. */
   subagent_type: string;
+  /** Plan task id when attributed from the subagent task brief (`task_id:`). */
+  task_id?: number;
   model: string | undefined;
   usage: {
     input: number;
@@ -76,7 +79,9 @@ export interface WorkItemSummary {
 
 // ── Pricing ────────────────────────────────────────────────
 
-const HARNESS_RUN_META_PATH = path.join(".tasks", ".harness-run.json");
+function harnessRunMetaPath(cwd?: string): string {
+  return path.join(resolveTasksDir(undefined, cwd ?? process.cwd()), ".harness-run.json");
+}
 
 const DEFAULT_PRICING: PricingConfig = {
   unit: "usd_per_million_tokens",
@@ -98,8 +103,8 @@ function resolvePricingPath(): string | null {
 
 export function readHarnessRunMeta(): HarnessRunMeta | null {
   try {
-    if (!fs.existsSync(HARNESS_RUN_META_PATH)) return null;
-    const raw = JSON.parse(fs.readFileSync(HARNESS_RUN_META_PATH, "utf8"));
+    if (!fs.existsSync(harnessRunMetaPath())) return null;
+    const raw = JSON.parse(fs.readFileSync(harnessRunMetaPath(), "utf8"));
     if (raw && typeof raw.run_id === "string" && typeof raw.tag === "string")
       return raw as HarnessRunMeta;
   } catch {
@@ -131,7 +136,7 @@ export function setHarnessRunTag(label: string, opts?: { newRunId?: boolean }): 
   };
   // writeJson is atomic (tmp + fsync + rename) so concurrent readers in
   // hooks never observe a torn file.
-  writeJson(HARNESS_RUN_META_PATH, meta);
+  writeJson(harnessRunMetaPath(), meta);
   return meta;
 }
 
@@ -157,7 +162,7 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
         work_item_ids: ids,
         updated_at: new Date().toISOString(),
       };
-      writeJson(HARNESS_RUN_META_PATH, meta);
+      writeJson(harnessRunMetaPath(), meta);
     } catch (e) {
       log.warn(`failed to update harness run meta: ${e}`);
     }
@@ -172,7 +177,7 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
       auto: true,
       work_item_ids: [workItemId],
     };
-    writeJson(HARNESS_RUN_META_PATH, meta);
+    writeJson(harnessRunMetaPath(), meta);
   } catch (e) {
     log.warn(`failed to write harness run meta: ${e}`);
   }
@@ -180,7 +185,7 @@ export function ensureAutoHarnessRunMeta(workItemId: string): void {
 
 export function clearHarnessRunTag(): void {
   try {
-    if (fs.existsSync(HARNESS_RUN_META_PATH)) fs.unlinkSync(HARNESS_RUN_META_PATH);
+    if (fs.existsSync(harnessRunMetaPath())) fs.unlinkSync(harnessRunMetaPath());
   } catch {
     /* ignore */
   }
@@ -206,10 +211,35 @@ export function describeHarnessRunMeta(): string {
 }
 
 /** Normalize provider usage.cost (number vs { total }) for append + rollup. */
+/** Extract plan task id from a subagent task brief (`**task_id:** 2` or `task_id: 2`). */
+export function extractTaskIdFromTaskText(task: string): number | null {
+  const match = task.match(/\*\*task_id:\*\*\s*(\d+)/i) ?? task.match(/(?:^|\n)task_id:\s*(\d+)/i);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) && n >= 1 ? Math.trunc(n) : null;
+}
+
+export function readUsageLines(workItemId: string): UsageLine[] {
+  const jsonlPath = path.join(resolveTasksDir(workItemId), `${workItemId}-usage.jsonl`);
+  if (!fs.existsSync(jsonlPath)) return [];
+  const out: UsageLine[] = [];
+  try {
+    for (const line of fs.readFileSync(jsonlPath, "utf8").trim().split("\n")) {
+      if (!line.trim()) continue;
+      out.push(JSON.parse(line) as UsageLine);
+    }
+  } catch (e) {
+    log.warn(`failed to read usage lines for ${workItemId}: ${e}`);
+  }
+  return out;
+}
+
 export function normalizeUsageCostFields(usage: unknown): UsageLine["usage"] {
   const u = (usage && typeof usage === "object" ? usage : {}) as {
     input?: number;
     output?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
     cacheRead?: number;
     cacheWrite?: number;
     cost?: unknown;
@@ -223,8 +253,8 @@ export function normalizeUsageCostFields(usage: unknown): UsageLine["usage"] {
   else if (c && typeof c === "object" && typeof c.total === "number") cost = c.total;
 
   return {
-    input: u.input || 0,
-    output: u.output || 0,
+    input: u.input || u.prompt_tokens || 0,
+    output: u.output || u.completion_tokens || 0,
     cacheRead: u.cacheRead || 0,
     cacheWrite: u.cacheWrite || 0,
     cost,
@@ -343,9 +373,9 @@ export function extractWorkItemId(task: string, opts?: { mustExist?: boolean }):
 // ── Usage persistence ──────────────────────────────────────
 
 export function appendUsageLine(workItemId: string, line: UsageLine): void {
-  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  const jsonlPath = path.join(resolveTasksDir(workItemId), `${workItemId}-usage.jsonl`);
   try {
-    fs.mkdirSync(".tasks", { recursive: true });
+    fs.mkdirSync(resolveTasksDir(workItemId), { recursive: true });
     const ctx = resolveHarnessRunContext();
     const merged: UsageLine = {
       ...line,
@@ -359,7 +389,7 @@ export function appendUsageLine(workItemId: string, line: UsageLine): void {
 }
 
 export function recomputeCost(workItemId: string, pricing: PricingConfig): number {
-  const jsonlPath = path.join(".tasks", `${workItemId}-usage.jsonl`);
+  const jsonlPath = path.join(resolveTasksDir(workItemId), `${workItemId}-usage.jsonl`);
   if (!fs.existsSync(jsonlPath)) return 0;
 
   let totalCost = 0;
@@ -387,7 +417,7 @@ export function computeLineCost(line: UsageLine, pricing: PricingConfig): number
 }
 
 export function updateWorkItemCost(workItemId: string, cost: number): void {
-  const wiPath = path.join(".tasks", `${workItemId}.json`);
+  const wiPath = workItemJsonPath(workItemId);
   if (!fs.existsSync(wiPath)) return;
   try {
     mutateJson<WorkItem>(wiPath, (wi) => {
@@ -400,207 +430,23 @@ export function updateWorkItemCost(workItemId: string, cost: number): void {
   }
 }
 
-// ── Return packet extraction ───────────────────────────────
-
-/**
- * Scan `text` for balanced top-level `{...}` regions and return them in
- * source order. Strings (with escapes) are skipped so braces inside strings
- * don't unbalance the scanner. This is O(n) and avoids the catastrophic
- * backtracking of the previous greedy regex approach.
- */
-function findBalancedJsonRegions(text: string): string[] {
-  const regions: string[] = [];
-  const len = text.length;
-  let i = 0;
-  while (i < len) {
-    if (text.charCodeAt(i) !== 0x7b /* { */) {
-      i++;
-      continue;
-    }
-    const start = i;
-    let depth = 0;
-    let inString = false;
-    let nextCharEscaped = false;
-    let scanIndex = i;
-    for (; scanIndex < len; scanIndex++) {
-      const ch = text.charCodeAt(scanIndex);
-      if (inString) {
-        if (nextCharEscaped) {
-          nextCharEscaped = false;
-          continue;
-        }
-        if (ch === 0x5c /* \ */) {
-          nextCharEscaped = true;
-          continue;
-        }
-        if (ch === 0x22 /* " */) inString = false;
-        continue;
-      }
-      if (ch === 0x22 /* " */) {
-        inString = true;
-        continue;
-      }
-      if (ch === 0x7b /* { */) {
-        depth++;
-        continue;
-      }
-      if (ch === 0x7d /* } */) {
-        depth--;
-        if (depth === 0) {
-          regions.push(text.slice(start, scanIndex + 1));
-          break;
-        }
-      }
-    }
-    if (depth === 0 && scanIndex < len) {
-      i = scanIndex + 1;
-    } else {
-      // Unbalanced from this `{`; advance by one to avoid quadratic rescans.
-      i = start + 1;
-    }
-  }
-  return regions;
-}
-
-export function extractReturnPacket(text: string): Record<string, unknown> | null {
-  if (!text) return null;
-  // Fenced code block first; bounded match avoids any backtracking risk.
-  const fencedMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
-  if (fencedMatch) {
-    const body = fencedMatch[1];
-    if (body !== undefined) {
-      try {
-        const parsed: unknown = JSON.parse(body);
-        if (parsed && typeof parsed === "object") {
-          return parsed as Record<string, unknown>;
-        }
-      } catch {
-        /* fall through */
-      }
-    }
-  }
-  // Walk balanced {...} regions from the end and accept the last one with
-  // a recognised packet key.
-  const regions = findBalancedJsonRegions(text);
-  for (let i = regions.length - 1; i >= 0; i--) {
-    const region = regions[i];
-    if (region === undefined) continue;
-    try {
-      const parsed: unknown = JSON.parse(region);
-      if (parsed && typeof parsed === "object" && ("status" in parsed || "verdict" in parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch {
-      /* try the next region */
-    }
-  }
-  return null;
-}
-
-function contentBlocksToText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content
-    .map((part: unknown) => {
-      if (typeof part === "string") return part;
-      const p = part as Record<string, unknown>;
-      if (p.type === "text" && typeof p.text === "string") return p.text;
-      if (typeof p.text === "string") return p.text;
-      return "";
-    })
-    .filter(Boolean)
-    .join("\n");
-}
-
-export function extractReturnPacketFromSubagentResult(
-  result: unknown,
-): Record<string, unknown> | null {
-  const candidates: string[] = [];
-  const r = result as Record<string, unknown>;
-
-  if (Array.isArray(r.messages)) {
-    const assistantMessages = [...r.messages]
-      .reverse()
-      .filter((m: unknown) => (m as { role?: string }).role === "assistant");
-    for (const msg of assistantMessages) {
-      const text = contentBlocksToText((msg as { content?: unknown }).content);
-      if (text) candidates.push(text);
-    }
-  }
-
-  for (const key of ["content", "output", "text", "response", "result", "final", "finalResponse"]) {
-    const value = r[key];
-    if (typeof value === "string") candidates.push(value);
-    else {
-      const text = contentBlocksToText(value);
-      if (text) candidates.push(text);
-    }
-  }
-
-  const message = r.message as { content?: unknown } | undefined;
-  const messageText = contentBlocksToText(message?.content);
-  if (messageText) candidates.push(messageText);
-
-  for (const text of candidates) {
-    const packet = extractReturnPacket(text);
-    if (packet) return packet;
-  }
-  return null;
-}
-
-// ── Subagent result handoff formatting ─────────────────────
-
-export function formatPacketInjection(agentName: string, packet: unknown): string {
-  return `\n\n## ${agentName} Return Packet\n\n\`\`\`json\n${JSON.stringify(packet, null, 2)}\n\`\`\`\n`;
-}
-
-export function formatMissingPacketWarning(agentName: string, resultKeys: string[]): string {
-  const keys = resultKeys.sort().join(", ") || "(none)";
-  return `\n⚠ Return packet missing for ${agentName}. Expected a final fenced \`\`\`json block matching its return schema. Result keys: ${keys}.`;
-}
-
-export function assembleHandoffContent(
-  existingContent: unknown[] | undefined,
-  contentAppend: string,
-): { type: "text"; text: string }[] {
-  const existingParts: string[] = [];
-  if (Array.isArray(existingContent)) {
-    for (const block of existingContent) {
-      if (typeof block === "string") existingParts.push(block);
-      else {
-        const b = block as Record<string, unknown>;
-        if (b.type === "text" && typeof b.text === "string") existingParts.push(b.text);
-      }
-    }
-  }
-  return [{ type: "text", text: existingParts.join("\n") + contentAppend }];
-}
-
 // ── Work item discovery ────────────────────────────────────
 
 export function discoverWorkItems(): WorkItemSummary[] {
-  const tasksDir = ".tasks";
-  if (!fs.existsSync(tasksDir)) return [];
-
   const items: WorkItemSummary[] = [];
-  try {
-    for (const file of fs.readdirSync(tasksDir)) {
-      if (!WORK_ITEM_FILE_PATTERN.test(file)) continue;
-      try {
-        const wi = JSON.parse(fs.readFileSync(path.join(tasksDir, file), "utf8"));
-        items.push({
-          id: wi.id,
-          phase: wi.phase,
-          pattern: wi.pattern,
-          cost_usd: wi.cost_usd || 0,
-          decisions_pending: (wi.decisions || []).filter(
-            (d: unknown) => (d as { status?: string }).status === "pending",
-          ).length,
-        });
-      } catch {}
-    }
-  } catch {
-    /* .tasks not readable */
+  for (const ref of listWorkItemFileRefs()) {
+    try {
+      const wi = JSON.parse(fs.readFileSync(path.join(ref.tasksDir, ref.fileName), "utf8"));
+      items.push({
+        id: wi.id,
+        phase: wi.phase,
+        pattern: wi.pattern,
+        cost_usd: wi.cost_usd || 0,
+        decisions_pending: (wi.decisions || []).filter(
+          (d: unknown) => (d as { status?: string }).status === "pending",
+        ).length,
+      });
+    } catch {}
   }
   return items;
 }

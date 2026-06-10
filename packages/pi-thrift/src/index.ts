@@ -24,9 +24,9 @@
  *   /thrift config           Interactive settings dialog
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { formatSize } from "@mariozechner/pi-coding-agent";
-import type { AutocompleteItem } from "@mariozechner/pi-tui";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { formatSize } from "@earendil-works/pi-coding-agent";
+import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { loadConfig, OUTPUT_LEVELS, type OutputLevel, STOP_ALIASES, saveConfig } from "./config.js";
 import { registerInputPruning } from "./input.js";
 import { OUTPUT_LEVEL_OPTIONS, registerOutputPruning } from "./output.js";

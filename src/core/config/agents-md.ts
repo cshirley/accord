@@ -1,8 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { findGitRoot } from "./git.js";
-import { loadGlobalConfig, mergeContextSources } from "./global.js";
-import type { ContextSourceConfig, DevHarnessConfig } from "./types.js";
+import { loadGlobalConfig, mergeContextSources, mergeOrchestrationConfig } from "./global.js";
+import type {
+  ContextSourceConfig,
+  DevHarnessConfig,
+  DevHarnessOrchestrationConfig,
+} from "./types.js";
 
 /**
  * Check whether an AGENTS.md file contains a `dev_harness_ref` directive
@@ -143,6 +147,16 @@ function parseAndValidateConfig(content: string): DevHarnessConfig | null {
     p.context_sources = mergedSources;
   } else {
     p.context_sources = undefined;
+  }
+
+  const mergedOrchestration = mergeOrchestrationConfig(
+    globalCfg?.orchestration,
+    p.orchestration as DevHarnessOrchestrationConfig | undefined,
+  );
+  if (mergedOrchestration) {
+    p.orchestration = mergedOrchestration;
+  } else {
+    p.orchestration = undefined;
   }
 
   return p as unknown as DevHarnessConfig;

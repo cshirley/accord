@@ -61,9 +61,9 @@ For each `tag: "test"` step in `steps[]`:
 
 Run the test command from `verification_commands` (the test-specific one).
 
-- **Tests fail (expected):** This is correct — the production code doesn't exist yet. Record the failure output.
+- **Tests fail (expected):** This is correct — the production code doesn't exist yet. Record the failure output in `test_output` (truncate to the last 64 KiB if larger).
 - **Tests pass (unexpected):** The behaviour already exists. Emit a `deviation` event: `"test passed without impl — existing behaviour already satisfies AC-N"`. This may mean the task is partially redundant, or the test is trivially true. Continue — the review agent will catch trivially-true assertions.
-- **Tests error (compilation/import failure):** Expected if test files import from production modules that don't exist yet. This is acceptable RED — record the error output. If the error is in the test file itself (syntax error, wrong test framework API), fix it.
+- **Tests error (compilation/import failure):** Expected if test files import from production modules that don't exist yet. Record the full output in `test_output` — `review-test` classifies import-only vs behaviour RED. If the error is in the test file itself (syntax error, wrong test framework API), fix it before finishing.
 
 ## Step 4 — Deviations and escalations
 
@@ -82,7 +82,8 @@ Emit exactly one fenced ```json block as the **last** thing in your response. Ma
 
 Key content expectations:
 - **`test_files`** — actual paths of test files created.
-- **`red_confirmed`** — `true` only if you ran the tests and confirmed they fail (RED phase of TDD).
+- **`red_confirmed`** — `true` only if you ran the tests and confirmed they fail (RED phase of TDD). Set `false` when only import/syntax errors occurred and no assertion failed.
+- **`test_output`** — raw stdout/stderr from the test run (last 64 KiB if truncated). Required when `status: "done"` in the implement pipeline.
 - **`ac_covered`** — which ACs from the task are covered by the tests written.
 
 ## Scope discipline

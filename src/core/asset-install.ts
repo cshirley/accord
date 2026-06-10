@@ -215,6 +215,15 @@ export function installPiAssets(opts: InstallOptions = {}): InstallResult {
   );
 
   linkAsset(
+    join(root, "assets", "agents", "default.md"),
+    join(target, "agents", "default.md"),
+    "file",
+    { force, dryRun },
+    conflicts,
+    linked,
+  );
+
+  linkAsset(
     join(root, "assets", "providers"),
     join(target, "providers"),
     "dir",

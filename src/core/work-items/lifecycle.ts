@@ -3,13 +3,20 @@
  */
 
 import * as path from "node:path";
+import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
 import { createLogger } from "../logging.js";
+import {
+  checkBriefPresentForSpeccing,
+  checkSpecPresentForPlanning,
+} from "../subagent/preflight/pipeline-artifacts.js";
+import { err, ok, type Result } from "../types/result.js";
 import { devCheckpointDelete } from "./checkpoint.js";
-import { loadTaskFile, loadWorkItem, now, TASKS_DIR, writeJson } from "./io.js";
+import { loadTaskFile, loadWorkItem, now, resolveTasksDir, writeJson, workItemJsonPath } from "./io.js";
 import type {
   IntentConfidence,
   IntentMode,
   ShiftLeftFinding,
+  TerminalOutcome,
   WorkItem,
   WorkItemPattern,
 } from "./types.js";
@@ -83,7 +90,7 @@ export function devBootstrap(
 
   if (!wi.variant) wi.variant = undefined;
 
-  const wiPath = path.join(TASKS_DIR, `${id}.json`);
+  const wiPath = workItemJsonPath(id);
   writeJson(wiPath, wi);
   return { path: wiPath, work_item: wi };
 }
@@ -94,9 +101,18 @@ export function devTransition(
   id: string,
   nextPhase: string,
   updates?: { spec?: string; plan?: string; verify?: string; brief?: string },
-): { work_item: WorkItem } | { error: string } {
+): Result<{ work_item: WorkItem }> {
   const wi = loadWorkItem(id);
-  if (!wi) return { error: `Work item not found: ${id}` };
+  if (!wi) return err(`Work item not found: ${id}`);
+
+  if (nextPhase === "speccing") {
+    const briefGate = checkBriefPresentForSpeccing(id, wi);
+    if (!briefGate.ok) return err(briefGate.reason);
+  }
+  if (nextPhase === "planning") {
+    const specGate = checkSpecPresentForPlanning(id, wi);
+    if (!specGate.ok) return err(specGate.reason);
+  }
 
   wi.phase = nextPhase;
   wi.updated = now();
@@ -105,16 +121,16 @@ export function devTransition(
   if (updates?.verify) wi.verify = updates.verify;
   if (updates?.brief) wi.brief = updates.brief;
 
-  writeJson(path.join(TASKS_DIR, `${id}.json`), wi);
+  writeJson(workItemJsonPath(id), wi);
   devCheckpointDelete(id);
 
-  return { work_item: wi };
+  return ok({ work_item: wi });
 }
 
 // ── Finalization / retrospective summary ───────────────────
 
 export interface FinalizeWorkItemInput {
-  terminal_outcome: "done" | "blocked" | "partially_achieved" | "unclear";
+  terminal_outcome: TerminalOutcome;
   next_action?: string | null;
   retro?: {
     ran_at?: string;
@@ -129,9 +145,16 @@ export interface FinalizeWorkItemInput {
 export function devFinalizeWorkItem(
   id: string,
   input: FinalizeWorkItemInput,
-): { work_item: WorkItem } | { error: string } {
+): Result<{ work_item: WorkItem }> {
+  if (!loadWorkItem(id)) return err(`Work item not found: ${id}`);
+
+  const costPersist = devPersistWorkflowCost(id);
+  if (!costPersist.ok) {
+    log.warn(`workflow cost artifact not written for ${id}: ${costPersist.error}`);
+  }
+
   const wi = loadWorkItem(id);
-  if (!wi) return { error: `Work item not found: ${id}` };
+  if (!wi) return err(`Work item not found: ${id}`);
 
   const timestamp = now();
   wi.terminal_outcome = input.terminal_outcome;
@@ -141,8 +164,8 @@ export function devFinalizeWorkItem(
   if (input.shift_left_findings) wi.shift_left_findings = input.shift_left_findings;
   wi.updated = timestamp;
 
-  writeJson(path.join(TASKS_DIR, `${id}.json`), wi);
-  return { work_item: wi };
+  writeJson(workItemJsonPath(id), wi);
+  return ok({ work_item: wi });
 }
 
 // ── Event promotion ────────────────────────────────────────
@@ -238,7 +261,7 @@ export function devPromoteEvents(workItemId: string, taskId: string): PromotionR
 
   if (escalations > 0 || devs > 0) {
     wi.updated = now();
-    writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+    writeJson(workItemJsonPath(workItemId), wi);
   }
 
   return {
@@ -256,7 +279,7 @@ export function devWritePreflightReceipt(
   commands: string[],
   exitCodes: number[],
 ): { path: string } {
-  const receiptPath = path.join(TASKS_DIR, `.verify-preflight-${workItemId}.json`);
+  const receiptPath = path.join(resolveTasksDir(workItemId), `.verify-preflight-${workItemId}.json`);
   writeJson(receiptPath, {
     work_item_id: workItemId,
     ran_at: Math.floor(Date.now() / 1000),

@@ -6,22 +6,19 @@
  * narrow ask into a full pipeline.
  */
 
-export type IntentMode =
-  | "narrow_change"
-  | "pipeline"
-  | "review"
-  | "commit"
-  | "explain"
-  | "investigate";
+import type {
+  EscalationCeiling,
+  IntentConfidence,
+  IntentMode,
+  WorkItemPattern,
+  WorkItemVariant,
+} from "../types/domain.js";
 
-export type IntentConfidence = "high" | "medium" | "low";
-
-export type EscalationCeiling =
-  | "pipeline_allowed"
-  | "no_pipeline_without_confirmation"
-  | "no_implementation_without_confirmation"
-  | "read_only_until_confirmed"
-  | "no_edits";
+export type {
+  EscalationCeiling,
+  IntentConfidence,
+  IntentMode,
+} from "../types/domain.js";
 
 export interface IntentRecommendation {
   intent_mode: IntentMode;
@@ -31,8 +28,8 @@ export interface IntentRecommendation {
   escalation_ceiling: EscalationCeiling;
   target_paths: string[];
   out_of_scope: string[];
-  recommended_pattern?: "implement" | "quick_fix" | "investigate" | "infra" | "analyse";
-  recommended_variant?: "express" | "standard" | "orchestrated";
+  recommended_pattern?: WorkItemPattern;
+  recommended_variant?: WorkItemVariant;
 }
 
 const MODE_ORDER: IntentMode[] = [

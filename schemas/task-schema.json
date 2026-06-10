@@ -20,7 +20,16 @@
     "task_id": { "type": "integer", "minimum": 1 },
     "owner_nonce": { "type": "string", "pattern": "^[0-9a-f]{6}$" },
     "phase": {
-      "enum": ["phase-test", "phase-code", "phase-verify-code", "phase-verify-acceptance"]
+      "enum": [
+        "phase-test",
+        "review-test",
+        "phase-code",
+        "review-code",
+        "phase-verify-code",
+        "phase-verify-task",
+        "phase-verify-acceptance"
+      ],
+      "description": "Per-task pipeline position. `review-test` is used between phase-test and phase-code (quick_fix new_red_test and implement). `review-code` is optional after phase-code when policy or plan requests it."
     },
     "status": { "enum": ["pending", "in_progress", "done", "blocked"] },
     "pre_impl_gates": { "enum": ["pending", "complete"] },
@@ -31,7 +40,97 @@
     },
     "red_confirmed": {
       "type": "boolean",
-      "description": "Whether tests fail as expected before implementation"
+      "description": "Whether tests fail as expected before implementation (not used for phase-verify-task)"
+    },
+    "verify_output": {
+      "type": "string",
+      "maxLength": 65536,
+      "description": "Truncated verification gate output (phase-verify-task)"
+    },
+    "test_output": {
+      "type": "string",
+      "maxLength": 65536,
+      "description": "Truncated stdout/stderr from phase-test RED run for review-test Check 0/6"
+    },
+    "ac_covered": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "AC ids covered by tests (from phase-test return packet)"
+    },
+    "review_loop": {
+      "type": "object",
+      "description": "Harness-owned retry counters for critical findings on review-test / review-code",
+      "additionalProperties": false,
+      "properties": {
+        "test_review_retries_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Critical review-test findings that respawned phase-test"
+        },
+        "code_review_retries_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Critical review-code findings that respawned phase-code"
+        }
+      }
+    },
+    "agent_returns": {
+      "type": "array",
+      "description": "Audit log of validated subagent return packets (newest last). Includes full packet and any prose analysis.",
+      "items": {
+        "type": "object",
+        "required": ["agent", "at", "packet"],
+        "additionalProperties": false,
+        "properties": {
+          "agent": { "type": "string", "minLength": 1 },
+          "at": { "type": "string", "format": "date-time" },
+          "task_phase": { "type": "string" },
+          "analysis": { "type": "string", "minLength": 1 },
+          "packet": { "type": "object" }
+        }
+      }
+    },
+    "last_review_feedback": {
+      "type": "object",
+      "description": "Latest adversarial review (review-test / review-code) for orchestrator retries and resume briefs",
+      "additionalProperties": false,
+      "required": ["agent", "verdict", "findings", "at", "packet"],
+      "properties": {
+        "agent": { "enum": ["review-test", "review-code"] },
+        "verdict": { "enum": ["clean", "issues"] },
+        "at": { "type": "string", "format": "date-time" },
+        "analysis": { "type": "string", "minLength": 1 },
+        "packet": { "type": "object" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["severity", "issue"],
+            "additionalProperties": false,
+            "properties": {
+              "severity": { "enum": ["critical", "warning", "suggestion"] },
+              "issue": { "type": "string", "minLength": 1 },
+              "file": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "evidence": { "type": "string" },
+              "recommendation": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "quick_fix_loop": {
+      "type": "object",
+      "description": "Legacy alias — mirrored from review_loop.test_review_retries_used for quick-fix",
+      "additionalProperties": false,
+      "required": ["test_review_cycles_used"],
+      "properties": {
+        "test_review_cycles_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many post-review-test retries toward phase-test have been consumed"
+        }
+      }
     },
     "quick_fix_contract": {
       "type": "object",

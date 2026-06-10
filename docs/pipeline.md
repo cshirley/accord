@@ -174,3 +174,7 @@ The orchestrator selects a pattern via `dev_intent` (keyword heuristics) optiona
 When confidence is medium/low and a ticket ID is present, `dev_intent_enrich` fetches the ticket and can upgrade (`narrow_change` → `pipeline`) or downgrade (`pipeline` → `narrow_change`) based on AC count, story points, subtasks, and description length.
 
 All pipelines share the same hooks. `/dev finish <ID>` is the developer-facing post-implementation command; `/dev check <ID>` is the lower-level acceptance verification step.
+
+## Harness orchestration (design direction)
+
+The diagrams above describe **current** behaviour (skill-driven orchestration plus deterministic hooks). The **target** architecture moves the workflow graph and outer loop into **`src/core/`** with a declarative in-code state machine, validation boundaries, and a thin Pi adapter that only implements host ports (e.g. `spawnSubagent`). See [`harness-orchestration.md`](harness-orchestration.md) for the full design, patterns, and success criteria, and [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md) for the phased build plan (spikes through MCP and cleanup). **Stdio MCP** consumers use the **`dev_orchestrate`** tool for the same `resolution` / `next_steps` JSON as Pi (without programmatic spawn or judgment LLM); see [`hooks-and-tools.md`](hooks-and-tools.md).

@@ -19,9 +19,10 @@ When `AGENTS.md` is written, reloads the cached `devConfig` so subsequent hooks 
 Fires before every subagent spawn. Two responsibilities:
 
 1. **Config guard** — agents registered with `requiresConfig: true` in `src/core/agents/registry.ts` are blocked if no `devConfig` exists. Agents with `deferConfigGuard: true` (like `phase-gather`) are exempt.
-2. **Brief injection** — appends two sections to the agent's task text:
-   - `## Project Stack` — the `devConfig` JSON (language, test commands, verification commands)
-   - `## Schemas` — the JSON schemas this agent reads/writes + the return schema + validated example payloads from `schemas/examples/`
+2. **Spawn payload** — mutates the outgoing `subagent` tool call in place (`src/core/subagent/`):
+   - `agentFile` — absolute path to bundled phase/review agent markdown
+   - `systemAppend` — `## Project Stack` from `devConfig` plus intent-contract brief when present
+   - `response` — return-schema contract (pi-subagent appends schema text to the task)
 
 ### Gather preflight (tool_call → subagent phase-gather)
 
@@ -32,7 +33,7 @@ Before `phase-gather` runs, checks availability of configured sources (Jira, Sla
 After any subagent completes:
 
 1. **Usage tracking** — extracts `work_item_id` from the task text, appends a line to `<ID>-usage.jsonl` with token counts and cost, updates the work item's `cost_usd`.
-2. **Return packet extraction** — finds the last `\`\`\`json` block in the assistant's final message, parses it as the return packet.
+2. **Return packet extraction** — prefers `parsedReturn` from programmatic `runSubagent`, else the last `\`\`\`json` block in the assistant message (`src/core/subagent/result/packet.ts`).
 3. **Return packet validation** — validates the packet against the agent's return schema from `src/core/agents/registry.ts`.
 4. **Post-code verification** — for agents with `verifyAfter: true` (currently `phase-code`), runs `type_check` and `test.command`. Type check failure is a hard gate (appended as error). Test failure is advisory.
 
@@ -69,6 +70,9 @@ All registered in `src/adapters/pi/tools.ts` as thin wrappers around core domain
 | `dev_spec_gaps` | `src/core/queries/spec-gaps.ts` | 10-point checklist against spec JSON |
 | `dev_code_brief` | `src/core/briefing/code-brief.ts` | Assemble phase-code brief from spec + plan + task + brief |
 | `dev_resume_state` | `src/core/queries/resume-state.ts` | Phase + checkpoint presence for dispatch routing |
+| `dev_work_item_status` | `src/core/queries/work-item-status.ts` | Single work item: tasks, next resume agent, `/dev finish` nudge; rehydrates + reconciles coarse phase |
+| `dev_subagent_preflight` | `src/core/queries/subagent-preflight.ts` | Credentials, profile, agent file, spawn timeout before phase spawns |
+| `dev_orchestrate` | `src/core/orchestration/runner.ts` | Deterministic **resume** or **finish** plan (`resolution` + `next_steps` JSON); MCP cannot spawn Pi subagents or run judgment LLM |
 | `dev_transition` | `src/core/work-items/lifecycle.ts` | Atomic phase transition with artifact path updates + checkpoint cleanup |
 | `dev_verify_summary` | `src/core/queries/verify-summary.ts` | Parse verify report, write verify.md, return verdict + per-AC counts + gaps |
 | `dev_nonce` | `src/core/briefing/code-brief.ts` | 6-char hex nonce for task ownership |
@@ -88,3 +92,7 @@ ACCORD_CWD=/path/to/your/repo bun run mcp
 ```
 
 `ACCORD_CWD` is optional; when set, the server `chdir`s there so `.tasks/` and `docs/dev/` resolve like the Pi extension. MCP does not run Pi event hooks (on-write schema validation, post-code verification, subagent brief injection)—add Cursor hooks or CI steps if you need that parity.
+
+The **`dev_orchestrate`** tool (`command`: **`resume`** | **`finish`**) returns the same structured routing the core harness uses for `/dev resume` and `/dev finish` when `ACCORD_CORE_ORCHESTRATOR=1`: a `resolution` plus machine-readable `next_steps` (`spawn_subagent`, `notify_user`, `delegate_to_skill`, …). **finish** plans **phase-verify-acceptance** (it does not run `dev_verify_summary` / `dev_finalize` — those execute only after a successful Pi subagent spawn on the finish orchestration path). The payload marks `programmatic_spawn_supported: false` on stdio MCP; clients that need an isolated phase agent must spawn their own process or forward to the bundled accord skill. For **`resume`** spawns where judgment is configured in Dev Harness, the payload also includes `judgment_configured_for_spawn` and, when true, `spawn_task_after_template_judgment` — the same **template-only** task body the harness uses when `runJudgment` is absent or returns nothing parseable (headless parity with Pi when the judgment LLM is off or fails; it can still diverge from Pi when the model returns valid JSON).
+
+**Orchestration judgment (Phase 5, Pi only):** when `orchestration.judgment.enabled` is true in the Dev Harness JSON **and** `ACCORD_ORCHESTRATION_JUDGMENT=1`, resume spawns for allowed dispatch agents (default `review-test`, `phase-test`) may call a **bounded** `completeSimple` completion; the model must return JSON matching `schemas/orchestration-judgment-packet.json`. Core validates and merges a supplement into the outbound task, or appends a **template** appendix when the model output is missing or invalid. MCP / stdio clients do not implement `runJudgment` — use `spawn_task_after_template_judgment` from `dev_orchestrate` for the deterministic template path, or configure judgment only for interactive Pi sessions with a configured model and API credentials.

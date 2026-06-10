@@ -137,6 +137,53 @@ This is especially important for **no-ticket flows** where the user's descriptio
 
 **Budget:** Read at most 5 files per round. Cite `file:line` in reflections. Do not paste large code blocks into the brief — reference locations.
 
+## Architecture diagrams (Mermaid)
+
+Use **Mermaid** in the final `brief.md` to compress structural understanding for downstream agents (`phase-spec`, `phase-plan`, code/test). Diagrams supplement prose — they do not replace it and they are not a verification contract (ACs live in `spec.json` later).
+
+### When to include a diagram
+
+| Section | Include when… | Typical diagram type |
+| --- | --- | --- |
+| **Current State** | Multiple components, APIs, or data stores interact | `flowchart` / `sequenceDiagram` |
+| **Security & Data** | Trust boundaries, auth paths, or sensitive data movement matter | `flowchart` (subgraphs for trust zones) |
+| **Infrastructure & Deployment** | Environments, rollout, recovery, or external deps are non-trivial | `flowchart` |
+| **Approach Direction** | Agreed component boundaries or phased delivery shape the work | `flowchart` |
+
+Skip diagrams when a short bullet list is enough (typo fixes, single-file changes, purely local refactors). Mark the section N/A as usual — no empty diagram stub.
+
+### Diagram rules
+
+1. **Prose first** — Each diagrammed section starts with 1–3 sentences stating the same facts. The diagram shows relationships; prose states decisions, limits, and edge cases.
+2. **Small and labelled** — Prefer 5–12 nodes. Use stable IDs on nodes (`AuthService`, `JiraWebhook`, `prod-api`) that match code paths, ticket language, or future spec terms.
+3. **At most one diagram per section** — Split into two sections (or two focused diagrams in **Current State** vs **Approach Direction**) rather than one mega-chart.
+4. **No requirements-only-in-diagram** — Anything that must be built or verified must appear in prose (and will become spec ACs later). Do not hide scope in graph edges alone.
+5. **Fenced blocks** — Use standard ` ```mermaid ` fences only (no HTML, no Mermaid `init` theming).
+6. **Draft rounds** — During `needs_input`, you may sketch a diagram in a reflection if it helps the user correct you; the **final** brief must follow the template below.
+
+### Example (Current State — auth)
+
+Prose, then a fenced `mermaid` block, then a code reference:
+
+````markdown
+## Current State
+
+The API validates JWTs on every request but has no refresh path; expired tokens return 401 and the SPA forces re-login.
+
+```mermaid
+sequenceDiagram
+  participant SPA
+  participant API
+  participant AuthService
+  SPA->>API: request + access JWT
+  API->>AuthService: validate
+  AuthService-->>API: expired
+  API-->>SPA: 401 (no refresh)
+```
+
+`AuthService` (`src/services/auth.ts`) exposes `loginWithCredentials()` only.
+````
+
 ## Work Performed Per Spawn
 
 ### Step 1 — First-round gather check
@@ -179,7 +226,7 @@ Proceed to Step 5.
 
 ### Step 5 — Produce the brief
 
-Write `docs/dev/<work_item_id>/brief.md` with this structure:
+Write `docs/dev/<work_item_id>/brief.md` under **your current working directory** (the app or package you are developing in — not the monorepo root unless that is your cwd). Use this structure:
 
 ```markdown
 # Problem Brief: <work_item_id>
@@ -193,18 +240,21 @@ Business: sponsor/owner, business driver, success metrics, regulatory contacts, 
 Sign-off: who needs to approve.>
 
 ## Current State
-<How things work today. Specific references to code, systems, data flows, existing infra/deployment, security posture.>
+<How things work today. Specific references to code, systems, data flows, existing infra/deployment, security posture.
+When multiple systems interact, add one fenced mermaid diagram after the prose (flowchart or sequenceDiagram).>
 
 ## Desired Outcome
 <What success looks like from user perspective and business perspective.>
 
 ## Security & Data
 <Auth model, trust boundaries, data sensitivity (PII/PCI/PHI), compliance requirements,
-secrets surface area, encryption needs, access control. Mark N/A with justification if irrelevant.>
+secrets surface area, encryption needs, access control. Mark N/A with justification if irrelevant.
+When trust boundaries or auth flows matter, add one fenced mermaid diagram after the prose.>
 
 ## Infrastructure & Deployment
 <Environment topology, deployment strategy, migration path, feature flags, rollback plan,
-external service dependencies. Mark N/A with justification if irrelevant.>
+external service dependencies. Mark N/A with justification if irrelevant.
+When environments, rollout, or recovery paths are non-trivial, add one fenced mermaid diagram after the prose.>
 
 ## Scale & Performance
 <Load expectations (current + projected), latency budgets, concurrency model, data volumes,
@@ -215,7 +265,8 @@ peak patterns, caching strategy. Mark N/A with justification if irrelevant.>
 
 ## Approach Direction
 <High-level strategy agreed during alignment. Build/buy/extend. Phasing. Key technical decisions.
-Not a detailed design — a direction.>
+Not a detailed design — a direction.
+When phasing or component boundaries are agreed, add one fenced mermaid diagram after the prose.>
 
 ## Open Questions
 <Anything contested or unaddressed. Bullet list. phase-spec will resolve these.>
@@ -232,7 +283,7 @@ Only present when phase-gather was invoked. Downstream phases can read enrichmen
 cache files for full detail.>
 ```
 
-The brief must be self-contained — a reader with no other context should understand the problem, the stakeholders, the current state, the cross-cutting concerns, and the agreed direction.
+The brief must be self-contained — a reader with no other context should understand the problem, the stakeholders, the current state, the cross-cutting concerns, and the agreed direction. Where diagrams are used, the prose in that section must still stand alone (downstream agents may skim text before the chart).
 
 ### Step 6 — Return
 
@@ -274,3 +325,4 @@ Key content expectations:
 - **Never talk to the user directly.** The orchestrator prints your reflections and captures responses.
 - **Well-defined tickets can converge in 1–2 rounds.** Don't pad the conversation artificially.
 - **Include gathered context in the brief.** When gather was invoked, summarise the external context (ticket, enrichments) in the brief so downstream phases have it without re-gathering.
+- **Use Mermaid where structure matters.** Follow [Architecture diagrams (Mermaid)](#architecture-diagrams-mermaid): prose + optional diagram in Current State, Security & Data, Infrastructure & Deployment, and Approach Direction when those sections are substantive. Never put the only copy of a requirement in a diagram.

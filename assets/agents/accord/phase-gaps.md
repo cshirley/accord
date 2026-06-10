@@ -32,7 +32,7 @@ Run when `approved_candidates` is empty.
    - **detail** — criterion + `gap` + `suggested_action`.
    - **priority** — see mapping below.
 3. Read `spec_path`. For every `scope.out[]` entry, add a candidate with category `deferred scope`, title = `item`, detail = `reason`, priority = `Medium`.
-4. Determine parent epic — fetch the Jira issue for `<ID>` via `mcp__atlassian__jira_get_issue`; read `parent`. Fall back to `spec.jira_context` if absent. If still unknown, return `status: "stuck"`.
+4. Determine parent epic — fetch the Jira issue for `<ID>` via `atlassian-getJiraIssue` or `mcp__atlassian__getJiraIssue`; read `parent`. Fall back to `spec.jira_context` if absent. If still unknown, return `status: "stuck"`.
 5. **Dedup check** — JQL `"Epic Link" = "<parent>" OR parent = "<parent>"`. For each candidate, mark as duplicate if an existing ticket's summary shares ≥ 3 key words (case-insensitive, non-stop words).
 6. Return `status: "needs_input"` with the candidate list. Orchestrator asks the user to confirm or edit.
 

@@ -12,7 +12,7 @@
  * onUpdate progress, executeChain wiring, auth gating, error aggregation.
  */
 
-import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { AgentToolResult, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type TObject, type TSchema, Type } from "typebox";
 import { getMcpRegistry, mcpText } from "./mcp-registry.js";
 

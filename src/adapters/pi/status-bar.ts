@@ -1,5 +1,7 @@
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { resolveActivePrimaryTaskId } from "../../core/orchestration/post-result/primary-task.js";
 import { discoverWorkItems } from "../../core/telemetry/usage.js";
+import { loadWorkItem } from "../../core/work-items/io.js";
 import type { HookState } from "./hook-state.js";
 
 export function updateStatusBar(ctx: ExtensionContext, state: HookState): void {
@@ -20,6 +22,11 @@ export function updateStatusBar(ctx: ExtensionContext, state: HookState): void {
     if (wi) {
       parts.push(theme.fg("accent", wi.id));
       parts.push(theme.fg("dim", wi.phase));
+      const workItem = loadWorkItem(wi.id);
+      const taskId = workItem ? resolveActivePrimaryTaskId(workItem) : null;
+      if (taskId !== null) {
+        parts.push(theme.fg("dim", `task-${String(taskId)}`));
+      }
     }
   }
   if (totalPending > 0) parts.push(theme.fg("warning", `${totalPending}⚡`));

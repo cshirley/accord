@@ -3,6 +3,7 @@
     "status": "done",
     "test_files": ["src/middleware/__tests__/auth-refresh.test.ts"],
     "red_confirmed": true,
+    "test_output": "FAIL src/middleware/__tests__/auth-refresh.test.ts\n  Expected: 401\n  Received: undefined",
     "ac_covered": ["AC-1", "AC-3"],
     "deviations_emitted": 0,
     "usage": { "prompt_tokens": 5000, "completion_tokens": 1200 }

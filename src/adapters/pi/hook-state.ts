@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { DevHarnessConfig } from "../../core/config/index.js";
 import { discoverWorkItems, readHarnessRunMeta } from "../../core/telemetry/usage.js";
 

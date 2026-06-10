@@ -1,0 +1,49 @@
+/**
+ * Shared parsing of Pi `subagent` tool payloads (agent / chain / tasks).
+ */
+
+export type SubagentEntry = {
+  agent?: string;
+  task?: string;
+  agentFile?: string;
+};
+
+export function collectSubagentEntries(input: Record<string, unknown>): SubagentEntry[] {
+  const entries: SubagentEntry[] = [];
+  if (input.agent) entries.push(input as SubagentEntry);
+  if (Array.isArray(input.chain)) entries.push(...(input.chain as SubagentEntry[]));
+  if (Array.isArray(input.tasks)) entries.push(...(input.tasks as SubagentEntry[]));
+  return entries;
+}
+
+/** First entry's agent — used for gather/verify preflight routing. */
+export function firstSubagentAgentName(input: Record<string, unknown>): string {
+  if (typeof input.agent === "string") return input.agent;
+  const chain = input.chain as SubagentEntry[] | undefined;
+  if (Array.isArray(chain)) {
+    const first = chain[0];
+    const agent = first?.agent;
+    if (typeof agent === "string") return agent;
+  }
+  const tasks = input.tasks as SubagentEntry[] | undefined;
+  if (Array.isArray(tasks)) {
+    const first = tasks[0];
+    const agent = first?.agent;
+    if (typeof agent === "string") return agent;
+  }
+  return "";
+}
+
+/**
+ * Returns a live reference into `input` (single agent, head of chain/tasks)
+ * so the caller can mutate the entry in place. This is intentional — the
+ * subagent prepare hook injects briefs by writing to entry.task.
+ */
+export function getPrimarySubagentEntry(input: Record<string, unknown>): SubagentEntry | null {
+  if (input.agent) return input as SubagentEntry;
+  const chain = input.chain as SubagentEntry[] | undefined;
+  if (Array.isArray(chain) && chain[0]) return chain[0];
+  const tasks = input.tasks as SubagentEntry[] | undefined;
+  if (Array.isArray(tasks) && tasks[0]) return tasks[0];
+  return null;
+}

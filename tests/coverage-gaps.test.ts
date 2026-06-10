@@ -19,11 +19,11 @@ import {
   detectTracker,
   findMonorepoRoot,
 } from "../src/core/config/detect/index.js";
-import { mergeContextSources } from "../src/core/config/global.js";
+import { mergeContextSources, mergeOrchestrationConfig } from "../src/core/config/global.js";
 import { devInitDetect } from "../src/core/config/init-detect.js";
-import { checkVerifyStaleness } from "../src/core/crucible/staleness.js";
 import { notifyPendingDecisionsIfAny } from "../src/core/harness/index.js";
 import { devTasks } from "../src/core/queries/dashboard.js";
+import { extractReturnPacket } from "../src/core/subagent/index.js";
 import type { PricingConfig } from "../src/core/telemetry/usage.js";
 import {
   appendUsageLine,
@@ -32,12 +32,13 @@ import {
   describeHarnessRunMeta,
   discoverWorkItems,
   ensureAutoHarnessRunMeta,
-  extractReturnPacket,
+  loadPricing,
   normalizeUsageCostFields,
   pricingFor,
   recomputeCost,
   setHarnessRunTag,
 } from "../src/core/telemetry/usage.js";
+import { checkVerifyStaleness } from "../src/core/verification/staleness.js";
 import {
   devCheckpointDelete,
   devCheckpointRead,
@@ -112,13 +113,36 @@ describe("mergeContextSources", () => {
   });
 });
 
+describe("mergeOrchestrationConfig", () => {
+  test("global resume/commit defaults merge with empty project", () => {
+    const merged = mergeOrchestrationConfig(
+      {
+        resume: { no_auto_chain_agents: [], max_sequential_spawns: 32 },
+        commit: { on_task_done: true },
+      },
+      undefined,
+    );
+    expect(merged?.resume?.no_auto_chain_agents).toEqual([]);
+    expect(merged?.commit?.on_task_done).toBe(true);
+  });
+
+  test("project overrides global resume subsection", () => {
+    const merged = mergeOrchestrationConfig(
+      { resume: { no_auto_chain_agents: [], max_sequential_spawns: 32 } },
+      { resume: { max_sequential_spawns: 4 } },
+    );
+    expect(merged?.resume?.max_sequential_spawns).toBe(4);
+    expect(merged?.resume?.no_auto_chain_agents).toEqual([]);
+  });
+});
+
 describe("devTasks dashboard", () => {
   test("empty project shows no work items", () => {
     const project = tempProject();
     process.chdir(project);
     const r = devTasks();
     expect(r.rows).toEqual([]);
-    expect(r.formatted).toContain("No active work items.");
+    expect(r.formatted).toContain("No work items in `.tasks/`.");
   });
 
   test("aggregates tasks, decisions, deviations, and formatting", () => {
@@ -127,7 +151,7 @@ describe("devTasks dashboard", () => {
     devBootstrap("DASH-1", "t1", "implement", "standard");
     const wiPath = join(".tasks", "DASH-1.json");
     const wi = JSON.parse(readFileSync(wiPath, "utf8"));
-    wi.task_ids = [1, 2];
+    wi.task_ids = [1, 2, 3];
     wi.decisions = [
       {
         id: "d1",
@@ -144,6 +168,7 @@ describe("devTasks dashboard", () => {
 
     writeJson(join(".tasks", "DASH-1-task-1.json"), { status: "done" });
     writeJson(join(".tasks", "DASH-1-task-2.json"), { status: "blocked" });
+    writeJson(join(".tasks", "DASH-1-task-3.json"), { status: "in_progress" });
 
     devBootstrap("DASH-2", "t2", "quick_fix");
     const wi2 = JSON.parse(readFileSync(join(".tasks", "DASH-2.json"), "utf8"));
@@ -155,16 +180,26 @@ describe("devTasks dashboard", () => {
     const first = r.rows[0];
     expect(first.id).toBe("DASH-1");
     expect(first.pattern).toBe("implement/standard");
+    expect(r.formatted).toMatch(/imp\/std/);
     expect(first.tasks_done).toBe(1);
-    expect(first.tasks_total).toBe(2);
+    expect(first.tasks_total).toBe(3);
     expect(first.tasks_blocked).toBe(1);
+    expect(first.tasks_in_progress).toBe(1);
     expect(first.pending_decisions).toBe(1);
-    expect(first.deviations).toBe(1);
+    expect(first.pending_deviations).toBe(1);
+    expect(first.deviations_total).toBe(1);
+    expect(first.title).toBe("t1");
     expect(r.total_pending).toBe(1);
+    expect(r.total_pending_deviations).toBe(1);
+    expect(r.total_blocked_tasks).toBe(1);
     expect(r.total_cost).toBeCloseTo(1.25, 2);
+    expect(r.attention_summary).toContain("pending decision");
+    expect(r.attention_summary).toContain("blocked task");
     expect(r.formatted).toMatch(/DASH-1/);
+    expect(r.formatted).toMatch(/1\/3·1b·1↑/);
+    expect(r.formatted).toMatch(/ID\s+PAT/);
     expect(first.phase).toBe("aligning");
-    expect(r.formatted).toMatch(/pending decisions/);
+    expect(r.formatted).toMatch(/\/dev review/);
   });
 });
 
@@ -345,8 +380,9 @@ describe("stack / monorepo / init detect", () => {
   test("devInitDetect empty vs minimal TS project", () => {
     const empty = tempProject();
     const noProj = devInitDetect(empty);
-    expect(noProj.proposed_config).toBeNull();
-    expect(noProj.formatted_summary).toMatch(/No recognised project files/);
+    expect(noProj.ok).toBe(false);
+    if (noProj.ok) throw new Error("expected detection failure for empty project");
+    expect(noProj.error.formatted_summary).toMatch(/No recognised project files/);
 
     const ts = tempProject();
     writeFileSync(
@@ -356,9 +392,11 @@ describe("stack / monorepo / init detect", () => {
     );
     writeFileSync(join(ts, "tsconfig.json"), "{}\n", "utf8");
     const det = devInitDetect(ts);
-    expect(det.proposed_config?.language).toBe("typescript");
-    expect(det.formatted_summary).toContain(ts);
-    expect(det.detection_notes.length).toBeGreaterThan(0);
+    expect(det.ok).toBe(true);
+    if (!det.ok) throw new Error(det.error.message);
+    expect(det.value.proposed_config.language).toBe("typescript");
+    expect(det.value.formatted_summary).toContain(ts);
+    expect(det.value.detection_notes.length).toBeGreaterThan(0);
   });
 
   test("buildDevHarnessConfig applies Makefile test override", () => {
@@ -441,6 +479,25 @@ describe("usage helpers", () => {
       models: { "acme/foo.bar": { input: 10, output: 20 } },
     };
     expect(pricingFor(pricing, "vendor/acme/foo.bar")).toEqual({ input: 10, output: 20 });
+  });
+
+  test("bundled pricing prices cursor-claude + session-default models off the default", () => {
+    const pricing = loadPricing();
+    // Exact-equality matcher: each embedded cursor variant the cursor-claude
+    // profile or the orchestrator session can log must resolve to a real entry,
+    // not silently fall back to `default` (which would mis-count Cursor runs).
+    const opus = { input: 15.0, output: 75.0 };
+    expect(pricingFor(pricing, "claude-opus-4-8-thinking-xhigh")).toEqual(opus); // reasoning tier
+    expect(pricingFor(pricing, "claude-opus-4-8-thinking-high")).toEqual(opus); // session default
+    expect(pricingFor(pricing, "composer-2.5")).toEqual({ input: 1.25, output: 6.0 }); // workhorse
+
+    for (const id of [
+      "claude-opus-4-8-thinking-xhigh",
+      "claude-opus-4-8-thinking-high",
+      "composer-2.5",
+    ]) {
+      expect(pricingFor(pricing, id)).not.toEqual(pricing.default);
+    }
   });
 
   test("harness run meta file and env describe paths", () => {

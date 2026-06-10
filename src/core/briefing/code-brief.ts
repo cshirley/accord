@@ -4,176 +4,36 @@
  * orchestrator's context window.
  */
 
-import { randomBytes } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
+import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import type { DevHarnessConfig } from "../config/index.js";
-import { loadWorkItem, now, readJson, TASKS_DIR, writeJson } from "../work-items/io.js";
+import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
+import { err, ok, type Result } from "../types/result.js";
+import { loadWorkItem, now, readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
+import { devNonce } from "./nonce.js";
+import { formatCodeTaskBrief, sliceTaskRequirements } from "./task-requirements.js";
+
+export { devNonce };
 
 export function devCodeBrief(
   workItemId: string,
   taskId: string,
   config: DevHarnessConfig | null,
-): { brief: string } | { error: string } {
-  const wi = loadWorkItem(workItemId);
-  if (!wi) return { error: `Work item not found: ${workItemId}` };
-
-  const specPath = wi.spec;
-  const planPath = wi.plan;
-  if (!specPath || !planPath) return { error: `Spec or plan not set on work item ${workItemId}` };
-
-  const spec = readJson<Record<string, unknown>>(specPath);
-  const plan = readJson<Record<string, unknown>>(planPath);
-  if (!spec) return { error: `Cannot read spec: ${specPath}` };
-  if (!plan) return { error: `Cannot read plan: ${planPath}` };
-
-  const tasks = (plan.tasks as unknown[] | undefined) ?? [];
-  const taskRaw = tasks.find((t) => String((t as Record<string, unknown>).id) === String(taskId));
-  if (!taskRaw) return { error: `Task ${taskId} not found in plan` };
-  const task = taskRaw as Record<string, unknown>;
-
-  const coveredAcIds = (task.covers_ac as string[] | undefined) ?? [];
-  const criteria = (spec.acceptance_criteria as unknown[] | undefined) ?? [];
-  const coveredAcs = criteria.filter((ac) =>
-    coveredAcIds.includes(String((ac as Record<string, unknown>).id)),
-  );
-
-  const nonce = randomBytes(3).toString("hex");
-  const s: string[] = [];
-
-  s.push("## Code Task Brief");
-  s.push("");
-  s.push(`**work_item_id:** ${workItemId}`);
-  s.push(`**task_id:** ${taskId}`);
-  s.push(`**owner_nonce:** ${nonce}`);
-  s.push(`**task_file_path:** ${path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`)}`);
-  if (wi.brief) s.push(`**brief_path:** ${wi.brief}`);
-  s.push("");
-
-  if (
-    wi.intent_mode ||
-    wi.escalation_ceiling ||
-    wi.target_paths?.length ||
-    wi.out_of_scope?.length ||
-    wi.expected_finish
-  ) {
-    s.push("### Intent Contract");
-    s.push("");
-    if (wi.intent_mode) s.push(`- intent_mode: ${wi.intent_mode}`);
-    if (wi.escalation_ceiling) s.push(`- escalation_ceiling: ${wi.escalation_ceiling}`);
-    if (wi.target_paths?.length) s.push(`- target_paths: ${wi.target_paths.join(", ")}`);
-    if (wi.out_of_scope?.length) s.push(`- out_of_scope: ${wi.out_of_scope.join(", ")}`);
-    if (wi.expected_finish) s.push(`- expected_finish: ${wi.expected_finish}`);
-    s.push("");
+): Result<{ brief: string; owner_nonce: string; task_file_path: string }> {
+  const parsedId = Number.parseInt(taskId, 10);
+  if (!Number.isFinite(parsedId) || parsedId < 1) {
+    return err(`Invalid task id: ${taskId}`);
   }
-
-  s.push("### Task");
-  s.push("");
-  s.push("```json");
-  s.push(JSON.stringify(task, null, 2));
-  s.push("```");
-  s.push("");
-
-  s.push("### Covered Acceptance Criteria");
-  s.push("");
-  for (const ac of coveredAcs) {
-    const a = ac as Record<string, unknown>;
-    s.push(`- **${a.id}** (${a.type}): ${a.criterion}`);
-  }
-  s.push("");
-
-  const constraints = (spec.constraints as unknown[] | undefined) ?? [];
-  if (constraints.length) {
-    s.push("### Constraints");
-    s.push("");
-    for (const c of constraints)
-      s.push(
-        `- ${typeof c === "string" ? c : String((c as Record<string, unknown>).constraint || JSON.stringify(c))}`,
-      );
-    s.push("");
-  }
-
-  const resolvedQuestions = (spec.resolved_questions as unknown[] | undefined) ?? [];
-  if (resolvedQuestions.length) {
-    s.push("### Resolved Questions");
-    s.push("");
-    for (const q of resolvedQuestions) {
-      const qr = q as Record<string, unknown>;
-      s.push(`- **${qr.question || qr.id}**: ${qr.answer || qr.resolution}`);
-    }
-    s.push("");
-  }
-
-  const scope = spec.scope as Record<string, unknown> | undefined;
-  const scopeIn = (scope?.in as unknown[] | undefined) ?? [];
-  if (scopeIn.length) {
-    s.push("### Scope In");
-    s.push("");
-    for (const si of scopeIn)
-      s.push(
-        `- ${typeof si === "string" ? si : String((si as Record<string, unknown>).item || JSON.stringify(si))}`,
-      );
-    s.push("");
-  }
-
-  const scopeOutItems = (scope?.out as unknown[] | undefined) ?? [];
-  if (scopeOutItems.length) {
-    s.push("### Scope Out");
-    s.push("");
-    for (const so of scopeOutItems) {
-      const sor = so as Record<string, unknown>;
-      s.push(`- ${typeof so === "string" ? so : `${sor.item}: ${sor.reason}`}`);
-    }
-    s.push("");
-  }
-
-  const rejectedAlternatives = (spec.rejected_alternatives as unknown[] | undefined) ?? [];
-  if (rejectedAlternatives.length) {
-    s.push("### Rejected Alternatives");
-    s.push("");
-    for (const ra of rejectedAlternatives) {
-      const r = ra as Record<string, unknown>;
-      s.push(`- **${r.name}**: ${r.reason}`);
-    }
-    s.push("");
-  }
-
-  const guidance = (plan.guidance as unknown[] | undefined) ?? [];
-  if (guidance.length) {
-    s.push("### Plan Guidance");
-    s.push("");
-    for (const g of guidance) {
-      const gr = g as Record<string, unknown>;
-      s.push(`- [${gr.source}] ${gr.directive}`);
-    }
-    s.push("");
-  }
-
-  const reuseCandidates = (plan.reuse_candidates as unknown[] | undefined) ?? [];
-  if (reuseCandidates.length) {
-    s.push("### Reuse Candidates");
-    s.push("");
-    for (const rc of reuseCandidates) {
-      const r = rc as Record<string, unknown>;
-      s.push(`- ${r.path || r.symbol}: ${r.reason || r.note}`);
-    }
-    s.push("");
-  }
-
-  const verification = spec.verification as Record<string, unknown> | undefined;
-  const verCmds =
-    (verification?.commands as string[] | undefined) ?? config?.verification_commands ?? [];
-  if (verCmds.length) {
-    s.push("### Verification Commands");
-    s.push("");
-    for (const cmd of verCmds) s.push(`- \`${cmd}\``);
-    s.push("");
-  }
-
-  return { brief: s.join("\n") };
-}
-
-export function devNonce(): string {
-  return randomBytes(3).toString("hex");
+  const sliced = sliceTaskRequirements(workItemId, parsedId, config, {
+    syncBeforeSpawn: { dispatchAgent: "phase-code" },
+  });
+  if (!sliced.ok) return sliced;
+  return ok({
+    brief: formatCodeTaskBrief(sliced.value),
+    owner_nonce: sliced.value.owner_nonce,
+    task_file_path: sliced.value.task_file_path,
+  });
 }
 
 type QuickFixTestStrategy = "existing_tests" | "new_red_test" | "no_test";
@@ -272,6 +132,7 @@ function writeQuickFixStubs(
   };
 
   writeJson(specPath, spec);
+  syncSpecMarkdownFromJson(specPath);
   writeJson(planPath, plan);
   return { specPath, planPath };
 }
@@ -333,43 +194,52 @@ function quickFixContract(
   };
 }
 
+export interface QuickFixBrief {
+  brief: string;
+  brief_path: string;
+  task_file_path: string;
+  task_id: string;
+  brief_type: "phase-test" | "review-test" | "phase-code";
+}
+
 export function devQuickFixBrief(
   workItemId: string,
   config: DevHarnessConfig | null,
-):
-  | {
-      brief: string;
-      task_file_path: string;
-      task_id: string;
-      brief_type: "phase-test" | "phase-code";
-    }
-  | { error: string } {
+): Result<QuickFixBrief> {
   const wi = loadWorkItem(workItemId);
-  if (!wi) return { error: `Work item not found: ${workItemId}` };
-  if (wi.pattern !== "quick_fix")
-    return { error: `Work item ${workItemId} is not a quick_fix item` };
+  if (!wi) return err(`Work item not found: ${workItemId}`);
+  if (wi.pattern !== "quick_fix") return err(`Work item ${workItemId} is not a quick_fix item`);
 
   const taskId = "1";
-  const taskFilePath = path.join(TASKS_DIR, `${workItemId}-task-${taskId}.json`);
+  const taskFilePath = taskJsonPath(workItemId, taskId);
   const existingTask = readJson<Record<string, unknown>>(taskFilePath);
   const rawNonce =
     existingTask && typeof existingTask.owner_nonce === "string" ? existingTask.owner_nonce : "";
   const ownerNonce = /^[0-9a-f]{6}$/.test(rawNonce) ? rawNonce : devNonce();
   const contract = quickFixContract(wi, config);
-  const needsTestPhase = contract.test.strategy === "new_red_test";
+  const needsTestPhase =
+    contract.test.strategy === "new_red_test" || contract.test.strategy === "existing_tests";
+  const startsAtReviewTest = contract.test.strategy === "no_test";
 
   const { specPath, planPath } = writeQuickFixStubs(workItemId, wi, contract, config);
+
+  const loopCounters = readQuickFixLoopCounters(
+    existingTask && typeof existingTask === "object"
+      ? (existingTask as Record<string, unknown>)
+      : {},
+  );
 
   const taskFile = {
     schema_version: "1.0",
     work_item_id: workItemId,
     task_id: 1,
     owner_nonce: ownerNonce,
-    phase: needsTestPhase ? "phase-test" : "phase-code",
+    phase: needsTestPhase ? "phase-test" : startsAtReviewTest ? "review-test" : "phase-code",
     status: existingTask?.status === "done" ? "done" : "pending",
-    pre_impl_gates: needsTestPhase ? "pending" : "complete",
+    pre_impl_gates: needsTestPhase || startsAtReviewTest ? "pending" : "complete",
     test_files: Array.isArray(existingTask?.test_files) ? existingTask.test_files : [],
     red_confirmed: existingTask?.red_confirmed === true,
+    quick_fix_loop: { test_review_cycles_used: loopCounters.test_review_cycles_used },
     quick_fix_contract: contract,
     events: Array.isArray(existingTask?.events) ? existingTask.events : [],
   };
@@ -380,7 +250,7 @@ export function devQuickFixBrief(
   wi.spec = specPath;
   wi.plan = planPath;
   wi.updated = now();
-  writeJson(path.join(TASKS_DIR, `${workItemId}.json`), wi);
+  writeJson(workItemJsonPath(workItemId), wi);
 
   const _verificationCommands =
     config?.verification_commands ??
@@ -388,7 +258,25 @@ export function devQuickFixBrief(
 
   const s: string[] = [];
 
-  if (needsTestPhase) {
+  if (startsAtReviewTest) {
+    s.push("## Quick Fix — review-test (pre-impl, no new tests)");
+    s.push("");
+    s.push(`**work_item_id:** ${workItemId}`);
+    s.push(`**task_id:** ${taskId}`);
+    s.push(`**owner_nonce:** ${ownerNonce}`);
+    s.push(`**task_file_path:** ${taskFilePath}`);
+    s.push("");
+    s.push(
+      "This quick_fix item uses `test.strategy: no_test`. Run **review-test** (pre-impl) on the stubs and contract before implementation.",
+    );
+    s.push("");
+    s.push("### Quick Fix Contract");
+    s.push("");
+    s.push("```json");
+    s.push(JSON.stringify(contract, null, 2));
+    s.push("```");
+    s.push("");
+  } else if (needsTestPhase) {
     s.push("## Quick Fix Test Brief");
     s.push("");
     s.push(`**work_item_id:** ${workItemId}`);
@@ -429,9 +317,9 @@ export function devQuickFixBrief(
     }
   } else {
     const codeBrief = devCodeBrief(workItemId, taskId, config);
-    if ("error" in codeBrief) return codeBrief;
+    if (!codeBrief.ok) return codeBrief;
 
-    s.push(codeBrief.brief);
+    s.push(codeBrief.value.brief);
     s.push("");
     s.push("### Quick Fix Rules");
     s.push("");
@@ -453,10 +341,19 @@ export function devQuickFixBrief(
     s.push("");
   }
 
-  return {
-    brief: s.join("\n"),
+  const briefContent = s.join("\n");
+  const briefPath = path.join("docs", "dev", workItemId, "brief.md");
+  mkdirSync(path.dirname(briefPath), { recursive: true });
+  writeFileSync(briefPath, briefContent, "utf8");
+  wi.brief = briefPath;
+  wi.updated = now();
+  writeJson(workItemJsonPath(workItemId), wi);
+
+  return ok({
+    brief: briefContent,
+    brief_path: briefPath,
     task_file_path: taskFilePath,
     task_id: taskId,
-    brief_type: needsTestPhase ? "phase-test" : "phase-code",
-  };
+    brief_type: needsTestPhase ? "phase-test" : startsAtReviewTest ? "review-test" : "phase-code",
+  });
 }

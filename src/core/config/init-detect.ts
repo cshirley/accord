@@ -8,6 +8,7 @@
 
 import * as fs from "node:fs";
 
+import { err, ok, type Result } from "../types/result.js";
 import {
   buildDevHarnessConfig,
   type ContextSourceConfig,
@@ -27,9 +28,9 @@ export interface ConfigPlacement {
   existing_root_config?: DevHarnessConfig;
 }
 
-export interface InitDetectResult {
-  /** The fully detected config proposal. null when no project files found. */
-  proposed_config: DevHarnessConfig | null;
+export interface InitDetectSuccess {
+  /** The fully detected config proposal. */
+  proposed_config: DevHarnessConfig;
   /** Where the config should live and what already exists. */
   placement: ConfigPlacement;
   /** Global context sources from ~/.config/pi/agent/accord.json */
@@ -40,9 +41,23 @@ export interface InitDetectResult {
   formatted_summary: string;
 }
 
+/**
+ * Detection failure still carries useful diagnostics (placement, formatted_summary)
+ * so adapters can show the user where to go next.
+ */
+export interface InitDetectFailure {
+  message: string;
+  placement: ConfigPlacement;
+  global_context_sources: ContextSourceConfig[];
+  detection_notes: string[];
+  formatted_summary: string;
+}
+
+export type DevInitDetectResult = Result<InitDetectSuccess, InitDetectFailure>;
+
 // ── Detection entry point ──────────────────────────────────
 
-export function devInitDetect(cwd?: string): InitDetectResult {
+export function devInitDetect(cwd?: string): DevInitDetectResult {
   const dir = cwd ?? process.cwd();
   const notes: string[] = [];
 
@@ -51,13 +66,13 @@ export function devInitDetect(cwd?: string): InitDetectResult {
 
   if (!buildResult) {
     notes.push(`No recognised project files in ${dir}.`);
-    return {
-      proposed_config: null,
+    return err({
+      message: `No recognised project files in ${dir}.`,
       placement: resolveConfigPlacement(dir),
       global_context_sources: loadGlobalContextSources(),
       detection_notes: notes,
       formatted_summary: `No recognised project files in ${dir}. Create a project first, or specify the language manually.`,
-    };
+    });
   }
 
   const proposed = buildResult.config;
@@ -75,13 +90,13 @@ export function devInitDetect(cwd?: string): InitDetectResult {
   // 5. Build formatted summary
   const summary = formatSummary(dir, proposed, placement, globalSources);
 
-  return {
+  return ok({
     proposed_config: proposed,
     placement,
     global_context_sources: globalSources,
     detection_notes: notes,
     formatted_summary: summary,
-  };
+  });
 }
 
 // ── Placement resolution ───────────────────────────────────

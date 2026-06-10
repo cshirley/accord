@@ -46,7 +46,7 @@ Only launch if the changed file list includes any test files. Match against thes
 
 If no test files changed, skip this agent.
 
-Brief: "Review test quality in the following diff. `mode: post-impl`. There is no spec — skip completeness (Check 1) and AC traceability (Check 3). Review assertion specificity, scenario fidelity, and execution behaviour only. Changed files: `{file_list}`. Diff: `{diff}`. Test output: `{test_output}`."
+Brief: "Review test quality in the following diff. `mode: post-impl`. There is no spec — skip Check 1 (per-AC adversarial analysis against spec ACs), Check 3/3b (AC negation and inventory), and Check 7 (spec contract). Run Checks 1b, 2, 4, 5, and 6 on changed tests. Changed files: `{file_list}`. Diff: `{diff}`. Test output: `{test_output}`."
 
 ## Step 3 — Synthesise
 

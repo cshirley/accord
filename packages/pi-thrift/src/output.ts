@@ -10,9 +10,9 @@
  * Commands are registered by index.ts under the /thrift namespace.
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
-import { Container, type SettingItem, SettingsList, Text } from "@mariozechner/pi-tui";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { getSettingsListTheme } from "@earendil-works/pi-coding-agent";
+import { Container, type SettingItem, SettingsList, Text } from "@earendil-works/pi-tui";
 import { OUTPUT_LEVELS, type OutputLevel, saveConfig, type ThriftConfig } from "./config.js";
 
 // ── System prompt fragments ─────────────────────────────────────────────

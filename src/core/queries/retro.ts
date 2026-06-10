@@ -9,6 +9,10 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { ShiftLeftFinding } from "../types/domain.js";
+import { err, ok, type Result } from "../types/result.js";
+
+export type { ShiftLeftFinding } from "../types/domain.js";
 
 interface InsightMeta {
   sessionId?: string;
@@ -48,18 +52,6 @@ interface RetroSession {
   marker?: HarnessMarker;
   associated_by: "marker" | "legacy_heuristic";
   shift_left: ShiftLeftFinding[];
-}
-
-export interface ShiftLeftFinding {
-  category:
-    | "intent_scoping"
-    | "artifact_preflight"
-    | "tool_environment"
-    | "subagent_reliability"
-    | "terminal_outcome"
-    | "spec_plan_gap";
-  evidence: string;
-  recommendation: string;
 }
 
 export interface DevRetroOptions {
@@ -329,11 +321,11 @@ function formatRetro(result: Omit<DevRetroResult, "formatted">): string {
   return lines.join("\n");
 }
 
-export function devRetro(opts: DevRetroOptions = {}): DevRetroResult | { error: string } {
+export function devRetro(opts: DevRetroOptions = {}): Result<DevRetroResult> {
   const insightsDir = path.resolve(opts.insights_dir || defaultInsightsDir());
   const metaDir = path.join(insightsDir, "meta");
   const cacheDir = path.join(insightsDir, "cache");
-  if (!fs.existsSync(metaDir)) return { error: `Insights metadata not found: ${metaDir}` };
+  if (!fs.existsSync(metaDir)) return err(`Insights metadata not found: ${metaDir}`);
 
   const sinceMs = opts.since ? Date.parse(opts.since) : Number.NaN;
   const includeLegacy = opts.include_legacy_heuristic ?? true;
@@ -389,5 +381,5 @@ export function devRetro(opts: DevRetroOptions = {}): DevRetroResult | { error: 
     sessions: limited,
   };
 
-  return { ...result, formatted: formatRetro(result) };
+  return ok({ ...result, formatted: formatRetro(result) });
 }

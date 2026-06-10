@@ -3,25 +3,23 @@
  * module stays a small surface for exports + `registerHooks` wiring.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadDevHarnessConfig } from "../../core/config/index.js";
 import {
   applyHarnessCostSeed,
+  assembleHandoffContent,
   createOrchestratorUsageDedup,
   formatArtifactValidationFailureMessage,
   isAgentsMdPath,
   notifyPendingDecisionsIfAny,
-  prepareSubagentToolCall,
   processOrchestratorTurnEnd,
   processSubagentToolResult,
-  runGatherPreflightOnSubagentCall,
-  runVerifyPreflightOnSubagentCall,
+  runSubagentToolPreflight,
   seedHarnessSessionCostState,
   validateHarnessArtifactWriteIfApplicable,
 } from "../../core/harness/index.js";
 import { resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import {
-  assembleHandoffContent,
   clearHarnessRunTag,
   inferWorkItemIdFromSession,
   loadPricing,
@@ -78,22 +76,15 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
     const input = event.input as Record<string, unknown>;
     const availableToolNames = new Set(pi.getAllTools().map((t) => t.name));
 
-    const prep = prepareSubagentToolCall(input, state.devConfig);
-    if (prep.blockReason) return { block: true, reason: prep.blockReason };
-
-    const gather = await runGatherPreflightOnSubagentCall(
-      input,
-      state.devConfig,
+    const preflight = await runSubagentToolPreflight(input, {
+      devConfig: state.devConfig,
       availableToolNames,
-      {
+      host: {
         notify: (level, msg) => ctx.ui.notify(msg, level === "warning" ? "warning" : "info"),
         confirm: (title, body) => ctx.ui.confirm(title, body),
       },
-    );
-    if (gather.blockReason) return { block: true, reason: gather.blockReason };
-
-    const verify = await runVerifyPreflightOnSubagentCall(input, state.devConfig);
-    if (verify.blockReason) return { block: true, reason: verify.blockReason };
+    });
+    if (preflight.blockReason) return { block: true, reason: preflight.blockReason };
   });
 
   // ── Subagent result processing ───────────────────────

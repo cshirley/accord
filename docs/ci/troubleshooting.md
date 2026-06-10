@@ -17,7 +17,7 @@ That SHA corresponds to `v6` of the action. On every accord release:
 
 - Check the action's latest release for security advisories.
 - If a newer SHA is wanted, update both `autopipeline.yml` AND this doc.
-- `tests/ci/artifact-upload.test.ts` enforces that every reference uses a
+- `packages/pi-accord-ci/tests/artifact-upload.test.ts` enforces that every reference uses a
   40-char SHA (no `@v*` tag refs).
 
 ## Documented limitations
@@ -103,16 +103,16 @@ env:
 The reusable workflow's `on:` block only declares two genuine triggers
 (`workflow_call`, `repository_dispatch`), so anything that is not a
 real `repository_dispatch` MUST have arrived via `workflow_call`.
-`scripts/ci/dispatch.ts` reads `ACCORD_DISPATCH_KIND` first and falls
+`packages/pi-accord-ci/src/dispatch.ts` reads `ACCORD_DISPATCH_KIND` first and falls
 back to `GITHUB_EVENT_NAME` so direct callers (consumers that invoke
 the validator outside the reusable workflow) still work.
 
 Regression coverage:
 
-- `tests/ci/inputs-and-concurrency.test.ts → "AC-1: dispatch event-name
+- `packages/pi-accord-ci/tests/inputs-and-concurrency.test.ts → "AC-1: dispatch event-name
   canonicalisation"` pins the YAML expression and the absence of any
   attempted `GITHUB_EVENT_NAME` step override.
-- `tests/ci/dispatch-validation.test.ts → "dispatch.ts CLI env-var
+- `packages/pi-accord-ci/tests/dispatch-validation.test.ts → "dispatch.ts CLI env-var
   precedence (real-runner contract)"` pins the env-var precedence
   inside `dispatch.ts main()`.
 
@@ -127,7 +127,7 @@ GitHub runner — none of them affect production:
   `No files were found with the provided path: docs/dev/<ticket>/%0A.tasks/<ticket>*`.
   Real GitHub treats each line as a separate glob. The workflow is
   correct; the parser difference is verified by
-  `tests/ci/artifact-upload.test.ts`.
+  `packages/pi-accord-ci/tests/artifact-upload.test.ts`.
 - **Unrendered job-name templates**: act prints raw `${{ inputs.ticket }}`
   in some error messages. Cosmetic only; real GitHub interpolates these
   in logs and the UI.
