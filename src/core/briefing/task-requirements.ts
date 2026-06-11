@@ -509,10 +509,12 @@ export function buildImplementSpawnTaskBrief(input: {
   }
 
   const taskId = resolveActivePrimaryTaskId(wi) ?? wi.task_ids[0] ?? 1;
-  const syncBeforeSpawn =
-    input.dispatchAgent === "phase-test" || input.dispatchAgent === "phase-code"
-      ? { dispatchAgent: input.dispatchAgent }
-      : undefined;
+  let syncBeforeSpawn: SliceTaskRequirementsOptions["syncBeforeSpawn"];
+  if (input.dispatchAgent === "phase-test") {
+    syncBeforeSpawn = { dispatchAgent: "phase-test" };
+  } else if (input.dispatchAgent === "phase-code") {
+    syncBeforeSpawn = { dispatchAgent: "phase-code" };
+  }
   const sliced = sliceTaskRequirements(input.workItemId, taskId, input.devConfig, {
     ...(syncBeforeSpawn ? { syncBeforeSpawn } : {}),
   });

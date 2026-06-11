@@ -31,7 +31,7 @@ describe("getFinalOutput", () => {
         content: [],
         timestamp: 0,
       },
-    ] as Message[];
+    ] as unknown as Message[];
 
     const streamed = 'Summary\n```json\n{"status":"done"}\n```';
     expect(getFinalOutput(messages)).toBe("");

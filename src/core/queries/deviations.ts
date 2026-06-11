@@ -99,9 +99,9 @@ export function devDeviations(rawArgs: string): Result<DevDeviationsResult> {
 
   if (parsed.action === "accept") {
     if (parsed.taskId === undefined) {
-      return err(`Usage: \`/dev deviations ${parsed.workItemId} accept <task_id>\``);
+      return err(`Usage: \`/dev deviations ${workItemId} accept <task_id>\``);
     }
-    const result = acceptDeviation(parsed.workItemId, parsed.taskId);
+    const result = acceptDeviation(workItemId, parsed.taskId);
     if (!result.ok) return err(result.error);
     return ok({
       action: "accept",
@@ -113,9 +113,9 @@ export function devDeviations(rawArgs: string): Result<DevDeviationsResult> {
 
   if (parsed.action === "revert") {
     if (parsed.taskId === undefined) {
-      return err(`Usage: \`/dev deviations ${parsed.workItemId} revert <task_id>\``);
+      return err(`Usage: \`/dev deviations ${workItemId} revert <task_id>\``);
     }
-    const result = revertDeviation(parsed.workItemId, parsed.taskId);
+    const result = revertDeviation(workItemId, parsed.taskId);
     if (!result.ok) return err(result.error);
     return ok({
       action: "revert",
@@ -137,7 +137,7 @@ export function devDeviations(rawArgs: string): Result<DevDeviationsResult> {
 
   return ok({
     action: "list",
-    formatted: formatDeviationList(parsed.workItemId, deviations),
+    formatted: formatDeviationList(workItemId, deviations),
     spawn_review: false,
   });
 }
