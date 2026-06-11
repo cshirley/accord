@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "work_item_id": "SPEC-SYNC-1",
+  "title": "Spec markdown sync fixture",
+  "date": "2026-06-11",
+  "problem_statement": "Tests need a committed spec.json under docs/dev layout.",
+  "proposed_solution": "Keep a minimal fixture in tests/fixtures for syncSpecMarkdownFromJson.",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "requirement": "MUST",
+      "type": "scenario",
+      "scenario": "Given spec.json exists, When sync runs, Then spec.md is written beside it."
+    }
+  ],
+  "scope": { "in": ["tests/fixtures"], "out": [] },
+  "verification": { "commands": ["bun test"], "test_cases": [] }
+}
