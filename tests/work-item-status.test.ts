@@ -42,7 +42,13 @@ describe("devWorkItemStatus", () => {
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       task_ids: [1],
+      spec: null,
       plan: `docs/dev/${WI_ID}/plan.json`,
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
     };
     writeJson(wiPath, wi);
 

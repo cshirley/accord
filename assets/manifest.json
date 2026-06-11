@@ -16,6 +16,7 @@
       "phase-test",
       "phase-verify-acceptance",
       "phase-verify-infra",
+      "phase-verify-task",
       "review-code",
       "review-design",
       "review-deviation",

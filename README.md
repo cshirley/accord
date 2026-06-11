@@ -1,5 +1,7 @@
 # ACCORD
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Pi extension providing **ACCORD**: an agentic contract workflow for the `/dev` command. It handles project configuration, schema validation, verification gating, usage tracking, and status bar updates via transparent event hooks so agents stay focused on their task.
 
 > **ACCORD**: **Agentic Contract for Collaborative Objectives, Requirements, and Rigorous Delivery**
@@ -197,3 +199,11 @@ Inside a project that has the extension installed:
 /dev "ticket-or-free-text"       # let ACCORD route to the right pipeline
 /dev finish <ID>                 # run verification and produce the completion packet
 ```
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, how to run checks, and pull request expectations.
+
+## License
+
+Licensed under the [MIT License](LICENSE).

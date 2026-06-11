@@ -29,8 +29,8 @@ export function extractReturnStatus(parsedReturn: unknown): string | undefined {
 }
 
 function parseGatherHint(parsedReturn: unknown): AlignGatherHint | undefined {
-  const hint = asRecord(parsedReturn)?.gather_hint;
-  if (!hint || typeof hint !== "object" || Array.isArray(hint)) {
+  const hint = asRecord(asRecord(parsedReturn)?.gather_hint);
+  if (!hint) {
     return undefined;
   }
   const ticket_id = typeof hint.ticket_id === "string" ? hint.ticket_id : undefined;

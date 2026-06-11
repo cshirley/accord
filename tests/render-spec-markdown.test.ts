@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, describe, expect, test } from "bun:test";
+import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { renderSpecMarkdown } from "../src/core/artifacts/render-spec-markdown.js";
 import { syncSpecMarkdownFromJson } from "../src/core/artifacts/spec-markdown.js";
@@ -40,14 +40,38 @@ describe("renderSpecMarkdown", () => {
     expect(md).toContain("Authoritative contract");
   });
 
+  const fixtureSpecPath = join(
+    import.meta.dir,
+    "fixtures",
+    "docs",
+    "dev",
+    "SPEC-SYNC-1",
+    "spec.json",
+  );
+  const fixtureSpecMdPath = join(
+    import.meta.dir,
+    "fixtures",
+    "docs",
+    "dev",
+    "SPEC-SYNC-1",
+    "spec.md",
+  );
+
+  afterEach(() => {
+    try {
+      rmSync(fixtureSpecMdPath, { force: true });
+    } catch {
+      /* ignore */
+    }
+  });
+
   test("syncSpecMarkdownFromJson writes spec.md beside fixture spec.json", () => {
-    const specPath = join(import.meta.dir, "..", "docs", "dev", "TICKET-TO-PR-1", "spec.json");
-    const result = syncSpecMarkdownFromJson(specPath);
+    const result = syncSpecMarkdownFromJson(fixtureSpecPath);
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.error);
 
     const md = readFileSync(result.value.specMdPath, "utf8");
-    expect(md).toContain("TICKET-TO-PR-1");
+    expect(md).toContain("SPEC-SYNC-1");
     expect(md).toContain("### AC-1");
   });
 });

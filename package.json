@@ -28,6 +28,15 @@
     "smoke:gh:autopipeline": "gh workflow run autopipeline-smoke.yml --ref main -f ticket=DEMO-1 -f dry_run=true"
   },
   "license": "MIT",
+  "author": "Clive Shirley",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cshirley/accord.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cshirley/accord/issues"
+  },
+  "homepage": "https://github.com/cshirley/accord#readme",
   "main": "./src/index.ts",
   "files": [
     "src/",
@@ -36,6 +45,9 @@
     "schemas/",
     "scripts/",
     "README.md",
+    "LICENSE",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
     "AGENTS.md"
   ],
   "peerDependencies": {
