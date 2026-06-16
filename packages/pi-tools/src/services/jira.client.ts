@@ -264,6 +264,40 @@ export function isReleaseReadyStatus(name: string, categoryKey: string): boolean
 }
 
 /**
+ * Rich-text "changes" field that lists the release's tickets as smart-link cards
+ * (and a git-log block). Service-release CRQs that have no Jira issue links keep
+ * their change list here instead. Override with CRQ_CHANGES_FIELD if needed.
+ */
+export const CRQ_CHANGES_FIELD = process.env.CRQ_CHANGES_FIELD ?? "customfield_14369";
+
+const TICKET_KEY_RE = /\b[A-Z][A-Z0-9]+-\d+\b/g;
+
+/**
+ * Walk an ADF doc collecting Jira issue keys from smart-link cards (inlineCard /
+ * blockCard `attrs.url`) and from plain text (e.g. a git-log code block). The text
+ * flattener drops cards entirely, so this reads the raw node tree.
+ */
+export function collectIssueKeysFromAdf(node: unknown): string[] {
+  const out: string[] = [];
+  const walk = (n: unknown): void => {
+    if (!n || typeof n !== "object") return;
+    const o = n as Record<string, unknown>;
+    if ((o.type === "inlineCard" || o.type === "blockCard") && o.attrs) {
+      const url = String((o.attrs as { url?: string }).url ?? "");
+      const m = url.match(/\/browse\/([A-Z][A-Z0-9]+-\d+)/i);
+      if (m) out.push(m[1]);
+    }
+    if (o.type === "text" && typeof o.text === "string") {
+      const matches = o.text.match(TICKET_KEY_RE);
+      if (matches) out.push(...matches);
+    }
+    if (Array.isArray(o.content)) for (const c of o.content) walk(c);
+  };
+  walk(node);
+  return out;
+}
+
+/**
  * Fetch a CRQ and return its linked changes (Jira issue links), excluding sibling
  * CRQ tickets. Each entry carries status + a `statusDone` flag; the caller layers
  * on PR labels/author from GitHub. `service`/`repo` are derived from the CRQ summary
@@ -280,7 +314,14 @@ export async function getCrqLinkedIssues(crqKey: string): Promise<CrqChangeManif
     .filter((f) => /roll\s?back|back\s?out/i.test(f.name))
     .map((f) => f.id);
 
-  const fieldList = ["summary", "status", "assignee", "issuelinks", ...rollbackFieldIds].join(",");
+  const fieldList = [
+    "summary",
+    "status",
+    "assignee",
+    "issuelinks",
+    CRQ_CHANGES_FIELD,
+    ...rollbackFieldIds,
+  ].join(",");
   const issue = (await makeJiraRequest(`issue/${crqKey}`, { fields: fieldList })) as {
     key?: string;
     fields?: Record<string, unknown>;
@@ -293,55 +334,55 @@ export async function getCrqLinkedIssues(crqKey: string): Promise<CrqChangeManif
   const rollbackPlan =
     rollbackFieldIds.map((id) => flattenFieldValue(f0[id])).find((v) => v.trim().length > 0) ?? "";
   const service = summary.split(" - ")[0]?.trim() ?? "";
-  const links = Array.isArray(f0.issuelinks) ? (f0.issuelinks as unknown[]) : [];
 
-  const issues: CrqLinkedIssue[] = [];
-  for (const raw of links) {
-    const link = raw as { inwardIssue?: unknown; outwardIssue?: unknown };
-    const li = (link.inwardIssue ?? link.outwardIssue) as
-      | { key?: string; fields?: Record<string, unknown> }
-      | undefined;
-    if (!li?.key || /^CRQ-/i.test(li.key)) continue; // drop sibling change requests
-    const f = li.fields ?? {};
-    const status = f.status as { name?: string; statusCategory?: { key?: string } } | undefined;
-    const statusName = String(status?.name ?? "");
-    const categoryKey = String(status?.statusCategory?.key ?? "");
-    issues.push({
-      key: li.key,
-      summary: String((f.summary as string | undefined) ?? ""),
-      status: statusName,
-      statusCategory: categoryKey,
-      statusDone: isReleaseReadyStatus(statusName, categoryKey),
-      issueType: String((f.issuetype as { name?: string } | undefined)?.name ?? ""),
-    });
+  // Collect change ticket keys from two sources, preserving discovery order:
+  // (1) Jira issue links, (2) the rich-text "changes" field (smart-link cards +
+  // git-log block). Sibling CRQ tickets are excluded.
+  const orderedKeys: string[] = [];
+  const seen = new Set<string>();
+  const addKey = (raw: string | undefined) => {
+    const k = (raw ?? "").toUpperCase();
+    if (!k || /^CRQ-/.test(k) || seen.has(k)) return;
+    seen.add(k);
+    orderedKeys.push(k);
+  };
+  for (const raw of Array.isArray(f0.issuelinks) ? (f0.issuelinks as unknown[]) : []) {
+    const link = raw as { inwardIssue?: { key?: string }; outwardIssue?: { key?: string } };
+    addKey(link.inwardIssue?.key ?? link.outwardIssue?.key);
   }
+  for (const k of collectIssueKeysFromAdf(f0[CRQ_CHANGES_FIELD])) addKey(k);
 
-  // Enrich with assignee (display name + email) in one bulk query — issuelinks
-  // don't carry assignee. Best-effort: a failure here leaves assignee undefined.
-  if (issues.length > 0) {
-    try {
-      const jql = `key in (${issues.map((i) => i.key).join(",")})`;
-      const resp = (await makeJiraRequest("search/jql", {
-        jql,
-        fields: "assignee",
-        maxResults: issues.length,
-      })) as JiraSearchResponse;
-      const byKey = new Map(
-        (resp.issues ?? []).map((iss) => {
-          const a = (iss.fields as { assignee?: { displayName?: string; emailAddress?: string } })
-            ?.assignee;
-          return [iss.key, a] as const;
-        }),
-      );
-      for (const issue of issues) {
-        const a = byKey.get(issue.key);
-        if (a) {
-          issue.assignee = a.displayName;
-          issue.assigneeEmail = a.emailAddress;
-        }
-      }
-    } catch {
-      // leave assignee fields undefined
+  // Fetch summary/status/assignee for every change ticket in a single query
+  // (issue links don't carry assignee; the changes field carries only keys),
+  // then rebuild the list in discovery order.
+  const issues: CrqLinkedIssue[] = [];
+  if (orderedKeys.length > 0) {
+    const jql = `key in (${orderedKeys.join(",")})`;
+    const resp = (await makeJiraRequest("search/jql", {
+      jql,
+      fields: "summary,status,assignee,issuetype",
+      maxResults: orderedKeys.length,
+    })) as JiraSearchResponse;
+    const byKey = new Map(
+      (resp.issues ?? []).map((iss) => [iss.key.toUpperCase(), iss.fields] as const),
+    );
+    for (const k of orderedKeys) {
+      const f = byKey.get(k) as Record<string, unknown> | undefined;
+      if (!f) continue;
+      const st = f.status as { name?: string; statusCategory?: { key?: string } } | undefined;
+      const statusName = String(st?.name ?? "");
+      const categoryKey = String(st?.statusCategory?.key ?? "");
+      const assignee = f.assignee as { displayName?: string; emailAddress?: string } | undefined;
+      issues.push({
+        key: k,
+        summary: String((f.summary as string | undefined) ?? ""),
+        status: statusName,
+        statusCategory: categoryKey,
+        statusDone: isReleaseReadyStatus(statusName, categoryKey),
+        issueType: String((f.issuetype as { name?: string } | undefined)?.name ?? ""),
+        assignee: assignee?.displayName,
+        assigneeEmail: assignee?.emailAddress,
+      });
     }
   }
 

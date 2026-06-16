@@ -6,7 +6,7 @@ export default defineTool<{ crqKey: string }, CrqChangeManifest>({
   name: "atlassian-getCrqLinkedIssues",
   label: "Get CRQ Linked Changes",
   description:
-    "Get the changes linked to a Jira CRQ (change request) as Jira issue links — each with key, summary, status, a release-ready `statusDone` flag, type, and assignee (display name + email). Also derives the service name and GitHub repo (`emed-labs/<service>`) from the CRQ summary. Sibling CRQ links are excluded. Use as step 1 of a release notification, then resolve PR number/labels per ticket from GitHub and the Slack handle from the assignee email.",
+    "Get the changes in a Jira CRQ (change request) — collected from both Jira issue links and the rich-text 'changes' field (smart-link cards + git-log block, for service-release CRQs with no issue links). Each change carries key, summary, status, a release-ready `statusDone` flag, type, and assignee (display name + email). Also derives the service name and GitHub repo (`emed-labs/<service>`) from the CRQ summary. Sibling CRQ links are excluded. Use as step 1 of a release notification, then resolve PR number/labels per ticket from GitHub and the Slack handle from the assignee email.",
 
   params: {
     crqKey: { type: "string", required: true, description: "CRQ key (e.g., CRQ-5326)" },

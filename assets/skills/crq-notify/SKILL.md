@@ -31,7 +31,10 @@ If either required input is missing, ask once, then proceed.
 Call `atlassian-getCrqLinkedIssues` with the CRQ key. You get back the CRQ header
 (`key`, `summary`, `status`, `owner`, `rollbackPlan`, `service`, `repo`, `jiraUrl`)
 and `issues[]` where each issue has `key`, `summary`, `status`, `statusDone`,
-`issueType`, `assignee`, `assigneeEmail`.
+`issueType`, `assignee`, `assigneeEmail`. The tool gathers changes from both Jira
+issue links **and** the rich-text "changes" field (service-release CRQs keep their
+ticket list there as smart-link cards rather than as issue links), so you don't need
+to dig into the description yourself.
 
 - If `issues` is empty, the CRQ has no linked changes — post only the header line
   (Step 4) and tell the user there were no linked tickets.
@@ -62,10 +65,11 @@ Resolve from the change's **Jira assignee** (from Step 1) via `slack-lookupUser`
 2. If that misses, try the assignee **email** (`assigneeEmail`) — only works when the
    Slack token has `users:read.email`.
 
-Use the returned handle as `@<handle>` (plain text, not a real `<@id>` @mention —
-don't ping the whole list on a release notice). If nothing matches, fall back to the
-assignee display name as-is. (Don't use the GitHub PR author login — the GitHub
-search API exposes neither name nor email, so it can't be mapped to Slack reliably.)
+Capture the resolved **user ID** (e.g. `U06JSU66GUE`) and the display name. Step 4
+decides whether to render a real mention (which pings) or plain text. If no Slack
+user matches, you only have the display name. (Don't use the GitHub PR author login —
+the GitHub search API exposes neither name nor email, so it can't be mapped to Slack
+reliably.)
 
 ## Step 4 — Build the message (exact format)
 
@@ -89,8 +93,18 @@ Preparing <CRQ summary> <jiraUrl>
 Then one line per change, in the order returned:
 
 ```
-[<KEY>] <description> (#<PR-number>) by @<slack-handle> <emoji><suffix>
+[<KEY>] <description> (#<PR-number>) by <author> <emoji><suffix>
 ```
+
+**Author rendering — ping only when there's something to action.** Compute
+`needsAttention = (NOT statusDone) OR (PR has label "release: requires-verification")`:
+
+- `needsAttention` → real Slack mention `<@USER_ID>` (renders as a clickable,
+  notifying `@name`). These are changes still in flight or that require post-release
+  verification — the author should be pinged.
+- otherwise → plain text `@<display name>` (no ping). These are done/ready *and*
+  need no verification, so there's nothing for the author to do.
+- If no Slack user matched at all, use plain text `@<display name>` regardless.
 
 - Make `[<KEY>]` link to the ticket and `(#<PR-number>)` link to the PR using Slack
   mrkdwn: `[<{jiraBase}/browse/{KEY}|{KEY}>]` and `(<{prUrl}|#{number}>)`.
@@ -104,10 +118,13 @@ Example output:
 
 ```
 Preparing platform-integrations - 2026-06-15_002 https://babylonpartners.atlassian.net/browse/CRQ-5326
-[STEP-11542] Select most recent completed encounter for AI-opted proctor session (#3134) by @zak.gogi :white_check_mark:
-[STEP-11450] Review follow-up: renames, singleton, log cleanup (#3124) by @Victor Mora :white_check_mark: -- release: no-verification-needed
-[STEP-11543] Skip SR status patch on treatment change escalation (#3129) by @Victor Mora :loading-but-better:
+[STEP-11542] Select most recent completed encounter for AI-opted proctor session (#3134) by <@U06JSU66GUE> :white_check_mark:
+[STEP-11450] Review follow-up: renames, singleton, log cleanup (#3124) by <@U05ALCV31LL> :white_check_mark: -- release: no-verification-needed
+[STEP-11618] Enable ENABLE_MEDICATION_CONFIRMATION_FLOW (#3131) by @Victor Mora :white_check_mark: -- release: no-verification-needed
 ```
+
+(STEP-11542 is Done but requires verification → pinged; STEP-11450 is still In Review
+→ pinged; STEP-11618 is Done and needs no verification → plain text, no ping.)
 
 ## Step 5 — Post to Slack
 
