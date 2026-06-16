@@ -1,5 +1,6 @@
 import { getSlackAuth, setSlackAuth } from "../auth.js";
 import { defineCommands } from "../framework.js";
+import { sendSlackMessage } from "../services/slack.client.js";
 
 export default defineCommands("slack", {
   setup: {
@@ -49,6 +50,62 @@ export default defineCommands("slack", {
           message: `Slack test failed: ${error instanceof Error ? error.message : String(error)}`,
         };
       }
+    },
+  },
+
+  extra: {
+    send: {
+      description:
+        "Send a Slack message: /slack-send [--thread <ts>] <#channel|@user|email|channelId> <message>",
+      handler: async (args, { ui }) => {
+        // Extract an optional --thread <ts> (or --reply <ts>) flag from anywhere in the args.
+        let threadTs: string | undefined;
+        const trimmed = args
+          .trim()
+          .replace(/(?:^|\s)--(?:thread|reply)[=\s]+(\S+)/, (_m, ts) => {
+            threadTs = ts;
+            return "";
+          })
+          .trim();
+
+        let target = "";
+        let text = "";
+        if (trimmed) {
+          const splitAt = trimmed.search(/\s/);
+          if (splitAt === -1) {
+            target = trimmed;
+          } else {
+            target = trimmed.slice(0, splitAt);
+            text = trimmed.slice(splitAt + 1).trim();
+          }
+        }
+
+        if (!target) {
+          target = (await ui.input("Channel (#name, channelId, @user, or email):", "")) ?? "";
+        }
+        if (!target.trim()) {
+          ui.notify("Cancelled", "info");
+          return;
+        }
+
+        if (!text) {
+          text = (await ui.input("Message:", "")) ?? "";
+        }
+        if (!text.trim()) {
+          ui.notify("Cancelled", "info");
+          return;
+        }
+
+        try {
+          const result = await sendSlackMessage({ target, text, threadTs });
+          ui.notify(`Message sent ✅  ${result.permalink}`, "info");
+        } catch (error) {
+          ui.notify(
+            `Slack send failed: ${error instanceof Error ? error.message : String(error)}`,
+            "error",
+          );
+        }
+      },
     },
   },
 });

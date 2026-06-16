@@ -20,7 +20,10 @@ import gmailGet from "./defs/gmail-get.js";
 import gmailSearch from "./defs/gmail-search.js";
 import gmailThread from "./defs/gmail-thread.js";
 import inboxUnread from "./defs/inbox-unread.js";
+import jiraCrqChanges from "./defs/jira-crq-changes.js";
 import jiraGet from "./defs/jira-get.js";
+import jiraGetFields from "./defs/jira-get-fields.js";
+import jiraListFields from "./defs/jira-list-fields.js";
 // Tool definitions — one per file
 import jiraSearch from "./defs/jira-search.js";
 import preflight from "./defs/preflight.js";
@@ -28,16 +31,21 @@ import slackChannelHistory from "./defs/slack-channel-history.js";
 import slackConversations from "./defs/slack-conversations.js";
 import slackDmHistory from "./defs/slack-dm-history.js";
 import slackSearch from "./defs/slack-search.js";
+import slackSend from "./defs/slack-send.js";
 import slackUnread from "./defs/slack-unread.js";
 import slackUserInfo from "./defs/slack-user-info.js";
+import slackUserLookup from "./defs/slack-user-lookup.js";
 import { registerCommands, registerToolDefs } from "./framework.js";
 import { resetMcpRegistry } from "./mcp-registry.js";
 
 export default function tools(pi: ExtensionAPI) {
-  registerToolDefs(pi, [
+  const toolDefs = [
     // Jira
     jiraSearch,
     jiraGet,
+    jiraGetFields,
+    jiraListFields,
+    jiraCrqChanges,
     // Google Workspace
     gmailSearch,
     gmailGet,
@@ -46,19 +54,23 @@ export default function tools(pi: ExtensionAPI) {
     // Slack
     slackSearch,
     slackUserInfo,
+    slackUserLookup,
     slackConversations,
     slackChannelHistory,
     slackDmHistory,
     slackUnread,
+    slackSend,
     // Unified inbox
     inboxUnread,
     // Preflight
     preflight,
-  ]);
+  ];
+
+  registerToolDefs(pi, toolDefs);
 
   registerCommands(pi, [jiraCommands, slackCommands, googleCommands]);
 
   pi.on("session_shutdown", () => resetMcpRegistry());
 
-  console.log(`🔗 Tools loaded: ${14} tools, ${3} services`);
+  console.log(`🔗 Tools loaded: ${toolDefs.length} tools, ${3} services`);
 }

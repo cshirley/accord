@@ -68,6 +68,7 @@
     ],
     "skills": [
       "./assets/skills/commit",
+      "./assets/skills/crq-notify",
       "./assets/skills/pr",
       "./assets/skills/review"
     ],

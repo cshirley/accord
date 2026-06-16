@@ -3,7 +3,7 @@
   "host": "pi",
   "package": "@clive.shirley/pi-accord",
   "assets": {
-    "skills": ["commit", "pr", "review"],
+    "skills": ["commit", "crq-notify", "pr", "review"],
     "agents": [
       "phase-align",
       "phase-code",

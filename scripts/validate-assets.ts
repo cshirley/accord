@@ -20,6 +20,10 @@ type Manifest = {
   };
 };
 
+type PackageJson = {
+  pi?: { skills?: string[] };
+};
+
 const root = join(import.meta.dir, "..");
 const manifestPath = join(root, "assets", "manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest;
@@ -56,6 +60,15 @@ for (const skill of manifest.assets.skills) {
   const name = frontmatterName(readFileSync(skillPath, "utf8"));
   if (name !== skill) fail(`skill ${skill} frontmatter name is ${name ?? "missing"}`);
 }
+
+// The installer symlinks skills from the manifest, but Pi registers them from
+// package.json `pi.skills`. Keep the two lists in lockstep so a skill can't be
+// bundled-but-unregistered (or vice versa).
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as PackageJson;
+const piSkills = (pkg.pi?.skills ?? []).map(
+  (entry) => entry.replace(/\/+$/, "").split("/").pop() ?? entry,
+);
+sameList("package.json pi.skills vs manifest skills", piSkills, manifest.assets.skills);
 
 const registryAgents = registeredAgentNames();
 sameList("manifest agents vs registry", manifest.assets.agents, registryAgents);
