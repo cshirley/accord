@@ -52,9 +52,13 @@ Example: "New object ref each render. Inline object prop = new ref = \
 re-render. Wrap in \`useMemo\`."`,
 
   ultra: `\
-Abbreviate common terms (DB/auth/config/req/res/fn/impl/dep/env/pkg). \
-Strip conjunctions. Use arrows for causality (X → Y → Z).
-Example: "Inline obj prop → new ref → re-render. \`useMemo\`."`,
+Maximum compression. Abbreviate common terms (DB/auth/config/req/res/fn/impl/dep/env/pkg) \
+after writing them out once. Cut every word that does not change the meaning.
+Keep causal explanations as clauses, not symbol chains: a reader who has to decode \
+"A → B → C" spends more time than the arrows saved. Compression that costs a re-read \
+is not compression.
+Example: "Inline object prop creates a new ref each render, so the child re-renders. \
+Wrap in \`useMemo\`."`,
 };
 
 const SAFETY = `\
@@ -100,7 +104,7 @@ const ANIMATIONS: Record<Exclude<OutputLevel, "off">, Animation> = {
 export const OUTPUT_LEVEL_OPTIONS = [
   { value: "lite", label: "lite", description: "Professional, no fluff" },
   { value: "full", label: "full", description: "Classic terse — fragments, short synonyms" },
-  { value: "ultra", label: "ultra", description: "Maximum compression — abbreviations, arrows" },
+  { value: "ultra", label: "ultra", description: "Maximum compression — abbreviations, no filler" },
   { value: "off", label: "off", description: "Disable output pruning" },
   { value: "stop", label: "stop", description: "Disable output pruning" },
   { value: "quit", label: "quit", description: "Disable output pruning" },

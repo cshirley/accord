@@ -1,14 +1,17 @@
 /**
  * thrift — cut tokens on both sides of the conversation.
  *
- * Barrel export that composes two independent modules:
+ * Barrel export that composes the modules:
  *
- *   input.ts   Reduces INPUT tokens — truncates tool results at source and
- *              stubs stale output from older turns before each LLM call.
- *
- *   output.ts  Reduces OUTPUT tokens — injects a system-prompt fragment that
- *              instructs the model to respond tersely.
- *              Inspired by pi-caveman by @jonjonrankin.
+ *   reducers.ts   Pure structure-aware text reduction (code skeleton, log
+ *                 folding, list trimming). No I/O, no config.
+ *   policy.ts     Pure pruning decisions — what to elide and under how much
+ *                 context pressure.
+ *   artifacts.ts  Spill store plus the `thrift_recall` tool, so every elision
+ *                 stays reversible.
+ *   input.ts      Wires the above into the tool_result and context hooks.
+ *   compaction.ts Feeds pi's summariser reduced input instead of raw prefixes.
+ *   output.ts     Reduces OUTPUT tokens via a terse system-prompt fragment.
  *
  * Config persists to ~/.pi/agent/thrift.json.
  * Output level persists per-session via pi.appendEntry().
@@ -18,17 +21,22 @@
  *   /thrift                  Quick overview (current state)
  *   /thrift on|off           Enable or disable the entire extension
  *   /thrift stats            Show combined pruning statistics
- *   /thrift output [level]   Set output compression (lite/full/ultra/…/off)
+ *   /thrift output [level]   Set output compression (lite/full/ultra/off)
  *   /thrift input [on|off]   Enable or disable input pruning
- *   /thrift ttl [arg]        Inspect/override cache-aware TTL
+ *   /thrift reduce [on|off]  Structure-aware reduction vs plain truncation
+ *   /thrift budget [lo hi]   Inspect/set context-pressure watermarks
+ *   /thrift cache [on|off]   Monotonic (cache-stable) elision decisions
+ *   /thrift recall           List recoverable artifacts
  *   /thrift config           Interactive settings dialog
  */
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { formatSize } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
+import { ArtifactStore } from "./artifacts.js";
+import { registerCompactionSupport } from "./compaction.js";
 import { loadConfig, OUTPUT_LEVELS, type OutputLevel, STOP_ALIASES, saveConfig } from "./config.js";
-import { registerInputPruning } from "./input.js";
+import { type InputStats, registerInputPruning } from "./input.js";
 import { OUTPUT_LEVEL_OPTIONS, registerOutputPruning } from "./output.js";
 
 // Session entry type for output level persistence.
@@ -44,66 +52,62 @@ const SUBCOMMANDS: AutocompleteItem[] = [
   { value: "stats", label: "stats", description: "Show pruning statistics" },
   { value: "output", label: "output", description: "Set output compression level" },
   { value: "input", label: "input", description: "Toggle input pruning (on/off)" },
-  { value: "ttl", label: "ttl", description: "Inspect/override cache-aware TTL" },
+  { value: "reduce", label: "reduce", description: "Structure-aware reduction on/off" },
+  { value: "budget", label: "budget", description: "Context-pressure watermarks" },
+  { value: "cache", label: "cache", description: "Monotonic elision decisions" },
+  { value: "recall", label: "recall", description: "List recoverable artifacts" },
   { value: "config", label: "config", description: "Open settings dialog" },
+];
+
+const ON_OFF: AutocompleteItem[] = [
+  { value: "on", label: "on", description: "Enable" },
+  { value: "off", label: "off", description: "Disable" },
 ];
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function formatDuration(ms: number): string {
-  if (ms <= 0) return "0s";
-  if (ms < 1_000) return `${ms}ms`;
-  if (ms < 60_000) return `${Math.round(ms / 1_000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${(ms / 3_600_000).toFixed(1)}h`;
-}
+const REASON_TEXT: Record<string, string> = {
+  idle: "nothing pruned yet",
+  "disabled-no-history": "no prunable history",
+  "supersede-only": "removed redundant results only",
+  "below-low-water": "below low-water mark, nothing elided",
+  "usage-unknown": "context size unknown, holding steady",
+  engaged: "above high-water mark, eliding",
+  "reclaim-too-small": "too little to reclaim, waiting",
+};
 
-function parseDuration(s: string): number | null {
-  // Accept: "5m", "300s", "30000", "1h", "0" (disable)
-  const m = s.trim().match(/^(\d+(?:\.\d+)?)(ms|s|m|h)?$/);
-  if (!m) return null;
-  const [, numStr, unit] = m;
-  if (numStr === undefined) return null;
-  const n = Number.parseFloat(numStr);
-  switch (unit) {
-    case "h":
-      return n * 3_600_000;
-    case "m":
-      return n * 60_000;
-    case "s":
-      return n * 1_000;
-    case "ms":
-      return n;
-    default:
-      return n; // bare number = ms
-  }
+/** Context fill, flagged when it came from thrift's own measurement rather
+ *  than the host, since the two deserve different amounts of trust. */
+function formatFill(stats: InputStats): string {
+  if (stats.lastPercent === null) return "unknown";
+  const pct = `${Math.round(stats.lastPercent)}%`;
+  return stats.lastEstimated ? `${pct} (estimated, host reports no usage)` : pct;
 }
 
 // ── Extension ───────────────────────────────────────────────────────────
 
 export default async function (pi: ExtensionAPI) {
-  // ── Load persistent config (async factory — awaited before session_start)
   const config = await loadConfig();
+  const store = new ArtifactStore();
 
-  // ── Wire up both modules against the same config object ──────────────
-  const inputStats = registerInputPruning(pi, config);
+  const inputStats = registerInputPruning(pi, config, store);
   const output = registerOutputPruning(pi, config);
+  registerCompactionSupport(pi, config, inputStats);
 
-  // ── Provider switch: invalidate cache-aware decision state ───────────
-  // The new provider has its own (empty) prompt cache, so any sticky
-  // decisions we accumulated for the previous provider are meaningless.
-  // input.ts also detects this on the next context call, but resetting
-  // here keeps /tp ttl output honest in the gap between switch and call.
+  // A new provider has its own empty prompt cache, so decisions tuned to keep
+  // the previous provider's prefix stable are worthless. Drop them and let the
+  // planner rebuild against the new cache.
   pi.on("model_select", (event) => {
     if (!config.enabled) return;
     const prev = event.previousModel?.provider;
     const next = event.model.provider;
     if (prev !== undefined && prev !== next) {
-      inputStats.cache.decisions.clear();
-      inputStats.cache.lastRequestTime = 0;
-      inputStats.cache.lastProvider = next;
-      inputStats.cache.lastCacheAlive = false;
+      inputStats.state = { decisions: new Map(), engaged: false };
     }
+  });
+
+  pi.on("session_shutdown", async () => {
+    await store.dispose();
   });
 
   function clearAllStatus(ctx: Pick<ExtensionContext, "ui">) {
@@ -129,10 +133,8 @@ export default async function (pi: ExtensionAPI) {
     }
 
     if (restoredLevel !== null) {
-      // Resuming a session — use the persisted level
       output.setLevel(restoredLevel as OutputLevel);
     } else if (config.output.level !== "off") {
-      // New session — apply config default and persist it
       output.setLevel(config.output.level);
       pi.appendEntry(OUTPUT_LEVEL_ENTRY, { level: config.output.level });
     }
@@ -140,57 +142,38 @@ export default async function (pi: ExtensionAPI) {
     output.syncStatus(ctx);
   });
 
-  // ── Unified command: /thrift [subcommand] [args] ───────────────
+  // ── Unified command: /thrift [subcommand] [args] ─────────────────────
 
   function registerNamespacedCommand(name: string) {
     pi.registerCommand(name, {
-      description: "thrift: on|off | stats | output [level] | input [on|off] | ttl | config",
+      description:
+        "thrift: on|off | stats | output [level] | input | reduce | budget | cache | recall | config",
       getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
         const parts = prefix.trimStart().split(/\s+/);
 
-        // First word: subcommand
         if (parts.length <= 1) {
           const filtered = SUBCOMMANDS.filter((s) => s.value.startsWith(parts[0] ?? ""));
           return filtered.length > 0 ? filtered : null;
         }
 
-        // Second word: subcommand-specific values
         const sub = parts[0]?.toLowerCase();
+        const p = parts[1] ?? "";
 
-        if (sub === "output") {
-          const p = parts[1] ?? "";
-          const items = OUTPUT_LEVEL_OPTIONS.filter((o) => o.value.startsWith(p)).map((o) => ({
-            ...o,
-            value: `output ${o.value}`,
-          }));
-          return items.length > 0 ? items : null;
-        }
-
-        if (sub === "ttl") {
-          const p = parts[1] ?? "";
-          const items = [
-            { value: "on", label: "on", description: "Enable cache-aware stubbing" },
-            { value: "off", label: "off", description: "Disable cache-aware stubbing" },
-            { value: "5m", label: "5m", description: "Set default TTL to 5 minutes" },
-            { value: "10m", label: "10m", description: "Set default TTL to 10 minutes" },
-            { value: "1h", label: "1h", description: "Set default TTL to 1 hour" },
-          ]
+        const scoped = (items: AutocompleteItem[]): AutocompleteItem[] | null => {
+          const filtered = items
             .filter((o) => o.value.startsWith(p))
-            .map((o) => ({ ...o, value: `ttl ${o.value}` }));
-          return items.length > 0 ? items : null;
-        }
+            .map((o) => ({ ...o, value: `${sub} ${o.value}` }));
+          return filtered.length > 0 ? filtered : null;
+        };
 
-        if (sub === "input") {
-          const p = parts[1] ?? "";
-          const items = [
-            { value: "on", label: "on", description: "Enable input pruning" },
-            { value: "off", label: "off", description: "Disable input pruning" },
-          ]
-            .filter((o) => o.value.startsWith(p))
-            .map((o) => ({ ...o, value: `input ${o.value}` }));
-          return items.length > 0 ? items : null;
+        if (sub === "output") return scoped([...OUTPUT_LEVEL_OPTIONS]);
+        if (sub === "input" || sub === "reduce") return scoped(ON_OFF);
+        if (sub === "cache") {
+          return scoped([
+            ...ON_OFF,
+            { value: "reset", label: "reset", description: "Clear elision decisions" },
+          ]);
         }
-
         return null;
       },
 
@@ -199,7 +182,7 @@ export default async function (pi: ExtensionAPI) {
         const sub = parts[0]?.toLowerCase() ?? "";
         const arg = parts[1]?.toLowerCase() ?? "";
 
-        // ── /thrift on|off → master enable/disable ──────────────
+        // ── /thrift on|off → master enable/disable ──────────────────────
         if (sub === "on" || sub === "off") {
           config.enabled = sub === "on";
           await saveConfig(config);
@@ -215,54 +198,32 @@ export default async function (pi: ExtensionAPI) {
           return;
         }
 
-        // ── /thrift (no subcommand) → quick overview ──────────────
+        // ── /thrift (no subcommand) → quick overview ────────────────────
         if (!sub) {
-          const enabledStr = config.enabled ? "on" : "OFF";
-          const inputStatus = config.input.enabled ? "on" : "off";
-          const outputLevel = output.getLevel();
-          const provider = ctx.model?.provider ?? "unknown";
-          const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
-          const cacheLine = !config.input.cacheAware
-            ? "off"
-            : ttl <= 0
-              ? `n/a (${provider})`
-              : inputStats.cache.lastCacheAlive
-                ? `\u{1F525} warm (${provider}, ${formatDuration(ttl)})`
-                : `\u2744 cold  (${provider}, ${formatDuration(ttl)})`;
+          const pct = formatFill(inputStats);
           ctx.ui.notify(
             [
               "thrift",
-              `  enabled: ${enabledStr}`,
-              `  input:   ${inputStatus}`,
-              `  output:  ${outputLevel}`,
-              `  cache:   ${cacheLine}`,
+              `  enabled: ${config.enabled ? "on" : "OFF"}`,
+              `  input:   ${config.input.enabled ? "on" : "off"} (reduce ${config.input.reduce ? "on" : "off"})`,
+              `  output:  ${output.getLevel()}`,
+              `  context: ${pct} of window — ${REASON_TEXT[inputStats.lastReason] ?? inputStats.lastReason}`,
+              `  budget:  elide above ${config.input.highWaterPercent}%, down to ${config.input.lowWaterPercent}%`,
+              `  recall:  ${store.size} artifacts (${formatSize(store.totalBytes)})`,
               "",
-              "Subcommands: on, off, stats, output, input, ttl, config",
+              "Subcommands: on, off, stats, output, input, reduce, budget, cache, recall, config",
             ].join("\n"),
             "info",
           );
           return;
         }
 
-        // ── stats ───────────────────────────────────────────────────
+        // ── stats ───────────────────────────────────────────────────────
         if (sub === "stats") {
           const limits = Object.entries(config.input.maxResultBytes)
             .map(([tool, bytes]) => `${tool}=${formatSize(bytes)}`)
             .join(", ");
-
-          const provider = ctx.model?.provider ?? "unknown";
-          const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
-          const lastReq = inputStats.cache.lastRequestTime;
-          const sinceMs = lastReq > 0 ? Date.now() - lastReq : -1;
-          const cacheLine = !config.input.cacheAware
-            ? "off (decisions recomputed every call)"
-            : ttl <= 0
-              ? `n/a (no cache TTL configured for ${provider})`
-              : lastReq === 0
-                ? `cold (no requests yet, TTL ${formatDuration(ttl)})`
-                : sinceMs < ttl
-                  ? `🔥 warm (${formatDuration(sinceMs)} since last req, TTL ${formatDuration(ttl)})`
-                  : `❄ expired (${formatDuration(sinceMs)} since last req, TTL ${formatDuration(ttl)})`;
+          const pct = formatFill(inputStats);
 
           ctx.ui.notify(
             [
@@ -270,24 +231,39 @@ export default async function (pi: ExtensionAPI) {
               "",
               `  Output level:  ${output.getLevel()}`,
               `  Input pruning: ${config.input.enabled ? "on" : "off"}`,
+              `  Reduction:     ${config.input.reduce ? "structure-aware" : "plain truncation"}`,
               "",
-              "  Input — source truncation (tool_result):",
-              `    ${inputStats.sourceResultsPruned} results truncated`,
-              `    ${formatSize(inputStats.sourceBytesSaved)} saved (permanent)`,
+              "  At source (tool_result):",
+              `    ${inputStats.sourceResultsReduced} results reduced`,
+              `    ${formatSize(inputStats.sourceBytesSaved)} saved (permanent, recoverable)`,
               "",
-              "  Input — context pruning (per LLM call):",
-              `    ${inputStats.lastContextStubbed} stubs on last call`,
-              `    ~${formatSize(inputStats.lastContextBytesSaved)} saved on last call`,
-              `    ${inputStats.cache.decisions.size} sticky decisions in cache window`,
+              "  Per LLM call (context):",
+              `    ${inputStats.lastContextSuperseded} redundant results collapsed`,
+              `    ${inputStats.lastContextStubbed} stale results elided`,
+              `    ~${formatSize(inputStats.lastContextBytesSaved)} not sent on last call`,
+              ...(inputStats.lastContextHeldBack > 0
+                ? [`    ${inputStats.lastContextHeldBack} kept whole — could not be spilled`]
+                : []),
               "",
-              "  Cache awareness:",
-              `    Provider:  ${provider}`,
-              `    State:     ${cacheLine}`,
+              "  Pressure:",
+              `    Context fill:  ${pct}`,
+              `    Watermarks:    engage ${config.input.highWaterPercent}%, release ${config.input.lowWaterPercent}%`,
+              `    State:         ${inputStats.state.engaged ? "engaged" : "idle"} — ${REASON_TEXT[inputStats.lastReason] ?? inputStats.lastReason}`,
+              `    Decisions:     ${inputStats.state.decisions.size} tracked`,
+              "",
+              "  Recall:",
+              `    ${store.size} artifacts held (${formatSize(store.totalBytes)})`,
+              ...(store.failures > 0
+                ? [
+                    `    ${store.failures} spills failed — those results were left whole`,
+                    `    Last error: ${store.lastError}`,
+                  ]
+                : []),
               "",
               "  Config:",
               `    Keep recent turns: ${config.input.keepRecentTurns}`,
               `    Stub threshold:    ${formatSize(config.input.stubThresholdBytes)}`,
-              `    Source limits:     ${limits}`,
+              `    Reduce above:      ${limits}`,
               `    File: ~/.pi/agent/thrift.json`,
             ].join("\n"),
             "info",
@@ -295,73 +271,113 @@ export default async function (pi: ExtensionAPI) {
           return;
         }
 
-        // ── ttl [on|off|<duration>] ────────────────────────────────
-        if (sub === "ttl") {
-          const provider = ctx.model?.provider ?? "unknown";
-          const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
-          const lastReq = inputStats.cache.lastRequestTime;
-          const sinceMs = lastReq > 0 ? Date.now() - lastReq : -1;
-
+        // ── budget [low high] ───────────────────────────────────────────
+        if (sub === "budget") {
           if (!arg) {
-            // Status only
-            const lines = [
-              "── cache-aware TTL ──",
-              "",
-              `  Cache aware:   ${config.input.cacheAware ? "on" : "off"}`,
-              `  Active provider: ${provider}`,
-              `  TTL for provider: ${formatDuration(ttl)}${ttl <= 0 ? " (disabled)" : ""}`,
-              `  Default TTL:   ${formatDuration(config.input.defaultTTL)}`,
-              `  Last request:  ${lastReq === 0 ? "never" : `${formatDuration(sinceMs)} ago`}`,
-              `  Cache state:   ${inputStats.cache.lastCacheAlive ? "🔥 warm" : "❄ cold"}`,
-              `  Sticky decisions: ${inputStats.cache.decisions.size}`,
-              "",
-              "  Usage:",
-              "    /tp ttl on|off          Toggle cache-aware stubbing",
-              "    /tp ttl <duration>      Set default TTL (e.g. 5m, 30s, 1h, 0 to disable)",
-              "    /tp ttl reset           Clear sticky decisions and last-request timestamp",
-            ];
-            ctx.ui.notify(lines.join("\n"), "info");
+            ctx.ui.notify(
+              [
+                "── context-pressure budget ──",
+                "",
+                `  Engage elision at: ${config.input.highWaterPercent}% of context window`,
+                `  Reclaim down to:   ${config.input.lowWaterPercent}%`,
+                `  Minimum reclaim:   ${config.input.minReclaimPercent}% before engaging`,
+                "",
+                "  Below the low mark nothing is elided for pressure. Results",
+                "  superseded by later work are still collapsed at any fill, and",
+                "  everything removed stays recoverable with thrift_recall.",
+                "",
+                "  Usage: /tp budget <low> <high>   e.g. /tp budget 55 75",
+              ].join("\n"),
+              "info",
+            );
             return;
           }
 
-          if (arg === "on" || arg === "off") {
-            config.input.cacheAware = arg === "on";
-            await saveConfig(config);
-            ctx.ui.notify(`Cache-aware stubbing ${arg}.`, "info");
+          const low = Number.parseInt(arg, 10);
+          const high = Number.parseInt(parts[2] ?? "", 10);
+          if (!Number.isFinite(low) || !Number.isFinite(high)) {
+            ctx.ui.notify("Usage: /tp budget <low> <high>, e.g. /tp budget 55 75", "error");
+            return;
+          }
+          if (low < 0 || high > 100 || low >= high) {
+            ctx.ui.notify(`Need 0 <= low < high <= 100. Got low=${low}, high=${high}.`, "error");
+            return;
+          }
+
+          config.input.lowWaterPercent = low;
+          config.input.highWaterPercent = high;
+          await saveConfig(config);
+          ctx.ui.notify(`Elide above ${high}% of context, reclaim down to ${low}%.`, "info");
+          return;
+        }
+
+        // ── cache [on|off|reset] ────────────────────────────────────────
+        if (sub === "cache" || sub === "ttl") {
+          if (!arg) {
+            ctx.ui.notify(
+              [
+                "── monotonic elision ──",
+                "",
+                `  Monotonic: ${config.input.monotonic ? "on" : "off"}`,
+                `  Decisions: ${inputStats.state.decisions.size} tracked`,
+                `  State:     ${inputStats.state.engaged ? "engaged" : "idle"}`,
+                "",
+                "  Once a result is elided it stays elided. Prompt caches match",
+                "  on prefixes, so a decision that flips back invalidates the",
+                "  cache twice and changes what the model thinks it has seen.",
+                "",
+                "  Usage: /tp cache on|off|reset",
+              ].join("\n"),
+              "info",
+            );
             return;
           }
 
           if (arg === "reset" || arg === "clear") {
-            inputStats.cache.decisions.clear();
-            inputStats.cache.lastRequestTime = 0;
-            inputStats.cache.lastCacheAlive = false;
-            ctx.ui.notify("Cache-aware state reset.", "info");
+            inputStats.state = { decisions: new Map(), engaged: false };
+            ctx.ui.notify("Elision decisions cleared.", "info");
             return;
           }
 
-          const parsed = parseDuration(arg);
-          if (parsed === null || parsed < 0) {
-            ctx.ui.notify(
-              `Invalid TTL: "${arg}". Use on/off, reset, or a duration like 5m, 30s, 1h, 0.`,
-              "error",
-            );
+          if (arg !== "on" && arg !== "off") {
+            ctx.ui.notify(`Unknown: "${arg}". Use: on, off, reset`, "error");
             return;
           }
-          config.input.defaultTTL = parsed;
+
+          config.input.monotonic = arg === "on";
           await saveConfig(config);
+          ctx.ui.notify(`Monotonic elision ${arg}.`, "info");
+          return;
+        }
+
+        // ── recall ──────────────────────────────────────────────────────
+        if (sub === "recall") {
+          const artifacts = store.list();
+          if (artifacts.length === 0) {
+            ctx.ui.notify("No artifacts held — nothing has been elided yet.", "info");
+            return;
+          }
+          const rows = artifacts
+            .slice(0, 20)
+            .map((a) => `  ${a.ref}  ${formatSize(a.bytes).padStart(8)}  ${a.label}`);
           ctx.ui.notify(
-            `Default TTL set to ${formatDuration(parsed)}${parsed === 0 ? " (cache-aware disabled by default)" : ""}.`,
+            [
+              `── recoverable artifacts (${artifacts.length}) ──`,
+              "",
+              ...rows,
+              "",
+              '  The model recovers any of these with thrift_recall(ref="...").',
+            ].join("\n"),
             "info",
           );
           return;
         }
 
-        // ── output [level|stop] ─────────────────────────────────────
+        // ── output [level|stop] ─────────────────────────────────────────
         if (sub === "output") {
           let newLevel: OutputLevel;
 
           if (!arg) {
-            // Toggle
             newLevel = output.getLevel() === "off" ? "full" : "off";
           } else if (STOP_ALIASES.has(arg)) {
             newLevel = "off";
@@ -383,43 +399,47 @@ export default async function (pi: ExtensionAPI) {
           return;
         }
 
-        // ── input [on|off] ──────────────────────────────────────────
-        if (sub === "input") {
-          if (!arg) {
-            config.input.enabled = !config.input.enabled;
-          } else if (arg === "on") {
-            config.input.enabled = true;
-          } else if (arg === "off") {
-            config.input.enabled = false;
-          } else {
+        // ── input [on|off] / reduce [on|off] ────────────────────────────
+        if (sub === "input" || sub === "reduce") {
+          const current = sub === "input" ? config.input.enabled : config.input.reduce;
+          let next: boolean;
+
+          if (!arg) next = !current;
+          else if (arg === "on") next = true;
+          else if (arg === "off") next = false;
+          else {
             ctx.ui.notify(`Unknown: "${arg}". Use: on, off`, "error");
             return;
           }
 
-          if (!config.input.enabled) {
-            ctx.ui.setStatus("thrift", "");
-          }
+          if (sub === "input") config.input.enabled = next;
+          else config.input.reduce = next;
+          await saveConfig(config);
 
-          ctx.ui.notify(`Input pruning ${config.input.enabled ? "on" : "off"}.`, "info");
+          if (sub === "input" && !next) ctx.ui.setStatus("thrift", "");
+          ctx.ui.notify(
+            sub === "input"
+              ? `Input pruning ${next ? "on" : "off"}.`
+              : `Reduction: ${next ? "structure-aware" : "plain truncation"}.`,
+            "info",
+          );
           return;
         }
 
-        // ── config ──────────────────────────────────────────────────
+        // ── config ──────────────────────────────────────────────────────
         if (sub === "config") {
           await output.openConfig(ctx);
           return;
         }
 
-        // ── Unknown subcommand ──────────────────────────────────────
         ctx.ui.notify(
-          `Unknown subcommand: "${sub}". Use: on, off, stats, output, input, ttl, config`,
+          `Unknown subcommand: "${sub}". Use: on, off, stats, output, input, reduce, budget, cache, recall, config`,
           "error",
         );
       },
     });
   }
 
-  // Register both the full name and the short alias
   registerNamespacedCommand("thrift");
   registerNamespacedCommand("tp");
 }

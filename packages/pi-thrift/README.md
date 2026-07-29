@@ -1,9 +1,12 @@
 # thrift
 
 A [pi](https://pi.dev) extension that reduces token usage on **both sides** of
-the conversation — fewer tokens in, fewer tokens out. Cache-aware: monotonic
-stubbing keeps the prefix byte-identical within the provider's prompt-cache
-TTL window so cache hits compound.
+the conversation — fewer tokens in, fewer tokens out.
+
+The guiding rule is that compression should not cost fidelity. Two things make
+that possible: nothing is elided until the context window is actually under
+pressure, and everything that is elided stays recoverable through
+`thrift_recall`.
 
 ## How it works
 
@@ -11,22 +14,35 @@ TTL window so cache hits compound.
 flowchart TB
   subgraph inPath["Input path (fewer tokens in)"]
     direction LR
-    TR["Tool results (bash, read, …)"] --> IN["input.ts: truncate at source, stub old turns"] --> CTX["Smaller context to LLM"]
+    TR["Tool results"] --> RED["reducers.ts: structure-aware reduction"]
+    RED --> POL["policy.ts: pressure-gated elision"]
+    POL --> CTX["Smaller context to LLM"]
+    RED -.spill.-> ART[("artifacts.ts")]
+    POL -.spill.-> ART
+    ART -.thrift_recall.-> CTX
   end
   subgraph outPath["Output path (fewer tokens out)"]
     direction LR
-    INJ["Terse system-prompt injection"] --> OUT["output.ts: denser phrasing"] --> RESP["LLM responses"]
+    INJ["Terse system-prompt injection"] --> OUT["output.ts"] --> RESP["LLM responses"]
   end
 ```
 
-| Module | Target | Mechanism | Typical saving |
-|--------|--------|-----------|----------------|
-| `input.ts` | Input tokens | `tool_result` + `context` hooks | 60–80% of tool output |
-| `output.ts` | Output tokens | `before_agent_start` system prompt | ~75% of response text |
+| Module | Role |
+|--------|------|
+| `reducers.ts` | Pure text reduction — code skeletons, log folding, list trimming |
+| `policy.ts` | Pure decisions — what to elide, and under how much pressure |
+| `artifacts.ts` | Spill store and the `thrift_recall` tool |
+| `input.ts` | Wires the above into the `tool_result` and `context` hooks |
+| `compaction.ts` | Feeds pi's summariser reduced input |
+| `output.ts` | Terse-mode system prompt |
+
+`reducers.ts` and `policy.ts` are pure and dependency-free, so the interesting
+behaviour is testable without a live session.
 
 ## Installation
 
-When developing this repo, thrift is loaded via `@clive.shirley/pi-accord` (`package.json` → `pi.extensions`).
+When developing this repo, thrift is loaded via `@clive.shirley/pi-accord`
+(`package.json` → `pi.extensions`).
 
 To test the thrift entry file in isolation:
 
@@ -41,156 +57,169 @@ All commands live under `/thrift` (alias `/tp`):
 ```
 /tp                     Quick status overview
 /tp on|off              Enable or disable the entire extension
-/tp stats               Pruning statistics for this session
+/tp stats               Detailed statistics for this session
 /tp output [level]      Set output compression (toggle if no arg)
-/tp input [on|off]      Toggle input pruning (toggle if no arg)
-/tp ttl [arg]           Inspect/control cache-aware TTL
+/tp input [on|off]      Toggle input pruning
+/tp reduce [on|off]     Structure-aware reduction vs plain truncation
+/tp budget [low high]   Inspect or set context-pressure watermarks
+/tp cache [on|off]      Monotonic (cache-stable) elision decisions
+/tp recall              List recoverable artifacts
 /tp config              Interactive settings dialog
 ```
 
 Tab-completion works at both the subcommand and argument level.
 
-## Input pruning (`input.ts`)
+## Recoverable elision
 
-### Strategy A — truncate at source (`tool_result` hook)
-
-When a tool result exceeds the configured byte limit, it is truncated
-**before** being stored in the session.  The truncation is permanent — the
-oversized output never enters the context window.
-
-| Tool | Default limit | Truncation direction |
-|------|---------------|---------------------|
-| `bash` | 10 KB | **Tail** — keeps exit codes, errors, final output |
-| `read` | 40 KB | **Head** — keeps imports, declarations, file start |
-| `grep` | 5 KB | **Head** — keeps first matches |
-| `find` | 5 KB | **Head** — keeps first results |
-| `ls` | 5 KB | **Head** — keeps first entries |
-
-A notice is appended so the LLM knows output was trimmed:
+Everything thrift removes is written to a temp file first, and the replacement
+text carries a short ref:
 
 ```
-[thrift: 120/2400 lines (5.0KB/48.2KB). 2280 lines (43.2KB) omitted.]
+[thrift: reduced to 3.1KB of 47.2KB (1165 lines). Full output: thrift_recall(ref="a3f9c10b2e4d7761").]
 ```
 
-For `read` results, the notice also includes an instruction to re-read with
-`offset`/`limit` before editing beyond the truncation point — preventing
-`edit` failures from stale/missing content.
+The model calls `thrift_recall(ref, offset?, limit?)` to page any of it back,
+so compression is lossless-with-latency rather than lossy. This is what makes
+it safe to reduce harder than the previous design did. pi's own `bash` tool
+already works this way; thrift generalises it to every tool it touches.
 
-Error results (`isError: true`) are never truncated — the LLM needs full
-diagnostics.
+A single recall returns at most 400 lines, so recovering an artifact cannot
+reopen the context window it was closing.
 
-### Strategy B — stub old turns (`context` hook)
+The spill comes first, and nothing is removed until it succeeds. If the write
+fails — a full disk, a read-only temp directory — thrift leaves the result whole
+and tries again on the next call, because an unrecoverable stub is a worse
+outcome than the tokens it would have saved. `/tp stats` reports any spills that
+failed. A result already reduced at source keeps pointing at that first
+artifact when it is later elided, so recovery is always one call rather than a
+chase through refs.
 
-Before each LLM call, tool results from turns older than `keepRecentTurns`
-(default **3**) are replaced with compact one-line stubs:
+Artifacts live in `$TMPDIR/pi-thrift-<pid>/` (mode 0700, since they hold
+verbatim file contents) and are deleted on session shutdown. They are
+content-addressed, so the same output stored twice costs one file. The store
+holds at most 512MB, evicting oldest-first; ordinary sessions stay far below
+that, and a recall for an evicted ref says so rather than failing obscurely.
 
-```
-[bash output — 150 lines, pruned from older turn]
-```
+## Input reduction
 
-This runs on a deep copy of the messages — the stored session is unchanged.
-Only `toolResult` messages for the configured tools are affected; user,
-assistant, compaction summaries, and branch summaries are left alone.
+### Stage 1 — reduce at source (`tool_result`)
 
-**Turn counting:** walks backwards from the newest message. Each user message
-increments the counter. Once `keepRecentTurns` user messages have been passed,
-everything before that cutoff is eligible for stubbing.
+When a result crosses its size threshold it is reduced **before** being stored
+in the session, so the saving is permanent. The reducer is chosen by tool:
 
-Results smaller than `stubThresholdBytes` (default 200) are left as-is.
+| Tool | Reducer | What survives |
+|------|---------|---------------|
+| `read` (code) | Declaration skeleton | Imports, exports, types, signatures, doc comments — including at the end of the file |
+| `read` (prose) | Log reduction | Head-weighted window |
+| `bash` | Log reduction | Both ends, ANSI stripped, repeats folded, blobs elided |
+| `grep`, `find`, `ls` | Entry trim | Whole entries plus an exact count of the remainder |
 
-### Why both strategies together
+Structure-aware reduction is the main fidelity win over byte truncation. Cutting
+a source file at a byte offset discards the end of the file; a skeleton keeps
+every symbol the file defines, in a fraction of the space, so the model can still
+tell whether it needs to read further.
 
-| Strategy alone | Catches | Misses |
-|----------------|---------|--------|
-| A (truncate at source) | Oversized individual results | Reasonable results that accumulate over many turns |
-| B (stub old turns) | Accumulated stale output | Current-turn results that are needlessly large |
-| **A + B** | Both | — |
+Two results are never touched: errors, because diagnostics are exactly what
+context is for, and reads where the model supplied its own `offset` or `limit`,
+because that is the model narrowing its own request and re-reducing it would
+corrupt the line numbering it just asked for.
 
-### Cache awareness (`cacheAware: true`, default on)
+Set `reduce: false` to fall back to plain head/tail truncation.
 
-Naive strategy B re-stubs older turns on every call — which mutates the
-request prefix and **invalidates the provider's prompt cache** the moment
-a turn transitions from "recent" to "old". On a long session this means
-you pay full input pricing every turn instead of cache-hit pricing.
+### Stage 2 — elide before each call (`context`)
 
-With `cacheAware` enabled, stubbing decisions become **monotonic within
-the cache TTL window**:
+This runs on a deep copy of the messages, so the stored session is unchanged and
+compaction still sees everything.
 
-```mermaid
-flowchart LR
-  subgraph warm["Within TTL (~5 min idle window)"]
-    direction LR
-    t1["turns 1-7:<br/>results kept full"] --> note1["cache hits compound"]
-  end
-  warm -->|TTL elapses| cold["After gap:<br/>turn 8+ may re-stub"]
-  cold --> note2["prefix was cold anyway"]
-```
+**Supersession runs at any pressure.** An identical inspection call repeated
+later supersedes its earlier copies, and a `read` is superseded by any later
+write to the same path — a stale copy is worse than no copy, because it invites
+the model to act on text that is no longer on disk. Writes are detected from the
+editing tools and, best-effort, from shell commands: a redirect names its target
+directly, and `rm`/`mv`/`sed -i`/`patch` and friends mark any tracked path they
+mention.
 
-Mechanism:
+Repeated `bash` calls are deliberately exempt. Running the same command twice is
+usually a before-and-after comparison, and there the earlier output is the half
+that carries the information.
 
-1. Every outgoing LLM request stamps `lastRequestTime`.
-2. The active provider's TTL is looked up in `providerTTLs` (or
-   `defaultTTL` as fallback).
-3. On the `context` hook:
-   - **Cache warm** (`now - lastRequestTime < TTL`): every prior
-     stub/keep decision is replayed verbatim. Only newly added tool
-     results get a fresh decision via the `keepRecentTurns` rule.
-     The historical prefix bytes are byte-identical to the previous
-     call → max cache hit.
-   - **Cache cold** (TTL elapsed, provider switched, or first call):
-     the decision map is wiped and the standard `keepRecentTurns` rule
-     is applied from scratch. Cache was dead anyway, so being
-     aggressive costs nothing.
-4. `model_select` clears the decision map (the new provider has its
-   own empty cache).
+Supersession does not compare message bodies, so "identical call" is a judgement
+that the newer result is the one worth keeping, not a proof that the older one
+was a duplicate. That is why superseded results are spilled like everything
+else.
 
-Default TTLs (milliseconds):
+**Stubbing is lossy and pressure-gated.** Nothing is stubbed until context
+crosses `highWaterPercent`; then oldest-first stubbing runs until the projection
+falls back to `lowWaterPercent`. Below the low mark nothing is elided for
+pressure.
 
-| Provider | TTL | Notes |
-|----------|-----|-------|
-| `anthropic` | 5 min | Standard ephemeral prompt cache |
-| `openai` | 10 min | Sliding cached-input window |
-| `openrouter` | 5 min | Varies by underlying model |
-| `google`, `groq`, `cerebras`, `xai` | 0 | No stable cache TTL → cache-aware effectively off |
-| (anything else) | `defaultTTL` (5 min) | |
+Results inside the last `keepRecentTurns` turns are never stubbed at any
+pressure, and neither are results below `stubThresholdBytes`.
 
-Footer glyph (when `showStatus` is on):
+### Why pressure gating matters
 
-- `🔥` cache warm — sticky decisions, prefix preserved
-- `❄`  cache cold — fresh pruning pass
+The previous design stubbed everything older than three turns on every call,
+whether the context was 5% or 95% full. In a short session that destroyed
+information for no benefit at all. Pruning that only activates near the budget
+has zero fidelity cost in the common case, which makes it the cheapest
+improvement available.
 
-### Manual control
+Hosts that expose no usage API get the same treatment rather than a separate
+rule: thrift measures the conversation and runs the watermarks against
+`assumedContextWindowTokens`. The estimate errs on the small side, since
+pruning slightly early costs a recall while pruning too late costs the request.
+`/tp stats` marks a reading taken this way as estimated.
 
-```
-/tp ttl              Show provider, TTL, time-since-last-req, sticky-decision count
-/tp ttl on|off       Toggle cache-aware monotonic stubbing
-/tp ttl 5m|30s|1h|0  Override defaultTTL (0 disables cache-aware globally)
-/tp ttl reset        Clear sticky decisions and lastRequestTime
-```
+### Monotonic decisions (`monotonic: true`, default on)
 
-## Output pruning (`output.ts`)
+Once a result is elided it is never restored. Provider prompt caches match on
+prefixes, so a decision that flips back and forth invalidates the cache twice
+and changes what the model believes it has already seen.
 
-Injects a system-prompt fragment via `before_agent_start` that instructs the
-LLM to maximise information density.  Inspired by
+The gap between the two watermarks provides batching: pruning advances in
+occasional large steps rather than nibbling every turn, so each cache
+invalidation buys a lot of room instead of a little.
+
+This replaces the earlier TTL scheme, which tied pruning to how long the session
+had sat idle rather than to how much there was to gain. An existing
+`cacheAware` setting is migrated to `monotonic` on load; `providerTTLs` and
+`defaultTTL` are dropped, since the frontier no longer advances on elapsed time.
+
+## Compaction
+
+pi summarises by serialising the conversation and cutting every tool result at
+2000 characters — for a large file read, that means summarising from the licence
+header and imports. Thrift runs its reducers over the messages bound for the
+summariser first, so the cut lands on a skeleton or a folded log instead of a
+raw prefix.
+
+Thrift enriches pi's input rather than replacing compaction, which keeps model
+selection, credentials and the summary format where they belong.
+
+Reduction here spills first, exactly as the other two stages do. The messages
+carried past a compaction survive into the next context, so a block reduced
+without a recall ref would be content nothing could bring back.
+
+## Output reduction (`output.ts`)
+
+Injects a system-prompt fragment via `before_agent_start` instructing the model
+to maximise information density. Inspired by
 [pi-caveman](https://github.com/jonjonrankin/pi-caveman) by @jonjonrankin.
 
-### Levels
+| Level | Style |
+|-------|-------|
+| `off` | Normal verbosity |
+| `lite` | Professional, no fluff. Full sentences. |
+| `full` | Drop articles, fragments OK. |
+| `ultra` | Abbreviations, every non-load-bearing word cut. |
 
-| Level | Style | Example |
-|-------|-------|---------|
-| `off` | Normal verbosity | *"Sure! I'd be happy to help. The issue is likely caused by…"* |
-| `lite` | Professional, no fluff. Full sentences. | *"Component re-renders because a new object reference is created each render."* |
-| `full` | Drop articles, fragments OK. | *"New object ref each render. Inline prop = new ref = re-render."* |
-| `ultra` | Abbreviations, arrows for causality. | *"Inline obj prop → new ref → re-render. `useMemo`."* |
+`ultra` no longer asks for arrow chains (`A → B → C`). Compression that costs
+the reader a re-read is not compression.
 
-### Safety guardrails
-
-The prompt includes an auto-clarity rule: the LLM temporarily drops terse mode
-for security warnings, irreversible-action confirmations, or when the user
-appears confused.  It resumes after.
-
-Code, commands, file paths, error messages, and config values are never
-compressed — only natural-language explanations.
+Code, commands, file paths, error messages and config values are never
+compressed — only natural-language explanation. The prompt also carries an
+auto-clarity rule: the model drops terse mode for security warnings,
+irreversible-action confirmations, or when the user seems confused.
 
 ## Configuration
 
@@ -198,68 +227,63 @@ Settings persist to `~/.pi/agent/thrift.json`:
 
 ```jsonc
 {
-  "enabled": true,                 // master switch — false disables all pruning
+  "enabled": true,
   "input": {
     "enabled": true,
-    "maxResultBytes": {
-      "bash": 10000,
-      "read": 20000,
-      "grep": 5000,
-      "find": 5000,
-      "ls": 5000
+    "maxResultBytes": {          // reduce above this size, per tool
+      "bash": 16000,
+      "read": 48000,
+      "grep": 8000,
+      "find": 8000,
+      "ls": 8000
     },
-    "maxResultLines": 500,
+    "maxResultLines": 2000,      // backstop after reduction; matches pi's own
+    "maxListEntries": 200,
+    "reduce": true,              // false = plain head/tail truncation
     "keepRecentTurns": 3,
-    "stubThresholdBytes": 200,
-    "cacheAware": true,
-    "providerTTLs": {
-      "anthropic": 300000,
-      "openai": 600000,
-      "openrouter": 300000,
-      "google": 0,
-      "groq": 0,
-      "cerebras": 0,
-      "xai": 0,
-      "local-openai": 0
-    },
-    "defaultTTL": 300000
+    "stubThresholdBytes": 400,
+    "lowWaterPercent": 55,       // elide nothing below this fill
+    "highWaterPercent": 75,      // engage elision at this fill
+    "minReclaimPercent": 8,      // don't engage for a trivial gain
+    "assumedContextWindowTokens": 128000,  // used when the host reports no usage
+    "monotonic": true
   },
   "output": {
-    "level": "full"          // default for new sessions
+    "level": "full"
   },
-  "showStatus": true         // footer status indicators
+  "showStatus": true
 }
 ```
 
+`maxResultLines` was previously 500, which made the line limit bind long before
+any byte limit did and silently halved every large read. It now matches pi's own
+2000-line ceiling, so thrift's own thresholds are what govern.
+
 The output level is also persisted **per-session** via `pi.appendEntry()`, so
-resuming a session restores the level it was using.  The config file sets the
+resuming a session restores the level it was using. The config file sets the
 default for *new* sessions.
 
-### Interactive config
-
-`/tp config` opens a dialog to change the default output level and toggle
-status indicators.  Changes are saved immediately.
-
-For input limits, edit the JSON file directly and `/reload`.
+`/tp config` opens a dialog for the output level and status indicators. For
+input limits, edit the JSON and `/reload`.
 
 ## Status indicators
 
-When `showStatus` is enabled, two footer indicators show:
+When `showStatus` is enabled the footer shows input activity
+(`reduced 15.2KB, 2 superseded, 3 elided, 61% ctx`) and the output compression
+level (`terse FULL`, animated while the agent works).
 
-- **`✂ 15.2KB truncated, 5 stubs`** — input pruning activity
-- **`🔥 terse FULL`** — output compression level (animated while the agent is working)
+## Tests
 
-## File structure
-
-```mermaid
-flowchart TB
-  P["packages/pi-thrift/"]
-  P --> I["src/index.ts — barrel, /tp commands"]
-  P --> C["src/config.ts — thrift.json load/save"]
-  P --> IP["src/input.ts — tool_result + context hooks"]
-  P --> OP["src/output.ts — system prompt + config dialog"]
-  P --> R["README.md"]
+```bash
+bun test tests/thrift-*.test.ts
 ```
+
+The reducers, the pruning policy and the artifact store are pure or
+filesystem-only, so watermark behaviour, hysteresis, monotonicity, supersession,
+eviction and each reducer are all covered directly, with no session or model
+required. `thrift-input.test.ts` and `thrift-compaction.test.ts` drive the hooks
+against a stub host to cover what only exists in the wiring: that nothing leaves
+the conversation without a resolvable ref behind it.
 
 ## Credits
 
