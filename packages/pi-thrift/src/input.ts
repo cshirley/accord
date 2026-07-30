@@ -1,294 +1,373 @@
 /**
  * Input token pruning — reduce what the LLM receives.
  *
- * Strategy A (tool_result hook):
- *   Truncate oversized tool results at source before they enter the session.
- *   bash keeps the tail (exit codes, errors); everything else keeps the head.
+ * Two stages, with very different risk profiles.
  *
- * Strategy B (context hook):
- *   Replace stale tool output from older turns with compact one-line stubs
- *   before each LLM call, so only the most recent turns carry full output.
+ * At source (`tool_result`): oversized output is reduced structurally rather
+ * than cut at a byte offset, and the original is written to the artifact store
+ * first. A code file keeps its declaration skeleton, a log keeps both ends with
+ * its repeats folded, a listing keeps whole entries. Nothing is destroyed.
+ *
+ * Before each call (`context`): results made redundant by later work are
+ * collapsed unconditionally, and stale results are stubbed only once context
+ * pressure crosses the high-water mark. Below that mark this stage does nothing
+ * lossy at all, which is the cheapest way there is to avoid losing fidelity.
+ *
+ * Both stages leave a `thrift_recall` ref in the text they replace, so every
+ * elision is reversible by the model on demand.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { formatSize, truncateHead, truncateTail } from "@earendil-works/pi-coding-agent";
+import { type Artifact, type ArtifactStore, registerRecallTool } from "./artifacts.js";
 import type { ThriftConfig } from "./config.js";
+import {
+  type Decision,
+  type PlanMessage,
+  type PruningReason,
+  type PruningState,
+  planPruning,
+  renderStub,
+  type ToolCallInfo,
+} from "./policy.js";
+import { reduceToolOutput } from "./reducers.js";
 
-// ── Public stats (read by index.ts for /prune-stats) ───────────────────
-
-export interface CacheState {
-  /** Wall-clock time of the last LLM request (0 = none yet). */
-  lastRequestTime: number;
-  /** Provider used for the last request, for invalidation on switch. */
-  lastProvider: string | null;
-  /**
-   * Per-tool-call stub decisions, sticky for the lifetime of the cache
-   * window. Keyed by toolCallId so duplicate prefixes within a session
-   * collapse to the same decision.
-   */
-  decisions: Map<string, "kept" | "stubbed">;
-  /** Last-resolved TTL in ms (for stats display). */
-  lastTTL: number;
-  /** Whether the cache was considered alive on the last context call. */
-  lastCacheAlive: boolean;
-}
+// ── Public stats (read by index.ts for /thrift stats) ───────────────────
 
 export interface InputStats {
+  /** Bytes removed at source across the session. */
   sourceBytesSaved: number;
-  sourceResultsPruned: number;
+  sourceResultsReduced: number;
+  /** Bytes not sent on the most recent LLM call. */
   lastContextBytesSaved: number;
   lastContextStubbed: number;
-  /** Cache-awareness state, exposed for /tp ttl + /tp stats. */
-  cache: CacheState;
+  lastContextSuperseded: number;
+  /** Results the planner chose to elide but that were kept anyway, because
+   *  they could not be spilled and an unrecoverable stub is worse than the
+   *  tokens. */
+  lastContextHeldBack: number;
+  /** Why the planner did what it did, for `/thrift stats`. */
+  lastReason: PruningReason | "idle";
+  /** True when the last decision ran on a self-measured estimate because the
+   *  host reports no context usage. */
+  lastEstimated: boolean;
+  /** Context fill at the last call, as a percentage. */
+  lastPercent: number | null;
+  state: PruningState;
+  store: ArtifactStore;
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+
+interface TextBlock {
+  type: string;
+  text?: string;
+}
+
+function firstTextIndex(content: readonly TextBlock[]): number {
+  return content.findIndex((c) => c.type === "text");
+}
+
+function textOf(content: readonly TextBlock[]): string {
+  const idx = firstTextIndex(content);
+  if (idx === -1) return "";
+  return content[idx]?.text ?? "";
+}
+
+export const byteLen = (s: string): number => Buffer.byteLength(s, "utf-8");
+
+/** Rough size of the recall notice appended to reduced text. */
+const NOTICE_BYTES = 128;
+
+/** Short human label for an artifact, e.g. `read src/input.ts`. */
+export function describeCall(toolName: string, input: Record<string, unknown>): string {
+  const detail =
+    (typeof input.path === "string" && input.path) ||
+    (typeof input.command === "string" && input.command) ||
+    (typeof input.pattern === "string" && input.pattern) ||
+    "";
+  const trimmed = detail.length > 60 ? `${detail.slice(0, 57)}...` : detail;
+  return trimmed === "" ? toolName : `${toolName} ${trimmed}`;
 }
 
 // ── Registration ────────────────────────────────────────────────────────
 
-export function registerInputPruning(pi: ExtensionAPI, config: ThriftConfig): InputStats {
+export function registerInputPruning(
+  pi: ExtensionAPI,
+  config: ThriftConfig,
+  store: ArtifactStore,
+): InputStats {
   const stats: InputStats = {
     sourceBytesSaved: 0,
-    sourceResultsPruned: 0,
+    sourceResultsReduced: 0,
     lastContextBytesSaved: 0,
     lastContextStubbed: 0,
-    cache: {
-      lastRequestTime: 0,
-      lastProvider: null,
-      decisions: new Map(),
-      lastTTL: 0,
-      lastCacheAlive: false,
-    },
+    lastContextSuperseded: 0,
+    lastContextHeldBack: 0,
+    lastReason: "idle",
+    lastEstimated: false,
+    lastPercent: null,
+    state: { decisions: new Map<string, Decision>(), engaged: false },
+    store,
   };
 
-  // ───────────────────────────────────────────────────────────────
-  // Cache lifecycle — stamp every outgoing request so the context hook can
-  // tell whether the provider's prompt cache is still warm. We update on
-  // `before_provider_request` (optimistic): if the request fails we just
-  // pay a few extra tokens on the next call — strictly better than risking
-  // a cache invalidation by re-stubbing inside a live window.
-  // ───────────────────────────────────────────────────────────────
-  pi.on("before_provider_request", (_event, ctx) => {
-    if (!config.enabled || !config.input.enabled) return;
-    stats.cache.lastRequestTime = Date.now();
-    stats.cache.lastProvider = ctx.model?.provider ?? null;
-  });
+  registerRecallTool(pi, store);
+
+  // The artifact each tool call was spilled to, so stage 2 can point at what
+  // stage 1 already stored instead of spilling a second, poorer copy.
+  const spilled = new Map<string, Artifact>();
 
   // ────────────────────────────────────────────────────────────────────
-  // Strategy A — truncate tool results at source
+  // Stage 1 — reduce oversized results at source.
   //
-  // Fires once per tool result.  The truncated content is what gets
-  // stored in the session, so the savings are permanent.
+  // The reduced text is what gets stored in the session, so the saving is
+  // permanent; the original is in the artifact store, so the loss is not.
   // ────────────────────────────────────────────────────────────────────
 
   pi.on("tool_result", async (event, ctx) => {
     if (!config.enabled || !config.input.enabled) return;
 
-    // Keep error output intact — the LLM needs full diagnostics
+    // Errors stay whole. They are small, and diagnostics are exactly the thing
+    // worth spending context on.
     if (event.isError) return;
 
     const maxBytes = config.input.maxResultBytes[event.toolName];
     if (maxBytes === undefined) return;
 
-    // Find the first text block (skip images)
-    const textIdx = event.content.findIndex((c) => c.type === "text");
+    const textIdx = firstTextIndex(event.content);
     if (textIdx === -1) return;
-
     const block = event.content[textIdx];
-    if (block.type !== "text") return;
+    if (block === undefined || block.type !== "text") return;
 
-    const originalBytes = Buffer.byteLength(block.text, "utf-8");
-    if (originalBytes <= maxBytes) return;
+    const original = block.text;
+    const originalBytes = byteLen(original);
 
-    // bash: keep tail (errors, exit codes, final output)
-    // everything else: keep head (file start, first matches)
-    const truncFn = event.toolName === "bash" ? truncateTail : truncateHead;
-    const result = truncFn(block.text, {
-      maxBytes,
-      maxLines: config.input.maxResultLines,
-    });
+    // A read with an explicit window is the model narrowing its own request,
+    // often in response to an earlier elision. Reducing that again fights the
+    // model and corrupts the line numbering it just asked for, so leave it
+    // alone until it is far past the threshold. pi's own 2000-line ceiling
+    // still applies underneath, so this cannot run away.
+    const windowed =
+      event.toolName === "read" &&
+      (event.input.offset !== undefined || event.input.limit !== undefined);
+    const threshold = windowed ? maxBytes * 2 : maxBytes;
+    if (originalBytes <= threshold) return;
 
-    if (!result.truncated) return;
+    const path = typeof event.input.path === "string" ? event.input.path : undefined;
 
-    const omittedLines = result.totalLines - result.outputLines;
-    const omittedBytes = result.totalBytes - result.outputBytes;
+    let reducedText: string;
+    if (config.input.reduce) {
+      reducedText = reduceToolOutput(event.toolName, original, {
+        path,
+        maxEntries: config.input.maxListEntries,
+      }).text;
+    } else {
+      const truncFn = event.toolName === "bash" ? truncateTail : truncateHead;
+      reducedText = truncFn(original, { maxBytes, maxLines: config.input.maxResultLines }).content;
+    }
+
+    // Backstop: structural reduction can still leave a lot behind for a file
+    // that is mostly declarations. Cap it, from whichever end the tool cares
+    // about — the tail for commands, the head for everything else.
+    if (reducedText.split("\n").length > config.input.maxResultLines) {
+      const capFn = event.toolName === "bash" ? truncateTail : truncateHead;
+      reducedText = capFn(reducedText, { maxLines: config.input.maxResultLines }).content;
+    }
+
+    // The recall notice ships with the reduced text, so a reduction that only
+    // just beats the original would grow the message once annotated.
+    const reducedBytes = byteLen(reducedText);
+    if (reducedBytes + NOTICE_BYTES >= originalBytes) return;
+
+    // Spill only once reduction is certain, and only proceed once it has
+    // succeeded. Writing first orphans a file every time reduction is
+    // abandoned; cutting first makes the loss permanent if the write fails.
+    const label = describeCall(event.toolName, event.input);
+    const artifact = await store.spill(event.toolName, label, original);
+    if (artifact === undefined) return;
+
+    spilled.set(event.toolCallId, artifact);
+
     const notice =
-      `\n\n[thrift: ${result.outputLines}/${result.totalLines} lines` +
-      ` (${formatSize(result.outputBytes)}/${formatSize(result.totalBytes)}).` +
-      ` ${omittedLines} lines (${formatSize(omittedBytes)}) omitted.` +
-      (event.toolName === "read"
-        ? ` IMPORTANT: file was truncated. Before editing lines beyond this point, re-read the target region with offset/limit.]`
-        : `]`);
+      `\n\n[thrift: reduced to ${formatSize(reducedBytes)} of ${formatSize(originalBytes)}` +
+      ` (${artifact.lines} lines). Full output: thrift_recall(ref="${artifact.ref}").]`;
 
-    const newText = result.content + notice;
-    stats.sourceBytesSaved += originalBytes - Buffer.byteLength(newText, "utf-8");
-    stats.sourceResultsPruned++;
+    const newText = reducedText + notice;
+    stats.sourceBytesSaved += originalBytes - byteLen(newText);
+    stats.sourceResultsReduced++;
 
-    // Preserve non-text blocks (images etc.)
+    // Preserve non-text blocks (images and friends).
     const newContent = [...event.content];
     newContent[textIdx] = { type: "text" as const, text: newText };
 
     if (config.showStatus) {
-      ctx.ui.setStatus("thrift", `✂ ${formatSize(stats.sourceBytesSaved)} truncated`);
+      ctx.ui.setStatus("thrift", `reduced ${formatSize(stats.sourceBytesSaved)}`);
     }
 
     return { content: newContent };
   });
 
   // ────────────────────────────────────────────────────────────────────
-  // Strategy B — prune stale tool output from older turns
+  // Stage 2 — elide redundant and stale results before each LLM call.
   //
-  // Fires before every LLM call.  The messages array is a deep copy, so
-  // mutations here do NOT affect the stored session — they only affect
-  // what the LLM sees on this particular call.
-  //
-  // Turn counting: walk backwards from the newest message, increment a
-  // counter each time a user message is encountered.  Once we've passed
-  // `keepRecentTurns` user messages, everything before that cutoff gets
-  // tool results replaced with stubs.
+  // The messages array is a deep copy, so edits here shape only this request;
+  // the stored session keeps full fidelity and compaction still sees it all.
   // ────────────────────────────────────────────────────────────────────
 
   pi.on("context", async (event, ctx) => {
     if (!config.enabled || !config.input.enabled) return;
 
-    const messages = event.messages;
-    const prunableTools = new Set(Object.keys(config.input.maxResultBytes));
+    const messages = event.messages as unknown as Array<{
+      role: string;
+      toolCallId?: string;
+      toolName?: string;
+      isError?: boolean;
+      content?: TextBlock[];
+    }>;
 
-    // ──────────────────────────────────────────────────────────────
-    // Cache-awareness gate
-    //
-    // The provider's prompt cache only buys us anything if the bytes we
-    // send this turn match the bytes we sent last turn. Re-stubbing a
-    // turn that was previously sent un-stubbed mutates the prefix and
-    // invalidates the cache from that point on.
-    //
-    // Strategy:
-    //   • If the cache is dead (TTL elapsed, provider switched, or first
-    //     call of session) → wipe the decision map and apply the standard
-    //     keepRecentTurns rule. Cheap to be aggressive.
-    //   • If the cache is warm → honor every prior decision. Only new
-    //     toolResults (added since the last call) get a fresh decision.
-    // ──────────────────────────────────────────────────────────────
-    const now = Date.now();
-    const provider = ctx.model?.provider ?? "unknown";
-    const ttl = config.input.providerTTLs[provider] ?? config.input.defaultTTL;
-    stats.cache.lastTTL = ttl;
-
-    // Provider switch → the new provider has its own (empty) cache
-    if (stats.cache.lastProvider !== null && stats.cache.lastProvider !== provider) {
-      stats.cache.decisions.clear();
-      stats.cache.lastRequestTime = 0;
-    }
-
-    const cacheAlive =
-      config.input.cacheAware &&
-      ttl > 0 &&
-      stats.cache.lastRequestTime > 0 &&
-      now - stats.cache.lastRequestTime < ttl;
-    stats.cache.lastCacheAlive = cacheAlive;
-
-    // Cache cold → forget all prior decisions, re-prune from scratch
-    if (!cacheAlive) {
-      stats.cache.decisions.clear();
-    }
-
-    // Locate the cutoff: the Nth user message from the end
-    let turnsSeen = 0;
-    let cutoffIndex = -1;
-
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "user") {
-        turnsSeen++;
-        if (turnsSeen >= config.input.keepRecentTurns) {
-          cutoffIndex = i;
-          break;
-        }
+    // Tool arguments live on the assistant message that requested the call, so
+    // collect them first — dedupe keys and path staleness both depend on them.
+    const calls = new Map<string, ToolCallInfo>();
+    for (const msg of messages) {
+      if (msg.role !== "assistant" || !Array.isArray(msg.content)) continue;
+      for (const part of msg.content as unknown as Array<Record<string, unknown>>) {
+        if (part.type !== "toolCall") continue;
+        const id = part.id;
+        const name = part.name;
+        if (typeof id !== "string" || typeof name !== "string") continue;
+        const args = part.arguments;
+        calls.set(id, {
+          name,
+          arguments:
+            typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {},
+        });
       }
     }
 
-    // Not enough history to prune anything
-    if (cutoffIndex <= 0) return;
+    const pressure = readPressure(ctx);
 
-    let callBytes = 0;
-    let callStubs = 0;
-
-    const pruned = messages.map((msg, i) => {
-      // Only touch toolResult messages — leave user, assistant,
-      // compactionSummary, branchSummary, custom messages alone
-      if (msg.role !== "toolResult") return msg;
-
-      // Narrow to ToolResultMessage shape
-      const toolMsg = msg as {
-        role: "toolResult";
-        toolCallId: string;
-        toolName: string;
-        content: Array<{ type: string; text?: string }>;
-        isError: boolean;
-        timestamp: number;
-      };
-
-      // Keep error results — they're small and diagnostically important
-      if (toolMsg.isError) return msg;
-
-      // Only prune tools known to produce large output
-      if (!prunableTools.has(toolMsg.toolName)) return msg;
-
-      // Measure original text
-      const textBlock = toolMsg.content.find((c) => c.type === "text");
-      const originalText = textBlock?.text ?? "";
-      const originalBytes = Buffer.byteLength(originalText, "utf-8");
-
-      // Skip tiny results — not worth stubbing, decision is implicit "kept"
-      if (originalBytes < config.input.stubThresholdBytes) return msg;
-
-      // ── Decide: stub or keep ────────────────────────────────────────
-      const callId = toolMsg.toolCallId;
-      const prior = stats.cache.decisions.get(callId);
-
-      let shouldStub: boolean;
-      if (cacheAlive && prior !== undefined) {
-        // Honor prior decision — monotonic, cache-stable
-        shouldStub = prior === "stubbed";
-      } else {
-        // First time seeing this result, OR cache cold (just cleared)
-        // → apply the keepRecentTurns rule
-        shouldStub = i < cutoffIndex;
-        stats.cache.decisions.set(callId, shouldStub ? "stubbed" : "kept");
-      }
-
-      if (!shouldStub) return msg;
-
-      const lines = originalText.split("\n").length;
-      const stub = `[${toolMsg.toolName} output — ${lines} lines, pruned from older turn]`;
-
-      callBytes += originalBytes - Buffer.byteLength(stub, "utf-8");
-      callStubs++;
-
-      return {
-        ...msg,
-        content: [{ type: "text" as const, text: stub }],
-      };
+    const plan = planPruning({
+      messages: messages.map(
+        (m): PlanMessage => ({
+          role: m.role,
+          toolCallId: m.toolCallId,
+          toolName: m.toolName,
+          isError: m.isError,
+          bytes: byteLen(textOf(m.content ?? [])),
+        }),
+      ),
+      calls,
+      pressure,
+      config: {
+        keepRecentTurns: config.input.keepRecentTurns,
+        stubThresholdBytes: config.input.stubThresholdBytes,
+        lowWaterPercent: config.input.lowWaterPercent,
+        highWaterPercent: config.input.highWaterPercent,
+        minReclaimPercent: config.input.minReclaimPercent,
+        assumedContextWindowTokens: config.input.assumedContextWindowTokens,
+        prunableTools: new Set(Object.keys(config.input.maxResultBytes)),
+      },
+      state: config.input.monotonic
+        ? stats.state
+        : { decisions: new Map<string, Decision>(), engaged: stats.state.engaged },
     });
 
-    stats.lastContextBytesSaved = callBytes;
-    stats.lastContextStubbed = callStubs;
+    stats.state = { decisions: plan.decisions, engaged: plan.engaged };
+    stats.lastReason = plan.reason;
+    stats.lastEstimated = plan.estimated;
+    stats.lastPercent = plan.percent;
 
-    if (config.showStatus) {
-      const cacheGlyph = config.input.cacheAware
-        ? cacheAlive
-          ? " \uD83D\uDD25" // warm cache, decisions sticky
-          : " \u2744" //          cold cache, free to re-prune
-        : "";
-      const stubsPart = callStubs > 0 ? `, ${callStubs} stubs` : "";
-      ctx.ui.setStatus(
-        "thrift",
-        `✂ ${formatSize(stats.sourceBytesSaved)} truncated${stubsPart}${cacheGlyph}`,
-      );
-    } else {
-      ctx.ui.setStatus("thrift", "");
-    }
+    let bytesSaved = 0;
+    let stubbed = 0;
+    let superseded = 0;
+    let heldBack = 0;
 
-    if (callStubs === 0) return;
-    return { messages: pruned };
+    const pruned = await Promise.all(
+      messages.map(async (msg) => {
+        if (msg.role !== "toolResult") return msg;
+        const { toolCallId, toolName } = msg;
+        if (toolCallId === undefined || toolName === undefined) return msg;
+
+        const decision = plan.decisions.get(toolCallId);
+        if (decision === undefined || decision === "keep") return msg;
+
+        const original = textOf(msg.content ?? []);
+        const originalBytes = byteLen(original);
+        if (originalBytes === 0) return msg;
+
+        // Prefer the artifact stage 1 already wrote. Spilling the message text
+        // again would store the reduced copy under a fresh ref, so recovering
+        // the real output would take two hops the stub never mentions.
+        const existing = spilled.get(toolCallId);
+        const info = calls.get(toolCallId);
+        const label = describeCall(toolName, info?.arguments ?? {});
+        const artifact = existing ?? (await store.spill(toolName, label, original));
+
+        // No artifact means the stub would be a dead end. Spending context is
+        // the lesser failure, so leave the result whole and try again next call.
+        if (artifact === undefined) {
+          heldBack++;
+          return msg;
+        }
+        spilled.set(toolCallId, artifact);
+
+        const stub = renderStub(toolName, artifact.lines, decision, artifact.ref);
+
+        bytesSaved += originalBytes - byteLen(stub);
+        if (decision === "superseded") superseded++;
+        else stubbed++;
+
+        return { ...msg, content: [{ type: "text" as const, text: stub }] };
+      }),
+    );
+
+    stats.lastContextBytesSaved = bytesSaved;
+    stats.lastContextStubbed = stubbed;
+    stats.lastContextSuperseded = superseded;
+    stats.lastContextHeldBack = heldBack;
+
+    updateStatus(ctx, config, stats);
+
+    if (stubbed === 0 && superseded === 0) return;
+    return { messages: pruned as unknown as typeof event.messages };
   });
 
   return stats;
+}
+
+// ── Context pressure ────────────────────────────────────────────────────
+
+/**
+ * Read the host's view of context usage.
+ *
+ * Returns null when the host exposes no usage API, which the planner treats as
+ * a signal to fall back to the old recency rule. A null `tokens` inside a
+ * present reading is different and means "not known right now" — usually just
+ * after compaction — and the planner holds steady rather than guessing.
+ */
+function readPressure(
+  ctx: ExtensionContext,
+): { tokens: number | null; contextWindow: number } | null {
+  const usage = ctx.getContextUsage?.();
+  if (usage === undefined) return null;
+  return { tokens: usage.tokens, contextWindow: usage.contextWindow };
+}
+
+function updateStatus(
+  ctx: Pick<ExtensionContext, "ui">,
+  config: ThriftConfig,
+  stats: InputStats,
+): void {
+  if (!config.showStatus) {
+    ctx.ui.setStatus("thrift", "");
+    return;
+  }
+
+  const parts: string[] = [];
+  if (stats.sourceBytesSaved > 0) parts.push(`reduced ${formatSize(stats.sourceBytesSaved)}`);
+  if (stats.lastContextSuperseded > 0) parts.push(`${stats.lastContextSuperseded} superseded`);
+  if (stats.lastContextStubbed > 0) parts.push(`${stats.lastContextStubbed} elided`);
+  if (stats.lastPercent !== null) parts.push(`${Math.round(stats.lastPercent)}% ctx`);
+
+  ctx.ui.setStatus("thrift", parts.join(", "));
 }

@@ -26,28 +26,58 @@ export interface ThriftConfig {
   enabled: boolean;
   input: {
     enabled: boolean;
-    /** Max bytes per tool result at source (tool_result hook). */
+    /**
+     * Size above which a tool result is reduced at source, per tool.
+     *
+     * These are reduction thresholds, not truncation limits: crossing one
+     * triggers a structure-aware pass (code skeleton, log fold, list trim),
+     * and the full output is preserved in the artifact store either way.
+     */
     maxResultBytes: Record<string, number>;
-    /** Max lines per tool result at source. */
+    /** Hard line ceiling applied after reduction, as a backstop. */
     maxResultLines: number;
-    /** Number of recent turns whose tool output is kept in full. */
+    /** Entries kept when trimming a grep/find/ls listing. */
+    maxListEntries: number;
+    /**
+     * Apply structure-aware reducers. When false, oversized results fall back
+     * to plain head/tail truncation — cruder, but predictable.
+     */
+    reduce: boolean;
+    /** Tool results inside this many trailing turns are never stubbed. */
     keepRecentTurns: number;
     /** Results smaller than this are never stubbed (bytes). */
     stubThresholdBytes: number;
     /**
-     * Cache-aware monotonic stubbing.
+     * Context-pressure watermarks, as a percentage of the model's window.
      *
-     * When enabled, once a tool result has been sent un-stubbed within the
-     * provider's prompt-cache TTL window, it stays un-stubbed for the rest
-     * of that window — guaranteeing byte-identical prefixes and maximum
-     * cache hits. After the TTL elapses (cache is dead), decisions reset
-     * and the standard `keepRecentTurns` rule applies again.
+     * Nothing lossy happens below `lowWaterPercent`. Stubbing engages at
+     * `highWaterPercent` and reclaims back down to the low mark in one pass.
+     * The gap between them is deliberate: it batches pruning into occasional
+     * large advances instead of nibbling every turn, so the provider's prompt
+     * cache is invalidated rarely and each invalidation buys a lot of room.
      */
-    cacheAware: boolean;
-    /** Per-provider prompt-cache TTL in milliseconds. */
-    providerTTLs: Record<string, number>;
-    /** Fallback TTL when the active provider is not in providerTTLs. */
-    defaultTTL: number;
+    lowWaterPercent: number;
+    highWaterPercent: number;
+    /** Minimum reclaimable share of the window before stubbing engages, so a
+     *  cache invalidation is never spent on a trivial gain. */
+    minReclaimPercent: number;
+    /**
+     * Window size assumed when the host exposes no usage API at all.
+     *
+     * Thrift then measures the conversation and runs the same watermarks
+     * against this figure. Guessing low prunes earlier than necessary, which
+     * costs a recall; guessing high prunes too late, which costs the request.
+     * The default errs low for that reason.
+     */
+    assumedContextWindowTokens: number;
+    /**
+     * Keep stub decisions monotonic — once elided, a result is never restored.
+     *
+     * Prompt caches match on prefixes, so a decision that flips back and forth
+     * invalidates the cache twice and changes what the model believes it has
+     * already seen.
+     */
+    monotonic: boolean;
   };
   output: {
     /** Default output compression level for new sessions. "off" = disabled. */
@@ -64,27 +94,24 @@ export const DEFAULT_CONFIG: ThriftConfig = {
   input: {
     enabled: true,
     maxResultBytes: {
-      bash: 10_000, //  10 KB — keep tail (errors, exit codes)
-      read: 40_000, //  40 KB — keep head (covers ~95% of files)
-      grep: 5_000, //   5 KB — keep head (first matches)
-      find: 5_000, //   5 KB — keep head (first results)
-      ls: 5_000, //     5 KB — keep head (first entries)
+      bash: 16_000,
+      read: 48_000,
+      grep: 8_000,
+      find: 8_000,
+      ls: 8_000,
     },
-    maxResultLines: 500,
+    // Matches pi's own built-in ceiling. The previous 500 made the line limit
+    // bind long before any byte limit did, silently halving large reads.
+    maxResultLines: 2_000,
+    maxListEntries: 200,
+    reduce: true,
     keepRecentTurns: 3,
-    stubThresholdBytes: 200,
-    cacheAware: true,
-    providerTTLs: {
-      anthropic: 5 * 60_000, //  5 min — standard ephemeral cache TTL
-      openai: 10 * 60_000, // ~10 min — sliding cached input window
-      google: 0, //              implicit cache, no stable TTL guarantee
-      groq: 0, //                no published cache TTL
-      cerebras: 0,
-      xai: 0,
-      openrouter: 5 * 60_000, // varies by underlying model
-      "local-openai": 0,
-    },
-    defaultTTL: 5 * 60_000,
+    stubThresholdBytes: 400,
+    lowWaterPercent: 55,
+    highWaterPercent: 75,
+    minReclaimPercent: 8,
+    assumedContextWindowTokens: 128_000,
+    monotonic: true,
   },
   output: {
     level: "full",
@@ -101,13 +128,33 @@ export async function loadConfig(): Promise<ThriftConfig> {
   try {
     const raw = await readFile(CONFIG_PATH, "utf8");
     const parsed: unknown = JSON.parse(raw);
-    const config = merge(DEFAULT_CONFIG, parsed) as ThriftConfig;
+    const config = mergeConfig(DEFAULT_CONFIG, parsed) as ThriftConfig;
     if (!OUTPUT_LEVELS.includes(config.output.level)) {
       config.output.level = DEFAULT_CONFIG.output.level;
     }
+    migrateLegacyKeys(parsed, config);
     return config;
   } catch {
     return structuredClone(DEFAULT_CONFIG);
+  }
+}
+
+/**
+ * Carry forward settings from the TTL-based cache scheme this replaced.
+ *
+ * `cacheAware` gated the same behaviour `monotonic` now gates, so a user who
+ * turned it off should not silently get it back. The old `providerTTLs` and
+ * `defaultTTL` keys have no successor — the frontier advances on reclaimable
+ * volume now, not on how long the session sat idle — so they are simply
+ * dropped rather than mapped onto something they never meant.
+ */
+export function migrateLegacyKeys(parsed: unknown, config: ThriftConfig): void {
+  if (!isPlainObject(parsed)) return;
+  const input = parsed.input;
+  if (!isPlainObject(input)) return;
+
+  if (typeof input.cacheAware === "boolean" && input.monotonic === undefined) {
+    config.input.monotonic = input.cacheAware;
   }
 }
 
@@ -126,7 +173,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-function merge(defaults: unknown, overrides: unknown): unknown {
+export function mergeConfig(defaults: unknown, overrides: unknown): unknown {
   if (!isPlainObject(defaults)) {
     return overrides !== undefined ? overrides : defaults;
   }
@@ -138,8 +185,11 @@ function merge(defaults: unknown, overrides: unknown): unknown {
     const defVal = defaults[key];
     const overVal = overrides[key];
     if (key in defaults && isPlainObject(defVal)) {
-      out[key] = merge(defVal, overVal);
+      out[key] = mergeConfig(defVal, overVal);
     } else {
+      // Unknown keys are kept, not dropped. `maxResultBytes` is an open record:
+      // a user who added a threshold for a custom tool would otherwise lose it
+      // every time this file was rewritten.
       out[key] = overVal;
     }
   }
