@@ -4,6 +4,8 @@ description: "Security review — OWASP top 10, auth, payment, input validation,
 tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: false
   bash: false

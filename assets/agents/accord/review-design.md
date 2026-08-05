@@ -4,6 +4,8 @@ description: "Review a design document / ADR — challenge reasoning, verify cit
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: false
   bash: false

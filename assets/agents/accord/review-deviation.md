@@ -4,6 +4,8 @@ description: "Classify a plan deviation emitted by phase-code as mechanical (sil
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: true
   bash: true

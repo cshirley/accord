@@ -4,6 +4,8 @@ description: "Search the codebase for files, symbols, and reuse candidates relev
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   bash: true
 ---
 

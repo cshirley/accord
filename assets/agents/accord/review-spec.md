@@ -4,6 +4,8 @@ description: "Spec review — structural consistency, AC-to-test coverage, scope
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: false
   bash: false

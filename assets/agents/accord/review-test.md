@@ -4,6 +4,8 @@ description: "Adversarial test review — actively attempts to devise wrong impl
 tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: false
   bash: false

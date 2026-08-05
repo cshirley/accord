@@ -4,6 +4,8 @@ description: "Plan review — mechanical checks (AC coverage, reuse usage, TDD o
 tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: false
   bash: false

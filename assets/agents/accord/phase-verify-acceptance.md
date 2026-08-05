@@ -4,6 +4,8 @@ description: "Map every spec acceptance criterion to evidence (test:line, code:l
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true

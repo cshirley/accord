@@ -4,6 +4,8 @@ description: "Multi-turn spec interview agent. Given gathered context + prior dr
 tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true

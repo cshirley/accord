@@ -4,6 +4,8 @@ description: "Correctness, complexity, code-quality, observability, and plan-dri
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: false
   bash: false
