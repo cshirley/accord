@@ -75,6 +75,14 @@ export async function reduceMessagesInPlace(
   return reduced;
 }
 
+/** Skip turn-prefix reduction when overflow recovery will retry the aborted turn. */
+export function shouldSkipTurnPrefixCompactionPrep(
+  reason: "manual" | "threshold" | "overflow",
+  willRetry: boolean,
+): boolean {
+  return reason === "overflow" && willRetry;
+}
+
 export function registerCompactionSupport(
   pi: ExtensionAPI,
   config: ThriftConfig,
@@ -83,8 +91,9 @@ export function registerCompactionSupport(
   pi.on("session_before_compact", async (event) => {
     if (!config.enabled || !config.input.enabled || !config.input.reduce) return;
 
-    const { preparation } = event;
+    const { preparation, reason, willRetry } = event;
     await reduceMessagesInPlace(preparation.messagesToSummarize, config, stats.store);
+    if (shouldSkipTurnPrefixCompactionPrep(reason, willRetry)) return;
     await reduceMessagesInPlace(preparation.turnPrefixMessages, config, stats.store);
   });
 
@@ -92,12 +101,15 @@ export function registerCompactionSupport(
   // enough room that the hysteresis latch should not stay engaged. Holding
   // either would make the next call prune against a conversation that no
   // longer exists.
-  pi.on("session_compact", async () => {
+  pi.on("session_compact", async (event) => {
     stats.state = { decisions: new Map(), engaged: false };
     stats.lastContextBytesSaved = 0;
     stats.lastContextStubbed = 0;
     stats.lastContextSuperseded = 0;
     stats.lastContextHeldBack = 0;
     stats.lastReason = "idle";
+    stats.lastCompactionReason = event.reason;
+    stats.lastCompactionTokensBefore = event.compactionEntry.tokensBefore;
+    stats.lastCompactionUsageTokens = event.compactionEntry.usage?.totalTokens ?? null;
   });
 }

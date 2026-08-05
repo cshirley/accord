@@ -129,7 +129,7 @@ Pi 0.80.x: `session_before_compact` / `session_compact` include `reason: "manual
 
 ### Status
 
-- [ ] Not started
+- [x] Complete — `agent_settled`, entry renderers, compaction overflow skip, `session_info_changed` harness sync
 
 ---
 

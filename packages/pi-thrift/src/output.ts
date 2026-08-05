@@ -187,7 +187,7 @@ export function registerOutputPruning(pi: ExtensionAPI, config: ThriftConfig): O
     syncStatus(ctx);
   });
 
-  pi.on("agent_end", async (_event, ctx) => {
+  pi.on("agent_settled", async (_event, ctx) => {
     isActive = false;
     if (!config.enabled) return;
     syncStatus(ctx);

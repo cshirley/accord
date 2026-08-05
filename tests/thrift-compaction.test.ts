@@ -3,7 +3,10 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ArtifactStore, findArtifactRef } from "../packages/pi-thrift/src/artifacts.js";
-import { reduceMessagesInPlace } from "../packages/pi-thrift/src/compaction.js";
+import {
+  reduceMessagesInPlace,
+  shouldSkipTurnPrefixCompactionPrep,
+} from "../packages/pi-thrift/src/compaction.js";
 import { DEFAULT_CONFIG, type ThriftConfig } from "../packages/pi-thrift/src/config.js";
 
 const stores: ArtifactStore[] = [];
@@ -123,5 +126,20 @@ describe("reduceMessagesInPlace", () => {
     expect(await reduceMessagesInPlace(undefined, config(), store)).toBe(0);
     expect(await reduceMessagesInPlace(null, config(), store)).toBe(0);
     expect(await reduceMessagesInPlace("nonsense", config(), store)).toBe(0);
+  });
+});
+
+describe("shouldSkipTurnPrefixCompactionPrep", () => {
+  test("overflow + willRetry skips turn-prefix pre-processing", () => {
+    expect(shouldSkipTurnPrefixCompactionPrep("overflow", true)).toBe(true);
+  });
+
+  test("overflow without retry still reduces turn prefix", () => {
+    expect(shouldSkipTurnPrefixCompactionPrep("overflow", false)).toBe(false);
+  });
+
+  test("manual and threshold never skip turn prefix", () => {
+    expect(shouldSkipTurnPrefixCompactionPrep("manual", true)).toBe(false);
+    expect(shouldSkipTurnPrefixCompactionPrep("threshold", true)).toBe(false);
   });
 });

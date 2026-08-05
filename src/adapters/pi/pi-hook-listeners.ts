@@ -124,13 +124,17 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
     });
   });
 
-  // ── End-of-turn notification ─────────────────────────
+  // ── End-of-turn notification (after settle: no auto-retry/compaction pending) ──
 
-  pi.on("agent_end", async (_event, ctx) => {
+  pi.on("agent_settled", async (_event, ctx) => {
     notifyPendingDecisionsIfAny({
       notify: (level, msg) => ctx.ui.notify(msg, level === "warning" ? "warning" : "info"),
     });
     updateStatusBar(ctx, state);
+  });
+
+  pi.on("session_info_changed", async () => {
+    syncHarnessRunSessionEntry(pi, state);
   });
 
   // ── Session start ────────────────────────────────────

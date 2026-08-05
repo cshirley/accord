@@ -33,6 +33,7 @@ import {
   displayTasksDashboard,
   registerTasksDashboardRenderer,
 } from "./dev-formatted-display.js";
+import { registerHarnessRunEntryRenderer } from "./custom-entry-renderers.js";
 import { devRetro } from "../../core/queries/retro.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { devDeviations } from "../../core/queries/deviations.js";
@@ -371,6 +372,7 @@ export default function (pi: ExtensionAPI) {
 
   registerTools(pi, () => state.devConfig);
   registerPiHarnessHookListeners(pi, state);
+  registerHarnessRunEntryRenderer(pi);
   registerTasksDashboardRenderer(pi);
   registerOrchestratorSubagentChatRenderer(pi, getSubagentToolRenderers() ?? {});
 }

@@ -54,6 +54,10 @@ export interface InputStats {
   lastEstimated: boolean;
   /** Context fill at the last call, as a percentage. */
   lastPercent: number | null;
+  /** Last compaction event metadata (for /thrift stats). */
+  lastCompactionReason: "manual" | "threshold" | "overflow" | null;
+  lastCompactionTokensBefore: number | null;
+  lastCompactionUsageTokens: number | null;
   state: PruningState;
   store: ArtifactStore;
 }
@@ -111,6 +115,9 @@ export function registerInputPruning(
     lastReason: "idle",
     lastEstimated: false,
     lastPercent: null,
+    lastCompactionReason: null,
+    lastCompactionTokensBefore: null,
+    lastCompactionUsageTokens: null,
     state: { decisions: new Map<string, Decision>(), engaged: false },
     store,
   };

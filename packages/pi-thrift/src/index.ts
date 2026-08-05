@@ -36,13 +36,15 @@ import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { ArtifactStore } from "./artifacts.js";
 import { registerCompactionSupport } from "./compaction.js";
 import { loadConfig, OUTPUT_LEVELS, type OutputLevel, STOP_ALIASES, saveConfig } from "./config.js";
+import {
+  LEGACY_OUTPUT_LEVEL_ENTRY_TYPE,
+  OUTPUT_LEVEL_ENTRY_TYPE,
+  registerOutputLevelEntryRenderer,
+} from "./entry-render.js";
 import { type InputStats, registerInputPruning } from "./input.js";
 import { OUTPUT_LEVEL_OPTIONS, registerOutputPruning } from "./output.js";
 
-// Session entry type for output level persistence.
-const OUTPUT_LEVEL_ENTRY = "thrift-output-level";
-/** Legacy session entry key — read for backward compat with old sessions. */
-const LEGACY_OUTPUT_LEVEL_ENTRY = "tp-output-level";
+// Session entry type for output level persistence (see entry-render.ts).
 
 // ── Subcommand routing ──────────────────────────────────────────────────
 
@@ -93,6 +95,7 @@ export default async function (pi: ExtensionAPI) {
   const inputStats = registerInputPruning(pi, config, store);
   const output = registerOutputPruning(pi, config);
   registerCompactionSupport(pi, config, inputStats);
+  registerOutputLevelEntryRenderer(pi);
 
   // A new provider has its own empty prompt cache, so decisions tuned to keep
   // the previous provider's prefix stable are worthless. Drop them and let the
@@ -126,7 +129,8 @@ export default async function (pi: ExtensionAPI) {
     for (const entry of ctx.sessionManager.getEntries()) {
       if (
         entry.type === "custom" &&
-        (entry.customType === OUTPUT_LEVEL_ENTRY || entry.customType === LEGACY_OUTPUT_LEVEL_ENTRY)
+        (entry.customType === OUTPUT_LEVEL_ENTRY_TYPE ||
+          entry.customType === LEGACY_OUTPUT_LEVEL_ENTRY_TYPE)
       ) {
         restoredLevel = (entry.data as { level?: string })?.level ?? null;
       }
@@ -136,7 +140,7 @@ export default async function (pi: ExtensionAPI) {
       output.setLevel(restoredLevel as OutputLevel);
     } else if (config.output.level !== "off") {
       output.setLevel(config.output.level);
-      pi.appendEntry(OUTPUT_LEVEL_ENTRY, { level: config.output.level });
+      pi.appendEntry(OUTPUT_LEVEL_ENTRY_TYPE, { level: config.output.level });
     }
 
     output.syncStatus(ctx);
@@ -249,8 +253,19 @@ export default async function (pi: ExtensionAPI) {
               `    Context fill:  ${pct}`,
               `    Watermarks:    engage ${config.input.highWaterPercent}%, release ${config.input.lowWaterPercent}%`,
               `    State:         ${inputStats.state.engaged ? "engaged" : "idle"} — ${REASON_TEXT[inputStats.lastReason] ?? inputStats.lastReason}`,
-              `    Decisions:     ${inputStats.state.decisions.size} tracked`,
-              "",
+             `    Decisions:     ${inputStats.state.decisions.size} tracked`,
+             ...(inputStats.lastCompactionReason
+               ? [
+                   "",
+                   "  Compaction:",
+                   `    Last reason:   ${inputStats.lastCompactionReason}`,
+                   `    Tokens before: ${inputStats.lastCompactionTokensBefore ?? "unknown"}`,
+                   ...(inputStats.lastCompactionUsageTokens !== null
+                     ? [`    Summary usage: ${inputStats.lastCompactionUsageTokens} tokens`]
+                     : []),
+                 ]
+               : []),
+             "",
               "  Recall:",
               `    ${store.size} artifacts held (${formatSize(store.totalBytes)})`,
               ...(store.failures > 0
@@ -389,7 +404,7 @@ export default async function (pi: ExtensionAPI) {
           }
 
           output.setLevel(newLevel);
-          pi.appendEntry(OUTPUT_LEVEL_ENTRY, { level: newLevel });
+          pi.appendEntry(OUTPUT_LEVEL_ENTRY_TYPE, { level: newLevel });
           output.syncStatus(ctx);
 
           ctx.ui.notify(
