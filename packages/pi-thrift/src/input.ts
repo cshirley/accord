@@ -17,8 +17,9 @@
  * elision is reversible by the model on demand.
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, ToolResultEvent } from "@earendil-works/pi-coding-agent";
 import { formatSize, truncateHead, truncateTail } from "@earendil-works/pi-coding-agent";
+import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
 import { type Artifact, type ArtifactStore, registerRecallTool } from "./artifacts.js";
 import type { ThriftConfig } from "./config.js";
 import {
@@ -127,7 +128,7 @@ export function registerInputPruning(
   // permanent; the original is in the artifact store, so the loss is not.
   // ────────────────────────────────────────────────────────────────────
 
-  pi.on("tool_result", async (event, ctx) => {
+  pi.on("tool_result", async (event: ToolResultEvent, ctx) => {
     if (!config.enabled || !config.input.enabled) return;
 
     // Errors stay whole. They are small, and diagnostics are exactly the thing
@@ -143,7 +144,8 @@ export function registerInputPruning(
     const block = blocks[textIdx];
     if (block === undefined || block.type !== "text") return;
 
-    const original = block.text;
+    const original = block.text ?? "";
+    if (!original) return;
     const originalBytes = byteLen(original);
 
     // A read with an explicit window is the model narrowing its own request,
@@ -201,8 +203,11 @@ export function registerInputPruning(
     stats.sourceResultsReduced++;
 
     // Preserve non-text blocks (images and friends).
-    const newContent = [...blocks];
-    newContent[textIdx] = { type: "text" as const, text: newText };
+    const newContent: (TextContent | ImageContent)[] = blocks.map((b, idx) => {
+      if (idx === textIdx) return { type: "text", text: newText };
+      if (b.type === "image") return b as ImageContent;
+      return { type: "text", text: b.text ?? "" };
+    });
 
     if (config.showStatus) {
       ctx.ui.setStatus("thrift", `reduced ${formatSize(stats.sourceBytesSaved)}`);
