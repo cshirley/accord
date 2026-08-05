@@ -11,8 +11,10 @@ import {
   resolveAgentFile,
   resolveModelConfig,
   resolveProfileForCredentials,
+  resolveRequestedProfileName,
   type SubagentConfig,
 } from "../../../packages/pi-subagent/src/agents.js";
+import { loadAgentFromFile } from "../../../packages/pi-subagent/src/agent-load.js";
 import {
   DEFAULT_SPAWN_TIMEOUT_MS,
   resolveSpawnTimeoutMs,
@@ -29,6 +31,7 @@ export const SUBAGENT_SPAWN_PREFLIGHT_AGENTS = new Set([
   "phase-code",
   "review-test",
   "review-code",
+  "review-security",
 ]);
 
 export function agentRequiresSpawnPreflight(agent: string): boolean {
@@ -93,6 +96,16 @@ function evaluateCredentials(
     return { ok: false, blocks, warnings };
   }
 
+  if (provider === "openai") {
+    if (process.env.OPENAI_API_KEY) {
+      return { ok: true, blocks, warnings };
+    }
+    blocks.push(
+      "OPENAI_API_KEY is unset. Subagent will hang or fail for openai provider. Set OPENAI_API_KEY.",
+    );
+    return { ok: false, blocks, warnings };
+  }
+
   if (provider === "cursor-agent") {
     if (hasCursorAgentCredentials()) {
       return { ok: true, blocks, warnings };
@@ -105,6 +118,15 @@ function evaluateCredentials(
 
   warnings.push(`Credential preflight does not validate provider "${provider}" — verify manually.`);
   return { ok: true, blocks, warnings };
+}
+
+function inferAgentNamespace(agentFilePath: string): string | undefined {
+  const parts = agentFilePath.split(path.sep);
+  const agentsIdx = parts.lastIndexOf("agents");
+  if (agentsIdx >= 0 && agentsIdx + 2 < parts.length) {
+    return parts[agentsIdx + 1];
+  }
+  return undefined;
 }
 
 function formatPreflightReport(check: SubagentPreflightCheck): string {
@@ -133,11 +155,6 @@ export function runSubagentSpawnPreflightCheck(
   cwd: string = process.cwd(),
 ): SubagentPreflightCheck {
   const cfg = loadSubagentConfig();
-  const requestedProfile = cfg.activeProfile ?? cfg.defaultProfile;
-  const effectiveProfile = resolveProfileForCredentials(cfg, requestedProfile);
-  const profileDef = cfg.profiles[effectiveProfile] ?? cfg.profiles[cfg.defaultProfile];
-  const provider = profileDef?.provider ?? "unknown";
-
   const agentPath = resolveAgentFile(agent, cwd, "user");
   const bundledAccordPath = path.join(process.cwd(), "assets", "agents", "accord", `${agent}.md`);
   const agentFileFound =
@@ -149,7 +166,12 @@ export function runSubagentSpawnPreflightCheck(
         ? bundledAccordPath
         : null;
 
-  const stubAgent = {
+  const loadedAgent = agentFilePath
+    ? loadAgentFromFile(agentFilePath, {
+        namespace: inferAgentNamespace(agentFilePath),
+      })
+    : null;
+  const agentConfig = loadedAgent ?? {
     name: agent,
     description: agent,
     tier: "workhorse" as const,
@@ -157,7 +179,13 @@ export function runSubagentSpawnPreflightCheck(
     source: "user" as const,
     filePath: agentFilePath ?? "",
   };
-  const resolvedModel = resolveModelConfig(stubAgent, cfg);
+
+  const requestedProfile = resolveRequestedProfileName(agentConfig, cfg);
+  const effectiveProfile = resolveProfileForCredentials(cfg, requestedProfile);
+  const profileDef = cfg.profiles[effectiveProfile] ?? cfg.profiles[cfg.defaultProfile];
+  const provider = profileDef?.provider ?? "unknown";
+
+  const resolvedModel = resolveModelConfig(agentConfig, cfg);
   const model = resolvedModel?.model ?? null;
   const resolvedProvider = resolvedModel?.provider ?? provider;
 

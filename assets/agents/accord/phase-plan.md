@@ -4,6 +4,8 @@ description: "Multi-turn plan agent. Given a JSON spec + reuse findings + prior 
 tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true

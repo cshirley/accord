@@ -217,9 +217,6 @@ export function devQuickFixBrief(
     existingTask && typeof existingTask.owner_nonce === "string" ? existingTask.owner_nonce : "";
   const ownerNonce = /^[0-9a-f]{6}$/.test(rawNonce) ? rawNonce : devNonce();
   const contract = quickFixContract(wi, config);
-  const needsTestPhase =
-    contract.test.strategy === "new_red_test" || contract.test.strategy === "existing_tests";
-  const startsAtReviewTest = contract.test.strategy === "no_test";
 
   const { specPath, planPath } = writeQuickFixStubs(workItemId, wi, contract, config);
 
@@ -234,9 +231,13 @@ export function devQuickFixBrief(
     work_item_id: workItemId,
     task_id: 1,
     owner_nonce: ownerNonce,
-    phase: needsTestPhase ? "phase-test" : startsAtReviewTest ? "review-test" : "phase-code",
+    phase:
+      typeof existingTask?.phase === "string" && existingTask.phase !== "phase-test"
+        ? existingTask.phase
+        : "phase-test",
     status: existingTask?.status === "done" ? "done" : "pending",
-    pre_impl_gates: needsTestPhase || startsAtReviewTest ? "pending" : "complete",
+    pre_impl_gates:
+      existingTask?.pre_impl_gates === "complete" ? "complete" : "pending",
     test_files: Array.isArray(existingTask?.test_files) ? existingTask.test_files : [],
     red_confirmed: existingTask?.red_confirmed === true,
     quick_fix_loop: { test_review_cycles_used: loopCounters.test_review_cycles_used },
@@ -258,86 +259,54 @@ export function devQuickFixBrief(
 
   const s: string[] = [];
 
-  if (startsAtReviewTest) {
-    s.push("## Quick Fix — review-test (pre-impl, no new tests)");
-    s.push("");
-    s.push(`**work_item_id:** ${workItemId}`);
-    s.push(`**task_id:** ${taskId}`);
-    s.push(`**owner_nonce:** ${ownerNonce}`);
-    s.push(`**task_file_path:** ${taskFilePath}`);
-    s.push("");
+  s.push("## Quick Fix Test Brief");
+  s.push("");
+  s.push(`**work_item_id:** ${workItemId}`);
+  s.push(`**task_id:** ${taskId}`);
+  s.push(`**owner_nonce:** ${ownerNonce}`);
+  s.push(`**task_file_path:** ${taskFilePath}`);
+  s.push("");
+  s.push("### Context");
+  s.push("");
+  s.push("This is a quick_fix item with auto-generated spec/plan stubs.");
+  s.push("RGR applies: write or validate tests here in **phase-test** before any production code.");
+  if (contract.test.strategy === "new_red_test") {
     s.push(
-      "This quick_fix item uses `test.strategy: no_test`. Run **review-test** (pre-impl) on the stubs and contract before implementation.",
-    );
-    s.push("");
-    s.push("### Quick Fix Contract");
-    s.push("");
-    s.push("```json");
-    s.push(JSON.stringify(contract, null, 2));
-    s.push("```");
-    s.push("");
-  } else if (needsTestPhase) {
-    s.push("## Quick Fix Test Brief");
-    s.push("");
-    s.push(`**work_item_id:** ${workItemId}`);
-    s.push(`**task_id:** ${taskId}`);
-    s.push(`**owner_nonce:** ${ownerNonce}`);
-    s.push(`**task_file_path:** ${taskFilePath}`);
-    s.push("");
-    s.push("### Context");
-    s.push("");
-    s.push("This is a quick_fix item with auto-generated spec/plan stubs.");
-    s.push(
-      `Write one narrow regression test that demonstrates the bug or missing behaviour described by \`expected_finish\`.`,
+      "Write one narrow regression test that demonstrates the bug or missing behaviour described by `expected_finish`.",
     );
     s.push("Confirm the test is RED (fails) before implementation.");
-    s.push("");
-    s.push("### Covered Acceptance Criteria");
-    s.push("");
-    s.push(`- **AC-1** (scenario): ${contract.plan.expected_finish}`);
-    s.push("");
-    s.push("### Intent Contract");
-    s.push("");
-    if (wi.intent_mode) s.push(`- intent_mode: ${wi.intent_mode}`);
-    if (wi.target_paths?.length) s.push(`- target_paths: ${wi.target_paths.join(", ")}`);
-    if (wi.expected_finish) s.push(`- expected_finish: ${wi.expected_finish}`);
-    s.push("");
-    s.push("### Quick Fix Contract");
-    s.push("");
-    s.push("```json");
-    s.push(JSON.stringify(contract, null, 2));
-    s.push("```");
-    s.push("");
-    if (config?.test?.command) {
-      s.push("### Verification Commands");
-      s.push("");
-      s.push(`- \`${config.test.command}\``);
-      if (config.test.file_pattern) s.push(`- file pattern: \`${config.test.file_pattern}\``);
-      s.push("");
-    }
+  } else if (contract.test.strategy === "existing_tests") {
+    s.push(
+      "Use existing tests — run the test command, confirm the relevant failure matches `expected_finish`, and record baseline output.",
+    );
+    s.push("Do not write new tests unless the existing suite cannot express the defect.");
   } else {
-    const codeBrief = devCodeBrief(workItemId, taskId, config);
-    if (!codeBrief.ok) return codeBrief;
-
-    s.push(codeBrief.value.brief);
-    s.push("");
-    s.push("### Quick Fix Rules");
-    s.push("");
     s.push(
-      "- This quick_fix item skips the full spec/plan agents. The spec and plan are auto-generated stubs.",
+      "`test.strategy` is `no_test` — still run phase-test: confirm whether a narrow automated test is feasible; if not, escalate with `stuck` rather than skipping RED.",
     );
-    s.push("- Read `quick_fix_contract` from the per-task file before editing.");
-    s.push("- Modify only the contract target paths when target_paths are provided.");
-    s.push("- Use `quick_fix_contract.plan.expected_finish` as the definition of done.");
-    s.push(
-      "- Follow `quick_fix_contract.test.strategy` exactly and keep the per-task file schema-valid.",
-    );
+  }
+  s.push("");
+  s.push("### Covered Acceptance Criteria");
+  s.push("");
+  s.push(`- **AC-1** (scenario): ${contract.plan.expected_finish}`);
+  s.push("");
+  s.push("### Intent Contract");
+  s.push("");
+  if (wi.intent_mode) s.push(`- intent_mode: ${wi.intent_mode}`);
+  if (wi.target_paths?.length) s.push(`- target_paths: ${wi.target_paths.join(", ")}`);
+  if (wi.expected_finish) s.push(`- expected_finish: ${wi.expected_finish}`);
+  s.push("");
+  s.push("### Quick Fix Contract");
+  s.push("");
+  s.push("```json");
+  s.push(JSON.stringify(contract, null, 2));
+  s.push("```");
+  s.push("");
+  if (config?.test?.command) {
+    s.push("### Verification Commands");
     s.push("");
-    s.push("### Quick Fix Contract");
-    s.push("");
-    s.push("```json");
-    s.push(JSON.stringify(contract, null, 2));
-    s.push("```");
+    s.push(`- \`${config.test.command}\``);
+    if (config.test.file_pattern) s.push(`- file pattern: \`${config.test.file_pattern}\``);
     s.push("");
   }
 
@@ -354,6 +323,6 @@ export function devQuickFixBrief(
     brief_path: briefPath,
     task_file_path: taskFilePath,
     task_id: taskId,
-    brief_type: needsTestPhase ? "phase-test" : startsAtReviewTest ? "review-test" : "phase-code",
+    brief_type: "phase-test",
   });
 }

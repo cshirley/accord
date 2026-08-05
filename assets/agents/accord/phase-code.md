@@ -4,6 +4,8 @@ description: "Implement production code for a single plan task — tests already
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true
@@ -26,14 +28,14 @@ The orchestrator's brief supplies:
 - **Spec constraints** — `constraints`, `resolved_questions`, `scope.in`, `scope.out`, `rejected_alternatives`. Honour them silently; surface violations only if a step forces you into conflict.
 - **Plan guidance** — `guidance[]` and `reuse_candidates[]`. Every directive is load-bearing.
 - **`verification_commands`** — the spec's `verification.commands` array, or the project verification commands for quick_fix work. Run for the final verify step.
-- **`quick_fix_direct`** — optional boolean. When true, this is a narrow quick_fix with no full spec/plan/phase-test flow.
+- **`quick_fix_direct`** — optional boolean. When true, the work item used auto-generated spec/plan stubs instead of full `phase-spec` / `phase-plan` agents. **Does not skip the test phase.** RGR still applies: `phase-test` writes tests and confirms RED; `review-test` runs pre-impl; only then may `phase-code` run.
 - **`quick_fix_contract`** — for quick fixes, read this from the per-task file. It contains a mini plan and a test strategy: `existing_tests`, `new_red_test`, or `no_test`.
 
 **NOT supplied:** Test file source code. Read test files from disk yourself to understand the contract you must satisfy.
 
 ## Operating Rules
 
-1. **Production code only by default.** Do not modify test files for standard implement tasks. For `quick_fix_direct` with `quick_fix_contract.test.strategy: "new_red_test"`, you may add one narrow regression test before implementation, then confirm it fails RED.
+1. **Production code only — always.** Never create or modify test files. Tests are written exclusively by `phase-test` in a separate context. If a test is wrong, emit `test_issue` — the orchestrator respawns `phase-test`.
 2. **Single task, single file set.** Modify only the production files listed in `task.files[]`, plus the per-task file.
 3. **Never edit a file outside your worktree.** Another task owns other files on other branches.
 4. **Never mutate another per-task file.**
@@ -43,21 +45,13 @@ The orchestrator's brief supplies:
 
 Read `task_file_path`. Verify `owner_nonce` matches. If not, **abort immediately** — return `status: "stuck"` with `question: "owner_nonce mismatch"`.
 
-For standard implement tasks, the file should have `status: "done"` and `test_files: [...]` from the `phase-test` agent.
+For standard implement and quick_fix tasks, the file should have `status: "done"` (from `phase-test`), `test_files: [...]`, and `pre_impl_gates: "complete"` (set after pre-impl `review-test`).
 
-For `quick_fix_direct: true`, the file must have `pre_impl_gates: "complete"`, a matching `owner_nonce`, and a `quick_fix_contract`. Continue using `quick_fix_contract.plan.expected_finish` as the definition of done.
+For `quick_fix_direct: true`, the same gates apply: `pre_impl_gates: "complete"`, matching `owner_nonce`, `test_files` populated by `phase-test`, and `quick_fix_contract`. For `new_red_test`, `red_confirmed: true` must be set by `phase-test` before you run.
 
 ## Step 2 — Read the tests
 
-If `quick_fix_direct` is true:
-
-- `new_red_test`: before editing production code, add one narrow regression test for the expected finish, run `quick_fix_contract.test.command`, confirm the new test fails for the right reason, then update `test_files` and `red_confirmed: true` in the per-task file. If you cannot identify a sensible test location, return `status: "stuck"` with a question instead of silently skipping RED.
-- `existing_tests`: run `quick_fix_contract.test.command` before editing to establish the existing baseline. Do not require RED; leave `red_confirmed: false`.
-- `no_test`: do not write tests. The contract must include a reason. Still run non-test verification commands when supplied.
-
-Then continue to Step 3.
-
-Otherwise, read every file listed in `test_files` from the per-task file. Understand:
+Read every file listed in `test_files` from the per-task file. Understand:
 
 - What observable behaviour each test asserts (the contract).
 - What imports/modules the tests expect to exist.
@@ -113,7 +107,7 @@ Key content expectations:
 ```
 
 Rules for the packet:
-- `files_changed` lists production files only for standard tasks. For `quick_fix_direct` with `new_red_test`, include the regression test file too because this agent authored it.
+- `files_changed` lists **production files only**. Never include test paths — the harness will respawn `phase-test` if you do.
 - `tests_passing` is true only if every relevant test ran green.
 - `ac_covered` mirrors `task.covers_ac` only when `status: "done"`; for `quick_fix_direct`, return an empty array.
 - `test_issues_emitted` counts the `test_issue` events — the orchestrator uses this to decide whether to respawn `phase-test`.
@@ -121,7 +115,7 @@ Rules for the packet:
 
 ## Scope discipline
 
-- Do not modify test files except for a quick-fix `new_red_test` contract. If a test is wrong, emit `test_issue` and work around it.
+- **Never modify test files.** If a test is wrong, emit `test_issue` and work around it; the orchestrator respawns `phase-test`.
 - Do not refactor adjacent code "while you're here". Every out-of-scope edit is a deviation.
 - Do not add comments that restate the change or the ticket.
 - Do not add validation, fallbacks, or logging beyond what a step explicitly calls for.

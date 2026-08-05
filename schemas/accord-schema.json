@@ -314,7 +314,7 @@
           "properties": {
             "on_task_done": {
               "type": "boolean",
-              "description": "When true, after review-code marks a task done, stage task-scoped files and commit without interactive confirmation. Default: false."
+              "description": "When false, skip per-task git commits after review-code. Default: true (commit task-scoped files when a plan task is marked done)."
             }
           }
         }

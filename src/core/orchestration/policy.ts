@@ -295,7 +295,7 @@ export function resumeAllowsAutoReplanToAgent(
 export function commitOnTaskDoneFromDevConfig(
   config: DevHarnessConfig | null | undefined,
 ): boolean {
-  return config?.orchestration?.commit?.on_task_done === true;
+  return config?.orchestration?.commit?.on_task_done !== false;
 }
 
 /** @deprecated Use {@link reviewRetryPolicyForAgent} for severity gate + cap. */

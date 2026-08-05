@@ -6,11 +6,11 @@
  *   ┌───────────────────────────────────────────────┐
  *   │ Frontmatter `model:` (explicit pin) ──────────┼──► wins
  *   ├───────────────────────────────────────────────┤
- *   │ Skill profile override (skills[ns].profile)   │
- *   │ ↓ else                                        │
- *   │ activeProfile                                 │
- *   │ ↓ else                                        │
- *   │ defaultProfile                                │
+ *   │ agentProfiles[agent.name]                     │
+ *   │ ↓ else reviewProfile (review-* agents)        │
+ *   │ ↓ else skills[ns].profile                     │
+ *   │ ↓ else activeProfile                          │
+ *   │ ↓ else defaultProfile                         │
  *   ├───────────────────────────────────────────────┤
  *   │ Tier in target profile                        │
  *   │ ↓ if missing, borrow whole tier recipe from   │
@@ -60,6 +60,15 @@ export interface SubagentConfig {
   activeProfile?: string;
   skills?: Record<string, SkillConfig>;
   profiles: Record<string, ProfileConfig>;
+  /**
+   * Per-agent profile override (e.g. cross-vendor review). Takes precedence over
+   * {@link SkillConfig.profile} and {@link activeProfile}.
+   */
+  agentProfiles?: Record<string, string>;
+  /**
+   * Profile for all `review-*` agents when no {@link agentProfiles} entry matches.
+   */
+  reviewProfile?: string;
   /**
    * Default wall-clock limit for {@link runSubagent} when the call omits `timeoutMs`.
    * Use `0` to disable. Falls back to 30 minutes when unset.
@@ -270,6 +279,22 @@ export const invalidateTierCache = invalidateConfigCache;
 // ── Resolution ─────────────────────────────────────────────
 
 /**
+ * Profile name from config before credential fallback. See module docstring for order.
+ */
+export function resolveRequestedProfileName(agent: AgentConfig, cfg: SubagentConfig): string {
+  const agentOverride = cfg.agentProfiles?.[agent.name];
+  if (agentOverride) {
+    return agentOverride;
+  }
+  if (cfg.reviewProfile && agent.name.startsWith("review-")) {
+    return cfg.reviewProfile;
+  }
+  const skillName = agent.namespace;
+  const skillProfileName = skillName ? cfg.skills?.[skillName]?.profile : undefined;
+  return skillProfileName ?? cfg.activeProfile ?? cfg.defaultProfile;
+}
+
+/**
  * Resolve an agent's tier + frontmatter overrides to a concrete provider, model,
  * and thinking-flag recipe. See module-level docstring for the resolution order.
  *
@@ -288,11 +313,9 @@ export function resolveModelConfig(
     return null;
   }
 
-  const skillName = agent.namespace;
-  const skillProfileName = skillName ? cfg.skills?.[skillName]?.profile : undefined;
   const requestedProfileName = resolveProfileForCredentials(
     cfg,
-    skillProfileName ?? cfg.activeProfile ?? cfg.defaultProfile,
+    resolveRequestedProfileName(agent, cfg),
   );
   let targetProfile = cfg.profiles[requestedProfileName];
 

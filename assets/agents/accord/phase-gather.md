@@ -4,6 +4,8 @@ description: "Gather upstream context for a work item — fetch the ticket from 
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   bash: true
   write: true
 ---

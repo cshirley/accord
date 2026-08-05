@@ -4,6 +4,8 @@ description: "Write tests for a single plan task — spec-driven TDD test author
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true
@@ -27,6 +29,10 @@ The orchestrator's brief supplies:
 - **Spec constraints** — `constraints`, `resolved_questions`, `scope.in`, `scope.out`. Honour them in test setup and assertions.
 - **Plan guidance** — `guidance[]` and `reuse_candidates[]`. Follow test-relevant directives (especially `source: engineer`).
 - **`verification_commands`** — the spec's `verification.commands` array (e.g. `["go test ./...", "pytest"]`). Use the test command to run your tests.
+- **`quick_fix_contract`** — for quick_fix items, read from the per-task file. Follow `test.strategy`:
+  - `new_red_test`: write one narrow regression test; confirm behaviour RED.
+  - `existing_tests`: run existing suite; confirm failure matches `expected_finish`; do not add tests unless necessary.
+  - `no_test`: still run phase-test — confirm whether an automated test is feasible; escalate with `stuck` if RED cannot be established.
 
 ## Operating Rules
 

@@ -46,7 +46,7 @@ Per-task **`cwd`** runs the child `pi` process with that working directory — u
 
 ## Configuration
 
-Model and provider defaults for subagents are driven by **`subagent.json`** next to the discovered agent roots, with fallbacks documented in `src/agents.ts` (profiles, tiers, skill-namespace overrides). Agent markdown may pin a model in frontmatter.
+Model and provider defaults for subagents are driven by **`subagent.json`** next to the discovered agent roots, with fallbacks documented in `src/agents.ts` (profiles, tiers, skill-namespace overrides, `agentProfiles` / `reviewProfile` for cross-vendor review). Agent markdown may pin a model in frontmatter.
 
 ## Limits (sensible defaults)
 

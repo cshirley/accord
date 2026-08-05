@@ -3,7 +3,7 @@
  * pipeline calls for a pre-impl review pass.
  *
  * Applies to:
- * - `quick_fix` + `fixing`: any strategy except `no_test` (which routes straight to **review-test** at bootstrap).
+ * - `quick_fix` + `fixing`: all strategies (RGR — tests before code).
  * - `implement` + `implementing`: standard pipeline (same done packet shape).
  */
 
@@ -69,10 +69,6 @@ export function applyPhaseTestPostResult(workItemId: string, packet: unknown): s
 
     let eventType: "quick_fix_phase_test_applied" | "implement_phase_test_applied";
     if (wi.pattern === "quick_fix" && wi.phase === "fixing") {
-      const contract = task.quick_fix_contract as { test?: { strategy?: string } } | undefined;
-      if (contract?.test?.strategy === "no_test") {
-        return false;
-      }
       eventType = "quick_fix_phase_test_applied";
       footerLines = [
         "**Quick-fix (phase-test):** persisted `test_files` / `red_confirmed` and set task `phase` to `review-test`.",

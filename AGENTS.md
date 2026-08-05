@@ -19,6 +19,21 @@ This extension is one part of the larger pi.dev harness. The package bundles its
 - Workflow orchestration lives in `src/core/orchestration/` and the Pi extension (`src/adapters/pi/extension.ts`); there is no bundled `accord` skill. Companion skills ship as `commit`, `pr`, and `review` (see `assets/skills/*/SKILL.md`) — thin playbooks over `packages/pi-git-tools` and the bundled `review-*` agents.
 - The **`subagent` tool** lives in `packages/pi-subagent/` (registered via root `package.json` → `pi.extensions`, not by reading `packages/pi-subagent/README.md`). To delegate work, **call the `subagent` tool** (`agent` + `task`); do not open the README for execution. The core orchestrator delegates each phase or review step through it so every phase runs in an isolated Pi process.
 - Agent definition files are bundled at `assets/agents/accord/*.md`, covering all `phase-*` and `review-*` agents. The `accord/` namespace is path-derived: subagent's discovery walker tags each file with `namespace = "accord"`, which lets `subagent.json` apply per-skill profile overrides without any frontmatter change.
+
+### Review agent scope matrix
+
+| Topic | Owner agent | Others |
+| --- | --- | --- |
+| OWASP / authz / secrets / supply chain | `review-security` | `review-code` defers |
+| Test adequacy / adversarial gaps | `review-test` | `review-code` defers |
+| Correctness / drift / observability | `review-code` | — |
+| Spec structure / AC↔TC integrity | `review-spec` | — |
+| Plan ordering / task coverage | `review-plan` | — |
+| Design / ADR reasoning | `review-design` | — |
+| Hypothesis quality | `review-investigation` | — |
+| Plan deviation classification | `review-deviation` | — |
+
+Harness routing: **pre-impl** `review-test` → `phase-code` → optional `review-security` → `review-code`. `phase-code` never writes tests; violations respawn `phase-test`.
 - Provider prompts are bundled at `assets/providers/trackers/*.md` (primary ticket sources) and `assets/providers/enrichments/*.md` (supplementary context); each is paired with a `<name>.json` connectivity sidecar (validated by `schemas/provider-schema.json`). `src/integrations/provider-deps.ts` loads the sidecars at runtime — there is no separate hardcoded dependency map. `phase-gather` reads the markdown playbooks (via the absolute paths the orchestrator injects in the preflight report) to fetch context. Providers are not invokable agents (no frontmatter).
 - Projects can declare additional providers (or override a bundled provider by name) in `accord.json` under the top-level `providers` array. Each entry has the same shape as a sidecar but with an absolute or `~/`-prefixed `promptFile`. The merged provider set is what the gather preflight checks and what phase-gather receives.
 - `src/core/agents/registry.ts`, `assets/providers/{trackers,enrichments}/*.json`, and `assets/manifest.json` must stay aligned (the asset validator enforces this).

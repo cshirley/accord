@@ -94,18 +94,18 @@ Example — run the full per-task loop (test → review → code → review) wit
 
 ## Per-task commit (`orchestration.commit`)
 
-When `on_task_done` is `true`, the Pi orchestration host commits after **review-code** marks a plan task `done`. This bypasses the interactive `/commit` skill confirmation — use only on branches you are comfortable auto-committing.
+When `on_task_done` is `false`, the Pi orchestration host skips per-task git commits. The default is **`true`**: after **review-code** marks a plan task `done`, the harness stages task-scoped paths and commits without interactive `/commit` skill confirmation.
 
 | Field | Type | Default | Meaning |
 |-------|------|---------|--------|
-| `on_task_done` | boolean | `false` | Stage task-scoped paths (`plan.tasks[].files`, `test_files`, `docs/dev/<ID>/`) intersected with `git status`, then `git commit`. Records a `harness_task_commit` event on the task file. |
+| `on_task_done` | boolean | `true` | Stage task-scoped paths (`plan.tasks[].files`, `test_files`, `docs/dev/<ID>/`) intersected with `git status`, then `git commit`. Records a `harness_task_commit` event on the task file. Set `false` to disable auto-commit. |
 
-Example:
+Example — disable per-task commits (e.g. when you prefer manual `/commit`):
 
 ```json
 "orchestration": {
   "resume": { "no_auto_chain_agents": [], "max_sequential_spawns": 32 },
-  "commit": { "on_task_done": true }
+  "commit": { "on_task_done": false }
 }
 ```
 

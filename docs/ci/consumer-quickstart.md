@@ -100,3 +100,27 @@ a different provider or tighter model choices:
 If the named profile is missing from the resulting JSON the workflow
 fails fast with `::error:: subagent_profile '<name>' is not defined in
 …` listing the profiles it found — no silent fallback.
+
+### Cross-vendor adversarial review
+
+To run implementation phases on one provider and the `review-*` loop on
+another, add a second profile and route review agents with
+`reviewProfile` (or per-agent `agentProfiles`) in your `subagent.json`:
+
+```json
+{
+  "defaultProfile": "anthropic-direct",
+  "skills": { "accord": { "profile": "anthropic-direct" } },
+  "reviewProfile": "openai-direct",
+  "profiles": {
+    "anthropic-direct": { "...": "..." },
+    "openai-direct": { "...": "..." }
+  }
+}
+```
+
+Phase agents (`phase-code`, `phase-test`, …) keep using
+`anthropic-direct`; all `review-*` agents resolve tiers against
+`openai-direct` (correct `thinkingMode` per provider). Plumb
+`OPENAI_API_KEY` (or the alternate provider's secret) alongside
+`ANTHROPIC_API_KEY`.

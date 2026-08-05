@@ -1,6 +1,7 @@
 ---
 name: crq-notify
 description: Fetch a Jira CRQ (change request) release ticket, resolve every linked change to its PR (number, labels, author) and Slack handle, and post a formatted release summary to a Slack channel or DM. Use when the user wants to announce, notify, or share a release/change request on Slack.
+disable-model-invocation: true
 ---
 
 # CRQ Notify

@@ -345,7 +345,7 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     description:
       "Create quick_fix task state, write spec/plan stubs, and assemble a phase-test or phase-code brief",
     promptSnippet:
-      "For quick_fix/fixing work items only: create .tasks/<ID>-task-1.json, write auto-generated spec/plan stubs to docs/dev/<ID>/, persist task_ids and spec/plan paths on the work item, and return a brief. Returns brief_type='phase-test' when strategy is new_red_test (spawn phase-test first), or brief_type='phase-code' otherwise (uses dev_code_brief against the stubs). After phase-test/review-test, call dev_code_brief for the phase-code brief.",
+      "For quick_fix/fixing work items only: create .tasks/<ID>-task-1.json, write auto-generated spec/plan stubs to docs/dev/<ID>/, persist task_ids and spec/plan paths on the work item, and return a phase-test brief. RGR applies for all strategies (including quick_fix_direct): phase-test → review-test → phase-code. After review-test, call dev_code_brief for the phase-code brief.",
     parameters: Type.Object({
       work_item_id: Type.String(),
     }),

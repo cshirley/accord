@@ -4,6 +4,8 @@ description: "Multi-turn collaborative problem framing — the pipeline entry po
 tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   bash: true
   write: true
 ---

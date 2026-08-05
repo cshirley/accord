@@ -307,6 +307,7 @@ export function reconcileVerifyOnlyTasksFromPlan(workItemId: string, planPath: s
       phase === "phase-test" ||
       phase === "review-test" ||
       phase === "phase-code" ||
+      phase === "review-security" ||
       phase === "review-code";
     const needsGates = existing.pre_impl_gates !== "complete";
 

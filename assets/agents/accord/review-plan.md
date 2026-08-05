@@ -1,9 +1,11 @@
 ---
 name: review-plan
 description: "Plan review — mechanical checks (AC coverage, reuse usage, TDD ordering, constraint honoring) and architectural judgement in a single pass."
-tier: workhorse
+tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: false
   bash: false
@@ -41,16 +43,22 @@ Read both files yourself.
 | 16 | **Convention coverage** — for each implementation-convention topic relevant to the plan's tasks (codegen/schema-gen wiring, template/asset loading, client form-state persistence, build-system target naming + dependency wiring, e2e auth strategy, governance scaffolding files), `plan.guidance[]` contains at least one entry with `source: "convention"`. Irrelevant topics (no task touches them) may be skipped. A topic touched by ≥ 1 task with no corresponding convention guidance is a critical finding. |
 | 17 | **Operational-contract task coverage** — every populated field in `spec.infra_and_tooling` (`linter`, `env_validation`, `coverage_threshold`, `ci_in_v1`+`required_workflows`) is represented by either (a) a task step touching the relevant config (e.g. linter config, test runner config, CI workflow), or (b) a `guidance[]` directive confirming the repo default is inherited unchanged. Silent omission is a critical finding. |
 | 18 | **Registry-auth task coverage** — every `spec.security_topology.registry_auth[]` entry maps to a task step that wires up the credential (env var in CI, registry auth config, `.env.example` documentation, post-install credential check) or to a `guidance[]` directive explicitly deferring it. |
+| 19 | **Inter-task dependencies** — tasks that depend on another task's output (schema migration before code, shared type before consumers) are ordered correctly in `plan.tasks[]`. Inverted order → **critical**. |
+| 20 | **Migration/backfill tasks** — when any MUST AC implies schema or data migration, a dedicated task step exists with verify evidence. Missing → **critical**. |
+| 21 | **Post-impl review routing** — tasks touching auth/payment/API surfaces or test files should have `challenge: true` or explicit verify steps that name `review-security` where applicable. Silent omission → **warning**. |
 
 ## Part 2 — Architectural judgement
 
-Evaluate each applicable dimension:
+Evaluate each applicable dimension (security detail → defer to `review-security` at code time; test adequacy → `review-test`):
 
-- **Codebase fit** — does the task shape match existing conventions? Abstraction level? Circular deps?
-- **Correctness** — unhandled edge cases, null/race/timeout, unauthed paths.
-- **Performance** — scale assumptions, over-fetching, N+1.
-- **Security** — input sanitisation, secrets in logs, privilege escalation.
-- **Duplication** — compare new services against `reuse_candidates`; flag reimplementation, recommend delegation.
+| Dimension | What to check |
+| --- | --- |
+| Codebase fit | task shape vs conventions; abstraction level; circular deps |
+| Correctness | unhandled edge cases; null/race/timeout; idempotency on retries |
+| Performance | scale assumptions; over-fetching; N+1; hot-path allocations |
+| Operability | rollback/feature-flag plan; migration safety; on-call impact |
+| Duplication | compare against `reuse_candidates`; flag reimplementation |
+| Blast radius | which services/consumers break; can this ship incrementally? |
 
 ## Return packet
 
@@ -60,6 +68,7 @@ Key content expectations:
 - `file` should reference the plan JSON path.
 - `issue` should identify the coverage gap, ordering issue, or missing guidance.
 - `evidence` should cross-reference spec ACs with plan tasks.
+- Optional `category` (`mechanical`, `architectural`, `ordering`) and `ref` (`AC-3`, `task-2`) for routing.
 
 Severity:
 - `critical` — any ❌ mechanical check, architectural blocker (security, correctness, or data-loss risk)

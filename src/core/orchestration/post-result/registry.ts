@@ -17,6 +17,7 @@ import { applyPhaseTestPostResult } from "./phase-test.js";
 import { applyPhaseVerifyTaskPostResult } from "./phase-verify-task.js";
 import { applyPhaseVerifyAcceptancePostResult } from "./phase-verify-acceptance.js";
 import { applyReviewCodePostResult } from "./review-code.js";
+import { applyReviewSecurityPostResult } from "./review-security.js";
 import { applyReviewTestPostResult } from "./review-test.js";
 
 export type PostResultHandler = (
@@ -32,6 +33,7 @@ export const POST_RESULT_HANDLERS: Readonly<Record<string, PostResultHandler>> =
   "phase-test": applyPhaseTestPostResult,
   "phase-verify-task": applyPhaseVerifyTaskPostResult,
   "review-test": applyReviewTestPostResult,
+  "review-security": applyReviewSecurityPostResult,
   "phase-code": applyPhaseCodePostResult,
   "review-code": applyReviewCodePostResult,
   "phase-verify-acceptance": applyPhaseVerifyAcceptancePostResult,

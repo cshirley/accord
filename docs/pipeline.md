@@ -68,19 +68,17 @@ flowchart TD
 
 ### Quick fix (`quick_fix`)
 
-For bounded, low-ceremony changes. Skips align, spec, and plan. When the test strategy is `new_red_test`, `phase-test` and `review-test` run before `phase-code` — preserving adversarial test/impl separation.
+For bounded, low-ceremony changes. Skips align, spec, and plan agents. **RGR always applies:** `phase-test` → `review-test` → `phase-code`, including `quick_fix_direct` stubs.
 
 ```mermaid
 flowchart TD
     START(["/dev fix the login validation bug"]) --> INTENT["dev_intent → narrow_change<br/>dev_intent_enrich (if ticket)"]
     INTENT --> BOOT["dev_bootstrap<br/>pattern: quick_fix, phase: fixing"]
     BOOT --> BRIEF["dev_quick_fix_brief<br/>creates .tasks/ID-task-1<br/>writes stub spec + plan<br/>at docs/dev/ID/"]
-    BRIEF --> STRAT{test strategy}
-    STRAT -->|new_red_test| TEST["phase-test<br/>writes narrow regression test<br/>confirms RED"]
-    STRAT -->|existing_tests / no_test| CODEBR
+    BRIEF --> TEST["phase-test<br/>writes or validates tests<br/>confirms RED (strategy-dependent)"]
     TEST --> RT["review-test<br/>(pre-impl mode, has stub AC context)<br/>advisory — gated findings<br/>respawn phase-test (policy cap)"]
     RT --> CODEBR["dev_code_brief (reads stubs)"]
-    CODEBR --> CODE["phase-code<br/>implements the fix → tests GREEN<br/>⚡ post-code verify<br/>type_check (hard gate)<br/>test (advisory)"]
+    CODEBR --> CODE["phase-code<br/>production code only → tests GREEN<br/>⚡ post-code verify<br/>type_check (hard gate)<br/>test (advisory)"]
     CODE --> PROMOTE["dev_promote_events (task_id: 1)"]
     PROMOTE -->|done| OUT1["COMPLETE → /commit → /pr"]
     PROMOTE -->|stuck| OUT2["stays fixing, decision packet"]

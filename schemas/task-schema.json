@@ -24,12 +24,13 @@
         "phase-test",
         "review-test",
         "phase-code",
+        "review-security",
         "review-code",
         "phase-verify-code",
         "phase-verify-task",
         "phase-verify-acceptance"
       ],
-      "description": "Per-task pipeline position. `review-test` is used between phase-test and phase-code (quick_fix new_red_test and implement). `review-code` is optional after phase-code when policy or plan requests it."
+      "description": "Per-task pipeline position. `review-test` runs pre-impl only (after phase-test, before phase-code). `review-security` runs before review-code on security-sensitive paths. `review-code` is mandatory after phase-code. `phase-code` must not modify tests — violations respawn phase-test."
     },
     "status": { "enum": ["pending", "in_progress", "done", "blocked"] },
     "pre_impl_gates": { "enum": ["pending", "complete"] },
@@ -37,6 +38,11 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Test files written by phase-test"
+    },
+    "post_impl_files_changed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Deprecated — phase-code must not change tests. If set by legacy runs, harness ignores for routing."
     },
     "red_confirmed": {
       "type": "boolean",
@@ -96,7 +102,7 @@
       "additionalProperties": false,
       "required": ["agent", "verdict", "findings", "at", "packet"],
       "properties": {
-        "agent": { "enum": ["review-test", "review-code"] },
+        "agent": { "enum": ["review-test", "review-code", "review-security"] },
         "verdict": { "enum": ["clean", "issues"] },
         "at": { "type": "string", "format": "date-time" },
         "analysis": { "type": "string", "minLength": 1 },
@@ -113,7 +119,9 @@
               "file": { "type": "string" },
               "line": { "type": "integer", "minimum": 1 },
               "evidence": { "type": "string" },
-              "recommendation": { "type": "string" }
+              "recommendation": { "type": "string" },
+              "category": { "type": "string" },
+              "ref": { "type": "string" }
             }
           }
         }

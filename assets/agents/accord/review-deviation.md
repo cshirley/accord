@@ -4,6 +4,8 @@ description: "Classify a plan deviation emitted by phase-code as mechanical (sil
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: false
   edit: true
   bash: true
@@ -34,6 +36,8 @@ Apply this decision table, in order. First match wins.
 | 6 | Any change that removes, renames, or replaces a file the plan declared with `action: "add"` or `action: "modify"` under a different task | `architectural` |
 | 7 | Any change that could affect an AC's verify evidence (cited test names, code line ranges in the plan's verify step) | `architectural` |
 | 8 | Unclassifiable — not confident it's mechanical | `architectural` |
+| 9 | Dependency major-version bump, library swap, or lockfile-only change affecting runtime behaviour | `architectural` |
+| 10 | Accumulated mechanical deviations — ≥ 3 mechanical deviations on the same `task_id` in one work item | `architectural` |
 
 Never silently classify as mechanical when in doubt.
 

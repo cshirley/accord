@@ -4,6 +4,8 @@ description: "Read the verify JSON and create one Jira Task per gap under the sp
 tier: lightweight
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true
