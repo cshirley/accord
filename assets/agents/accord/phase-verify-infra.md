@@ -4,6 +4,8 @@ description: "Validate Infrastructure-as-Code changes by running the tool's prev
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   bash: true
 ---
 

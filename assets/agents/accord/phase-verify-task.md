@@ -4,6 +4,8 @@ description: "Run verification gates for a verify-only plan task (steps are excl
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   bash: true
 ---
 

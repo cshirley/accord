@@ -4,6 +4,8 @@ description: "Implement production code for a single plan task — tests already
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true

@@ -4,6 +4,8 @@ description: "Write tests for a single plan task — spec-driven TDD test author
 tier: workhorse
 tools:
   read: true
+  grep: true
+  find: true
   write: true
   edit: true
   bash: true

@@ -4,6 +4,8 @@ description: "Propose 3+ diverse hypotheses for an investigation given gathered 
 tier: reasoning
 tools:
   read: true
+  grep: true
+  find: true
   bash: true
 ---
 
