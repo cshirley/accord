@@ -11,6 +11,7 @@ import { devTasks } from "../../core/queries/dashboard.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { formatWorkflowCostForFinish } from "../../core/queries/workflow-cost.js";
 import type { HookState } from "./hook-state.js";
+import { activateForDevSubcommand } from "./dynamic-tools.js";
 import { notifyTruncated } from "./notify.js";
 import { displayTasksDashboard } from "./dev-formatted-display.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
@@ -31,6 +32,7 @@ export async function tryFinishViaCoreOrchestrator(
   if (preflight.kind !== "ready") return preflight.kind;
 
   const { workItemId, host } = preflight;
+  activateForDevSubcommand(pi, state, "finish");
 
   const resolution = resolveFinishOrchestration(workItemId, state.devConfig);
   if (resolution.outcome === "blocked" || resolution.outcome === "complete") {

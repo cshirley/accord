@@ -10,6 +10,7 @@ function minimalHookState(): HookState {
     activeWorkItem: null,
     _harnessSessionMarkerFp: null,
     costCache: new Map(),
+    activatedToolBundles: new Set(),
   };
 }
 

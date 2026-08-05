@@ -187,7 +187,7 @@ Exact grouping should mirror `src/core/orchestration/` phase → agent mapping.
 
 ### Status
 
-- [ ] Not started
+- [x] Complete — dynamic tool bundles, `setActiveTools` on session_start, expand on orchestration/bootstrap, `ACCORD_DYNAMIC_TOOLS=0` opt-out
 
 ---
 

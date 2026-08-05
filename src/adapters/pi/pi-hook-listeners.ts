@@ -25,6 +25,12 @@ import {
   loadPricing,
 } from "../../core/telemetry/usage.js";
 import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
+import {
+  activateForWorkItemPhase,
+  applyAccordActiveTools,
+  maybeActivateDevToolCall,
+  resetDynamicToolBundles,
+} from "./dynamic-tools.js";
 import { isPlanModeActive, planModeSubagentBlockReason } from "./plan-mode.js";
 import { updateStatusBar } from "./status-bar.js";
 
@@ -70,6 +76,8 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
   // ── Config guard + brief injection (+ gather/verify preflight) ──
 
   pi.on("tool_call", async (event, ctx) => {
+    maybeActivateDevToolCall(pi, state, event.toolName);
+
     if (event.toolName !== "subagent") return;
     if (isPlanModeActive(ctx)) return { block: true, reason: planModeSubagentBlockReason() };
 
@@ -90,6 +98,14 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
   // ── Subagent result processing ───────────────────────
 
   pi.on("tool_result", async (event, ctx) => {
+    if (event.toolName === "dev_bootstrap" && !event.isError) {
+      const details = event.details as { work_item?: { phase?: string } } | undefined;
+      const phase = details?.work_item?.phase;
+      if (phase) {
+        activateForWorkItemPhase(pi, state, phase);
+      }
+    }
+
     if (event.toolName !== "subagent") return;
 
     const contentAppend = await processSubagentToolResult({
@@ -143,6 +159,8 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
     state.devConfig = loadDevHarnessConfig();
     setLogLevel(resolveLogLevel(state.devConfig?.log_level));
     clearHarnessRunTag();
+    resetDynamicToolBundles(state);
+    applyAccordActiveTools(pi, state);
     applyHarnessCostSeed(state, seedHarnessSessionCostState());
     updateStatusBar(ctx, state);
     syncHarnessRunSessionEntry(pi, state);

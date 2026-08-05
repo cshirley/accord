@@ -12,6 +12,10 @@ import {
 } from "../../core/orchestration/index.js";
 import { devResumeState } from "../../core/queries/resume-state.js";
 import type { HookState } from "./hook-state.js";
+import {
+  activateForDevSubcommand,
+  activateForDispatchAgent,
+} from "./dynamic-tools.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
 
 export const ORCHESTRATOR_DISABLED_MESSAGE =
@@ -66,10 +70,16 @@ export async function tryDevSubcommandViaCoreOrchestrator(
   }
 
   const { workItemId, host } = preflight;
+  activateForDevSubcommand(pi, state, subcommand);
+
   const initialPlan =
     subcommand === "resume"
       ? planDevResumeOrchestration(workItemId, state.devConfig)
       : resolveDevSubcommandOrchestration(subcommand, workItemId, args, state.devConfig);
+
+  if (initialPlan.outcome === "spawn") {
+    activateForDispatchAgent(pi, state, initialPlan.agent);
+  }
 
   notifyOrchestrationPreview(ctx, workItemId, subcommand, initialPlan);
 

@@ -34,6 +34,7 @@ import {
   registerTasksDashboardRenderer,
 } from "./dev-formatted-display.js";
 import { registerHarnessRunEntryRenderer } from "./custom-entry-renderers.js";
+import { activateForDevSubcommand } from "./dynamic-tools.js";
 import { devRetro } from "../../core/queries/retro.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { devDeviations } from "../../core/queries/deviations.js";
@@ -77,6 +78,7 @@ export default function (pi: ExtensionAPI) {
     activeWorkItem: null,
     _harnessSessionMarkerFp: null,
     costCache: new Map(),
+    activatedToolBundles: new Set(),
   };
 
   // ── /dev and /accord commands (deterministic routing) ───────────────
@@ -180,6 +182,7 @@ export default function (pi: ExtensionAPI) {
     }
 
     if (route.type === "known" && route.subcommand === "init") {
+      activateForDevSubcommand(pi, state, "init");
       ctx.ui.notify(
         "ACCORD init runs in this session (not a separate skill). Follow the numbered flow using `dev_init_detect` and `dev_init_write`. See docs/configuration.md.",
         "info",
