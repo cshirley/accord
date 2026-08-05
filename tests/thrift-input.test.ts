@@ -28,7 +28,7 @@ interface Message {
   toolCallId?: string;
   toolName?: string;
   isError?: boolean;
-  content: unknown[];
+  content?: unknown;
 }
 
 type Handler = (event: unknown, ctx: unknown) => unknown;
@@ -278,6 +278,20 @@ describe("elision before the call", () => {
 
     expect(result).toBeUndefined();
     expect(h.stats.lastContextStubbed).toBe(0);
+  });
+
+  test("accepts string content on user messages", async () => {
+    const h = await harness();
+    const bodies = bodiesFor(10, 30_000);
+    const messages = conversation(bodies);
+    messages[0] = { role: "user", content: "go" };
+
+    const result = (await h.emit("context", { messages }, ctxAt(0.8))) as
+      | { messages: Message[] }
+      | undefined;
+
+    expect(result?.messages).toBeDefined();
+    expect(stubbedMessages(result?.messages ?? []).length).toBeGreaterThan(0);
   });
 
   test("estimates pressure when the host reports none, instead of eliding blindly", async () => {

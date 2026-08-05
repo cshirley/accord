@@ -64,14 +64,17 @@ interface TextBlock {
   text?: string;
 }
 
-function firstTextIndex(content: readonly TextBlock[]): number {
-  return content.findIndex((c) => c.type === "text");
+function contentBlocks(content: unknown): TextBlock[] {
+  if (typeof content === "string") return [{ type: "text", text: content }];
+  if (!Array.isArray(content)) return [];
+  return content as TextBlock[];
 }
 
-function textOf(content: readonly TextBlock[]): string {
-  const idx = firstTextIndex(content);
+function textOf(content: unknown): string {
+  const blocks = contentBlocks(content);
+  const idx = blocks.findIndex((c) => c.type === "text");
   if (idx === -1) return "";
-  return content[idx]?.text ?? "";
+  return blocks[idx]?.text ?? "";
 }
 
 export const byteLen = (s: string): number => Buffer.byteLength(s, "utf-8");
@@ -134,9 +137,10 @@ export function registerInputPruning(
     const maxBytes = config.input.maxResultBytes[event.toolName];
     if (maxBytes === undefined) return;
 
-    const textIdx = firstTextIndex(event.content);
+    const blocks = contentBlocks(event.content);
+    const textIdx = blocks.findIndex((c) => c.type === "text");
     if (textIdx === -1) return;
-    const block = event.content[textIdx];
+    const block = blocks[textIdx];
     if (block === undefined || block.type !== "text") return;
 
     const original = block.text;
@@ -197,7 +201,7 @@ export function registerInputPruning(
     stats.sourceResultsReduced++;
 
     // Preserve non-text blocks (images and friends).
-    const newContent = [...event.content];
+    const newContent = [...blocks];
     newContent[textIdx] = { type: "text" as const, text: newText };
 
     if (config.showStatus) {
@@ -253,7 +257,7 @@ export function registerInputPruning(
           toolCallId: m.toolCallId,
           toolName: m.toolName,
           isError: m.isError,
-          bytes: byteLen(textOf(m.content ?? [])),
+          bytes: byteLen(textOf(m.content)),
         }),
       ),
       calls,
@@ -291,7 +295,7 @@ export function registerInputPruning(
         const decision = plan.decisions.get(toolCallId);
         if (decision === undefined || decision === "keep") return msg;
 
-        const original = textOf(msg.content ?? []);
+        const original = textOf(msg.content);
         const originalBytes = byteLen(original);
         if (originalBytes === 0) return msg;
 
