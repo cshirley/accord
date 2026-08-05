@@ -2,6 +2,8 @@
 
 How to make a checked-out copy of this repository run as your live `/dev` extension inside pi.dev. This is the workflow for editing ACCORD itself and seeing your changes immediately, rather than installing a published version from npm.
 
+**Requires Pi ≥ 0.83.0** — peer dependencies target `@earendil-works/pi-coding-agent` **0.83.x**. Run `pi --version` (or `npm list -g @earendil-works/pi-coding-agent`) before registering this checkout; upgrade Pi if needed.
+
 ## What gets wired in
 
 A working install needs **two** pieces under `~/.config/pi/agent/`:

@@ -3,7 +3,7 @@
  */
 
 import type { AssistantMessage, TextContent, UserMessage } from "@earendil-works/pi-ai";
-import { completeSimple } from "@earendil-works/pi-ai";
+import { completeSimple } from "@earendil-works/pi-ai/compat";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { DevHarnessConfig } from "../../../core/config/index.js";
 import type { OrchestrationJudgmentRequest } from "../../../core/orchestration/host.js";
