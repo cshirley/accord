@@ -5,6 +5,7 @@
 import * as path from "node:path";
 import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
 import { createLogger } from "../logging.js";
+import { pathsIncludeSecuritySensitive, pathsIncludeTestFiles } from "../orchestration/review-paths.js";
 import {
   checkBriefPresentForSpeccing,
   checkSpecPresentForPlanning,
@@ -245,15 +246,8 @@ export function devPromoteEvents(workItemId: string, taskId: string): PromotionR
         reviewRequested = true;
         reviewAgents.push("review-code");
         const files: string[] = event.files || [];
-        const hasTestFiles = files.some(
-          (f) =>
-            /\.test\.|\.spec\.|_test\.(go|rs)|test_.*\.py|_spec\.rb|Test\.java|Tests\.cs/i.test(
-              f,
-            ) || /\/(test|__tests__|tests|spec)\//.test(f),
-        );
-        if (hasTestFiles) reviewAgents.push("review-test");
-        const hasSecurityFiles = files.some((f) => /(auth|payment|api|public.?api)/i.test(f));
-        if (hasSecurityFiles) reviewAgents.push("review-security");
+        if (pathsIncludeTestFiles(files)) reviewAgents.push("review-test");
+        if (pathsIncludeSecuritySensitive(files)) reviewAgents.push("review-security");
         break;
       }
     }

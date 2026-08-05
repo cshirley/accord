@@ -28,6 +28,7 @@ export const IMPLEMENT_SPAWN_AGENTS: ReadonlySet<string> = new Set([
   "phase-test",
   "phase-code",
   "review-test",
+  "review-security",
   "review-code",
 ]);
 
@@ -78,6 +79,7 @@ export interface TaskRequirementsSlice {
   red_confirmed?: boolean;
   test_output?: string;
   ac_covered?: string[];
+  security_topology?: unknown;
 }
 
 export function filterCoveredAcceptanceCriteria(
@@ -213,6 +215,9 @@ export function sliceTaskRequirements(
             (id): id is string => typeof id === "string",
           ),
         }
+      : {}),
+    ...(spec.security_topology !== undefined
+      ? { security_topology: spec.security_topology }
       : {}),
   });
 }
@@ -409,7 +414,7 @@ function agentPayloadForSpawn(
     return {
       mode: "pre-impl",
       test_files: slice.test_files,
-      production_files: [] as string[],
+      production_files: [],
       test_output: slice.test_output ?? "",
       covered_acs: slice.covered_acs,
       test_cases: slice.test_cases,
@@ -424,6 +429,13 @@ function agentPayloadForSpawn(
         ? { quick_fix_contract: slice.quick_fix_contract }
         : {}),
       ...(options?.preImplNote ? { note: options.preImplNote } : {}),
+    };
+  }
+
+  if (agent === "review-security") {
+    return {
+      ...base,
+      security_topology: slice.security_topology,
     };
   }
 
@@ -452,12 +464,13 @@ export function formatImplementSpawnTaskBrief(input: {
     "phase-test": "phase-test",
     "phase-code": "phase-code",
     "review-test": `review-test — ${pipelineLabel} (pre-impl)`,
+    "review-security": "review-security",
     "review-code": "review-code",
   };
   const heading = agentLabels[input.agent] ?? input.agent;
 
   const payload = agentPayloadForSpawn(input.agent, input.slice, {
-    preImplNote: input.preImplNote,
+    ...(input.preImplNote ? { preImplNote: input.preImplNote } : {}),
   });
 
   const lines = [
@@ -545,6 +558,19 @@ export function buildImplementSpawnTaskBrief(input: {
         variant: input.variant,
         slice,
         preImplNote,
+      }),
+    );
+  }
+
+  if (input.dispatchAgent === "review-security") {
+    return ok(
+      formatImplementSpawnTaskBrief({
+        agent: input.dispatchAgent,
+        pattern: input.pattern,
+        phase: input.phase,
+        title: input.title,
+        variant: input.variant,
+        slice,
       }),
     );
   }

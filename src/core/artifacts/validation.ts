@@ -169,7 +169,7 @@ function normaliseReviewFindings(data: unknown): void {
   for (const item of findings) {
     if (!item || typeof item !== "object") continue;
     const f = item as Record<string, unknown>;
-    if (f.severity !== "suggestion" && (!f.file || !f.line)) {
+    if (f.severity !== "suggestion" && (!f.file || !f.line) && !f.ref) {
       f.severity = "suggestion";
     }
   }

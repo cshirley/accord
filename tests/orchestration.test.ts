@@ -1599,6 +1599,68 @@ describe("implement phase-code harness hook", () => {
     };
     expect(task.phase).toBe("review-code");
   });
+
+  test("applyPhaseCodePostResult respawns phase-test when test files appear in files_changed (RGR)", () => {
+    mkdirSync(join(tempCwd, "docs", "dev", "IPC-3"), { recursive: true });
+    writeFileSync(
+      join("docs", "dev", "IPC-3", "plan.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        tasks: [{ id: 1, title: "t", covers_ac: [], challenge: false, files: [], steps: [] }],
+      })}\n`,
+      "utf8",
+    );
+    writeWorkItem("IPC-3", {
+      schema_version: "1.0",
+      id: "IPC-3",
+      title: "impl",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      phase: "implementing",
+      task_ids: [1],
+      spec: "docs/dev/IPC-3/spec.json",
+      plan: "docs/dev/IPC-3/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeFileSync(
+      join(".tasks", "IPC-3-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "IPC-3",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "phase-code",
+        status: "in_progress",
+        pre_impl_gates: "complete",
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+    const note = applyPhaseCodePostResult(
+      "IPC-3",
+      {
+        status: "done",
+        files_changed: ["src/foo.test.ts"],
+        tests_passing: true,
+        ac_covered: ["AC-1"],
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      },
+      minimalDevConfig(),
+    );
+    expect(note).toContain("phase-test");
+    expect(note).toContain("RGR");
+    const task = JSON.parse(readFileSync(join(".tasks", "IPC-3-task-1.json"), "utf8")) as {
+      phase: string;
+      pre_impl_gates: string;
+    };
+    expect(task.phase).toBe("phase-test");
+    expect(task.pre_impl_gates).toBe("pending");
+  });
 });
 describe("review retry policy", () => {
   test("reviewRetryPolicyForAgent: quick_fix review-test uses quick_fix_loop", () => {

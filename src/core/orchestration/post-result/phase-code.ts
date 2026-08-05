@@ -1,11 +1,18 @@
 /**
  * After validated **phase-code** return:
- * - **`implement` + `implementing`** and **`quick_fix` + `fixing`:** always advance to **review-code**
- *   (mandatory post-impl review). Task completion happens after **review-code** post-result.
+ * - **`implement` + `implementing`** and **`quick_fix` + `fixing`:** advance to **review-code**
+ *   (via **review-security** when paths are security-sensitive). Task completion happens after
+ *   **review-code** post-result.
+ * - If `phase-code` reported `test_issues_emitted` or modified test files, route back to
+ *   **phase-test** and reset `pre_impl_gates` (RGR — tests are never owned by phase-code).
  */
 
 import type { DevHarnessConfig } from "../../config/types.js";
 import { devPromoteEvents, type PromotionResult } from "../../work-items/lifecycle.js";
+import {
+  nextPhaseAfterPhaseCode,
+  phaseCodeMustRespawnPhaseTest,
+} from "../review-paths.js";
 import { advancePrimaryTask } from "./primary-task.js";
 
 function formatPromotionFooter(promotion: PromotionResult): string {
@@ -30,6 +37,8 @@ function formatPromotionFooter(promotion: PromotionResult): string {
 interface PhaseCodeDonePacket {
   status: "done";
   reviews_requested?: number;
+  files_changed?: string[];
+  test_issues_emitted?: number;
 }
 
 function isPhaseCodeDonePacket(packet: unknown): packet is PhaseCodeDonePacket {
@@ -42,7 +51,9 @@ function isPhaseCodeDonePacket(packet: unknown): packet is PhaseCodeDonePacket {
 
 /**
  * When the work item is **`implement` + `implementing`** or **`quick_fix` + `fixing`**, the primary
- * task is in **`phase-code`**, and the packet is a successful done return, advances `phase` → **review-code**.
+ * task is in **`phase-code`**, and the packet is a successful done return, advances `phase` →
+ * **phase-test** (test boundary violation), **review-security** (security-sensitive paths),
+ * or **review-code** (default).
  *
  * @returns Markdown to append for the orchestrator (empty when this path does not apply).
  */
@@ -69,29 +80,54 @@ export function applyPhaseCodePostResult(
     }
 
     const previousPhase = typeof task.phase === "string" ? task.phase : "phase-code";
-    task.phase = "review-code";
+    const filesChanged = Array.isArray(packet.files_changed)
+      ? packet.files_changed.filter((f): f is string => typeof f === "string")
+      : [];
+    const respawnPhaseTest = phaseCodeMustRespawnPhaseTest(filesChanged, {
+      testIssuesEmitted: packet.test_issues_emitted,
+    });
+    const nextPhase = nextPhaseAfterPhaseCode(filesChanged, {
+      testIssuesEmitted: packet.test_issues_emitted,
+    });
+    if (respawnPhaseTest) {
+      task.pre_impl_gates = "pending";
+    }
+    task.phase = nextPhase;
     task.status = "pending";
 
     const promotion = devPromoteEvents(workItemId, String(primaryTaskId));
     const promotionFooter = formatPromotionFooter(promotion);
     const label = onQuickFix ? "Quick-fix" : "Implement";
 
+    const rgrNote = respawnPhaseTest
+      ? [
+          "",
+          "- **RGR:** `phase-code` must not modify tests. Re-run **phase-test** → **review-test** → **phase-code**.",
+          packet.test_issues_emitted
+            ? `  (${String(packet.test_issues_emitted)} test_issue event(s) reported.)`
+            : "  (Test paths appeared in `files_changed`.)",
+        ].join("\n")
+      : "";
+
     footer = [
       "",
       "",
-      `**${label} (phase-code):** implementation complete — **review-code** is required next.`,
+      `**${label} (phase-code):** implementation complete — **${nextPhase}** is required next.`,
       "",
-      `- Task phase: \`${previousPhase}\` → \`review-code\`.`,
+      `- Task phase: \`${previousPhase}\` → \`${nextPhase}\`.`,
+      rgrNote,
       "",
-      "Run `/dev resume` to spawn **review-code** before marking the task done.",
+      `Run \`/dev resume\` to spawn **${nextPhase}** before marking the task done.`,
       promotionFooter,
-    ].join("\n");
+    ]
+      .filter((line) => line !== undefined)
+      .join("\n");
 
     return {
       event: {
         type: onQuickFix ? "quick_fix_review_code_enqueued" : "implement_review_code_enqueued",
         previous_phase: previousPhase,
-        next_phase: "review-code",
+        next_phase: nextPhase,
         promotion,
       },
     };

@@ -15,4 +15,5 @@ export {
   runPostResultHandlerForAgent,
 } from "./registry.js";
 export { applyReviewCodePostResult } from "./review-code.js";
+export { applyReviewSecurityPostResult } from "./review-security.js";
 export { applyReviewTestPostResult } from "./review-test.js";

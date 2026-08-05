@@ -41,7 +41,9 @@ If you can devise an adversarial implementation that passes every test, those te
 | `pre-impl` | After `phase-test`, before `phase-code` (ACCORD harness default). | `test_files`; `production_files` empty or absent; `test_output` from RED run (may be failing). |
 | `post-impl` | Standalone `/review` skill or ad-hoc diff review after implementation. | `test_files` + `production_files` + `test_output` (typically GREEN). |
 
-The orchestrator sets `mode`. **Harness pipeline:** `review-test` runs **pre-impl** only; `review-code` runs **post-impl** on production code. Both agents are independent processes — neither sees the other's findings until merge.
+The orchestrator sets `mode`. **Harness pipeline:** `review-test` runs **pre-impl only** (after `phase-test`, before `phase-code`). `review-code` runs post-impl on production code. Both agents are independent processes — neither sees the other's findings until merge.
+
+**Standalone `/review` skill** may run `review-test` in `post-impl` mode against a finished diff (no harness phase boundary).
 
 Run **Checks 0–7** in every mode. **Check 6** adds post-impl-only steps when `production_files` are present and the suite is green.
 
@@ -55,7 +57,7 @@ When `quick_fix_contract.test.strategy` is set:
 | `existing_tests` | No new RED required — confirm failures (if any) match `expected_finish`, not unrelated flakes; baseline must not mask the bug. Flag if tests already pass for the reported defect. |
 | `no_test` | No `test_files` — review **contract only**: `plan.expected_finish`, `target_paths`, verification commands, and documented reason tests are skipped. Flag if the finish condition is not mechanically verifiable anywhere. |
 
-Tests added during **phase-code** under `new_red_test` are **not** covered by this pre-impl pass — note that gap if the brief mentions code-phase tests.
+If `phase-code` reports test issues or modifies test files, the harness respawns **phase-test** — do not rely on a post-impl harness pass.
 
 ## Expected Input
 
@@ -211,6 +213,23 @@ Using `constraints`, `scope_out`, and `rejected_alternatives`:
 
 Violation → **critical** if it undermines a MUST AC; else **warning**.
 
+## Check 8 — Fixture and secrets hygiene
+
+For every test file:
+
+1. Flag hardcoded secrets, API keys, tokens, or real PII in fixtures/factories/seeds.
+2. Flag unrealistic data that masks boundary bugs (e.g. always-valid email, always-200 mock).
+
+Violation → **warning**; production-like secrets → **critical**.
+
+## Check 9 — Property and perf ACs
+
+For `property` ACs: require parameterized, generated, or table-driven tests — not a single fixed example.
+
+For performance/scalability ACs: require an explicit perf test, benchmark step, or documented deferral in spec `scope.out`.
+
+Missing → **critical** (MUST) / **warning** (SHOULD).
+
 ## Return packet
 
 Emit exactly one fenced ```json block last. Matches the injected `return: review` schema. See the injected examples for realistic payloads showing `clean` and `issues` verdicts.
@@ -218,7 +237,8 @@ Emit exactly one fenced ```json block last. Matches the injected `return: review
 Key content expectations:
 
 - Each finding: `severity`, `file`, `line`, `issue` (reference AC/TC), `evidence`, `recommendation` (specific test or setup to add).
-- `verdict: "clean"` only when Checks 0–7 find no exploitable gaps.
+- Optional `category` (`adversarial`, `assertion`, `inventory`, `fixture`) and `ref` (`AC-3`, `TC-2`).
+- `verdict: "clean"` only when Checks 0–9 find no exploitable gaps.
 
 Severity:
 

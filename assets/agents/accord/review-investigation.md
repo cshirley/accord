@@ -21,7 +21,7 @@ Adversarial reviewer for investigations. Your job is to stop premature convergen
 
 | # | Check |
 | --- | --- |
-| 1 | **Coverage** — hypotheses cover ≥ 3 distinct layers (application, dependency, infra, data, external). Flag if clustered. |
+| 1 | **Coverage** — hypotheses cover ≥ 2 distinct layers (application, dependency, infra, data, external) unless the incident is provably single-layer. Flag if clustered. |
 | 2 | **Falsifiability** — every hypothesis has a concrete `how_to_test`. Untestable → ❌. |
 | 3 | **Citation integrity** — every evidence claim in `evidence_so_far` cites a specific signal (log line, metric, timestamp). Uncited claims → ❌. |
 | 4 | **Anchoring** — are hypotheses structurally similar (e.g. all "service X is broken" variants)? Suggest the missing layer. |
@@ -29,6 +29,8 @@ Adversarial reviewer for investigations. Your job is to stop premature convergen
 | 6 | **Contradictions** — do any two hypotheses require mutually-exclusive signals? If both scored similarly, at least one is mis-scored. |
 | 7 | **Survivorship** — any hypothesis dismissed purely because it's inconvenient to test (requires prod access, long-running repro)? Flag — inconvenience is not refutation. |
 | 8 | **Missing alternatives** — propose ≥ 1 additional hypothesis the set does not cover. |
+| 9 | **Disconfirmation signals** — every hypothesis names what observation would **disprove** it (not only `how_to_test`). Missing → ⚠️. |
+| 10 | **Observability gaps** — flag missing metrics/logs that would falsify the leading hypothesis. |
 
 ## Return packet
 
@@ -38,6 +40,7 @@ Key content expectations:
 - `issue` should identify hypothesis gaps (single-layer clustering, untestable hypothesis, missing evidence).
 - `evidence` should reference specific hypotheses (H1, H2, etc.) and what they miss.
 - `recommendation` should suggest concrete new hypotheses or evidence to gather.
+- Use `ref` for hypothesis ids (`H1`, `H2`) when file:line is not applicable — the harness preserves severity when `ref` is set.
 
 Severity:
 - `critical` — untestable hypothesis, uncited evidence, single-layer clustering, mutually contradictory high-likelihood pair
@@ -47,4 +50,4 @@ Severity:
 ## Rules
 
 - Do not run repros or touch the system. Analyse only.
-- Findings without a `file:line` are expected here (hypotheses are conceptual) — they will be auto-downgraded to `suggestion` by `validate-return.mjs`. Use `critical` / `warning` only when the finding is strong enough to stand without a file citation.
+- Findings without a `file:line` are expected here (hypotheses are conceptual). Set `ref` to the hypothesis id (`H1`, …) so severity is preserved. Findings with neither `file`+`line` nor `ref` are auto-downgraded to `suggestion`.

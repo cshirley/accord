@@ -89,8 +89,13 @@ export function applyReviewTestPostResult(
     const loopNote = decision.bumpTestRetry
       ? `Findings at or above repo gate (${gateLabel}) — retrying **phase-test** (used ${String(readReviewLoopCounters(task).test_review_retries_used)} retry slot(s); gate \`${decision.retryPolicy.severityGate}\`).`
       : packet.verdict === "issues"
-        ? `No findings at or above repo gate (\`${"retryPolicy" in decision ? decision.retryPolicy.severityGate : "block"}\`) — continuing to **phase-code** (advisory only).`
+        ? `No findings at or above repo gate (\`${"retryPolicy" in decision ? decision.retryPolicy.severityGate : "block"}\`) — continuing to **${next}** (advisory only).`
         : "";
+
+    const resumeHint =
+      next === "phase-code"
+        ? "Run `/dev resume` to continue with **phase-code**."
+        : "Run `/dev resume` for **phase-test** with prior feedback in the brief.";
 
     footer = [
       "",
@@ -100,9 +105,7 @@ export function applyReviewTestPostResult(
       `- Task phase: \`${previousPhase}\` → \`${next}\`.`,
       `- Findings: \`last_review_feedback\` on the per-task JSON.`,
       loopNote ? `- ${loopNote}` : "",
-      next === "phase-code"
-        ? "Run `/dev resume` to continue with **phase-code**."
-        : "Run `/dev resume` for **phase-test** with prior feedback in the brief.",
+      resumeHint,
     ]
       .filter(Boolean)
       .join("\n");

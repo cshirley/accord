@@ -481,12 +481,12 @@ describe("quick_fix pattern contracts", () => {
     const brief = devQuickFixBrief("FIX-1", sampleConfig());
     expect(brief.ok).toBe(true);
     if (!brief.ok) throw new Error(brief.error);
-    expect(brief.value.brief_type).toBe("review-test");
-    expect(brief.value.brief).toContain("review-test");
+    expect(brief.value.brief_type).toBe("phase-test");
+    expect(brief.value.brief).toContain("Quick Fix Test Brief");
     expect(brief.value.brief).toContain("### Quick Fix Contract");
 
     const taskFile = JSON.parse(readFileSync(join(project, ".tasks", "FIX-1-task-1.json"), "utf8"));
-    expect(taskFile.phase).toBe("review-test");
+    expect(taskFile.phase).toBe("phase-test");
     expect(taskFile.pre_impl_gates).toBe("pending");
     expect(taskFile.quick_fix_contract.plan.expected_finish).toBe("Fix login typo");
     expect(taskFile.quick_fix_contract.test.strategy).toBe("no_test");

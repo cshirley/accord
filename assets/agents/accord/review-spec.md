@@ -36,6 +36,9 @@ Read yourself. Schema is provided in your `## Schemas` section.
 | 7d | **Startup-failure coverage** — every required env var identified in `security_topology` MUST have a corresponding `constraint` AC with startup-failure language (`fail to start`, `required env`, `no default`). Missing AC is a critical finding. |
 | 7e | **Operational-contract completeness** — `infra_and_tooling` MUST answer every one of: `linter`, `env_validation`, `coverage_threshold`, `ci_in_v1`. Missing any field is a critical finding (silent omission). When `ci_in_v1: false`, `scope.out` MUST contain an entry explaining the deferral; when `ci_in_v1: true`, `ci_platform` + `required_workflows[]` MUST be populated. |
 | 7f | **Registry-auth completeness** — `security_topology.registry_auth` is either (a) populated for every private registry the install/build touches, or (b) `scope.out` contains an entry saying no private registries are required. Any `registry_auth[]` entry with `tier: "developer"` MUST have a corresponding `resolved_questions` entry or `scope.in` item documenting how developers provision the credential. Silent omission is a critical finding. |
+| 7g | **Problem/solution fidelity** — `proposed_solution` addresses every concrete problem named in `problem_statement`; no major problem theme is unanswered. Mismatch → **critical**. |
+| 7h | **Unresolved questions** — every `open_questions[]` entry is either resolved in `resolved_questions[]`, explicitly deferred in `scope.out` with reason, or flagged as blocking with owner. Silent open ambiguity on MUST scope → **critical**. |
+| 7i | **Duplicate AC detection** — no two ACs express the same obligation under different wording (near-duplicate `scenario`/`criterion` text). Duplicates → **warning**; contradictory duplicates → **critical**. |
 
 ### AC integrity
 
@@ -61,6 +64,7 @@ Key content expectations:
 - `file` should reference the spec JSON path.
 - `issue` should identify the specific gap (missing TC, requirement-level inconsistency, ambiguous AC).
 - `evidence` should cite the spec fields that are inconsistent.
+- Optional `category` (e.g. `structural`, `ac-integrity`, `fidelity`) and `ref` (e.g. `AC-3`, `TC-2`) for routing.
 
 Severity:
 - `critical` — ❌ on any structural, AC, or RA check touching MUST scope

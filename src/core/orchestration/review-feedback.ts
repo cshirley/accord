@@ -21,6 +21,8 @@ export interface ReviewFinding {
   line?: number;
   evidence?: string;
   recommendation?: string;
+  category?: string;
+  ref?: string;
 }
 
 export interface ReviewReturnPacket {
@@ -31,7 +33,7 @@ export interface ReviewReturnPacket {
 }
 
 export interface LastReviewFeedback {
-  agent: "review-test" | "review-code";
+  agent: "review-test" | "review-code" | "review-security";
   verdict: ReviewTestVerdict;
   findings: ReviewFinding[];
   at: string;
@@ -112,6 +114,8 @@ export function persistLastReviewFeedback(
     line: f.line,
     evidence: f.evidence,
     recommendation: f.recommendation,
+    category: f.category,
+    ref: f.ref,
   }));
   const packetRecord =
     options?.packet ?? (JSON.parse(JSON.stringify(packet)) as Record<string, unknown>);
@@ -228,6 +232,7 @@ export function decideAfterReviewCode(
 const REMEDIATION_AGENT_FOR_REVIEW: Record<LastReviewFeedback["agent"], string> = {
   "review-test": "phase-test",
   "review-code": "phase-code",
+  "review-security": "phase-code",
 };
 
 /** Appends persisted `last_review_feedback` when the next spawn should address review findings. */
@@ -265,10 +270,12 @@ export function appendReviewFeedbackToResumeBrief(
     }
 
     const devConfig = loadDevHarnessConfig();
+    const policyAgent =
+      feedback.agent === "review-security" ? "review-code" : feedback.agent;
     const retryPolicy = reviewRetryPolicyForAgent(
       devConfig,
       String(wi.pattern ?? "implement"),
-      feedback.agent,
+      policyAgent,
     );
     const remediation = severityGateRemediationLabel(retryPolicy.severityGate);
 

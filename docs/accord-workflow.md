@@ -271,16 +271,16 @@ All read-only (`write: false, edit: false, bash: false`). All emit findings in t
 | ---------------------- | ---------------------------------------------- | ------------------------------------------- |
 | `review-spec`          | AC consistency, scope coherence, completeness  | After spec draft                            |
 | `review-plan`          | AC coverage, reuse compliance, TDD ordering    | After plan draft                            |
-| `review-test`          | Adversarial test quality, AC coverage, edge cases | **Pre-impl** (after `phase-test`, before `phase-code`); post-impl via `/review` skill on diffs |
-| `review-code`          | Correctness, drift from plan, complexity       | **Post-impl** after `phase-code` (mandatory when review gates on) |
-| `review-security`      | OWASP top 10, auth, payment, input validation  | Changes touching auth/API/payment paths     |
+| `review-test`          | Adversarial test quality, AC coverage, edge cases | **Pre-impl** (after `phase-test`, before `phase-code`); `/review` skill (post-impl on finished diff) |
+| `review-code`          | Correctness, drift from plan, complexity       | **Post-impl** after `phase-code` (mandatory) |
+| `review-security`      | OWASP top 10, auth, payment, supply chain      | Security-sensitive paths after phase-code (before review-code); `/review` skill |
 | `review-design`        | Reasoning quality, citation soundness          | After design draft (`analyse` pattern)      |
 | `review-investigation` | Hypothesis quality, anti-anchoring             | After hypotheses formulated (`investigate`) |
 | `review-deviation`     | Whether a deviation should be accepted/reverted| When a code agent emits a `deviation` event |
 
 **Auto-downgrade rule.** Findings without `file` + `line` are downgraded to `suggestion` by the orchestrator before being surfaced. There is no path to ship a `critical` finding without a citation.
 
-**Independence.** `review-test` (pre-impl) and `review-code` (post-impl) run in **separate** processes at different pipeline stages. Neither sees the other's findings until the orchestrator merges them — preventing cross-anchoring. The standalone `/review` skill may spawn both against the same diff in parallel.
+**Independence.** `review-test` (pre-impl) and `review-code` (post-impl) run in **separate** processes at different pipeline stages. Neither sees the other's findings until the orchestrator merges them — preventing cross-anchoring. The standalone `/review` skill may spawn `review-test` post-impl against a finished diff.
 
 ---
 
