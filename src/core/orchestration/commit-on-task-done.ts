@@ -92,7 +92,7 @@ export async function tryCommitOnTaskDone(
   signal?: AbortSignal,
 ): Promise<CommitOnTaskDoneResult> {
   if (!commitOnTaskDoneFromDevConfig(devConfig)) {
-    return { ok: true, skipped: true, reason: "commit.on_task_done disabled" };
+    return { ok: true, skipped: true, reason: "commit.on_task_done explicitly disabled" };
   }
 
   const task = loadTaskFile(workItemId, String(taskId));

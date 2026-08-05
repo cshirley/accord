@@ -64,10 +64,14 @@ describe("resume replan policy", () => {
   });
 
   test("commit.on_task_done flag", () => {
-    expect(commitOnTaskDoneFromDevConfig(null)).toBe(false);
+    expect(commitOnTaskDoneFromDevConfig(null)).toBe(true);
+    expect(commitOnTaskDoneFromDevConfig(minimalDevConfig({}))).toBe(true);
     expect(
       commitOnTaskDoneFromDevConfig(minimalDevConfig({ commit: { on_task_done: true } })),
     ).toBe(true);
+    expect(
+      commitOnTaskDoneFromDevConfig(minimalDevConfig({ commit: { on_task_done: false } })),
+    ).toBe(false);
   });
 });
 

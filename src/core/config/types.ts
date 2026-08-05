@@ -72,7 +72,7 @@ export interface DevHarnessOrchestrationConfig {
   commit?: {
     /**
      * After **review-code** marks a task `done`, stage task-scoped files and commit
-     * without interactive confirmation (default: false).
+     * without interactive confirmation (default: true; set `false` to disable).
      */
     on_task_done?: boolean;
   };
