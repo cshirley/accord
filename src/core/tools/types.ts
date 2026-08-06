@@ -9,10 +9,13 @@
 
 import type { Static, TSchema } from "typebox";
 import type { DevHarnessConfig } from "../config/types.js";
+import type { SubagentPreflightHostHints } from "../queries/subagent-preflight.js";
 
 export interface ToolHandlerContext {
   /** Returns the live ACCORD dev harness config (or `null` when not loaded). */
   getConfig: () => DevHarnessConfig | null;
+  /** Pi host: scoped models + resolved judgment model for preflight diagnostics. */
+  getSubagentPreflightHints?: () => SubagentPreflightHostHints | undefined;
 }
 
 export interface ToolHandlerResult {

@@ -6,20 +6,28 @@
 
 import { existsSync } from "node:fs";
 import * as path from "node:path";
+import { loadAgentFromFile } from "../../../packages/pi-subagent/src/agent-load.js";
 import {
   loadSubagentConfig,
   resolveAgentFile,
   resolveModelConfig,
   resolveProfileForCredentials,
   resolveRequestedProfileName,
+  type AgentConfig,
   type SubagentConfig,
 } from "../../../packages/pi-subagent/src/agents.js";
-import { loadAgentFromFile } from "../../../packages/pi-subagent/src/agent-load.js";
 import {
   DEFAULT_SPAWN_TIMEOUT_MS,
   resolveSpawnTimeoutMs,
 } from "../../../packages/pi-subagent/src/spawn/timeout.js";
 import { getAgentMeta } from "../agents/registry.js";
+import { loadDevHarnessConfig } from "../config/index.js";
+import {
+  applyScopedPreflightWarnings,
+  resolveJudgmentModelRefFromHarness,
+} from "./subagent-preflight-scoped.js";
+
+export { resolveJudgmentModelRefFromHarness } from "./subagent-preflight-scoped.js";
 
 /** Registry agents that should pass credential preflight before harness spawn. */
 export const SUBAGENT_SPAWN_PREFLIGHT_AGENTS = new Set([
@@ -38,6 +46,17 @@ export function agentRequiresSpawnPreflight(agent: string): boolean {
   return SUBAGENT_SPAWN_PREFLIGHT_AGENTS.has(agent);
 }
 
+export interface SubagentPreflightScopedModel {
+  provider: string;
+  modelId: string;
+  thinkingLevel?: string;
+}
+
+export interface SubagentPreflightHostHints {
+  scoped_models?: SubagentPreflightScopedModel[];
+  judgment_model?: { provider: string; model: string } | null;
+}
+
 export interface SubagentPreflightCheck {
   ok: boolean;
   agent: string;
@@ -50,6 +69,10 @@ export interface SubagentPreflightCheck {
   agent_file_path: string | null;
   in_registry: boolean;
   credential_ok: boolean;
+  /** Parent Pi session scoped models (empty when unscoped or stdio MCP). */
+  scoped_models: SubagentPreflightScopedModel[];
+  /** Resolved judgment model from harness config or lightweight tier (null when unset). */
+  judgment_model: { provider: string; model: string } | null;
   blocks: string[];
   warnings: string[];
   formatted: string;
@@ -138,6 +161,21 @@ function formatPreflightReport(check: SubagentPreflightCheck): string {
     `  agent_file: ${check.agent_file_found ? check.agent_file_path : "NOT FOUND"}`,
     `  registry: ${check.in_registry ? "yes" : "no"}`,
   ];
+  if (check.judgment_model) {
+    lines.push(
+      `  judgment_model: ${check.judgment_model.provider}/${check.judgment_model.model}`,
+    );
+  }
+  if (check.scoped_models.length > 0) {
+    const scopedSummary = check.scoped_models
+      .map((entry) =>
+        entry.thinkingLevel
+          ? `${entry.provider}/${entry.modelId}:${entry.thinkingLevel}`
+          : `${entry.provider}/${entry.modelId}`,
+      )
+      .join(", ");
+    lines.push(`  scoped_models: ${scopedSummary}`);
+  }
   for (const w of check.warnings) {
     lines.push(`  ⚠ ${w}`);
   }
@@ -153,6 +191,7 @@ function formatPreflightReport(check: SubagentPreflightCheck): string {
 export function runSubagentSpawnPreflightCheck(
   agent: string,
   cwd: string = process.cwd(),
+  hints?: SubagentPreflightHostHints,
 ): SubagentPreflightCheck {
   const cfg = loadSubagentConfig();
   const agentPath = resolveAgentFile(agent, cwd, "user");
@@ -207,6 +246,24 @@ export function runSubagentSpawnPreflightCheck(
 
   const spawnTimeoutMs = resolveSpawnTimeoutMs(undefined, cfg) ?? DEFAULT_SPAWN_TIMEOUT_MS;
 
+  const scoped_models = hints?.scoped_models ?? [];
+  const judgmentLightweight = resolveModelConfig(JUDGMENT_PREFLIGHT_AGENT, cfg);
+  const judgment_model =
+    hints?.judgment_model ??
+    resolveJudgmentModelRefFromHarness(
+      loadDevHarnessConfig(),
+      judgmentLightweight
+        ? { provider: judgmentLightweight.provider, model: judgmentLightweight.model }
+        : null,
+    );
+
+  applyScopedPreflightWarnings(
+    warnings,
+    { provider: resolvedProvider, model },
+    scoped_models,
+    judgment_model,
+  );
+
   const check: SubagentPreflightCheck = {
     ok: blocks.length === 0,
     agent,
@@ -219,6 +276,8 @@ export function runSubagentSpawnPreflightCheck(
     agent_file_path: agentFilePath,
     in_registry: inRegistry,
     credential_ok: cred.ok,
+    scoped_models,
+    judgment_model,
     blocks,
     warnings,
     formatted: "",
@@ -227,8 +286,22 @@ export function runSubagentSpawnPreflightCheck(
   return check;
 }
 
+/** Synthetic agent for resolving lightweight tier in preflight judgment hints. */
+const JUDGMENT_PREFLIGHT_AGENT: AgentConfig = {
+  name: "__judgment__",
+  description: "",
+  tier: "lightweight",
+  systemPrompt: "",
+  source: "user",
+  filePath: "",
+};
+
 /** MCP/tool entry — optional agent defaults to phase-plan. */
-export function devSubagentPreflight(agent?: string, cwd?: string): SubagentPreflightCheck {
+export function devSubagentPreflight(
+  agent?: string,
+  cwd?: string,
+  hints?: SubagentPreflightHostHints,
+): SubagentPreflightCheck {
   const target = agent?.trim() || "phase-plan";
-  return runSubagentSpawnPreflightCheck(target, cwd ?? process.cwd());
+  return runSubagentSpawnPreflightCheck(target, cwd ?? process.cwd(), hints);
 }

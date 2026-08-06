@@ -6,18 +6,30 @@
  * `AgentToolResult` envelope here.
  */
 
-import type { AgentToolResult, ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { AgentToolResult, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { DevHarnessConfig } from "../../core/config/index.js";
 import { ACCORD_TOOLS } from "../../core/tools/registry.js";
-import type { ToolHandlerResult } from "../../core/tools/types.js";
+import type { ToolHandlerContext, ToolHandlerResult } from "../../core/tools/types.js";
+import { buildPiSubagentPreflightHints } from "./subagent/preflight-hints.js";
 
 function toPiResult(result: ToolHandlerResult): AgentToolResult<unknown> {
   const text = result.ok ? result.text : `⚠ ${result.text}`;
   return { content: [{ type: "text", text }], details: result.details };
 }
 
+function buildToolHandlerContext(
+  getConfig: () => DevHarnessConfig | null,
+  piCtx?: ExtensionContext,
+): ToolHandlerContext {
+  return {
+    getConfig,
+    getSubagentPreflightHints: piCtx
+      ? () => buildPiSubagentPreflightHints(piCtx, getConfig())
+      : undefined,
+  };
+}
+
 export function registerTools(pi: ExtensionAPI, getConfig: () => DevHarnessConfig | null): void {
-  const ctx = { getConfig };
   for (const tool of ACCORD_TOOLS) {
     pi.registerTool({
       name: tool.name,
@@ -25,8 +37,8 @@ export function registerTools(pi: ExtensionAPI, getConfig: () => DevHarnessConfi
       description: tool.description,
       promptSnippet: tool.promptSnippet,
       parameters: tool.parameters,
-      async execute(_id, params) {
-        const result = await tool.handler(params as never, ctx);
+      async execute(_id, params, _signal, _onUpdate, piCtx) {
+        const result = await tool.handler(params as never, buildToolHandlerContext(getConfig, piCtx));
         return toPiResult(result);
       },
     });

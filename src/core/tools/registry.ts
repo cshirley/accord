@@ -429,8 +429,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         Type.String({ description: "Dispatch agent id (default: phase-plan)" }),
       ),
     }),
-    handler(params) {
-      const check = devSubagentPreflight(params.agent);
+    handler(params, ctx) {
+      const hints = ctx.getSubagentPreflightHints?.();
+      const check = devSubagentPreflight(params.agent, undefined, hints);
       return {
         ok: check.ok,
         text: check.formatted,

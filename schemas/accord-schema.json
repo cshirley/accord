@@ -276,6 +276,16 @@
               "minimum": 256,
               "maximum": 8192,
               "description": "Max output tokens for the judgment completion. Default: 1536."
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Model for judgment completeSimple (provider/model or bare id). Independent of the interactive chat model."
+            },
+            "thinking": {
+              "type": "string",
+              "enum": ["off", "minimal", "low", "medium", "high", "xhigh"],
+              "description": "Thinking level for judgment when the provider uses flag thinking."
             }
           }
         },

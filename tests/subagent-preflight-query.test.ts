@@ -35,5 +35,18 @@ describe("subagent preflight query", () => {
     expect(check.credential_ok).toBe(true);
     expect(check.agent_file_found).toBe(true);
     expect(check.in_registry).toBe(true);
+    expect(check.scoped_models).toEqual([]);
+    expect(check.judgment_model).not.toBeNull();
+  });
+
+  test("warns when spawn model is outside scoped list", () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    const check = runSubagentSpawnPreflightCheck("phase-plan", process.cwd(), {
+      scoped_models: [{ provider: "openai", modelId: "gpt-4o" }],
+      judgment_model: null,
+    });
+    expect(check.ok).toBe(true);
+    expect(check.scoped_models.length).toBe(1);
+    expect(check.warnings.some((w) => w.includes("scoped models"))).toBe(true);
   });
 });

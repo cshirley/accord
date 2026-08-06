@@ -62,9 +62,32 @@ Optional **Phase 5** bounded LLM step before certain `/dev resume` subagent spaw
 |-------|------|--------|
 | `enabled` | boolean | When `true`, eligible resume spawns may run judgment (still requires env gate on Pi). |
 | `agents` | string[] | Optional allowlist of dispatch agent ids; defaults to `review-test` and `phase-test`. |
+| `model` | string | Model for judgment `completeSimple` (`provider/model` or bare id). Independent of the interactive chat model. |
+| `thinking` | string | Thinking level when the provider uses flag thinking (`off` … `xhigh`). |
 | `max_tokens` | integer 256–8192 | Cap for the judgment completion (default `1536`). |
 
-Also set **`ACCORD_ORCHESTRATION_JUDGMENT=1`** in the Pi environment so the extension actually calls the configured model. Without that env var, judgment is skipped at the host and the harness uses the template appendix when `enabled` is true.
+Also set **`ACCORD_ORCHESTRATION_JUDGMENT=1`** in the Pi environment so the extension actually calls the judgment model. Without that env var, judgment is skipped at the host and the harness uses the template appendix when `enabled` is true.
+
+### Judgment model resolution (Pi)
+
+When judgment runs, the model is chosen in order:
+
+1. `orchestration.judgment.model` (+ optional `thinking`)
+2. `subagent.json` **lightweight** tier for the active profile
+3. Last entry in the parent Pi session **scoped models** list (when `enabledModels` / `--models` is configured)
+4. Interactive **chat model** (`ctx.model`) — emits a warning; prefer setting `judgment.model`
+
+Subagent **spawns** are unchanged: they always follow agent `tier:` + `subagent.json`, not scoped models.
+
+### Three-layer model policy
+
+| Layer | Purpose | Configuration |
+|-------|---------|----------------|
+| Interactive chat | Pair-programming in the parent Pi session | Pi `defaultModel`, `/model`, Ctrl+P scoped cycling |
+| Orchestration judgment | Bounded `completeSimple` before certain resume spawns | `orchestration.judgment.model` → lightweight tier → scoped fallback → chat model |
+| Subagent spawns | Isolated phase/review child `pi` processes | Agent frontmatter `model:` / `tier:` → `subagent.json` profiles |
+
+`dev_subagent_preflight` surfaces `scoped_models` and `judgment_model` on Pi and **warns** (does not block) when spawn or judgment models are outside the scoped shortlist.
 
 ## Core orchestrator (`ACCORD_CORE_ORCHESTRATOR`)
 

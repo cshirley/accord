@@ -11,6 +11,7 @@ import {
   isOrchestrationJudgmentConfigured,
   ORCHESTRATION_JUDGMENT_SCHEMA_VERSION,
 } from "../../../core/orchestration/judgment.js";
+import { resolveJudgmentModel } from "./resolve-judgment-model.js";
 
 const JUDGMENT_SYSTEM_PROMPT = [
   "You help compose a brief supplement for a downstream coding agent (already chosen by the harness).",
@@ -51,15 +52,20 @@ export async function runOrchestrationJudgment(
     return undefined;
   }
 
-  const model = ctx.model;
-  if (!model) {
+  const resolved = await resolveJudgmentModel(ctx, devConfig);
+  if (!resolved) {
     ctx.ui.notify(
-      "Orchestration judgment skipped: no active model in this session (set a model, or rely on template fallback).",
+      "Orchestration judgment skipped: no model with valid credentials (set orchestration.judgment.model, subagent.json lightweight tier, or scoped models).",
       "warning",
     );
     return undefined;
   }
 
+  if (resolved.piggybackWarning) {
+    ctx.ui.notify(resolved.piggybackWarning, "warning");
+  }
+
+  const model = resolved.model;
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok) {
     ctx.ui.notify(`Orchestration judgment skipped: ${auth.error}`, "warning");

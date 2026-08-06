@@ -1,6 +1,6 @@
 # Pi SDK upgrade — implementation plan
 
-This document turns the Pi SDK 0.83 review into an **executable** roadmap: upgrade `@earendil-works/*` peers, adopt new extension APIs, and align model selection with Pi's scoped-model system. It is a living plan — update it as phases land.
+This document turns the Pi SDK 0.83 review into an **executable** roadmap: upgrade `@earendil-works/*` peers, adopt new extension APIs, and decouple orchestration judgment from the interactive chat model.
 
 **Related:** [`hooks-and-tools.md`](hooks-and-tools.md), [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md), [`configuration.md`](configuration.md), [`local-development.md`](local-development.md).
 
@@ -11,7 +11,7 @@ This document turns the Pi SDK 0.83 review into an **executable** roadmap: upgra
 1. **Upgrade** peer dependencies from `@earendil-works/*` **0.75.3** to **0.83.x** (npm latest at plan time).
 2. **Reduce prompt tokens** via dynamic `dev_*` tool activation without breaking MCP stdio parity.
 3. **Improve orchestration timing** (`agent_settled`, compaction hints) and session transcript UX (entry renderers).
-4. **Align model profiles** with Pi's `ctx.scopedModels` where it complements `subagent.json` (see `REFACTOR-Agents-model-profiles` branch work).
+4. **Decouple orchestration side LLM calls** from the interactive chat model (`orchestration.judgment.model`); use Pi `ctx.scopedModels` for preflight diagnostics only (not spawn or judgment policy).
 
 **Out of scope (for now):**
 
@@ -191,54 +191,88 @@ Exact grouping should mirror `src/core/orchestration/` phase → agent mapping.
 
 ---
 
-## Phase 3 — Scoped models + profile alignment
+## Phase 3 — Orchestration judgment model + preflight diagnostics
 
-**Objective:** Bridge `subagent.json` profiles with Pi's `ctx.scopedModels` (0.83).
+**Objective:** Run harness **side LLM** work (judgment `completeSimple`) on a **dedicated, config-driven model** — not `ctx.model`. Surface Pi `ctx.scopedModels` (0.83) in preflight as **diagnostics** when spawn/judgment choices diverge from the user's scoped shortlist. **Do not** drive subagent spawn policy from scoped models in this phase.
 
-### 3a — Orchestration judgment model selection
+**Rationale:** Orchestration is infrastructure (predictable cost, repeatable quality). Scoped models are a **user cycling shortlist** for the interactive session. Subagent spawns stay on `subagent.json` + agent `tier:` (child `pi --model …`).
 
-**File:** `src/adapters/pi/subagent/judgment.ts`
+### 3a — `orchestration.judgment.model` config + resolution
 
-**Precedence**
+**Files:** `schemas/accord-schema.json`, `src/core/config/types.ts`, [`configuration.md`](configuration.md), `src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
 
-1. `orchestration.judgment.model` in harness config (unchanged).
-2. Lightweight match from `ctx.scopedModels` for `completeSimple`.
-3. Fall back to `ctx.model` (today).
+**Schema** — extend `orchestration.judgment`:
+
+| Field | Type | Meaning |
+|-------|------|--------|
+| `model` | string | `provider/modelId` or bare id (same semantics as CLI `--model`) |
+| `thinking` | string | Optional thinking level when provider uses flag thinking |
+
+**Resolution precedence** (first match with valid auth via `ModelRuntime` / `resolveCliModel`):
+
+1. `orchestration.judgment.model` (+ config `thinking` when set)
+2. `subagent.json` **lightweight** tier for the active profile (reuse `loadSubagentConfig` + tier recipe — same harness vocabulary as spawns)
+3. Lightweight heuristic from `ctx.scopedModels` when non-empty (e.g. last entry, or smallest context window — pick one rule and document it)
+4. `ctx.model` — **last resort**; emit `ctx.ui.notify` warning that judgment is piggybacking on chat model
+
+**Implementation notes**
+
+- Resolve model object + auth before `completeSimple`; do not call `ctx.modelRegistry.getApiKeyAndHeaders` on the wrong model.
+- When step 1–3 fail (no model / no auth), skip LLM judgment and keep template fallback (same as today when judgment skipped).
+- Env gate `ACCORD_ORCHESTRATION_JUDGMENT=1` unchanged.
 
 **Acceptance criteria**
 
-- Judgment runs without session main model when scoped lightweight exists.
-- Template fallback unchanged when judgment skipped.
+- With `judgment.model` set to haiku and chat on opus, judgment uses haiku.
+- With only `subagent.json` lightweight tier and no `judgment.model`, judgment uses that tier.
+- With no config and empty `ctx.scopedModels`, judgment uses `ctx.model` with a warning (or skips if no model).
+- Template fallback unchanged when judgment skipped or JSON invalid.
 
-### 3b — Preflight surfaces scoped models
+**Tests:** unit test resolution precedence with mocked config, scoped list, and `ctx.model`; no Pi session required.
 
-**Files:** `src/core/queries/subagent-preflight.ts`, Pi adapter if needed
+### 3b — Preflight diagnostics (scoped models as reference)
 
-Add to preflight payload when host provides them:
+**Files:** `src/core/queries/subagent-preflight.ts`, optional Pi adapter bridge to pass scoped snapshot into core preflight
 
-- `scoped_models`: `{ provider, modelId, thinkingLevel? }[]`
-- Note when `subagent.json` profile diverges from scoped list
+**Add to preflight payload** when the host can supply them:
+
+- `scoped_models`: `{ provider, modelId, thinkingLevel? }[]` (from `ctx.scopedModels` on Pi; **empty** on stdio MCP)
+- `judgment_model`: resolved provider/model for judgment (when orchestration judgment is configured), if host pre-resolves
+
+**Warnings** (not blocks — spawn policy unchanged):
+
+- Resolved **spawn** model (`subagent.json` + agent tier) is not in `scoped_models` when scoping is configured (non-empty list)
+- Resolved spawn model is not in `modelRuntime.getAvailable()` (when host provides availability check)
+- `judgment.model` (or resolved judgment model) not in scoped list or not available
 
 **Acceptance criteria**
 
-- `dev_subagent_preflight` includes scoped models in Pi (empty on stdio MCP).
+- `dev_subagent_preflight` includes `scoped_models` in Pi interactive sessions.
+- Warnings appear in `formatted` report and `warnings[]`; `ok` still reflects credential + agent file gates only.
 
-### 3c — Document profile layering
+### 3c — Document three-layer model policy
 
 **File:** [`configuration.md`](configuration.md) (short section)
 
-**Precedence**
+| Layer | Purpose | Configuration |
+|-------|---------|----------------|
+| **Interactive chat** | User pair-programming in parent Pi session | Pi `defaultModel`, `/model`, Ctrl+P scoped cycling |
+| **Orchestration side LLM** | Bounded judgment `completeSimple` | `orchestration.judgment.model` → lightweight tier → scoped fallback → chat model |
+| **Subagent spawns** | Isolated phase/review child processes | Agent frontmatter `model:` / `tier:` → `subagent.json` profiles |
+
+**Subagent spawn precedence** (unchanged):
 
 1. Agent frontmatter `model:` pin
-2. `subagent.json` `agentProfiles` / `reviewProfile` / skill profile
-3. Pi scoped models / `enabledModels` (reference; not auto-sync in Phase 3)
-4. `defaultProfile` tiers
+2. `subagent.json` `agentProfiles` / `reviewProfile` / skill profile / `activeProfile`
+3. `defaultProfile` tiers
 
-**Optional follow-up:** map `subagent.json` tier entries to scoped model patterns instead of hard-coded provider/model strings.
+Scoped models / `enabledModels` are **not** in the spawn precedence chain in Phase 3 — only referenced in preflight warnings.
+
+**Deferred (not Phase 3):** map `subagent.json` tier entries to glob patterns; pass parent `--models` into child `pi` spawns; auto-sync tiers from `enabledModels`.
 
 ### Status
 
-- [ ] Not started
+- [x] Complete — `orchestration.judgment.model`, judgment resolution precedence, scoped preflight diagnostics
 
 ---
 
@@ -284,7 +318,7 @@ Add to preflight payload when host provides them:
 flowchart LR
   P0[Phase 0 Upgrade] --> P1[Phase 1 Hooks/UI]
   P1 --> P2[Phase 2 Dynamic tools]
-  P1 --> P3[Phase 3 Scoped models]
+  P1 --> P3[Phase 3 Judgment model]
   P2 --> P4[Phase 4 Polish]
   P3 --> P4
   P4 --> P5[Phase 5 Release]
@@ -295,7 +329,7 @@ flowchart LR
 | 0 | 0.5–1 day | Required |
 | 1 | 1–2 days | Reliability + UX |
 | 2 | 2–3 days | High token savings |
-| 3 | 1–2 days | Aligns with model-profiles branch |
+| 3 | 1–2 days | Judgment model config + preflight diagnostics |
 | 4 | 1 day | Nice-to-have |
 | 5 | 0.5 day | Ship |
 
@@ -304,7 +338,7 @@ flowchart LR
 1. `chore: bump pi SDK to 0.83` (Phase 0 only)
 2. `feat: agent_settled, entry renderers, compaction hints` (Phase 1)
 3. `feat: dynamic dev_* tool activation` (Phase 2)
-4. `feat: scoped models in judgment + preflight` (Phase 3)
+4. `feat: orchestration judgment model + scoped preflight diagnostics` (Phase 3)
 5. `chore: polish + docs` (Phase 4–5)
 
 ---
@@ -317,7 +351,8 @@ flowchart LR
 | Entry renderers | Renderer registration unit test; `dev-retro-harness-marker` unchanged |
 | `agent_settled` | Mock sequence: notify only after settle, not on bare `agent_end` |
 | Dynamic tools | Active-set resolver unit test; tool_call fallback activates bundle |
-| Scoped models | Mock `ctx.scopedModels` in judgment test |
+| Judgment model | Unit test resolution precedence (config → lightweight tier → scoped → chat) |
+| Preflight diagnostics | Scoped list + spawn model mismatch → warning, `ok` unchanged |
 | Compaction | Thrift: overflow + `willRetry` skips reduction |
 
 ---
@@ -330,8 +365,9 @@ Resolve before Phase 2–3 land:
 |---|----------|---------|
 | 1 | Default dynamic tools | On by default after Phase 2 bake-in vs opt-in via env until proven |
 | 2 | Tool bundle granularity | Per-phase vs per-pattern (`quick_fix` vs full pipeline) |
-| 3 | Scoped models vs `subagent.json` | Reference-only in Phase 3 vs auto-map tiers to scoped patterns in same release |
+| 3 | Judgment lightweight scoped fallback rule | Last scoped entry vs smallest context — document chosen rule in `configuration.md` |
 | 4 | MCP parity | Stdio MCP keeps all tools active always (recommended) — confirm |
+| 5 | Tier pattern mapping | Defer to post-Phase 3 follow-up (not in Phase 3 scope) |
 
 ---
 

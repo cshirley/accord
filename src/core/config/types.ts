@@ -44,6 +44,13 @@ export interface DevHarnessOrchestrationConfig {
     enabled?: boolean;
     /** Dispatch agent registry ids that receive judgment (default: review-test, phase-test). */
     agents?: string[];
+    /**
+     * Model for judgment `completeSimple` (CLI `--model` semantics: `provider/model` or bare id).
+     * When unset, Pi falls back to subagent.json lightweight tier, then scoped models, then chat model.
+     */
+    model?: string;
+    /** Thinking level when the provider uses flag thinking (default: inherit from tier / scoped entry). */
+    thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
     max_tokens?: number;
   };
   /**
