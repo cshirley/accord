@@ -35,7 +35,7 @@ import { loadAgentFromFile } from "./agent-load.js";
 export type AgentScope = "user" | "project" | "both";
 
 export type ModelTier = "reasoning" | "workhorse" | "lightweight";
-export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 export type ThinkingMode = "flag" | "embedded" | "reasoning_effort" | "none";
 export type ReasoningEffort = "low" | "medium" | "high";
 

@@ -11,7 +11,7 @@
       "tiers": {
         "reasoning": {
           "model": "claude-opus-4-7",
-          "thinking": "medium"
+          "thinking": "xhigh"
         },
         "workhorse": {
           "model": "claude-sonnet-4-6",

@@ -2,6 +2,7 @@
 name: review-code
 description: "Correctness, complexity, code-quality, observability, and plan-drift review of a diff. Single-pass. Read-only. Security → review-security; test adequacy → review-test."
 tier: workhorse
+thinking: xhigh
 tools:
   read: true
   grep: true

@@ -2,6 +2,7 @@
 name: review-spec
 description: "Spec review — structural consistency, AC-to-test coverage, scope coherence, rejected-alternatives integrity, and fidelity to the problem statement."
 tier: workhorse
+thinking: xhigh
 tools:
   read: true
   grep: true

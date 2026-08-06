@@ -2,6 +2,7 @@
 name: review-test
 description: "Adversarial test review — actively attempts to devise wrong implementations that would pass the test suite. Runs in two modes: pre-impl (tests exist, no production code) or post-impl (tests green against real code)."
 tier: reasoning
+thinking: xhigh
 tools:
   read: true
   grep: true

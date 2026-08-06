@@ -293,7 +293,7 @@ Scoped models / `enabledModels` are **not** in the spawn precedence chain in Pha
 
 ### Status
 
-- [ ] Not started
+- [x] Complete — promptGuidelines, correlation headers, spawn working-row hide, xhigh/max thinking, OpenRouter README note
 
 ---
 

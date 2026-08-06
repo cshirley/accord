@@ -54,6 +54,8 @@ ACCORD is a [Pi](https://pi.dev/) package: the `/dev` command, hooks, and bundle
 
 **Requires Pi ≥ 0.83.0** (`@earendil-works/pi-coding-agent` and peer packages). Upgrade with `npm install -g @earendil-works/pi-coding-agent@latest` or the [pi.dev installer](https://pi.dev/install.sh) if your CLI is older.
 
+**OpenRouter:** when routing OpenAI-compatible models through OpenRouter, set `compat.sessionAffinityFormat` to `"openrouter"` on those models in Pi `models.json` so session-affinity headers use `x-session-id` (Pi 0.83+). See Pi [models.md](https://github.com/earendil-works/pi-coding-agent/blob/main/docs/models.md#compat-fields).
+
 **Linux and macOS** — recommended installer from the Pi site:
 
 ```bash

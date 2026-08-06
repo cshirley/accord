@@ -43,6 +43,8 @@ export interface ToolDefinition<TParams extends TSchema = TSchema> {
   description: string;
   /** LLM prompt hint surfaced by Pi via `promptSnippet`. Ignored by MCP. */
   promptSnippet: string;
+  /** Optional Pi `Guidelines` bullets while the tool is active. Ignored by MCP. */
+  promptGuidelines?: string[];
   /** TypeBox schema for the tool parameters (always a `Type.Object(...)`). */
   parameters: TParams;
   /** Host-neutral handler called by both adapters. */

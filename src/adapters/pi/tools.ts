@@ -6,7 +6,11 @@
  * `AgentToolResult` envelope here.
  */
 
-import type { AgentToolResult, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  AgentToolResult,
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import type { DevHarnessConfig } from "../../core/config/index.js";
 import { ACCORD_TOOLS } from "../../core/tools/registry.js";
 import type { ToolHandlerContext, ToolHandlerResult } from "../../core/tools/types.js";
@@ -36,9 +40,13 @@ export function registerTools(pi: ExtensionAPI, getConfig: () => DevHarnessConfi
       label: tool.label,
       description: tool.description,
       promptSnippet: tool.promptSnippet,
+      ...(tool.promptGuidelines ? { promptGuidelines: [...tool.promptGuidelines] } : {}),
       parameters: tool.parameters,
       async execute(_id, params, _signal, _onUpdate, piCtx) {
-        const result = await tool.handler(params as never, buildToolHandlerContext(getConfig, piCtx));
+        const result = await tool.handler(
+          params as never,
+          buildToolHandlerContext(getConfig, piCtx),
+        );
         return toPiResult(result);
       },
     });

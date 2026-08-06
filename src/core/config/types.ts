@@ -50,7 +50,7 @@ export interface DevHarnessOrchestrationConfig {
      */
     model?: string;
     /** Thinking level when the provider uses flag thinking (default: inherit from tier / scoped entry). */
-    thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+    thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
     max_tokens?: number;
   };
   /**

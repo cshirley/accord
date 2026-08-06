@@ -27,12 +27,12 @@ import type { DevHarnessConfig } from "../config/types.js";
 import { buildDevOrchestratePayload } from "../orchestration/plan.js";
 import { devTasks } from "../queries/dashboard.js";
 import { devResumeState } from "../queries/resume-state.js";
-import { devSubagentPreflight } from "../queries/subagent-preflight.js";
-import { devWorkItemStatus } from "../queries/work-item-status.js";
 import { devRetro } from "../queries/retro.js";
 import { devReviewQueue } from "../queries/review-queue.js";
 import { devSpecGaps } from "../queries/spec-gaps.js";
+import { devSubagentPreflight } from "../queries/subagent-preflight.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
+import { devWorkItemStatus } from "../queries/work-item-status.js";
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import {
   devCheckpointDelete,
@@ -73,6 +73,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     description: "Recommend an ACCORD intent mode from the user's ask/brief",
     promptSnippet:
       "Classify user intent before bootstrapping: narrow_change, pipeline, review, commit, explain, investigate; returns escalation ceiling and target paths.",
+    promptGuidelines: [
+      "Call dev_intent before dev_bootstrap on a new ask; do not guess pattern or variant from user text alone.",
+    ],
     parameters: Type.Object({
       text: Type.String({ description: "User ask or concise work description" }),
       brief: Type.Optional(
@@ -92,6 +95,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
       "Refine an intent recommendation using ticket metadata (AC count, story points, subtasks, etc.)",
     promptSnippet:
       "After dev_intent returns medium/low confidence and a ticket ID is present, fetch the ticket then call this with the initial recommendation + ticket signals to upgrade/downgrade the pattern.",
+    promptGuidelines: [
+      "Call dev_intent_enrich only after dev_intent and only when ticket metadata can refine a medium/low-confidence recommendation.",
+    ],
     parameters: Type.Object({
       recommendation: Type.Object(
         {
@@ -139,6 +145,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     label: "Work Items",
     description: "Dashboard of active work items in .tasks/",
     promptSnippet: "Show work item dashboard with task status, costs, and pending decisions",
+    promptGuidelines: [
+      "Call dev_tasks to list active work items instead of scanning .tasks/ with read or bash.",
+    ],
     parameters: Type.Object({}),
     handler() {
       const result = devTasks();
@@ -151,6 +160,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     label: "Bootstrap Work Item",
     description: "Create a new work item JSON in .tasks/",
     promptSnippet: "Bootstrap a new work item with correct schema, timestamps, and entry phase",
+    promptGuidelines: [
+      "Call dev_bootstrap once per new work item after dev_intent confirms pattern; do not hand-author .tasks/*.json.",
+    ],
     parameters: Type.Object({
       id: Type.String({ description: "Work item ID (e.g. ACCORD-1234)" }),
       title: Type.String({ description: "Short title" }),
@@ -386,6 +398,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     description: "Read work item + checkpoint state for /dev resume routing",
     promptSnippet:
       "Get resume state: phase, checkpoint presence, pattern — for dispatch routing. Rehydrates from docs/dev/ when .tasks/ is missing.",
+    promptGuidelines: [
+      "Call dev_resume_state before spawning phase agents when resuming an existing work item on disk.",
+    ],
     parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
     handler(params) {
       const result = devResumeState(params.id);
@@ -405,6 +420,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
       "Single work-item dashboard: phase, tasks, next resume agent, finish nudge when all implementation tasks are terminal",
     promptSnippet:
       "Prefer over ad-hoc read/bash when the user asks where a work item is, what is next, or whether to run /dev finish. Rehydrates and reconciles coarse phase first.",
+    promptGuidelines: [
+      "Prefer dev_work_item_status over ad-hoc file reads when the user asks what is next for a work item.",
+    ],
     parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
     handler(params, ctx) {
       const result = devWorkItemStatus(params.id, ctx.getConfig());
@@ -424,10 +442,11 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
       "Validate subagent.json profile, credentials, agent markdown, and spawn timeout before phase spawns",
     promptSnippet:
       "Run before phase-align/spec/plan/test/code or review agents when spawn timeouts or empty responses are suspected. Blocks resume orchestration when credentials are missing.",
+    promptGuidelines: [
+      "Run dev_subagent_preflight before the first subagent spawn in a session or after editing subagent.json.",
+    ],
     parameters: Type.Object({
-      agent: Type.Optional(
-        Type.String({ description: "Dispatch agent id (default: phase-plan)" }),
-      ),
+      agent: Type.Optional(Type.String({ description: "Dispatch agent id (default: phase-plan)" })),
     }),
     handler(params, ctx) {
       const hints = ctx.getSubagentPreflightHints?.();
@@ -472,6 +491,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
       "Deterministic harness orchestration plan for a work item. `resume` and `finish` return resolution + next_steps; when judgment is configured for a resume spawn, also includes judgment_configured_for_spawn and spawn_task_after_template_judgment (template merge — MCP cannot run the judgment LLM). MCP clients cannot spawn Pi subagents programmatically — use the payload to decide external actions.",
     promptSnippet:
       "Call with command=resume|finish and work_item_id. Same routing as ACCORD_CORE_ORCHESTRATOR paths without executing spawn.",
+    promptGuidelines: [
+      "Use dev_orchestrate for deterministic resume/finish routing without spawning; Pi /dev resume|finish runs the same logic with programmatic spawn.",
+    ],
     parameters: Type.Object({
       command: Type.Union([Type.Literal("resume"), Type.Literal("finish")]),
       work_item_id: Type.String({ description: "Work item ID" }),

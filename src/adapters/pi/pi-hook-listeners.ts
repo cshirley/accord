@@ -23,20 +23,41 @@ import {
   clearHarnessRunTag,
   inferWorkItemIdFromSession,
   loadPricing,
+  readHarnessRunMeta,
 } from "../../core/telemetry/usage.js";
-import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
+import { buildHarnessCorrelationHeaders } from "./correlation-headers.js";
 import {
   activateForWorkItemPhase,
   applyAccordActiveTools,
   maybeActivateDevToolCall,
   resetDynamicToolBundles,
 } from "./dynamic-tools.js";
+import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
 import { isPlanModeActive, planModeSubagentBlockReason } from "./plan-mode.js";
 import { updateStatusBar } from "./status-bar.js";
 
 export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookState): void {
   const pricing = loadPricing();
   const orchestratorDedup = createOrchestratorUsageDedup();
+
+  // ── Provider correlation headers ─────────────────────
+
+  pi.on("before_provider_headers", async (_event, ctx) => {
+    const envTag = process.env.DEV_HARNESS_RUN_TAG?.trim();
+    const envRunId = process.env.DEV_HARNESS_RUN_ID?.trim();
+    const meta = readHarnessRunMeta();
+    const headers = buildHarnessCorrelationHeaders({
+      runId: envRunId || meta?.run_id,
+      sessionTag: envTag || meta?.tag,
+      workItemId:
+        state.activeWorkItem ??
+        inferWorkItemIdFromSession(ctx, state.activeWorkItem) ??
+        meta?.work_item_ids?.[0],
+    });
+    for (const [key, value] of Object.entries(headers)) {
+      _event.headers[key] = value;
+    }
+  });
 
   // ── File validation ──────────────────────────────────
 

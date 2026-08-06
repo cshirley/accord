@@ -2,6 +2,7 @@
 name: review-design
 description: "Review a design document / ADR — challenge reasoning, verify citations, surface gaps and unexamined alternatives."
 tier: workhorse
+thinking: xhigh
 tools:
   read: true
   grep: true

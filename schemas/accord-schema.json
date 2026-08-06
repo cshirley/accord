@@ -284,7 +284,7 @@
             },
             "thinking": {
               "type": "string",
-              "enum": ["off", "minimal", "low", "medium", "high", "xhigh"],
+              "enum": ["off", "minimal", "low", "medium", "high", "xhigh", "max"],
               "description": "Thinking level for judgment when the provider uses flag thinking."
             }
           }

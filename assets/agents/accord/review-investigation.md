@@ -2,6 +2,7 @@
 name: review-investigation
 description: "Challenge an investigation's hypotheses — anti-anchoring, citation check, alternative explanations. Fires after phase-hypothesise and before committing to a root cause."
 tier: workhorse
+thinking: xhigh
 tools:
   read: true
   grep: true

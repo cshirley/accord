@@ -63,7 +63,7 @@ Optional **Phase 5** bounded LLM step before certain `/dev resume` subagent spaw
 | `enabled` | boolean | When `true`, eligible resume spawns may run judgment (still requires env gate on Pi). |
 | `agents` | string[] | Optional allowlist of dispatch agent ids; defaults to `review-test` and `phase-test`. |
 | `model` | string | Model for judgment `completeSimple` (`provider/model` or bare id). Independent of the interactive chat model. |
-| `thinking` | string | Thinking level when the provider uses flag thinking (`off` … `xhigh`). |
+| `thinking` | string | Thinking level when the provider uses flag thinking (`off` … `xhigh`, `max`). |
 | `max_tokens` | integer 256–8192 | Cap for the judgment completion (default `1536`). |
 
 Also set **`ACCORD_ORCHESTRATION_JUDGMENT=1`** in the Pi environment so the extension actually calls the judgment model. Without that env var, judgment is skipped at the host and the harness uses the template appendix when `enabled` is true.
