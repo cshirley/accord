@@ -29,6 +29,7 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 | [`docs/harness-orchestration.md`](docs/harness-orchestration.md) | …read the **target** design: workflow graph in core, deterministic routing, validation boundaries, thin Pi adapter, and phased migration off skill-driven orchestration. |
 | [`docs/harness-orchestration-implementation-plan.md`](docs/harness-orchestration-implementation-plan.md) | …follow the **build plan**: spikes, phases 1–7, acceptance criteria, feature flags, MCP options, and open decisions. |
 | [`docs/pi-sdk-upgrade-plan.md`](docs/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
+| [`CHANGELOG.md`](CHANGELOG.md) | …see release notes for the Pi 0.83 upgrade (phases 0–5). |
 | [`docs/artifacts.md`](docs/artifacts.md)                 | …know where work-item state and committed artifacts live on disk, plus the work-item-ID format.                                                                      |
 | [`docs/schemas.md`](docs/schemas.md)                     | …look up the JSON schema for any artifact or agent return packet.                                                                                                    |
 | [`docs/hooks-and-tools.md`](docs/hooks-and-tools.md)     | …trace what runs at each Pi lifecycle event and which `dev_*` tools the harness exposes (also over stdio MCP).                                                       |

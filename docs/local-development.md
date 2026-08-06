@@ -4,6 +4,8 @@ How to make a checked-out copy of this repository run as your live `/dev` extens
 
 **Requires Pi ≥ 0.83.0** — peer dependencies target `@earendil-works/pi-coding-agent` **0.83.x**. Run `pi --version` (or `npm list -g @earendil-works/pi-coding-agent`) before registering this checkout; upgrade Pi if needed.
 
+**Dynamic tools:** `ACCORD_DYNAMIC_TOOLS` defaults to on (core + phase bundles). Set `ACCORD_DYNAMIC_TOOLS=0` to expose every `dev_*` tool in the system prompt at all times (legacy behaviour).
+
 ## What gets wired in
 
 A working install needs **two** pieces under `~/.config/pi/agent/`:

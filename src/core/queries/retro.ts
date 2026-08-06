@@ -11,6 +11,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { ShiftLeftFinding } from "../types/domain.js";
 import { err, ok, type Result } from "../types/result.js";
+import {
+  analyzeSessionTranscript,
+  readHarnessMarkerFromSession,
+  type SessionTranscriptSummary,
+} from "./session-transcript.js";
 
 export type { ShiftLeftFinding } from "../types/domain.js";
 
@@ -50,6 +55,7 @@ interface RetroSession {
   friction?: string;
   brief_summary?: string;
   marker?: HarnessMarker;
+  transcript?: SessionTranscriptSummary;
   associated_by: "marker" | "legacy_heuristic";
   shift_left: ShiftLeftFinding[];
 }
@@ -103,21 +109,8 @@ function listJsonFiles(dir: string): string[] {
 }
 
 function readHarnessMarker(sessionPath?: string): HarnessMarker | null {
-  if (!sessionPath || !fs.existsSync(sessionPath)) return null;
-  try {
-    const lines = fs.readFileSync(sessionPath, "utf8").split("\n");
-    let latest: HarnessMarker | null = null;
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      const entry = JSON.parse(line);
-      if (entry.type === "custom" && entry.customType === "dev-harness-run") {
-        latest = entry.data || {};
-      }
-    }
-    return latest;
-  } catch {
-    return null;
-  }
+  if (!sessionPath) return null;
+  return readHarnessMarkerFromSession(sessionPath);
 }
 
 function textBlob(meta: InsightMeta, cache: InsightCache | null): string {
@@ -171,7 +164,11 @@ function finding(
   return { category, evidence, recommendation };
 }
 
-function shiftLeftFindings(meta: InsightMeta, cache: InsightCache | null): ShiftLeftFinding[] {
+function shiftLeftFindings(
+  meta: InsightMeta,
+  cache: InsightCache | null,
+  transcript?: SessionTranscriptSummary,
+): ShiftLeftFinding[] {
   const blob = textBlob(meta, cache);
   const friction = cache?.frictionCounts || {};
   const findings: ShiftLeftFinding[] = [];
@@ -206,6 +203,7 @@ function shiftLeftFindings(meta: InsightMeta, cache: InsightCache | null): Shift
 
   if (
     (meta.toolErrors || 0) > 0 ||
+    (transcript?.tool_error_count ?? 0) > 0 ||
     (friction.tool_failed || 0) > 0 ||
     /plan mode|command blocked|tool failed|bash workaround/.test(blob)
   ) {
@@ -248,6 +246,16 @@ function shiftLeftFindings(meta: InsightMeta, cache: InsightCache | null): Shift
         "spec_plan_gap",
         cache?.friction || "Post-harness coding suggests spec/plan missed implementation detail.",
         "Feed examples into spec/plan checklists as recurring questions or acceptance criteria prompts.",
+      ),
+    );
+  }
+
+  if ((transcript?.compaction_count ?? 0) > 0) {
+    findings.push(
+      finding(
+        "tool_environment",
+        `${String(transcript?.compaction_count)} compaction event(s) in session transcript.`,
+        "Review whether harness prompts or dynamic tool bundles can shrink context before compaction.",
       ),
     );
   }
@@ -314,6 +322,11 @@ function formatRetro(result: Omit<DevRetroResult, "formatted">): string {
     lines.push(`- ${label} [${s.associated_by}] outcome=${s.outcome || "unknown"}`);
     if (s.first_prompt) lines.push(`  ask: ${s.first_prompt}`);
     if (s.friction) lines.push(`  friction: ${s.friction}`);
+    if (s.transcript) {
+      lines.push(
+        `  transcript: ${String(s.transcript.entry_count)} entries, ${String(s.transcript.branch_roots)} branch root(s), ${String(s.transcript.compaction_count)} compaction(s), ${String(s.transcript.tool_error_count)} tool error(s)`,
+      );
+    }
     if (s.shift_left.length)
       lines.push(`  shift_left: ${s.shift_left.map((f) => f.category).join(", ")}`);
   }
@@ -342,7 +355,8 @@ export function devRetro(opts: DevRetroOptions = {}): Result<DevRetroResult> {
     examined++;
 
     const cache = readJson<InsightCache>(path.join(cacheDir, `${meta.sessionId}.json`));
-    const marker = readHarnessMarker(meta.path);
+    const transcript = meta.path ? analyzeSessionTranscript(meta.path) ?? undefined : undefined;
+    const marker = readHarnessMarker(meta.path) ?? transcript?.harness_marker ?? null;
     if (!matchesWorkItemFilter(meta, cache, marker, opts.work_item_id)) continue;
     const blob = textBlob(meta, cache);
     const associatedBy = marker
@@ -364,8 +378,9 @@ export function devRetro(opts: DevRetroOptions = {}): Result<DevRetroResult> {
       friction: cache?.friction,
       brief_summary: cache?.briefSummary,
       marker: marker || undefined,
+      transcript,
       associated_by: associatedBy,
-      shift_left: shiftLeftFindings(meta, cache),
+      shift_left: shiftLeftFindings(meta, cache, transcript),
     });
   }
 

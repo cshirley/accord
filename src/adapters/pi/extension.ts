@@ -33,6 +33,7 @@ import {
   displayTasksDashboard,
   registerTasksDashboardRenderer,
 } from "./dev-formatted-display.js";
+import { registerHarnessBuiltinToolRenders } from "./builtin-tool-renders.js";
 import { registerHarnessRunEntryRenderer } from "./custom-entry-renderers.js";
 import { activateForDevSubcommand } from "./dynamic-tools.js";
 import { devRetro } from "../../core/queries/retro.js";
@@ -374,6 +375,7 @@ export default function (pi: ExtensionAPI) {
   // ── Tools + Hooks ──────────────────────────────────────
 
   registerTools(pi, () => state.devConfig);
+  registerHarnessBuiltinToolRenders(pi, process.cwd());
   registerPiHarnessHookListeners(pi, state);
   registerHarnessRunEntryRenderer(pi);
   registerTasksDashboardRenderer(pi);

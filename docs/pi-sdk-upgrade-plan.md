@@ -308,7 +308,7 @@ Scoped models / `enabledModels` are **not** in the spawn precedence chain in Pha
 
 ### Status
 
-- [ ] Not started
+- [x] Complete — hooks/tools docs, local-development Pi 0.83 note, CHANGELOG, dynamic tools default documented; RPC transcript enrichment + built-in tool renders
 
 ---
 
@@ -371,12 +371,17 @@ Resolve before Phase 2–3 land:
 
 ---
 
-## SDK features considered but deferred
+## SDK features adopted (formerly deferred)
+
+| Feature | Implementation |
+|---------|----------------|
+| RPC `get_entries` / `get_tree` parity | `src/core/queries/session-transcript.ts` — `SessionManager.open` for `dev_retro` enrichment |
+| Built-in tool render overrides | `src/adapters/pi/builtin-tool-renders.ts` — harness path highlighting on `read`/`write`/`edit` |
+
+## SDK features still deferred
 
 | Feature | Reason to defer |
 |---------|-----------------|
 | `createAgentSession` + `InMemorySessionStorage` | CI and subagent path intentionally use child `pi` processes |
-| RPC `get_entries` / `get_tree` | Nice for `dev_retro` enrichment; not blocking upgrade |
 | `pi auth print-api-key` | CI credential export; separate from extension work |
-| Built-in tool render overrides | Custom read/write display for artifact paths — polish only |
 | `InlineExtension` typing | Package.json ergonomics only |
