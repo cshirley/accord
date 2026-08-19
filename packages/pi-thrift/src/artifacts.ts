@@ -11,6 +11,14 @@
  * back, windowed by line.  Compression becomes lossless-with-latency, which is
  * what makes it safe to prune harder than before.
  *
+ * A ref only helps while the text carrying it is still in context, and the one
+ * thing thrift cannot promise is that it will be — pi's summariser rewrites the
+ * messages a ref was written into, and it is under no obligation to keep the
+ * marker.  So `thrift_recall` also answers with no argument at all, listing what
+ * it holds by origin.  Labels come from `describeCall`, so the inventory reads
+ * as `read src/input.ts` rather than as opaque hex, which is what lets the model
+ * choose without having to search content it cannot see.
+ *
  * pi's own bash tool already works this way — it spills full output and puts
  * the path in the model-visible text.  This generalises that to every tool.
  */
@@ -19,7 +27,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { type ExtensionAPI, formatSize } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
 export interface Artifact {
@@ -37,6 +45,16 @@ export interface Artifact {
 /** Cap on what a single recall may return, so recovering an artifact cannot
  *  itself blow the context window back open. */
 const RECALL_MAX_LINES = 400;
+
+/**
+ * Cap on inventory rows handed to the model.
+ *
+ * The inventory is context too, so it gets the same treatment as everything else
+ * thrift returns: a bounded window and an exact count of what was left out.
+ * Newest-first ordering does the real work here — a ref the model has lost is
+ * almost always a recent one — so the cap costs little in practice.
+ */
+const INVENTORY_MAX_ENTRIES = 40;
 
 /**
  * Ref length in hex characters.
@@ -78,6 +96,40 @@ export function findArtifactRef(text: string): string | undefined {
 /** Remove a previous recall notice, so re-annotating cannot stack them. */
 export function stripArtifactNotice(text: string): string {
   return text.replace(NOTICE_IN_TEXT, "");
+}
+
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+/**
+ * Render the inventory the model reads when it recalls without a ref.
+ *
+ * Line counts are included because they are what the model needs in order to
+ * decide whether one recall will be enough or whether it should page, and that
+ * decision is cheaper to make here than through a rejected offset.
+ *
+ * Pure, so the row shape is testable without a store on disk.
+ */
+export function formatInventory(artifacts: Artifact[]): string {
+  if (artifacts.length === 0) {
+    return "No artifacts held — thrift has not elided anything in this session.";
+  }
+
+  const shown = artifacts.slice(0, INVENTORY_MAX_ENTRIES);
+  const rows = shown.map(
+    (artifact) =>
+      `  ${artifact.ref}  ${formatSize(artifact.bytes).padStart(8)}  ` +
+      `${String(artifact.lines).padStart(6)} lines  ${artifact.label}`,
+  );
+
+  const remaining = artifacts.length - shown.length;
+  const footer = remaining > 0 ? `\n\n[${plural(remaining, "older artifact")} not shown.]` : "";
+
+  return (
+    `${plural(artifacts.length, "recoverable artifact")}, newest first. ` +
+    `Recall one by ref to read it.\n\n${rows.join("\n")}${footer}`
+  );
 }
 
 export class ArtifactStore {
@@ -197,8 +249,21 @@ export class ArtifactStore {
     return this.byRef.get(ref);
   }
 
+  /**
+   * Held artifacts, newest first.
+   *
+   * Ordering comes from the insertion order of `byRef` rather than `createdAt`,
+   * because a stage-2 pass spills every result it elides inside one loop and
+   * `Date.now()` cannot separate them. Sorting on the timestamp left a
+   * same-millisecond batch in oldest-first order, which is the wrong half to
+   * keep once `formatInventory` caps the listing. Eviction already walks the map
+   * in insertion order to find the oldest, so this makes the two agree.
+   *
+   * A re-spill of identical content keeps the position it was first stored at.
+   * The store is content-addressed, so that is the same artifact, not a newer one.
+   */
   list(): Artifact[] {
-    return [...this.byRef.values()].sort((a, b) => b.createdAt - a.createdAt);
+    return [...this.byRef.values()].reverse();
   }
 
   /** Read a line window out of a stored artifact. `offset` is 1-indexed to
@@ -212,12 +277,12 @@ export class ArtifactStore {
             `Re-run the call that produced it.`,
         );
       }
-      const known = this.list()
-        .slice(0, 10)
-        .map((a) => a.ref)
-        .join(", ");
+      // Listing bare refs here was the only way to discover what was held, which
+      // made a wrong guess the discovery mechanism. Now that recall answers with
+      // no argument, point at that instead: it costs fewer tokens than a row of
+      // hex and it comes back with labels attached.
       throw new Error(
-        `Unknown artifact ref "${ref}".${known === "" ? "" : ` Available refs: ${known}`}`,
+        `Unknown artifact ref "${ref}". Call thrift_recall with no ref to list what is available.`,
       );
     }
 
@@ -268,7 +333,10 @@ export class ArtifactStore {
  *
  * The description doubles as the contract the model reads, so it states the
  * line cap and the pagination convention explicitly. A recovery path the model
- * does not understand is no recovery path at all.
+ * does not understand is no recovery path at all. That is also why listing is a
+ * missing `ref` on this tool rather than a second tool: another schema would be
+ * paid for on every request, and an extension that spends input tokens to save
+ * input tokens has to be careful which side of that trade it lands on.
  */
 export function registerRecallTool(pi: ExtensionAPI, store: ArtifactStore): void {
   pi.registerTool({
@@ -277,9 +345,14 @@ export function registerRecallTool(pi: ExtensionAPI, store: ArtifactStore): void
     description:
       "Retrieve tool output that thrift elided from the conversation. " +
       "Pass the ref quoted in a [thrift: ...] marker. " +
-      `Returns at most ${RECALL_MAX_LINES} lines; use offset to page through more.`,
+      `Returns at most ${RECALL_MAX_LINES} lines; use offset to page through more. ` +
+      "Call with no ref to list what is available to recall.",
     parameters: Type.Object({
-      ref: Type.String({ description: "Artifact ref from a [thrift: ...] marker" }),
+      ref: Type.Optional(
+        Type.String({
+          description: "Artifact ref from a [thrift: ...] marker. Omit to list what is held.",
+        }),
+      ),
       offset: Type.Optional(
         Type.Number({ description: "Line to start from (1-indexed, default 1)" }),
       ),
@@ -289,7 +362,13 @@ export function registerRecallTool(pi: ExtensionAPI, store: ArtifactStore): void
     }),
 
     async execute(_toolCallId, params) {
-      const text = await store.recall(params.ref, params.offset, params.limit);
+      // An empty or whitespace ref is treated as an omitted one. It means the same
+      // thing, and answering with the inventory is more use than rejecting it.
+      const ref = params.ref?.trim();
+      const text =
+        ref === undefined || ref === ""
+          ? formatInventory(store.list())
+          : await store.recall(ref, params.offset, params.limit);
       return { content: [{ type: "text" as const, text }], details: undefined };
     },
   });

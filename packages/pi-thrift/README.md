@@ -86,6 +86,27 @@ already works this way; thrift generalises it to every tool it touches.
 A single recall returns at most 400 lines, so recovering an artifact cannot
 reopen the context window it was closing.
 
+Called with no ref, `thrift_recall` lists what it holds instead — newest first,
+with the size, line count and origin of each artifact:
+
+```
+3 recoverable artifacts, newest first. Recall one by ref to read it.
+
+  a3f9c10b2e4d7761   47.2KB    1165 lines  read src/input.ts
+  7c21e04fb9a5d338    8.1KB     240 lines  bash npm test
+  1f0b8e77c4a29d51    2.4KB      96 lines  grep registerTool
+```
+
+A ref is only useful while the text carrying it is still in context, and that is
+the one thing thrift cannot promise: compaction rewrites the messages a marker
+was written into, and the summariser is under no obligation to keep it. The
+inventory is the way back from that. Labels come from the originating call, so
+the model chooses by origin rather than having to search content it can no
+longer see — which is why listing, rather than a search index, was enough.
+
+The listing is capped at 40 rows with an exact count of the remainder, on the
+same reasoning as everything else here: the inventory is context too.
+
 The spill comes first, and nothing is removed until it succeeds. If the write
 fails — a full disk, a read-only temp directory — thrift leaves the result whole
 and tries again on the next call, because an unrecoverable stub is a worse
