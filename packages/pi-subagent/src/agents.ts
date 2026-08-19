@@ -21,15 +21,16 @@
  *   └───────────────────────────────────────────────┘
  *
  * Profiles own the `provider` prefix and the `thinkingMode` (how thinking is
- * expressed for that provider): `flag` (Anthropic/Google), `embedded` (Cursor —
- * baked into the model id), `reasoning_effort` (OpenAI), `none` (local).
+ * expressed for that provider): `flag` (Anthropic/Google, and the native
+ * `cursor` provider), `embedded` (legacy `cursor-agent` — baked into the model
+ * id), `reasoning_effort` (OpenAI), `none` (local).
  * That decoupling fixes the bug where switching session provider produced
  * invalid model ids like `openai/claude-opus-4-7`.
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { getAgentDir, readStoredCredential } from "@earendil-works/pi-coding-agent";
 import { loadAgentFromFile } from "./agent-load.js";
 
 export type AgentScope = "user" | "project" | "both";
@@ -127,24 +128,42 @@ let _configCachePath: string | null = null;
 let _configWarned = false;
 let _credentialFallbackWarned = false;
 
-function hasCursorAgentCredentials(): boolean {
-  return Boolean(process.env.CURSOR_API_KEY || process.env.CURSOR_ACCESS_TOKEN);
+/**
+ * Cursor-backed provider names, in fallback preference order: the native
+ * `cursor` provider before the older `cursor-agent` CLI bridge.
+ */
+export const CURSOR_PROVIDERS: readonly string[] = ["cursor", "cursor-agent"];
+
+/**
+ * Either Cursor provider accepts an env-var key, and both also store OAuth
+ * credentials in pi's auth store under their own provider name — which is how
+ * a browser/CLI login shows up, with no env var set.
+ */
+export function hasCursorCredentials(provider: string): boolean {
+  if (process.env.CURSOR_API_KEY || process.env.CURSOR_ACCESS_TOKEN) return true;
+  return Boolean(readStoredCredential(provider));
 }
 
-function findCursorAgentProfileName(cfg: SubagentConfig): string | null {
-  if (cfg.profiles["cursor-claude"]?.provider === "cursor-agent") {
-    return "cursor-claude";
-  }
-  for (const [name, profile] of Object.entries(cfg.profiles)) {
-    if (profile.provider === "cursor-agent") return name;
+/**
+ * First profile targeting a Cursor provider we hold credentials for. A profile
+ * literally named `cursor-claude` wins within a provider, matching the shipped
+ * template.
+ */
+export function findCursorProfileName(cfg: SubagentConfig): string | null {
+  for (const provider of CURSOR_PROVIDERS) {
+    if (!hasCursorCredentials(provider)) continue;
+    if (cfg.profiles["cursor-claude"]?.provider === provider) return "cursor-claude";
+    for (const [name, profile] of Object.entries(cfg.profiles)) {
+      if (profile.provider === provider) return name;
+    }
   }
   return null;
 }
 
 /**
  * When the chosen profile targets Anthropic directly but no API key is present,
- * prefer a cursor-agent profile when Cursor credentials are available. Avoids
- * child `pi` processes that hang until spawn timeout.
+ * prefer a Cursor profile when Cursor credentials are available. Avoids child
+ * `pi` processes that hang until spawn timeout.
  */
 export function resolveProfileForCredentials(
   cfg: SubagentConfig,
@@ -155,15 +174,16 @@ export function resolveProfileForCredentials(
     return requestedProfileName;
   }
 
-  const cursorProfile = findCursorAgentProfileName(cfg);
-  if (!cursorProfile || !hasCursorAgentCredentials()) {
+  const cursorProfile = findCursorProfileName(cfg);
+  if (!cursorProfile) {
     return requestedProfileName;
   }
 
   if (!_credentialFallbackWarned) {
     console.error(
       `[subagent] profile "${requestedProfileName}" uses provider "anthropic" but ANTHROPIC_API_KEY is unset; ` +
-        `using "${cursorProfile}" (cursor-agent). Set ANTHROPIC_API_KEY or change activeProfile in subagent.json.`,
+        `using "${cursorProfile}" (${cfg.profiles[cursorProfile].provider}). ` +
+        `Set ANTHROPIC_API_KEY or change activeProfile in subagent.json.`,
     );
     _credentialFallbackWarned = true;
   }
