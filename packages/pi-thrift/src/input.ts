@@ -87,6 +87,40 @@ export const byteLen = (s: string): number => Buffer.byteLength(s, "utf-8");
 /** Rough size of the recall notice appended to reduced text. */
 const NOTICE_BYTES = 128;
 
+/**
+ * Index tool-call arguments by call id.
+ *
+ * Arguments live on the assistant message that requested the call, never on the
+ * result, so anything that wants to describe a result — a dedupe key, a
+ * staleness check, an artifact label — has to walk back for them. Both the
+ * `context` hook and compaction prep need this, and compaction is entitled to
+ * rely on it: pi never cuts a span between a tool call and its result, so a
+ * result whose request is absent here is one that genuinely had none.
+ */
+export function collectToolCalls(messages: readonly unknown[]): Map<string, ToolCallInfo> {
+  const calls = new Map<string, ToolCallInfo>();
+
+  for (const message of messages) {
+    const msg = message as { role?: string; content?: unknown };
+    if (msg?.role !== "assistant" || !Array.isArray(msg.content)) continue;
+
+    for (const part of msg.content as Array<Record<string, unknown>>) {
+      if (part.type !== "toolCall") continue;
+      const id = part.id;
+      const name = part.name;
+      if (typeof id !== "string" || typeof name !== "string") continue;
+      const args = part.arguments;
+      calls.set(id, {
+        name,
+        arguments:
+          typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {},
+      });
+    }
+  }
+
+  return calls;
+}
+
 /** Short human label for an artifact, e.g. `read src/input.ts`. */
 export function describeCall(toolName: string, input: Record<string, unknown>): string {
   const detail =
@@ -241,24 +275,9 @@ export function registerInputPruning(
       content?: TextBlock[];
     }>;
 
-    // Tool arguments live on the assistant message that requested the call, so
-    // collect them first — dedupe keys and path staleness both depend on them.
-    const calls = new Map<string, ToolCallInfo>();
-    for (const msg of messages) {
-      if (msg.role !== "assistant" || !Array.isArray(msg.content)) continue;
-      for (const part of msg.content as unknown as Array<Record<string, unknown>>) {
-        if (part.type !== "toolCall") continue;
-        const id = part.id;
-        const name = part.name;
-        if (typeof id !== "string" || typeof name !== "string") continue;
-        const args = part.arguments;
-        calls.set(id, {
-          name,
-          arguments:
-            typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {},
-        });
-      }
-    }
+    // Dedupe keys and path staleness both depend on the arguments, so index
+    // them before planning.
+    const calls = collectToolCalls(messages);
 
     const pressure = readPressure(ctx);
 
