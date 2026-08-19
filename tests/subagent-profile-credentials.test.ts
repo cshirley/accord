@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   type AgentConfig,
   resolveModelConfig,
@@ -21,8 +21,8 @@ const TEST_CFG: SubagentConfig = {
       },
     },
     "cursor-claude": {
-      provider: "cursor-agent",
-      thinkingMode: "embedded",
+      provider: "cursor",
+      thinkingMode: "flag",
       tiers: {
         workhorse: { model: "claude-sonnet-4-6" },
       },
@@ -30,8 +30,8 @@ const TEST_CFG: SubagentConfig = {
   },
 };
 
-/** Same shape, but on the native `cursor` provider under a different name. */
-const NATIVE_CFG: SubagentConfig = {
+/** A Cursor profile under a name other than the template's `cursor-claude`. */
+const ALT_NAME_CFG: SubagentConfig = {
   defaultProfile: "anthropic-direct",
   activeProfile: "anthropic-direct",
   profiles: {
@@ -44,6 +44,13 @@ const NATIVE_CFG: SubagentConfig = {
       },
     },
   },
+};
+
+/** No Cursor profile at all — nothing to fall back to. */
+const ANTHROPIC_ONLY_CFG: SubagentConfig = {
+  defaultProfile: "anthropic-direct",
+  activeProfile: "anthropic-direct",
+  profiles: { "anthropic-direct": TEST_CFG.profiles["anthropic-direct"] },
 };
 
 const TEST_AGENT: AgentConfig = {
@@ -110,42 +117,44 @@ describe("resolveProfileForCredentials", () => {
     expect(resolveProfileForCredentials(TEST_CFG, "anthropic-direct")).toBe("anthropic-direct");
   });
 
-  test("falls back to a native cursor profile under any name", () => {
+  test("falls back to a cursor profile under any name", () => {
     process.env.CURSOR_API_KEY = "test-cursor";
-    expect(resolveProfileForCredentials(NATIVE_CFG, "anthropic-direct")).toBe("cursor-anthropic");
+    expect(resolveProfileForCredentials(ALT_NAME_CFG, "anthropic-direct")).toBe("cursor-anthropic");
   });
 
   test("accepts a stored OAuth credential with no env var set", () => {
     writeStoredCredentials("cursor");
-    expect(resolveProfileForCredentials(NATIVE_CFG, "anthropic-direct")).toBe("cursor-anthropic");
+    expect(resolveProfileForCredentials(ALT_NAME_CFG, "anthropic-direct")).toBe("cursor-anthropic");
   });
 
-  test("ignores a cursor profile whose provider has no credentials", () => {
+  test("prefers the template's cursor-claude name when several profiles match", () => {
     writeStoredCredentials("cursor");
-    expect(resolveProfileForCredentials(TEST_CFG, "anthropic-direct")).toBe("anthropic-direct");
-  });
-
-  test("prefers the native cursor provider over legacy cursor-agent", () => {
-    writeStoredCredentials("cursor", "cursor-agent");
     const bothCfg: SubagentConfig = {
       ...TEST_CFG,
-      profiles: { ...TEST_CFG.profiles, ...NATIVE_CFG.profiles },
+      profiles: { ...TEST_CFG.profiles, ...ALT_NAME_CFG.profiles },
     };
-    expect(resolveProfileForCredentials(bothCfg, "anthropic-direct")).toBe("cursor-anthropic");
+    expect(resolveProfileForCredentials(bothCfg, "anthropic-direct")).toBe("cursor-claude");
+  });
+
+  test("keeps the anthropic profile when no cursor profile is configured", () => {
+    writeStoredCredentials("cursor");
+    expect(resolveProfileForCredentials(ANTHROPIC_ONLY_CFG, "anthropic-direct")).toBe(
+      "anthropic-direct",
+    );
   });
 });
 
 describe("resolveModelConfig credential fallback", () => {
-  test("uses cursor-agent provider when Anthropic key missing", () => {
+  test("uses the cursor provider when Anthropic key missing", () => {
     process.env.CURSOR_API_KEY = "test-cursor";
     const resolved = resolveModelConfig(TEST_AGENT, TEST_CFG);
-    expect(resolved?.provider).toBe("cursor-agent");
+    expect(resolved?.provider).toBe("cursor");
     expect(resolved?.model).toBe("claude-sonnet-4-6");
   });
 
-  test("uses the native cursor provider when that is the profile on offer", () => {
+  test("resolves a stored-credential cursor profile to its own tier model", () => {
     writeStoredCredentials("cursor");
-    const resolved = resolveModelConfig(TEST_AGENT, NATIVE_CFG);
+    const resolved = resolveModelConfig(TEST_AGENT, ALT_NAME_CFG);
     expect(resolved?.provider).toBe("cursor");
     expect(resolved?.model).toBe("composer-2.5");
   });

@@ -20,7 +20,6 @@ export function appendThinkingCliArgs(
           args.push("--reasoning-effort", modelResolved.reasoningEffort);
         }
         break;
-      case "embedded":
       case "none":
         break;
     }

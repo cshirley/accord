@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "updated": "2026-06-10",
   "unit": "usd_per_million_tokens",
-  "notes": "Anthropic-direct rates source: anthropic.com/pricing. cursor-agent provider rates (composer-*, and the embedded thinking/effort variants such as claude-opus-4-8-thinking-xhigh) are metered through the Cursor subscription; values mirror pi-cursor-agent's model-override and are approximate. The cost matcher uses exact (dot/dash-normalised) key equality, so each embedded variant the cursor-claude profile spawns needs its own key — a base family entry will NOT match a suffixed id. Unknown model_id falls back to the `default` entry; that includes the Cursor `default` (Auto) model.",
+  "notes": "Anthropic-direct rates source: anthropic.com/pricing. Cursor provider rates (composer-*, and suffixed thinking/effort variants such as claude-opus-4-8-thinking-xhigh) are metered through the Cursor subscription and are approximate. The cost matcher uses exact (dot/dash-normalised) key equality, so each suffixed variant the cursor-claude profile spawns needs its own key — a base family entry will NOT match a suffixed id. Unknown model_id falls back to the `default` entry; that includes the Cursor `default` (Auto) model.",
   "default": { "input": 3.0, "output": 15.0 },
   "models": {
     "claude-opus-4-8": { "input": 15.0, "output": 75.0 },

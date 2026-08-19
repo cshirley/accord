@@ -8,12 +8,15 @@ import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { loadAgentFromFile } from "../../../packages/pi-subagent/src/agent-load.js";
 import {
+  type AgentConfig,
+  CURSOR_PROVIDER,
+  findCursorProfileName,
+  hasCursorCredentials,
   loadSubagentConfig,
   resolveAgentFile,
   resolveModelConfig,
   resolveProfileForCredentials,
   resolveRequestedProfileName,
-  type AgentConfig,
   type SubagentConfig,
 } from "../../../packages/pi-subagent/src/agents.js";
 import {
@@ -78,20 +81,6 @@ export interface SubagentPreflightCheck {
   formatted: string;
 }
 
-function hasCursorAgentCredentials(): boolean {
-  return Boolean(process.env.CURSOR_API_KEY || process.env.CURSOR_ACCESS_TOKEN);
-}
-
-function findCursorAgentProfileName(cfg: SubagentConfig): string | null {
-  if (cfg.profiles["cursor-claude"]?.provider === "cursor-agent") {
-    return "cursor-claude";
-  }
-  for (const [name, profile] of Object.entries(cfg.profiles)) {
-    if (profile.provider === "cursor-agent") return name;
-  }
-  return null;
-}
-
 function evaluateCredentials(
   provider: string,
   requestedProfile: string,
@@ -105,16 +94,16 @@ function evaluateCredentials(
     if (process.env.ANTHROPIC_API_KEY) {
       return { ok: true, blocks, warnings };
     }
-    const cursorProfile = findCursorAgentProfileName(cfg);
-    if (cursorProfile && hasCursorAgentCredentials() && effectiveProfile === cursorProfile) {
+    const cursorProfile = findCursorProfileName(cfg);
+    if (cursorProfile && effectiveProfile === cursorProfile) {
       warnings.push(
-        `Profile "${requestedProfile}" targets Anthropic but ANTHROPIC_API_KEY is unset; runtime will use "${effectiveProfile}" (cursor-agent).`,
+        `Profile "${requestedProfile}" targets Anthropic but ANTHROPIC_API_KEY is unset; runtime will use "${effectiveProfile}" (${CURSOR_PROVIDER}).`,
       );
       return { ok: true, blocks, warnings };
     }
     blocks.push(
       "ANTHROPIC_API_KEY is unset and no Cursor credentials are available for fallback. " +
-        "Subagent will hang until spawn timeout. Set ANTHROPIC_API_KEY or configure cursor-agent credentials.",
+        "Subagent will hang until spawn timeout. Set ANTHROPIC_API_KEY or log in to Cursor.",
     );
     return { ok: false, blocks, warnings };
   }
@@ -129,12 +118,13 @@ function evaluateCredentials(
     return { ok: false, blocks, warnings };
   }
 
-  if (provider === "cursor-agent") {
-    if (hasCursorAgentCredentials()) {
+  if (provider === CURSOR_PROVIDER) {
+    if (hasCursorCredentials()) {
       return { ok: true, blocks, warnings };
     }
     blocks.push(
-      "CURSOR_API_KEY or CURSOR_ACCESS_TOKEN is required for cursor-agent. Subagent will hang until spawn timeout.",
+      "No Cursor credentials found. Set CURSOR_API_KEY or CURSOR_ACCESS_TOKEN, or log in to Cursor. " +
+        "Subagent will hang until spawn timeout.",
     );
     return { ok: false, blocks, warnings };
   }
@@ -162,9 +152,7 @@ function formatPreflightReport(check: SubagentPreflightCheck): string {
     `  registry: ${check.in_registry ? "yes" : "no"}`,
   ];
   if (check.judgment_model) {
-    lines.push(
-      `  judgment_model: ${check.judgment_model.provider}/${check.judgment_model.model}`,
-    );
+    lines.push(`  judgment_model: ${check.judgment_model.provider}/${check.judgment_model.model}`);
   }
   if (check.scoped_models.length > 0) {
     const scopedSummary = check.scoped_models
