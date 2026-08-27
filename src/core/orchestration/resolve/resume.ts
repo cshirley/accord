@@ -22,6 +22,7 @@ import {
   resolvePrimaryTaskResumeAgentId,
 } from "./primary-task.js";
 import { buildAlignResumeTaskOrGeneric } from "./align-task.js";
+import { buildInterviewResumeTaskOrGeneric } from "./interview-task.js";
 
 export function parseLeadingWorkItemId(args: string): string | null {
   const trimmed = args.trim();
@@ -203,6 +204,14 @@ export function resolveResumeOrchestration(
 
   const baseTask =
     implementBrief.value ??
+    buildInterviewResumeTaskOrGeneric({
+      workItemId: stateAfterReconcile.id,
+      phase,
+      title: stateAfterReconcile.title,
+      pattern: stateAfterReconcile.pattern,
+      variant: stateAfterReconcile.variant,
+      dispatchAgent: agent,
+    }) ??
     buildAlignResumeTaskOrGeneric({
       workItemId: stateAfterReconcile.id,
       phase,

@@ -116,6 +116,12 @@ export function postSpawnReplanDecision(
     }
   }
 
+  if (agent === "phase-spec" || agent === "phase-plan") {
+    if (status === "needs_input" || status === "stuck") {
+      return "stop";
+    }
+  }
+
   if (agent === "phase-gather" && status === "stuck") {
     return "stop";
   }

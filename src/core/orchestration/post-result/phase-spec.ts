@@ -5,6 +5,7 @@
 
 import { syncSpecMarkdownFromJson } from "../../artifacts/spec-markdown.js";
 import { workItemUsesAlignFirstPipeline } from "../../subagent/preflight/pipeline-artifacts.js";
+import { applyInterviewNeedsInputPostResult } from "./needs-input.js";
 import {
   artifactLooksComplete,
   artifactPathForWorkItem,
@@ -26,6 +27,16 @@ function isPhaseSpecDonePacket(packet: unknown): packet is PhaseSpecDonePacket {
 }
 
 export function applyPhaseSpecPostResult(workItemId: string, packet: unknown): string {
+  const needsInput = applyInterviewNeedsInputPostResult(
+    workItemId,
+    "phase-spec",
+    "speccing",
+    packet,
+  );
+  if (needsInput) {
+    return needsInput;
+  }
+
   if (!isPhaseSpecDonePacket(packet)) {
     return "";
   }

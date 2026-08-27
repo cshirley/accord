@@ -148,7 +148,7 @@ describe("align gather spawn follow-up", () => {
 
     const out = await runResumeOrchestrationWithReplans("STEP-CHAIN", minimalDevConfig(), host);
     expect(spawns).toEqual(["phase-align", "phase-gather", "phase-align"]);
-    expect(out.stalledReason).toBeUndefined();
+    expect(out.stalledReason).toBe("needs_input");
     expect(out.iterations).toBe(1);
     expect(out.lastRun.lastSpawn?.agent).toBe("phase-align");
   });

@@ -4,6 +4,7 @@
  */
 
 import { workItemUsesAlignFirstPipeline } from "../../subagent/preflight/pipeline-artifacts.js";
+import { applyInterviewNeedsInputPostResult } from "./needs-input.js";
 import {
   artifactLooksComplete,
   artifactPathForWorkItem,
@@ -27,6 +28,16 @@ function isPhasePlanDonePacket(packet: unknown): packet is PhasePlanDonePacket {
 }
 
 export function applyPhasePlanPostResult(workItemId: string, packet: unknown): string {
+  const needsInput = applyInterviewNeedsInputPostResult(
+    workItemId,
+    "phase-plan",
+    "planning",
+    packet,
+  );
+  if (needsInput) {
+    return needsInput;
+  }
+
   if (!isPhasePlanDonePacket(packet)) {
     return "";
   }

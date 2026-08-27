@@ -99,6 +99,11 @@ export async function tryDevSubcommandViaCoreOrchestrator(
       "Orchestration stopped: the next step would repeat the same subagent without progress. Check work item phase and artifacts on disk, then run `/dev resume <ID>` or `dev_transition`.",
       "warning",
     );
+  } else if (result.stalledReason === "needs_input") {
+    ctx.ui.notify(
+      "Orchestration paused: a phase agent returned `needs_input`. Answer the questions shown above (or run `/dev review <ID>`), then `/dev resume <ID>` to continue.",
+      "info",
+    );
   }
 
   return "handled";
