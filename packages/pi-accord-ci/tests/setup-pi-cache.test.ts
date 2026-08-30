@@ -49,7 +49,9 @@ describe("setup-pi composite — single actions/cache@v4 step (AC-12)", () => {
   });
 
   test("the cache step uses actions/cache@v4 (pinned major)", () => {
-    expect((findCacheSteps()[0]?.uses as string).startsWith("actions/cache@v4")).toBe(true);
+    const cacheSteps = findCacheSteps();
+    expect(cacheSteps.length).toBeGreaterThan(0);
+    expect((cacheSteps[0].uses as string).startsWith("actions/cache@v4")).toBe(true);
   });
 });
 

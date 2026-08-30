@@ -133,7 +133,9 @@ describe("installPiAssets", () => {
     const result = installPiAssets({ target });
     expect(result.conflicts).toEqual([]);
     expect(result.linked).toContain(join(target, "skills", "commit"));
-    expect(readlinkSync(join(target, "skills", "commit"))).toContain("packages/pi-accord/assets/skills/commit");
+    expect(readlinkSync(join(target, "skills", "commit"))).toContain(
+      "packages/pi-accord/assets/skills/commit",
+    );
   });
 
   test("reports conflicts when a target exists with different content and force is false", () => {

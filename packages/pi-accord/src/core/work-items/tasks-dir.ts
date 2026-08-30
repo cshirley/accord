@@ -74,7 +74,9 @@ function nestedTasksDirsUnderGitRoot(gitRoot: string): string[] {
 
   const queue: { dir: string; depth: number }[] = [{ dir: root, depth: 0 }];
   while (queue.length > 0) {
-    const { dir, depth } = queue.shift()!;
+    const next = queue.shift();
+    if (!next) continue;
+    const { dir, depth } = next;
     if (depth > MAX_MONOREPO_SCAN_DEPTH) continue;
 
     let entries: fs.Dirent[];

@@ -97,7 +97,8 @@ function formatTasksCell(row: TasksDashboardRow): string {
   if (row.tasks_blocked > 0) parts.push(`${String(row.tasks_blocked)}b`);
   if (row.tasks_in_progress > 0) parts.push(`${String(row.tasks_in_progress)}↑`);
   if (row.tasks_pending > 0) parts.push(`${String(row.tasks_pending)}p`);
-  return parts.length === 1 ? parts[0]! : `${parts[0]}·${parts.slice(1).join("·")}`;
+  const [first, ...rest] = parts;
+  return rest.length === 0 ? first : `${first}·${rest.join("·")}`;
 }
 
 function formatAttentionCell(row: TasksDashboardRow): string {

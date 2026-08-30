@@ -3,7 +3,7 @@
  */
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
-import type { Model } from "@earendil-works/pi-ai";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import {
   type ExtensionContext,
   ModelRuntime,
@@ -19,7 +19,7 @@ import type { DevHarnessConfig } from "../../../core/config/index.js";
 export type JudgmentModelSource = "config" | "lightweight_tier" | "scoped" | "chat";
 
 export interface ResolvedJudgmentModel {
-  model: Model<any>;
+  model: Model<Api>;
   thinkingLevel?: ThinkingLevel;
   source: JudgmentModelSource;
   /** Set when falling back to the interactive chat model. */
@@ -44,7 +44,7 @@ function getModelRuntime(): Promise<ModelRuntime> {
   return modelRuntimePromise;
 }
 
-function modelsEqual(a: Model<any>, b: Model<any>): boolean {
+function modelsEqual(a: Model<Api>, b: Model<Api>): boolean {
   return a.provider === b.provider && a.id === b.id;
 }
 
@@ -52,7 +52,7 @@ async function resolveConfiguredJudgmentModel(
   modelRef: string,
   thinkingOverride: ThinkingLevel | undefined,
   ctx: ExtensionContext,
-): Promise<Model<any> | undefined> {
+): Promise<Model<Api> | undefined> {
   const runtime = await getModelRuntime();
   const resolved = resolveCliModel({
     cliModel: modelRef,
@@ -64,13 +64,13 @@ async function resolveConfiguredJudgmentModel(
   return fromRegistry ?? resolved.model;
 }
 
-async function modelHasAuth(model: Model<any>, ctx: ExtensionContext): Promise<boolean> {
+async function modelHasAuth(model: Model<Api>, ctx: ExtensionContext): Promise<boolean> {
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
   return auth.ok;
 }
 
 /** Last scoped entry — matches Ctrl+P order when the user curated the shortlist. */
-function pickScopedJudgmentModel(ctx: ExtensionContext): Model<any> | undefined {
+function pickScopedJudgmentModel(ctx: ExtensionContext): Model<Api> | undefined {
   if (ctx.scopedModels.length === 0) return undefined;
   return ctx.scopedModels[ctx.scopedModels.length - 1]?.model;
 }

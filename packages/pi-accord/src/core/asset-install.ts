@@ -16,7 +16,6 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  readlinkSync,
   realpathSync,
   rmSync,
   statSync,
@@ -24,7 +23,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { type SeedGlobalConfigStatus, seedGlobalConfigFile } from "./config/global.js";
 import { EXT_DIR } from "./config/paths.js";
 
