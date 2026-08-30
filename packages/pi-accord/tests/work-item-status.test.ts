@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import * as fs from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { devWorkItemStatus } from "../src/core/queries/work-item-status.js";
 import { TASKS_DIR, writeJson } from "../src/core/work-items/io.js";

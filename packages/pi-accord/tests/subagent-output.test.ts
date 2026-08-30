@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Message } from "@earendil-works/pi-ai";
-import {
-  getFinalOutput,
-  getFinalOutputFromMessages,
-} from "../packages/pi-subagent/src/spawn/output.js";
+import { getFinalOutput, getFinalOutputFromMessages } from "../../pi-subagent/src/spawn/output.js";
 
 describe("getFinalOutput", () => {
   test("returns last assistant text block from messages", () => {

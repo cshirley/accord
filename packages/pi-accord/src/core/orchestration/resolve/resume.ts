@@ -5,24 +5,24 @@
 import { agentRequiresConfig, getAgentMeta } from "../../agents/registry.js";
 import { buildImplementSpawnTaskBrief } from "../../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../../config/index.js";
+import { devResumeState } from "../../queries/resume-state.js";
 import {
   agentRequiresSpawnPreflight,
   runSubagentSpawnPreflightCheck,
 } from "../../queries/subagent-preflight.js";
-import { devResumeState } from "../../queries/resume-state.js";
-import { ensureWorkItemHydrated } from "../../work-items/rehydrate.js";
 import { loadWorkItem } from "../../work-items/io.js";
-import { reconcileCoarsePhaseWithMessages } from "../reconcile-coarse-phase.js";
+import { ensureWorkItemHydrated } from "../../work-items/rehydrate.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
+import { reconcileCoarsePhaseWithMessages } from "../reconcile-coarse-phase.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../types.js";
+import { buildAlignResumeTaskOrGeneric } from "./align-task.js";
+import { buildInterviewResumeTaskOrGeneric } from "./interview-task.js";
 import {
   describeImplementingResumeBlocked,
   resolveImplementingResumeAgentId,
   resolvePrimaryTaskResumeAgentId,
 } from "./primary-task.js";
-import { buildAlignResumeTaskOrGeneric } from "./align-task.js";
-import { buildInterviewResumeTaskOrGeneric } from "./interview-task.js";
 
 export function parseLeadingWorkItemId(args: string): string | null {
   const trimmed = args.trim();

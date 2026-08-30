@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import type { TasksDashboardRow } from "../src/core/queries/dashboard.js";
 import {
   abbreviatePatternLabel,
   formatTasksDashboard,
 } from "../src/core/queries/dashboard-format.js";
-import type { TasksDashboardRow } from "../src/core/queries/dashboard.js";
 
 function row(overrides: Partial<TasksDashboardRow>): TasksDashboardRow {
   return {

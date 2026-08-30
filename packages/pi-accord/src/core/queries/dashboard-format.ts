@@ -124,14 +124,15 @@ function formatCostCell(row: TasksDashboardRow): string {
 }
 
 function formatTableLine(columns: TableColumn[], row?: TasksDashboardRow): string {
-  return columns
-    .map((c) => padCell(row ? c.cell(row) : c.header, c.width))
-    .join(COL_GAP);
+  return columns.map((c) => padCell(row ? c.cell(row) : c.header, c.width)).join(COL_GAP);
 }
 
 function formatTable(sectionRows: TasksDashboardRow[]): string[] {
   if (sectionRows.length === 0) return [];
-  return [formatTableLine(TABLE_COLUMNS), ...sectionRows.map((r) => formatTableLine(TABLE_COLUMNS, r))];
+  return [
+    formatTableLine(TABLE_COLUMNS),
+    ...sectionRows.map((r) => formatTableLine(TABLE_COLUMNS, r)),
+  ];
 }
 
 function formatFooter(input: DashboardFormatInput): string[] {

@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { applyPhaseVerifyTaskPostResult } from "../src/core/orchestration/post-result/phase-verify-task.js";
 import {
   bootstrapImplementTasksFromPlan,
@@ -44,7 +44,9 @@ function setupProject() {
     schema_version: "1.0",
     work_item_id: id,
     title: "Verify only",
-    acceptance_criteria: [{ id: "AC-1", requirement: "MUST", type: "scenario", scenario: "gate passes" }],
+    acceptance_criteria: [
+      { id: "AC-1", requirement: "MUST", type: "scenario", scenario: "gate passes" },
+    ],
     verification: { commands: ["echo ok"] },
   });
 

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { SubagentConfig } from "../packages/pi-subagent/src/agents.js";
+import type { SubagentConfig } from "../../pi-subagent/src/agents.js";
 import {
   DEFAULT_SPAWN_TIMEOUT_MS,
   resolveSpawnTimeoutMs,
   SPAWN_TIMEOUT_DISABLED,
-} from "../packages/pi-subagent/src/spawn/timeout.js";
+} from "../../pi-subagent/src/spawn/timeout.js";
 
 describe("resolveSpawnTimeoutMs", () => {
   const config: SubagentConfig = {

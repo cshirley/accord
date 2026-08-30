@@ -153,9 +153,7 @@ export function persistInterviewCheckpoint(
   const pendingIds = questions.map((q) => q.id);
 
   const wi = loadWorkItem(workItemId);
-  const resolvedFromDecisions = wi
-    ? [...decisionAnswerById(wi).keys()]
-    : [];
+  const resolvedFromDecisions = wi ? [...decisionAnswerById(wi).keys()] : [];
   const prior = devCheckpointRead(workItemId);
   const answered = mergeAnsweredIds(
     [...(prior?.answered ?? []), ...resolvedFromDecisions],
@@ -188,7 +186,9 @@ export function formatNeedsInputHandoff(input: {
     "",
     `Checkpoint written: \`${input.checkpointPath}\``,
     ...(input.decisionsAdded > 0
-      ? [`Promoted ${String(input.decisionsAdded)} question(s) to the decision queue — answer via chat or \`/dev review ${input.workItemId}\`.`]
+      ? [
+          `Promoted ${String(input.decisionsAdded)} question(s) to the decision queue — answer via chat or \`/dev review ${input.workItemId}\`.`,
+        ]
       : []),
     "",
     "**Questions:**",

@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRequiresConfig } from "../src/core/agents/registry.js";
-import { validateArtifact, validateReturn } from "../src/core/artifacts/validation.js";
+import { validateArtifact } from "../src/core/artifacts/validation.js";
 import { devQuickFixBrief } from "../src/core/briefing/code-brief.js";
 import { classifyPreflight } from "../src/core/commands/classify-dispatch.js";
 import {
@@ -20,32 +19,8 @@ import {
   assertSubcommandRoutingComplete,
   getDevSubcommandOwner,
 } from "../src/core/commands/subcommand-routing.js";
-import { extractDevHarnessJson, loadDevHarnessConfig } from "../src/core/config/agents-md.js";
-import { devInitWrite } from "../src/core/config/init-write.js";
-import { resolveConfigLocation } from "../src/core/config/placement.js";
 import type { DevHarnessConfig } from "../src/core/config/types.js";
-import {
-  createLogContext,
-  createLogger,
-  getLogLevel,
-  type LogLevel,
-  resolveLogLevel,
-  setLogLevel,
-} from "../src/core/logging.js";
-import {
-  assembleHandoffContent,
-  extractReturnPacketFromSubagentResult,
-  formatMissingPacketWarning,
-  formatPacketInjection,
-} from "../src/core/subagent/index.js";
-import { formatConfigBrief, formatVerificationResults } from "../src/core/verification/runner.js";
-import { TASKS_DIR, writeJson } from "../src/core/work-items/io.js";
-import {
-  devBootstrap,
-  devFinalizeWorkItem,
-  devPromoteEvents,
-  devTransition,
-} from "../src/core/work-items/lifecycle.js";
+import { devBootstrap } from "../src/core/work-items/lifecycle.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -56,7 +31,7 @@ function tempProject(): string {
   return dir;
 }
 
-function markGitRoot(dir: string): void {
+function _markGitRoot(dir: string): void {
   mkdirSync(join(dir, ".git"), { recursive: true });
 }
 
@@ -76,7 +51,7 @@ function sampleConfig(overrides: Partial<DevHarnessConfig> = {}): DevHarnessConf
   };
 }
 
-function agentsMdWithConfig(config: DevHarnessConfig): string {
+function _agentsMdWithConfig(config: DevHarnessConfig): string {
   return [
     "# Project Agents",
     "",

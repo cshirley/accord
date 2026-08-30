@@ -7,15 +7,14 @@
  * fall back to the "this path does not apply" return value.
  */
 
-import * as path from "node:path";
 import {
   loadTaskFile,
   loadWorkItem,
   now,
   readJson,
   taskJsonPath,
-  writeJson,
   workItemJsonPath,
+  writeJson,
 } from "../../work-items/io.js";
 import type { WorkItem } from "../../work-items/types.js";
 

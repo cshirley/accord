@@ -98,7 +98,7 @@ export function resolveImplementingResumeAgentId(workItemId: string): string | n
   }
 
   const wi = loadWorkItem(workItemId);
-  if (!wi || wi.pattern !== "implement" || wi.phase !== "implementing") {
+  if (wi?.pattern !== "implement" || wi.phase !== "implementing") {
     return null;
   }
 
@@ -124,7 +124,7 @@ export function resolveImplementingResumeAgentId(workItemId: string): string | n
 /** Actionable blocked message when `implementing` has no resumable primary task. */
 export function describeImplementingResumeBlocked(workItemId: string): string | null {
   const wi = loadWorkItem(workItemId);
-  if (!wi || wi.pattern !== "implement" || wi.phase !== "implementing") {
+  if (wi?.pattern !== "implement" || wi.phase !== "implementing") {
     return null;
   }
 

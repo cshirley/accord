@@ -25,6 +25,7 @@ type PackageJson = {
 };
 
 const root = join(import.meta.dir, "..");
+const repoRoot = join(root, "..", "..");
 const manifestPath = join(root, "assets", "manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest;
 const failures: string[] = [];
@@ -64,7 +65,7 @@ for (const skill of manifest.assets.skills) {
 // The installer symlinks skills from the manifest, but Pi registers them from
 // package.json `pi.skills`. Keep the two lists in lockstep so a skill can't be
 // bundled-but-unregistered (or vice versa).
-const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as PackageJson;
+const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as PackageJson;
 const piSkills = (pkg.pi?.skills ?? []).map(
   (entry) => entry.replace(/\/+$/, "").split("/").pop() ?? entry,
 );

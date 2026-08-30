@@ -9,12 +9,12 @@ import {
   ModelRuntime,
   resolveCliModel,
 } from "@earendil-works/pi-coding-agent";
-import type { DevHarnessConfig } from "../../../core/config/index.js";
 import {
+  type AgentConfig,
   loadSubagentConfig,
   resolveModelConfig,
-  type AgentConfig,
-} from "../../../../packages/pi-subagent/src/agents.js";
+} from "../../../../../pi-subagent/src/agents.js";
+import type { DevHarnessConfig } from "../../../core/config/index.js";
 
 export type JudgmentModelSource = "config" | "lightweight_tier" | "scoped" | "chat";
 

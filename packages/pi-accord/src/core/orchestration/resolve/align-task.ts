@@ -31,10 +31,7 @@ export function buildGatherSpawnTask(
 ): string {
   const wi = loadWorkItem(workItemId);
   const globalCfg = loadGlobalConfig();
-  const mergedSources = mergeContextSources(
-    globalCfg?.context_sources,
-    devConfig?.context_sources,
-  );
+  const mergedSources = mergeContextSources(globalCfg?.context_sources, devConfig?.context_sources);
 
   const ticketId = gatherHint?.ticket_id?.trim() || workItemId;
   const lines = [
@@ -50,13 +47,7 @@ export function buildGatherSpawnTask(
     "Return status `done` with a factual `context` summary and enrichment references.",
     "",
     ...(mergedSources.length > 0
-      ? [
-          "context_sources:",
-          "```json",
-          JSON.stringify(mergedSources, null, 2),
-          "```",
-          "",
-        ]
+      ? ["context_sources:", "```json", JSON.stringify(mergedSources, null, 2), "```", ""]
       : []),
     "Return the structured result packet required by your agent contract.",
   ];
@@ -77,8 +68,7 @@ export function buildAlignSpawnTask(input: {
 }): string {
   const wi = loadWorkItem(input.workItemId);
   const cp = devCheckpointRead(input.workItemId);
-  const description =
-    input.description?.trim() || workItemDescription(wi) || input.title;
+  const description = input.description?.trim() || workItemDescription(wi) || input.title;
 
   const lines = [
     "ACCORD harness — phase-align (orchestrator).",
@@ -91,13 +81,7 @@ export function buildAlignSpawnTask(input: {
   ];
 
   if (input.gatherResult && Object.keys(input.gatherResult).length > 0) {
-    lines.push(
-      "",
-      "gather_result:",
-      "```json",
-      JSON.stringify(input.gatherResult, null, 2),
-      "```",
-    );
+    lines.push("", "gather_result:", "```json", JSON.stringify(input.gatherResult, null, 2), "```");
   }
 
   if (cp) {

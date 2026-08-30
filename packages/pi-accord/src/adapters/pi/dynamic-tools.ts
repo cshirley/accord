@@ -4,15 +4,14 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
-  allRegisteredDevToolNames,
   type AccordToolBundle,
+  allRegisteredDevToolNames,
   buildAccordActiveToolNames,
+  bundleForDevTool,
   bundlesForAgentId,
   bundlesForDevSubcommand,
   bundlesForWorkItemPhase,
-  bundleForDevTool,
   isDynamicToolsEnabled,
-  isManagedAccordTool,
 } from "../../core/tools/active-set.js";
 import type { HookState } from "./hook-state.js";
 
@@ -52,11 +51,7 @@ export function activateForDispatchAgent(
   applyAccordActiveTools(pi, state);
 }
 
-export function activateForWorkItemPhase(
-  pi: ExtensionAPI,
-  state: HookState,
-  phase: string,
-): void {
+export function activateForWorkItemPhase(pi: ExtensionAPI, state: HookState, phase: string): void {
   if (!isDynamicToolsEnabled()) return;
   activateToolBundles(state, bundlesForWorkItemPhase(phase));
   applyAccordActiveTools(pi, state);

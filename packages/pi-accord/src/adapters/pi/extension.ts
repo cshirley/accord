@@ -27,19 +27,10 @@ import { loadDevHarnessConfig } from "../../core/config/index.js";
 import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
 import { devTasks } from "../../core/queries/dashboard.js";
-import { notifyTruncated } from "./notify.js";
-import {
-  displayDevQueryOutput,
-  displayTasksDashboard,
-  registerTasksDashboardRenderer,
-} from "./dev-formatted-display.js";
-import { registerHarnessBuiltinToolRenders } from "./builtin-tool-renders.js";
-import { registerHarnessRunEntryRenderer } from "./custom-entry-renderers.js";
-import { activateForDevSubcommand } from "./dynamic-tools.js";
-import { devRetro } from "../../core/queries/retro.js";
-import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { devDeviations } from "../../core/queries/deviations.js";
 import { devGaps, gapsArgsWantTickets } from "../../core/queries/gaps.js";
+import { devRetro } from "../../core/queries/retro.js";
+import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { devSpecGaps } from "../../core/queries/spec-gaps.js";
 import {
   clearHarnessRunTag,
@@ -48,7 +39,15 @@ import {
 } from "../../core/telemetry/usage.js";
 import { devRehydrateWorkItem } from "../../core/work-items/rehydrate.js";
 import { getSubagentToolRenderers } from "../../integrations/pi-subagent.js";
+import { registerHarnessBuiltinToolRenders } from "./builtin-tool-renders.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";
+import { registerHarnessRunEntryRenderer } from "./custom-entry-renderers.js";
+import {
+  displayDevQueryOutput,
+  displayTasksDashboard,
+  registerTasksDashboardRenderer,
+} from "./dev-formatted-display.js";
+import { activateForDevSubcommand } from "./dynamic-tools.js";
 import { tryFinishViaCoreOrchestrator } from "./finish-orchestration.js";
 import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
 import { registerPiHarnessHookListeners } from "./pi-hook-listeners.js";

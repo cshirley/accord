@@ -6,17 +6,14 @@
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { getAgentMeta } from "../agents/registry.js";
-import {
-  isWorkItemPattern,
-  resolveResumeAgentId,
-} from "../orchestration/phase-coarse-routing.js";
+import { isWorkItemPattern, resolveResumeAgentId } from "../orchestration/phase-coarse-routing.js";
 import { resolveActivePrimaryTaskId } from "../orchestration/post-result/primary-task.js";
 import { isResumablePipelineTaskPhase } from "../types/phases.js";
 import {
+  type ArtifactKind,
   artifactLooksComplete,
   artifactPathForWorkItem,
   preferredDevArtifactRelPath,
-  type ArtifactKind,
 } from "../work-items/artifact-discovery.js";
 import { loadTaskFile } from "../work-items/io.js";
 import type { WorkItem } from "../work-items/types.js";
@@ -91,11 +88,7 @@ export function resolveReadOnlyResumeAgent(workItemId: string, wi: WorkItem): st
   }
 
   const coarseGate =
-    wi.pattern === "implement"
-      ? "implementing"
-      : wi.pattern === "quick_fix"
-        ? "fixing"
-        : null;
+    wi.pattern === "implement" ? "implementing" : wi.pattern === "quick_fix" ? "fixing" : null;
   if (!coarseGate || wi.phase !== coarseGate) {
     return null;
   }

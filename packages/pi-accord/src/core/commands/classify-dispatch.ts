@@ -94,7 +94,10 @@ function intentForTicketOnlyBootstrap(base: IntentRecommendation): IntentRecomme
     escalation_ceiling: "pipeline_allowed",
     recommended_pattern: "implement",
     recommended_variant: "standard",
-    reasons: [...base.reasons, "ticket-only input: start implement/standard on the named work item"],
+    reasons: [
+      ...base.reasons,
+      "ticket-only input: start implement/standard on the named work item",
+    ],
   };
 }
 
@@ -119,9 +122,9 @@ export function parseTicketIdOnly(text: string): string | null {
  * Create `.tasks/<ID>.json` when classify preflight allows it.
  * Idempotent when the work item already exists or rehydrate succeeds.
  */
-export function attemptClassifyBootstrap(
-  input: ClassifyBootstrapInput,
-): { bootstrapNotice?: string } {
+export function attemptClassifyBootstrap(input: ClassifyBootstrapInput): {
+  bootstrapNotice?: string;
+} {
   const intent = input.ticketOnly ? intentForTicketOnlyBootstrap(input.intent) : input.intent;
 
   if (!input.ticketOnly && intent.needs_confirmation) {
@@ -169,7 +172,9 @@ export function attemptClassifyBootstrap(
 
   const { pattern, variant } = patternVariant;
   const boot = devBootstrap(input.id, input.title, pattern, variant, intentContract);
-  const gatherNote = input.ticketOnly ? " Orchestration will run gather/align via /dev resume." : "";
+  const gatherNote = input.ticketOnly
+    ? " Orchestration will run gather/align via /dev resume."
+    : "";
   return {
     bootstrapNotice: `Created work item \`${boot.work_item.id}\` (${pattern}${variant ? `/${variant}` : ""}) at ${boot.path}.${gatherNote}`,
   };

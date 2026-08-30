@@ -8,10 +8,9 @@
  * policy-aware "what should we do next?" predicates.
  */
 
-import * as path from "node:path";
 import { buildImplementSpawnTaskBrief } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/types.js";
-import { readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
+import { readJson, taskJsonPath, writeJson } from "../work-items/io.js";
 import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
 import { findingsTriggerReviewRetry } from "./policy.js";
 import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback.js";

@@ -3,17 +3,17 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import {
+  type AgentConfig,
+  loadSubagentConfig,
+  resolveModelConfig,
+} from "../../../../../pi-subagent/src/agents.js";
 import type { DevHarnessConfig } from "../../../core/config/index.js";
 import {
   resolveJudgmentModelRefFromHarness,
   type SubagentPreflightHostHints,
   type SubagentPreflightScopedModel,
 } from "../../../core/queries/subagent-preflight.js";
-import {
-  loadSubagentConfig,
-  resolveModelConfig,
-  type AgentConfig,
-} from "../../../../packages/pi-subagent/src/agents.js";
 
 const JUDGMENT_LIGHTWEIGHT_AGENT: AgentConfig = {
   name: "__judgment__",

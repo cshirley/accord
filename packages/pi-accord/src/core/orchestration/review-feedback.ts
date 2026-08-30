@@ -270,8 +270,7 @@ export function appendReviewFeedbackToResumeBrief(
     }
 
     const devConfig = loadDevHarnessConfig();
-    const policyAgent =
-      feedback.agent === "review-security" ? "review-code" : feedback.agent;
+    const policyAgent = feedback.agent === "review-security" ? "review-code" : feedback.agent;
     const retryPolicy = reviewRetryPolicyForAgent(
       devConfig,
       String(wi.pattern ?? "implement"),

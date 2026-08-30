@@ -5,11 +5,8 @@
 
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { Box, Container, Spacer, Text } from "@earendil-works/pi-tui";
-import {
-  classifyTasksDashboardLine,
-  styleTasksDashboardLine,
-} from "./tasks-dashboard-display.js";
 import { NOTIFY_SLICE } from "./notify.js";
+import { styleTasksDashboardLine } from "./tasks-dashboard-display.js";
 
 export const DEV_FORMATTED_MESSAGE_TYPE = "dev-formatted-output";
 
@@ -71,7 +68,7 @@ export function classifyDevQueryLine(line: string): DevQueryLineKind {
     return "item";
   }
   if (trimmed.startsWith("- ")) return "item";
-  if (/^  (AC-|task-|\[|ask:|friction:|shift_left:)/.test(line) || /^  →/.test(line)) {
+  if (/^ {2}(AC-|task-|\[|ask:|friction:|shift_left:)/.test(line) || /^ {2}→/.test(line)) {
     return "item";
   }
   if (trimmed.startsWith("Accepted") || trimmed.startsWith("Recorded plan")) return "success";
@@ -98,7 +95,10 @@ export function styleDevQueryLine(theme: Theme, line: string): string {
     case "muted":
       return theme.fg("muted", trimmed);
     case "hint":
-      return theme.fg("accent", trimmed.startsWith(INDENT) ? trimmed.slice(INDENT.length) : trimmed);
+      return theme.fg(
+        "accent",
+        trimmed.startsWith(INDENT) ? trimmed.slice(INDENT.length) : trimmed,
+      );
     case "success":
       return theme.fg("success", trimmed);
     case "body":

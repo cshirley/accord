@@ -4,24 +4,19 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { listWorkItemFileRefs, taskJsonPath, workItemJsonPath } from "./tasks-dir.js";
 import type { TaskFile, WorkItem } from "./types.js";
-import {
-  listWorkItemFileRefs,
-  resolveTasksDir,
-  workItemJsonPath,
-  taskJsonPath,
-} from "./tasks-dir.js";
 
 export {
+  checkpointJsonPath,
   enrichmentsDirForWorkItem,
   enrichmentsDirRelForWorkItem,
   listTasksDirCandidates,
   listWorkItemFileRefs,
   resolveTasksDir,
   resolveWorkItemFilePath,
-  workItemJsonPath,
   taskJsonPath,
-  checkpointJsonPath,
+  workItemJsonPath,
 } from "./tasks-dir.js";
 
 export const TASKS_DIR = ".tasks";
@@ -104,10 +99,6 @@ export function loadWorkItem(id: string, cwd?: string): WorkItem | null {
   return readJson<WorkItem>(workItemJsonPath(id, cwd));
 }
 
-export function loadTaskFile(
-  workItemId: string,
-  taskId: string,
-  cwd?: string,
-): TaskFile | null {
+export function loadTaskFile(workItemId: string, taskId: string, cwd?: string): TaskFile | null {
   return readJson<TaskFile>(taskJsonPath(workItemId, taskId, cwd));
 }

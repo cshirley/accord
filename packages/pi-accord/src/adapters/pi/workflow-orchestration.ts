@@ -11,11 +11,8 @@ import {
   runResumeOrchestrationWithReplans,
 } from "../../core/orchestration/index.js";
 import { devResumeState } from "../../core/queries/resume-state.js";
+import { activateForDevSubcommand, activateForDispatchAgent } from "./dynamic-tools.js";
 import type { HookState } from "./hook-state.js";
-import {
-  activateForDevSubcommand,
-  activateForDispatchAgent,
-} from "./dynamic-tools.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
 
 export const ORCHESTRATOR_DISABLED_MESSAGE =

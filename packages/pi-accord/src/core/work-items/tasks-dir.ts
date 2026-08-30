@@ -133,11 +133,7 @@ export function workItemJsonPath(workItemId: string, cwd?: string): string {
   return path.join(resolveTasksDir(workItemId, cwd), `${workItemId}.json`);
 }
 
-export function taskJsonPath(
-  workItemId: string,
-  taskId: string | number,
-  cwd?: string,
-): string {
+export function taskJsonPath(workItemId: string, taskId: string | number, cwd?: string): string {
   return path.join(resolveTasksDir(workItemId, cwd), `${workItemId}-task-${taskId}.json`);
 }
 

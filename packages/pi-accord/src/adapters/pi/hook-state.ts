@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { DevHarnessConfig } from "../../core/config/index.js";
-import type { AccordToolBundle } from "../../core/tools/active-set.js";
 import { discoverWorkItems, readHarnessRunMeta } from "../../core/telemetry/usage.js";
+import type { AccordToolBundle } from "../../core/tools/active-set.js";
 
 export interface HookState {
   devConfig: DevHarnessConfig | null;

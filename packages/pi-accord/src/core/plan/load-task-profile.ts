@@ -4,9 +4,9 @@
 
 import { loadWorkItem, readJson } from "../work-items/io.js";
 import {
-  planTaskPipelineProfile,
   type PlanTaskPipelineProfile,
   type PlanTaskStep,
+  planTaskPipelineProfile,
   verifyStepDescriptions,
 } from "./task-pipeline-profile.js";
 

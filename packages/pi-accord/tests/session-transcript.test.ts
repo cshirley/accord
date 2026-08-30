@@ -66,7 +66,7 @@ describe("analyzeSessionTranscript", () => {
     };
     writeFileSync(
       sessionPath,
-      [header, markerEntry, messageEntry].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      `${[header, markerEntry, messageEntry].map((entry) => JSON.stringify(entry)).join("\n")}\n`,
       "utf8",
     );
 

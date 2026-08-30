@@ -8,7 +8,7 @@ import {
   mergeActivityWithToolLines,
   SubagentActivityBuffer,
   summarizeSubagentProgress,
-} from "../packages/pi-subagent/src/api.js";
+} from "../../pi-subagent/src/api.js";
 import {
   formatOrchestratorSpawnStatusLines,
   registerOrchestratorSpawn,

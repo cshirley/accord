@@ -3,15 +3,15 @@
  */
 
 import * as path from "node:path";
+import { devCheckpointRead } from "../work-items/checkpoint.js";
+import { listWorkItemFileRefs, readJson, taskJsonPath } from "../work-items/io.js";
+import type { Deviation, TaskFile, WorkItem } from "../work-items/types.js";
+import { formatTasksDashboard } from "./dashboard-format.js";
 import {
   missingArtifactsForWorkItem,
   resolveDashboardActionHint,
   resolveUsageCostUsd,
 } from "./dashboard-hints.js";
-import { formatTasksDashboard } from "./dashboard-format.js";
-import { devCheckpointRead } from "../work-items/checkpoint.js";
-import { listWorkItemFileRefs, readJson, taskJsonPath } from "../work-items/io.js";
-import type { Deviation, TaskFile, WorkItem } from "../work-items/types.js";
 
 export interface TasksDashboardRow {
   id: string;
@@ -134,8 +134,7 @@ export function devTasks(): TasksDashboardResult {
     const storedCost = wi.cost_usd || 0;
     const usageCost = resolveUsageCostUsd(wi.id);
     const displayCost = usageCost ?? storedCost;
-    const costFromUsage =
-      usageCost !== null && Math.abs(usageCost - storedCost) > 0.005;
+    const costFromUsage = usageCost !== null && Math.abs(usageCost - storedCost) > 0.005;
 
     rows.push({
       id: wi.id,

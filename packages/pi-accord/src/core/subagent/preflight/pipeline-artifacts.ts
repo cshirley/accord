@@ -21,7 +21,7 @@ export type ArtifactGateResult = { ok: true; path: string } | { ok: false; reaso
 
 /** implement/standard and implement/orchestrated run the align → spec → plan pipeline. */
 export function workItemUsesAlignFirstPipeline(wi: WorkItem | null | undefined): boolean {
-  if (!wi || wi.pattern !== "implement") return false;
+  if (wi?.pattern !== "implement") return false;
   const variant = wi.variant ?? "standard";
   return variant === "standard" || variant === "orchestrated";
 }

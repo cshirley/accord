@@ -5,7 +5,6 @@
 
 import { syncSpecMarkdownFromJson } from "../../artifacts/spec-markdown.js";
 import { workItemUsesAlignFirstPipeline } from "../../subagent/preflight/pipeline-artifacts.js";
-import { applyInterviewNeedsInputPostResult } from "./needs-input.js";
 import {
   artifactLooksComplete,
   artifactPathForWorkItem,
@@ -14,6 +13,7 @@ import {
 } from "../../work-items/artifact-discovery.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { devTransition } from "../../work-items/lifecycle.js";
+import { applyInterviewNeedsInputPostResult } from "./needs-input.js";
 
 interface PhaseSpecDonePacket {
   status: "done";

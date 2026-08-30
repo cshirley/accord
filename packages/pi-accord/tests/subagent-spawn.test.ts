@@ -2,12 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dirname, "..");
+
 import {
   formatResponseContractAppendix,
   loadAgentFromFile,
   parseSubagentReturnJson,
   resolveSpawnAgent,
-} from "../packages/pi-subagent/src/api.js";
+} from "../../pi-subagent/src/api.js";
 import {
   buildSubagentResponseContract,
   resolveHarnessAgentFile,

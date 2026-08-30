@@ -17,8 +17,8 @@ import {
   loadPricing,
 } from "../../../core/telemetry/usage.js";
 import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../../../integrations/pi-subagent.js";
-import type { HookState } from "../hook-state.js";
 import { activateForDispatchAgent } from "../dynamic-tools.js";
+import type { HookState } from "../hook-state.js";
 import { syncHarnessRunSessionEntry } from "../hook-state.js";
 import { updateStatusBar } from "../status-bar.js";
 import { startOrchestratorSubagentChatDisplay } from "./chat-display.js";

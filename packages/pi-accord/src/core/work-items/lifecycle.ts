@@ -5,14 +5,24 @@
 import * as path from "node:path";
 import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
 import { createLogger } from "../logging.js";
-import { pathsIncludeSecuritySensitive, pathsIncludeTestFiles } from "../orchestration/review-paths.js";
+import {
+  pathsIncludeSecuritySensitive,
+  pathsIncludeTestFiles,
+} from "../orchestration/review-paths.js";
 import {
   checkBriefPresentForSpeccing,
   checkSpecPresentForPlanning,
 } from "../subagent/preflight/pipeline-artifacts.js";
 import { err, ok, type Result } from "../types/result.js";
 import { devCheckpointDelete } from "./checkpoint.js";
-import { loadTaskFile, loadWorkItem, now, resolveTasksDir, writeJson, workItemJsonPath } from "./io.js";
+import {
+  loadTaskFile,
+  loadWorkItem,
+  now,
+  resolveTasksDir,
+  workItemJsonPath,
+  writeJson,
+} from "./io.js";
 import type {
   IntentConfidence,
   IntentMode,
@@ -273,7 +283,10 @@ export function devWritePreflightReceipt(
   commands: string[],
   exitCodes: number[],
 ): { path: string } {
-  const receiptPath = path.join(resolveTasksDir(workItemId), `.verify-preflight-${workItemId}.json`);
+  const receiptPath = path.join(
+    resolveTasksDir(workItemId),
+    `.verify-preflight-${workItemId}.json`,
+  );
   writeJson(receiptPath, {
     work_item_id: workItemId,
     ran_at: Math.floor(Date.now() / 1000),

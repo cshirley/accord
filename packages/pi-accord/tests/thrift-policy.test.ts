@@ -11,7 +11,7 @@ import {
   protectedFrom,
   renderStub,
   type ToolCallInfo,
-} from "../packages/pi-thrift/src/policy.js";
+} from "../../pi-thrift/src/policy.js";
 
 const CONFIG: PruningConfig = {
   keepRecentTurns: 3,

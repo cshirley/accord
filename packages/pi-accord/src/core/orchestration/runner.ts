@@ -41,7 +41,7 @@ async function applySpawnFollowUps(
   lastRun: RunUntilStopResult,
 ): Promise<RunUntilStopResult> {
   const initial = lastRun.lastSpawn;
-  if (!initial || initial.exitCode !== 0) {
+  if (initial?.exitCode !== 0) {
     return lastRun;
   }
 
@@ -138,7 +138,7 @@ export async function runResumeOrchestrationWithReplans(
     if (lastRun.stopReason !== "spawned_subagent") {
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
-    if (!lastRun.lastSpawn || lastRun.lastSpawn.exitCode !== 0) {
+    if (lastRun.lastSpawn?.exitCode !== 0) {
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
     if (resolution.outcome !== "spawn") {
@@ -263,7 +263,7 @@ export async function runDevSubcommandOrchestrationWithReplans(
     if (lastRun.stopReason !== "spawned_subagent") {
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
-    if (!lastRun.lastSpawn || lastRun.lastSpawn.exitCode !== 0) {
+    if (lastRun.lastSpawn?.exitCode !== 0) {
       return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
     }
     if (resolution.outcome !== "spawn") {

@@ -7,10 +7,10 @@
  * - `implement` + `implementing`: standard pipeline (same done packet shape).
  */
 
-import { loadWorkItem } from "../../work-items/io.js";
-import { advancePrimaryTask, resolveActivePrimaryTaskId } from "./primary-task.js";
-import { applyPhaseVerifyTaskPostResult } from "./phase-verify-task.js";
 import { resolvePlanTaskProfile } from "../../plan/load-task-profile.js";
+import { loadWorkItem } from "../../work-items/io.js";
+import { applyPhaseVerifyTaskPostResult } from "./phase-verify-task.js";
+import { advancePrimaryTask, resolveActivePrimaryTaskId } from "./primary-task.js";
 
 interface PhaseTestDonePacket {
   status: "done";

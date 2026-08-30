@@ -1,19 +1,22 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { devTasks } from "../src/core/queries/dashboard.js";
 import {
   isFinishReady,
   missingArtifactsForWorkItem,
   resolveDashboardActionHint,
   resolveReadOnlyResumeAgent,
 } from "../src/core/queries/dashboard-hints.js";
-import { devTasks } from "../src/core/queries/dashboard.js";
 import { writeJson } from "../src/core/work-items/io.js";
 import { devBootstrap } from "../src/core/work-items/lifecycle.js";
 import type { TaskFile, WorkItem } from "../src/core/work-items/types.js";
 
 function tempProject(): string {
-  const dir = join("/tmp", `accord-dash-${String(Date.now())}-${String(Math.random()).slice(2, 8)}`);
+  const dir = join(
+    "/tmp",
+    `accord-dash-${String(Date.now())}-${String(Math.random()).slice(2, 8)}`,
+  );
   mkdirSync(dir, { recursive: true });
   return dir;
 }

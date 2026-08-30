@@ -3,7 +3,6 @@
  */
 
 import * as fs from "node:fs";
-import * as path from "node:path";
 import { createLogger } from "../logging.js";
 import { checkpointJsonPath, readJson, writeJson } from "./io.js";
 import type { Checkpoint } from "./types.js";

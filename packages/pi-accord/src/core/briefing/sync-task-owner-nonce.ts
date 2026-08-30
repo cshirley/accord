@@ -3,13 +3,9 @@
  * so brief payloads and on-disk state cannot drift.
  */
 
-import * as path from "node:path";
-import {
-  planTaskPipelineProfile,
-  type PlanTaskStep,
-} from "../plan/task-pipeline-profile.js";
+import { type PlanTaskStep, planTaskPipelineProfile } from "../plan/task-pipeline-profile.js";
 import { err, ok, type Result } from "../types/result.js";
-import { readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
+import { readJson, taskJsonPath, writeJson } from "../work-items/io.js";
 import { devNonce } from "./nonce.js";
 
 const OWNER_NONCE_RE = /^[0-9a-f]{6}$/;
@@ -79,8 +75,7 @@ export function syncTaskFileOwnerNonceForSpawn(input: {
 }): Result<{ ownerNonce: string; taskFilePath: string }> {
   const taskFilePath = taskJsonPath(input.workItemId, String(input.taskId));
   const taskFile = input.taskFile ?? readJson<Record<string, unknown>>(taskFilePath);
-  const onDisk =
-    taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
+  const onDisk = taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
 
   if (isValidOwnerNonce(onDisk) && onDisk !== input.ownerNonce) {
     return err(
@@ -104,8 +99,7 @@ export function syncTaskFileOwnerNonceForSpawn(input: {
   }
 
   const verify = readJson<Record<string, unknown>>(taskFilePath);
-  const verifyNonce =
-    verify && typeof verify.owner_nonce === "string" ? verify.owner_nonce : "";
+  const verifyNonce = verify && typeof verify.owner_nonce === "string" ? verify.owner_nonce : "";
   if (verifyNonce !== input.ownerNonce) {
     return err(
       `owner_nonce drift on ${taskFilePath}: expected ${input.ownerNonce} after sync, found ${verifyNonce || "(missing)"}`,

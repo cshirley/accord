@@ -4,17 +4,17 @@
  */
 
 import { workItemUsesAlignFirstPipeline } from "../../subagent/preflight/pipeline-artifacts.js";
-import { applyInterviewNeedsInputPostResult } from "./needs-input.js";
 import {
   artifactLooksComplete,
   artifactPathForWorkItem,
   bootstrapImplementTasksFromPlan,
-  reconcileVerifyOnlyTasksFromPlan,
   preferredDevArtifactRelPath,
+  reconcileVerifyOnlyTasksFromPlan,
   resolveDevArtifactPathForId,
 } from "../../work-items/artifact-discovery.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { devTransition } from "../../work-items/lifecycle.js";
+import { applyInterviewNeedsInputPostResult } from "./needs-input.js";
 
 interface PhasePlanDonePacket {
   status: "done";
@@ -81,7 +81,7 @@ export function applyPhasePlanPostResult(workItemId: string, packet: unknown): s
   }
 
   const bootstrapped = bootstrapImplementTasksFromPlan(workItemId, resolvedPath);
-    reconcileVerifyOnlyTasksFromPlan(workItemId, resolvedPath);
+  reconcileVerifyOnlyTasksFromPlan(workItemId, resolvedPath);
   const taskNote = bootstrapped > 0 ? ` Bootstrapped ${String(bootstrapped)} task file(s).` : "";
 
   return [

@@ -26,10 +26,7 @@ export function applyScopedPreflightWarnings(
     );
   }
 
-  if (
-    judgmentModel &&
-    !modelInScopedList(judgmentModel.provider, judgmentModel.model, scoped)
-  ) {
+  if (judgmentModel && !modelInScopedList(judgmentModel.provider, judgmentModel.model, scoped)) {
     warnings.push(
       `Judgment model ${judgmentModel.provider}/${judgmentModel.model} is not in the parent session scoped models list.`,
     );

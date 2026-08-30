@@ -11,8 +11,7 @@ const TEST_DIR_PATTERN = /\/(test|__tests__|tests|spec)\//;
 const SECURITY_FILE_PATTERN =
   /(?:^|\/)(auth|authentication|authorization|session|sessions|oauth|jwt|middleware|payment|payments|billing|crypto|cryptography|secret|secrets|credential|credentials|password|token|tokens|cors|csrf|iam|policy|policies|acl|rbac|guard|guards|encrypt|decrypt|signing|verify|webhook)(?:\/|$|\.)/i;
 
-const SECURITY_FILE_SUFFIX_PATTERN =
-  /\.(env(\.|$)|pem|key|p12|pfx|crt|cer|kubeconfig)$/i;
+const SECURITY_FILE_SUFFIX_PATTERN = /\.(env(\.|$)|pem|key|p12|pfx|crt|cer|kubeconfig)$/i;
 
 const SECURITY_INFRA_PATTERN =
   /(?:^|\/)(api|public[.-]?api|graphql|grpc|openapi|swagger|terraform|\.github\/workflows|docker-compose)(?:\/|$|\.)/i;

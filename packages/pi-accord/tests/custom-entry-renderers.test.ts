@@ -1,20 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
 import {
-  HARNESS_RUN_ENTRY_TYPE,
-  registerHarnessRunEntryRenderer,
-  renderHarnessRunEntry,
-} from "../src/adapters/pi/custom-entry-renderers.js";
-import {
   OUTPUT_LEVEL_ENTRY_TYPE,
   registerOutputLevelEntryRenderer,
   renderOutputLevelEntry,
-} from "../packages/pi-thrift/src/entry-render.js";
+} from "../../pi-thrift/src/entry-render.js";
 import {
   registerWorktreeStateEntryRenderer,
   renderWorktreeStateEntry,
   WORKTREE_STATE_ENTRY_TYPE,
-} from "../packages/pi-worktree/src/entry-render.js";
+} from "../../pi-worktree/src/entry-render.js";
+import {
+  HARNESS_RUN_ENTRY_TYPE,
+  registerHarnessRunEntryRenderer,
+  renderHarnessRunEntry,
+} from "../src/adapters/pi/custom-entry-renderers.js";
 
 function mockTheme(): Theme {
   return {

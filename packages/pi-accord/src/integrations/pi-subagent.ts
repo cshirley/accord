@@ -25,4 +25,4 @@ export {
   type SubagentToolRenderers,
   spawnSubagent,
   summarizeSubagentProgress,
-} from "../../packages/pi-subagent/src/api.js";
+} from "../../../pi-subagent/src/api.js";

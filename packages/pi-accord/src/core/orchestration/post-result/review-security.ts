@@ -50,7 +50,9 @@ export function applyReviewSecurityPostResult(
 
     return {
       event: {
-        type: onQuickFix ? "quick_fix_review_security_applied" : "implement_review_security_applied",
+        type: onQuickFix
+          ? "quick_fix_review_security_applied"
+          : "implement_review_security_applied",
         verdict: packet.verdict,
         previous_phase: previousPhase,
         next_phase: "review-code",

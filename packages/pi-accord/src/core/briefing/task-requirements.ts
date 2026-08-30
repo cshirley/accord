@@ -3,12 +3,11 @@
  * subagents (phase-test, phase-code, review-test, review-code).
  */
 
-import * as path from "node:path";
 import type { DevHarnessConfig } from "../config/index.js";
-import type { PlanTaskStep } from "../plan/task-pipeline-profile.js";
 import { resolveActivePrimaryTaskId } from "../orchestration/post-result/primary-task.js";
+import type { PlanTaskStep } from "../plan/task-pipeline-profile.js";
 import { err, ok, type Result } from "../types/result.js";
-import { loadWorkItem, readJson, workItemJsonPath, taskJsonPath } from "../work-items/io.js";
+import { loadWorkItem, readJson, taskJsonPath } from "../work-items/io.js";
 import {
   NONCE_SYNC_SPAWN_AGENTS,
   resolveOwnerNonce,
@@ -216,9 +215,7 @@ export function sliceTaskRequirements(
           ),
         }
       : {}),
-    ...(spec.security_topology !== undefined
-      ? { security_topology: spec.security_topology }
-      : {}),
+    ...(spec.security_topology !== undefined ? { security_topology: spec.security_topology } : {}),
   });
 }
 

@@ -17,13 +17,14 @@ import {
   readdirSync,
   readFileSync,
   readlinkSync,
+  realpathSync,
   rmSync,
   statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { type SeedGlobalConfigStatus, seedGlobalConfigFile } from "./config/global.js";
 import { EXT_DIR } from "./config/paths.js";
 
@@ -123,7 +124,12 @@ function isCorrectSymlink(src: string, dst: string): boolean {
   if (!pathExists(dst)) return false;
   const info = lstatSync(dst);
   if (!info.isSymbolicLink()) return false;
-  return resolve(dirname(dst), readlinkSync(dst)) === resolve(src);
+  try {
+    // realpathSync follows symlinks (resolve() does not).
+    return existsSync(dst) && realpathSync(dst) === realpathSync(src);
+  } catch {
+    return false;
+  }
 }
 
 function sameContents(src: string, dst: string, kind: LinkKind): boolean {
@@ -140,8 +146,16 @@ function sameContents(src: string, dst: string, kind: LinkKind): boolean {
   return JSON.stringify(fileHashes(src)) === JSON.stringify(fileHashes(dst));
 }
 
-function linkTarget(src: string, dst: string): string {
-  return relative(dirname(dst), src) || ".";
+function linkTarget(src: string): string {
+  // Absolute targets stay valid when parent dirs (e.g. ~/.config) are symlinks.
+  return resolve(src);
+}
+
+function isStaleManagedSymlink(src: string, dst: string): boolean {
+  if (!pathExists(dst)) return false;
+  const info = lstatSync(dst);
+  if (!info.isSymbolicLink()) return false;
+  return !isCorrectSymlink(src, dst);
 }
 
 function linkAsset(
@@ -155,8 +169,9 @@ function linkAsset(
   if (isCorrectSymlink(src, dst)) return;
 
   if (pathExists(dst)) {
-    const same = sameContents(src, dst, kind);
-    if (!same && !opts.force) {
+    if (isStaleManagedSymlink(src, dst)) {
+      // Wrong target from a prior install (e.g. asset_root moved) — not a local edit.
+    } else if (!sameContents(src, dst, kind) && !opts.force) {
       conflicts.push(dst);
       return;
     }
@@ -172,7 +187,7 @@ function linkAsset(
     rmSync(dst, { recursive: true, force: true });
   }
   mkdirSync(dirname(dst), { recursive: true });
-  symlinkSync(linkTarget(src, dst), dst, kind);
+  symlinkSync(linkTarget(src), dst, kind);
 }
 
 export function installPiAssets(opts: InstallOptions = {}): InstallResult {

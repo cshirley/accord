@@ -10,7 +10,14 @@ import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
 import { err, ok, type Result } from "../types/result.js";
-import { loadWorkItem, now, readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
+import {
+  loadWorkItem,
+  now,
+  readJson,
+  taskJsonPath,
+  workItemJsonPath,
+  writeJson,
+} from "../work-items/io.js";
 import { devNonce } from "./nonce.js";
 import { formatCodeTaskBrief, sliceTaskRequirements } from "./task-requirements.js";
 
@@ -236,8 +243,7 @@ export function devQuickFixBrief(
         ? existingTask.phase
         : "phase-test",
     status: existingTask?.status === "done" ? "done" : "pending",
-    pre_impl_gates:
-      existingTask?.pre_impl_gates === "complete" ? "complete" : "pending",
+    pre_impl_gates: existingTask?.pre_impl_gates === "complete" ? "complete" : "pending",
     test_files: Array.isArray(existingTask?.test_files) ? existingTask.test_files : [],
     red_confirmed: existingTask?.red_confirmed === true,
     quick_fix_loop: { test_review_cycles_used: loopCounters.test_review_cycles_used },

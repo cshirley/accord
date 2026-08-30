@@ -6,8 +6,8 @@ import { agentRequiresVerification, agentSchemas } from "../../agents/registry.j
 import { validateReturn } from "../../artifacts/validation.js";
 import { createLogger } from "../../logging.js";
 import { runPostResultHandlerForAgent } from "../../orchestration/post-result/registry.js";
-import { tryRecoverMissingReturnPacketFromTaskFile } from "../../orchestration/recover-task-packet.js";
 import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
+import { tryRecoverMissingReturnPacketFromTaskFile } from "../../orchestration/recover-task-packet.js";
 import { persistValidatedAgentReturn } from "../../orchestration/task-agent-audit.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
 import {
@@ -120,17 +120,13 @@ export async function processSubagentToolResult(
     const lastAssistant = assistantMsgs[assistantMsgs.length - 1];
     const lastContent = lastAssistant?.content as unknown;
     const resultRecord = result as Record<string, unknown>;
-    const outputText =
-      typeof resultRecord.output === "string" ? resultRecord.output.trim() : "";
+    const outputText = typeof resultRecord.output === "string" ? resultRecord.output.trim() : "";
     const streamedText = (() => {
       const live = resultRecord.liveActivity as { streamingText?: string } | undefined;
       return typeof live?.streamingText === "string" ? live.streamingText.trim() : "";
     })();
-    const hasAssistantBlocks = Array.isArray(lastContent)
-      ? lastContent.length > 0
-      : !!lastContent;
-    const hasContent =
-      hasAssistantBlocks || outputText.length > 0 || streamedText.length > 0;
+    const hasAssistantBlocks = Array.isArray(lastContent) ? lastContent.length > 0 : !!lastContent;
+    const hasContent = hasAssistantBlocks || outputText.length > 0 || streamedText.length > 0;
     const packet = agentName ? extractReturnPacketFromSubagentResult(result) : null;
 
     if (result.timedOut === true) {

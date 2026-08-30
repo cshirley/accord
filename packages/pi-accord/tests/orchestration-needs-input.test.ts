@@ -3,9 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  applyInterviewNeedsInputPostResult,
-} from "../src/core/orchestration/post-result/needs-input.js";
+import { applyInterviewNeedsInputPostResult } from "../src/core/orchestration/post-result/needs-input.js";
 import { applyPhaseSpecPostResult } from "../src/core/orchestration/post-result/phase-spec.js";
 import { buildInterviewResumeTaskIfApplicable } from "../src/core/orchestration/resolve/interview-task.js";
 import { postSpawnReplanDecision } from "../src/core/orchestration/spawn-followup.js";
@@ -74,12 +72,7 @@ describe("phase-spec needs_input handoff", () => {
       usage: { prompt_tokens: 10, completion_tokens: 5 },
     };
 
-    const markdown = applyInterviewNeedsInputPostResult(
-      "SPEC-1",
-      "phase-spec",
-      "speccing",
-      packet,
-    );
+    const markdown = applyInterviewNeedsInputPostResult("SPEC-1", "phase-spec", "speccing", packet);
 
     expect(markdown).toContain("phase-spec needs your input");
     expect(markdown).toContain("q_problem_1");
@@ -183,7 +176,7 @@ describe("phase-spec needs_input handoff", () => {
 
     expect(task).toContain("brief_path: docs/dev/SPEC-3/brief.md");
     expect(task).toContain("from checkpoint");
-    expect(task).toContain("\"q1\": \"answered value\"");
+    expect(task).toContain('"q1": "answered value"');
     expect(task).toContain("pending question ids: q2");
   });
 });

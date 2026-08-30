@@ -355,7 +355,7 @@ export function devRetro(opts: DevRetroOptions = {}): Result<DevRetroResult> {
     examined++;
 
     const cache = readJson<InsightCache>(path.join(cacheDir, `${meta.sessionId}.json`));
-    const transcript = meta.path ? analyzeSessionTranscript(meta.path) ?? undefined : undefined;
+    const transcript = meta.path ? (analyzeSessionTranscript(meta.path) ?? undefined) : undefined;
     const marker = readHarnessMarker(meta.path) ?? transcript?.harness_marker ?? null;
     if (!matchesWorkItemFilter(meta, cache, marker, opts.work_item_id)) continue;
     const blob = textBlob(meta, cache);

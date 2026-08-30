@@ -4,7 +4,7 @@ import {
   resolveModelConfig,
   resolveRequestedProfileName,
   type SubagentConfig,
-} from "../packages/pi-subagent/src/agents.js";
+} from "../../pi-subagent/src/agents.js";
 
 const BASE_CFG: SubagentConfig = {
   defaultProfile: "anthropic-direct",

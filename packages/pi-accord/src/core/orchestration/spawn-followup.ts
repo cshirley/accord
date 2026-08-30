@@ -79,11 +79,7 @@ export function planSpawnFollowUp(input: PlanSpawnFollowUpInput): SpawnFollowUpP
     };
   }
 
-  if (
-    input.agent === "phase-gather" &&
-    status === "done" &&
-    input.phase === "aligning"
-  ) {
+  if (input.agent === "phase-gather" && status === "done" && input.phase === "aligning") {
     const gatherResult = asRecord(input.parsedReturn) ?? {};
     return {
       agent: "phase-align",

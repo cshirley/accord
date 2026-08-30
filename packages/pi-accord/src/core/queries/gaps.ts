@@ -2,8 +2,8 @@
  * `/dev gaps` — surface verification gaps from verify.json (deterministic).
  */
 
-import { devVerifySummary } from "./verify-summary.js";
 import { err, ok, type Result } from "../types/result.js";
+import { devVerifySummary } from "./verify-summary.js";
 
 export interface DevGapsResult {
   verdict: string;

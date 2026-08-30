@@ -3,10 +3,10 @@ import {
   ACCORD_CORE_TOOLS,
   ACCORD_TOOL_BUNDLES,
   buildAccordActiveToolNames,
+  bundleForDevTool,
   bundlesForAgentId,
   bundlesForDevSubcommand,
   bundlesForWorkItemPhase,
-  bundleForDevTool,
   isDynamicToolsEnabled,
   isManagedAccordTool,
   toolsForBundles,
@@ -78,7 +78,10 @@ describe("tool bundles", () => {
   });
 
   test("every bundle tool is either core or listed in a bundle", () => {
-    const covered = new Set<string>([...ACCORD_CORE_TOOLS, ...Object.values(ACCORD_TOOL_BUNDLES).flat()]);
+    const covered = new Set<string>([
+      ...ACCORD_CORE_TOOLS,
+      ...Object.values(ACCORD_TOOL_BUNDLES).flat(),
+    ]);
     // All bundle definitions reference valid names (smoke).
     expect(covered.size).toBeGreaterThan(ACCORD_CORE_TOOLS.length);
   });

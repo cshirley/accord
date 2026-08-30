@@ -18,7 +18,7 @@ import {
   readTitleFromBrief,
   resolveDevArtifactPathForId,
 } from "./artifact-discovery.js";
-import { loadWorkItem, now, readJson, taskJsonPath, writeJson, workItemJsonPath } from "./io.js";
+import { loadWorkItem, now, readJson, workItemJsonPath, writeJson } from "./io.js";
 import type { WorkItem, WorkItemPattern } from "./types.js";
 
 const log = createLogger("work-items");

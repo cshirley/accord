@@ -10,7 +10,7 @@ import {
   type WorkflowCostRow,
 } from "../queries/workflow-cost.js";
 import { err, ok, type Result } from "../types/result.js";
-import { loadWorkItem, now, readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
+import { loadWorkItem, now, readJson, workItemJsonPath, writeJson } from "../work-items/io.js";
 import { renderWorkflowCostMarkdown } from "./render-workflow-cost-markdown.js";
 
 export interface WorkflowCostArtifact {

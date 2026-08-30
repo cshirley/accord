@@ -25,9 +25,7 @@ describe("review-paths", () => {
     expect(nextPhaseAfterPhaseCode(["src/a.ts"])).toBe("review-code");
     expect(nextPhaseAfterPhaseCode(["src/a.test.ts"])).toBe("phase-test");
     expect(nextPhaseAfterPhaseCode(["src/auth/login.ts"])).toBe("review-security");
-    expect(
-      nextPhaseAfterPhaseCode(["src/auth/login.ts", "src/login.test.ts"]),
-    ).toBe("phase-test");
+    expect(nextPhaseAfterPhaseCode(["src/auth/login.ts", "src/login.test.ts"])).toBe("phase-test");
     expect(nextPhaseAfterPhaseCode([], { testIssuesEmitted: 1 })).toBe("phase-test");
   });
 

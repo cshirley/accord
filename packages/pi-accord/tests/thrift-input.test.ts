@@ -12,9 +12,9 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { ArtifactStore, findArtifactRef } from "../packages/pi-thrift/src/artifacts.js";
-import { DEFAULT_CONFIG, type ThriftConfig } from "../packages/pi-thrift/src/config.js";
-import { type InputStats, registerInputPruning } from "../packages/pi-thrift/src/input.js";
+import { ArtifactStore, findArtifactRef } from "../../pi-thrift/src/artifacts.js";
+import { DEFAULT_CONFIG, type ThriftConfig } from "../../pi-thrift/src/config.js";
+import { type InputStats, registerInputPruning } from "../../pi-thrift/src/input.js";
 
 // ── Fakes ───────────────────────────────────────────────────────────────
 

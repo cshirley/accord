@@ -9,10 +9,7 @@
 
 import type { DevHarnessConfig } from "../../config/types.js";
 import { devPromoteEvents, type PromotionResult } from "../../work-items/lifecycle.js";
-import {
-  nextPhaseAfterPhaseCode,
-  phaseCodeMustRespawnPhaseTest,
-} from "../review-paths.js";
+import { nextPhaseAfterPhaseCode, phaseCodeMustRespawnPhaseTest } from "../review-paths.js";
 import { advancePrimaryTask } from "./primary-task.js";
 
 function formatPromotionFooter(promotion: PromotionResult): string {

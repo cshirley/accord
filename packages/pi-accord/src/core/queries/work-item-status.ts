@@ -2,8 +2,8 @@
  * Single work-item status — tasks, next resume agent, finish nudge.
  */
 
-import type { DevHarnessConfig } from "../config/index.js";
 import { getAgentMeta } from "../agents/registry.js";
+import type { DevHarnessConfig } from "../config/index.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../orchestration/phase-coarse-routing.js";
 import {
   describeImplementingResumeBlocked,
@@ -106,7 +106,13 @@ export function devWorkItemStatus(
   ];
 
   if (tasks.length > 0) {
-    lines.push("", "## Tasks", "", "| task | status | phase | gates |", "| --- | --- | --- | --- |");
+    lines.push(
+      "",
+      "## Tasks",
+      "",
+      "| task | status | phase | gates |",
+      "| --- | --- | --- | --- |",
+    );
     for (const t of tasks) {
       const gates = t.pre_impl_gates ?? "—";
       const agentOk = getAgentMeta(t.phase) ? "" : " ⚠";

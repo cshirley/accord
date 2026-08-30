@@ -26,7 +26,9 @@ function isPlanTaskStepTag(value: string): value is PlanTaskStepTag {
   return value === "test" || value === "impl" || value === "verify";
 }
 
-export function planTaskPipelineProfile(steps: PlanTaskStep[] | undefined): PlanTaskPipelineProfile {
+export function planTaskPipelineProfile(
+  steps: PlanTaskStep[] | undefined,
+): PlanTaskPipelineProfile {
   const tags = new Set<PlanTaskStepTag>();
   for (const step of steps ?? []) {
     const tag = typeof step.tag === "string" ? step.tag.trim() : "";

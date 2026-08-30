@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { registerPiHarnessHookListeners } from "../src/adapters/pi/pi-hook-listeners.js";
 import type { HookState } from "../src/adapters/pi/hook-state.js";
+import { registerPiHarnessHookListeners } from "../src/adapters/pi/pi-hook-listeners.js";
 
 function minimalHookState(): HookState {
   return {

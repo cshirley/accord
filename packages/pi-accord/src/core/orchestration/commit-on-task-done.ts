@@ -11,7 +11,7 @@ import {
   gitRoot,
   isSecretFile,
 } from "../git/helpers.js";
-import { loadTaskFile, loadWorkItem, readJson, workItemJsonPath, taskJsonPath, writeJson } from "../work-items/io.js";
+import { loadTaskFile, loadWorkItem, readJson, taskJsonPath, writeJson } from "../work-items/io.js";
 import { commitOnTaskDoneFromDevConfig } from "./policy.js";
 
 export interface CommitOnTaskDoneResult {

@@ -6,12 +6,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { devNonce } from "../briefing/nonce.js";
-import {
-  planTaskPipelineProfile,
-  type PlanTaskStep,
-} from "../plan/task-pipeline-profile.js";
 import { findGitRoot } from "../config/git.js";
-import { loadWorkItem, readJson, workItemJsonPath, taskJsonPath, writeJson } from "./io.js";
+import { type PlanTaskStep, planTaskPipelineProfile } from "../plan/task-pipeline-profile.js";
+import { loadWorkItem, readJson, taskJsonPath, workItemJsonPath, writeJson } from "./io.js";
 import type { TaskFile, WorkItem } from "./types.js";
 
 export type ArtifactKind = "brief" | "spec" | "plan";
@@ -323,4 +320,3 @@ export function reconcileVerifyOnlyTasksFromPlan(workItemId: string, planPath: s
   }
   return updated;
 }
-

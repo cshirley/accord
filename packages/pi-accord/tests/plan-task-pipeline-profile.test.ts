@@ -3,9 +3,7 @@ import { planTaskPipelineProfile } from "../src/core/plan/task-pipeline-profile.
 
 describe("planTaskPipelineProfile", () => {
   test("verify-only task skips TDD pipeline", () => {
-    const profile = planTaskPipelineProfile([
-      { tag: "verify", description: "bunx nx test app" },
-    ]);
+    const profile = planTaskPipelineProfile([{ tag: "verify", description: "bunx nx test app" }]);
     expect(profile.verifyOnly).toBe(true);
     expect(profile.initialPhase).toBe("phase-verify-task");
     expect(profile.preImplGates).toBe("complete");

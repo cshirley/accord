@@ -116,7 +116,10 @@ describe("align gather spawn follow-up", () => {
       notify: () => {},
       spawnSubagent: async (input: { agent: string; task: string }) => {
         spawns.push(input.agent);
-        if (input.agent === "phase-align" && spawns.filter((a) => a === "phase-align").length === 1) {
+        if (
+          input.agent === "phase-align" &&
+          spawns.filter((a) => a === "phase-align").length === 1
+        ) {
           return {
             exitCode: 0,
             parsedReturn: {

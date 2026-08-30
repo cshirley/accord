@@ -46,8 +46,11 @@ export function renderHarnessRunEntry(data: HarnessRunEntryData, theme: Theme): 
 }
 
 export function registerHarnessRunEntryRenderer(pi: ExtensionAPI): void {
-  pi.registerEntryRenderer<HarnessRunEntryData>(HARNESS_RUN_ENTRY_TYPE, (entry, _options, theme) => {
-    if (!entry.data) return undefined;
-    return renderHarnessRunEntry(entry.data, theme);
-  });
+  pi.registerEntryRenderer<HarnessRunEntryData>(
+    HARNESS_RUN_ENTRY_TYPE,
+    (entry, _options, theme) => {
+      if (!entry.data) return undefined;
+      return renderHarnessRunEntry(entry.data, theme);
+    },
+  );
 }

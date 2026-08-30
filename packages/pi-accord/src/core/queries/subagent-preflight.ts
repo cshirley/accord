@@ -6,7 +6,7 @@
 
 import { existsSync } from "node:fs";
 import * as path from "node:path";
-import { loadAgentFromFile } from "../../../packages/pi-subagent/src/agent-load.js";
+import { loadAgentFromFile } from "../../../../pi-subagent/src/agent-load.js";
 import {
   type AgentConfig,
   CURSOR_PROVIDER,
@@ -18,13 +18,14 @@ import {
   resolveProfileForCredentials,
   resolveRequestedProfileName,
   type SubagentConfig,
-} from "../../../packages/pi-subagent/src/agents.js";
+} from "../../../../pi-subagent/src/agents.js";
 import {
   DEFAULT_SPAWN_TIMEOUT_MS,
   resolveSpawnTimeoutMs,
-} from "../../../packages/pi-subagent/src/spawn/timeout.js";
+} from "../../../../pi-subagent/src/spawn/timeout.js";
 import { getAgentMeta } from "../agents/registry.js";
 import { loadDevHarnessConfig } from "../config/index.js";
+import { EXT_DIR } from "../config/paths.js";
 import {
   applyScopedPreflightWarnings,
   resolveJudgmentModelRefFromHarness,
@@ -183,7 +184,7 @@ export function runSubagentSpawnPreflightCheck(
 ): SubagentPreflightCheck {
   const cfg = loadSubagentConfig();
   const agentPath = resolveAgentFile(agent, cwd, "user");
-  const bundledAccordPath = path.join(process.cwd(), "assets", "agents", "accord", `${agent}.md`);
+  const bundledAccordPath = path.join(EXT_DIR, "assets", "agents", "accord", `${agent}.md`);
   const agentFileFound =
     Boolean(agentPath && existsSync(agentPath)) || existsSync(bundledAccordPath);
   const agentFilePath =

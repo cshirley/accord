@@ -12,8 +12,8 @@ import {
   listWorkItemFileRefs,
   mutateJson,
   resolveTasksDir,
-  workItemJsonPath,
   WORK_ITEM_ID_PATTERN,
+  workItemJsonPath,
   writeJson,
 } from "../work-items/io.js";
 import type { WorkItem } from "../work-items/types.js";

@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { loadAgentFromFile } from "../packages/pi-subagent/src/agent-load.js";
+import { loadAgentFromFile } from "../../pi-subagent/src/agent-load.js";
 import {
   type AgentConfig,
   resolveModelConfig,
   type SubagentConfig,
-} from "../packages/pi-subagent/src/agents.js";
-import { appendThinkingCliArgs } from "../packages/pi-subagent/src/spawn/cli-args.js";
+} from "../../pi-subagent/src/agents.js";
+import { appendThinkingCliArgs } from "../../pi-subagent/src/spawn/cli-args.js";
 import {
   ACCORD_RUN_ID_HEADER,
   ACCORD_SESSION_TAG_HEADER,

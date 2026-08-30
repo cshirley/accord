@@ -10,10 +10,10 @@ import {
 import { devTasks } from "../../core/queries/dashboard.js";
 import { devReviewQueue } from "../../core/queries/review-queue.js";
 import { formatWorkflowCostForFinish } from "../../core/queries/workflow-cost.js";
-import type { HookState } from "./hook-state.js";
-import { activateForDevSubcommand } from "./dynamic-tools.js";
-import { notifyTruncated } from "./notify.js";
 import { displayTasksDashboard } from "./dev-formatted-display.js";
+import { activateForDevSubcommand } from "./dynamic-tools.js";
+import type { HookState } from "./hook-state.js";
+import { notifyTruncated } from "./notify.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
 
 /**

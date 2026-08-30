@@ -126,7 +126,8 @@ export function devDeviations(rawArgs: string): Result<DevDeviationsResult> {
   }
 
   if (parsed.action === "review") {
-    const suffix = parsed.taskId !== undefined ? `task ${String(parsed.taskId)}` : "open deviations";
+    const suffix =
+      parsed.taskId !== undefined ? `task ${String(parsed.taskId)}` : "open deviations";
     return ok({
       action: "review",
       formatted: `${parsed.workItemId}: spawning review-deviation for ${suffix}…`,
