@@ -94,7 +94,7 @@ a developer's laptop but **do not exist on a fresh GitHub runner**:
 | `thrift.json` | `packages/pi-thrift/src/config.ts` | Loads in-code defaults (`output.level: "full"`, `showStatus: true`). |
 
 The `setup-pi` composite (`.github/actions/setup-pi/action.yml`) seeds
-both files from `assets/ci/*.json` after `pi install pi-accord` has run.
+both files from `packages/pi-accord/assets/ci/*.json` after `pi install pi-accord` has run.
 It uses `cp -n` so a cache-restored version always wins over the
 template. It also creates a `~/.pi → ~/.config/pi` symlink because
 `pi-thrift` hard-codes `homedir()/.pi/agent` whereas `pi-coding-agent`
@@ -154,7 +154,7 @@ above and that no file under `packages/pi-accord-ci/src/` imports
 `@earendil-works/pi-coding-agent`. ACCORD's own `dev_*` tools
 (`devBootstrap`, `devTransition`, `devFinalize`) are called by
 `bootstrap-work-item.ts` via direct TypeScript imports from
-`@clive.shirley/pi-accord/src/core/...`.
+`@clive.shirley/pi-accord/packages/pi-accord/src/core/...`.
 
 ## Local testing
 

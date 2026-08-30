@@ -65,8 +65,8 @@ bun run check:biome:fix
 
 - [`src/`](src/) — core harness, `/dev` command, MCP adapter
 - [`packages/`](packages/) — Pi extension modules (subagent, worktree, git tools, CI, etc.)
-- [`assets/`](assets/) — bundled skills, agents, provider sidecars
-- [`schemas/`](schemas/) — JSON schemas for artifacts and agent return packets
+- [`packages/pi-accord/assets/`](assets/) — bundled skills, agents, provider sidecars
+- [`packages/pi-accord/schemas/`](schemas/) — JSON schemas for artifacts and agent return packets
 - [`docs/`](docs/) — user and contributor documentation
 - [`tests/`](tests/) — test suite
 

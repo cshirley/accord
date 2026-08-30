@@ -10,18 +10,19 @@
   ],
   "scripts": {
     "test": "bun test",
-    "validate:schemas": "node schemas/examples/validate-examples.mjs",
-    "validate:assets": "bun scripts/validate-assets.ts",
-    "install:assets": "bun scripts/install-assets.ts",
+    "validate:schemas": "node packages/pi-accord/schemas/examples/validate-examples.mjs",
+    "validate:assets": "bun packages/pi-accord/scripts/validate-assets.ts",
+    "install:assets": "bun packages/pi-accord/scripts/install-assets.ts",
+    "install:assets:force": "bun packages/pi-accord/scripts/install-assets.ts --force",
     "install:dev": "bash scripts/install-dev.sh",
-    "check:bundle": "bun build ./src/index.ts --target=node --outfile=/tmp/accord-check.js --external @earendil-works/pi-ai --external @earendil-works/pi-agent-core --external @earendil-works/pi-coding-agent --external @earendil-works/pi-tui --external typebox",
+    "check:bundle": "bun build ./packages/pi-accord/src/index.ts --target=node --outfile=/tmp/accord-check.js --external @earendil-works/pi-ai --external @earendil-works/pi-agent-core --external @earendil-works/pi-coding-agent --external @earendil-works/pi-tui --external typebox",
     "check:types": "tsc --noEmit",
     "check:biome": "biome check .",
     "check:biome:fix": "biome check --write .",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "check:runtime": "bun scripts/runtime-smoke.ts",
-    "mcp": "bun run src/adapters/mcp/server.ts",
+    "check:runtime": "bun packages/pi-accord/scripts/runtime-smoke.ts",
+    "mcp": "bun run packages/pi-accord/src/adapters/mcp/server.ts",
     "check": "npm run test && npm run check:biome && npm run validate:schemas && npm run validate:assets && npm run check:types && npm run check:bundle && npm run check:runtime",
     "smoke:act:self-test": "bun run packages/pi-accord-ci/src/smoke-act.ts pull_request -W .github/workflows/test-autopipeline.yml",
     "smoke:act:autopipeline": "bun run packages/pi-accord-ci/src/smoke-act.ts workflow_dispatch -W .github/workflows/autopipeline-smoke.yml --input ticket=DEMO-1 --input dry_run=true --secret-file .env.smoke",
@@ -37,12 +38,9 @@
     "url": "https://github.com/cshirley/accord/issues"
   },
   "homepage": "https://github.com/cshirley/accord#readme",
-  "main": "./src/index.ts",
+  "main": "./packages/pi-accord/src/index.ts",
   "files": [
-    "src/",
     "packages/",
-    "assets/",
-    "schemas/",
     "scripts/",
     "README.md",
     "LICENSE",
@@ -64,20 +62,20 @@
       "./packages/pi-thrift/src/index.ts",
       "./packages/pi-git-tools/src/index.ts",
       "./packages/pi-tools/src/index.ts",
-      "./src/index.ts"
+      "./packages/pi-accord/src/index.ts"
     ],
     "skills": [
-      "./assets/skills/commit",
-      "./assets/skills/crq-notify",
-      "./assets/skills/pr",
-      "./assets/skills/review"
+      "./packages/pi-accord/assets/skills/commit",
+      "./packages/pi-accord/assets/skills/crq-notify",
+      "./packages/pi-accord/assets/skills/pr",
+      "./packages/pi-accord/assets/skills/review"
     ],
     "agents": [
-      "./assets/agents"
+      "./packages/pi-accord/assets/agents"
     ]
   },
   "accord": {
-    "assetManifest": "./assets/manifest.json"
+    "assetManifest": "./packages/pi-accord/assets/manifest.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
@@ -85,9 +83,5 @@
     "bun-types": "^1.3.14",
     "typescript": "^6.0.3",
     "yaml": "^2.9.0"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.4.3"
   }
 }

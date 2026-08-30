@@ -72,7 +72,7 @@ Pi 0.80.4+: `agent_end` fires when a loop ends; **`agent_settled`** fires when a
 | Pending-decision notify | `agent_end` | `agent_settled` |
 | Thrift output pruning | `agent_end` | `agent_settled` |
 
-**Files:** `src/adapters/pi/pi-hook-listeners.ts`, `packages/pi-thrift/src/output.ts`
+**Files:** `packages/pi-accord/src/adapters/pi/pi-hook-listeners.ts`, `packages/pi-thrift/src/output.ts`
 
 **Acceptance criteria**
 
@@ -89,7 +89,7 @@ Pi 0.80.4+: display-only session entries (`CustomEntry`) render in interactive m
 | `thrift-output-level` | current output compression level |
 | `pi-worktree` state | branch/path summary (if applicable) |
 
-**Files:** `src/adapters/pi/hook-state.ts` (+ small renderer module), `packages/pi-thrift/src/index.ts`, `packages/pi-worktree/src/index.ts`
+**Files:** `packages/pi-accord/src/adapters/pi/hook-state.ts` (+ small renderer module), `packages/pi-thrift/packages/pi-accord/src/index.ts`, `packages/pi-worktree/packages/pi-accord/src/index.ts`
 
 Keep `registerMessageRenderer` for **streaming** orchestrator spawn rows (`sendMessage` + live updates).
 
@@ -116,7 +116,7 @@ Pi 0.80.x: `session_before_compact` / `session_compact` include `reason: "manual
 
 ### 1d — `session_info_changed` → re-sync harness marker
 
-**Files:** `src/adapters/pi/hook-state.ts` or `pi-hook-listeners.ts`
+**Files:** `packages/pi-accord/src/adapters/pi/hook-state.ts` or `pi-hook-listeners.ts`
 
 **Acceptance criteria**
 
@@ -161,15 +161,15 @@ Pi 0.80.x: `session_before_compact` / `session_compact` include `reason: "manual
 | init | `dev_init_detect`, `dev_init_write` |
 | meta | `dev_retro`, `dev_review_queue`, `dev_workflow_cost`, `dev_orchestrate`, `dev_rehydrate`, … |
 
-Exact grouping should mirror `src/core/orchestration/` phase → agent mapping.
+Exact grouping should mirror `packages/pi-accord/src/core/orchestration/` phase → agent mapping.
 
 ### Deliverables
 
 | Task | File(s) |
 |------|---------|
-| Define `ACCORD_CORE_TOOLS` + phase bundles | `src/core/tools/active-set.ts` (new) |
-| Apply `setActiveTools` on `session_start` | `src/adapters/pi/extension.ts` |
-| Expand on orchestration phase | `src/adapters/pi/workflow-orchestration.ts`, `subagent/runtime-host.ts` |
+| Define `ACCORD_CORE_TOOLS` + phase bundles | `packages/pi-accord/src/core/tools/active-set.ts` (new) |
+| Apply `setActiveTools` on `session_start` | `packages/pi-accord/src/adapters/pi/extension.ts` |
+| Expand on orchestration phase | `packages/pi-accord/src/adapters/pi/workflow-orchestration.ts`, `subagent/runtime-host.ts` |
 | Expand on bootstrap | `pi-hook-listeners.ts` or tool wrapper |
 | Feature flag `ACCORD_DYNAMIC_TOOLS=0` to disable | env guard |
 
@@ -199,7 +199,7 @@ Exact grouping should mirror `src/core/orchestration/` phase → agent mapping.
 
 ### 3a — `orchestration.judgment.model` config + resolution
 
-**Files:** `schemas/accord-schema.json`, `src/core/config/types.ts`, [`configuration.md`](configuration.md), `src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
+**Files:** `packages/pi-accord/schemas/accord-schema.json`, `packages/pi-accord/src/core/config/types.ts`, [`configuration.md`](configuration.md), `packages/pi-accord/src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
 
 **Schema** — extend `orchestration.judgment`:
 
@@ -232,7 +232,7 @@ Exact grouping should mirror `src/core/orchestration/` phase → agent mapping.
 
 ### 3b — Preflight diagnostics (scoped models as reference)
 
-**Files:** `src/core/queries/subagent-preflight.ts`, optional Pi adapter bridge to pass scoped snapshot into core preflight
+**Files:** `packages/pi-accord/src/core/queries/subagent-preflight.ts`, optional Pi adapter bridge to pass scoped snapshot into core preflight
 
 **Add to preflight payload** when the host can supply them:
 
@@ -280,10 +280,10 @@ Scoped models / `enabledModels` are **not** in the spawn precedence chain in Pha
 
 | Item | Where | Priority |
 |------|-------|----------|
-| `promptGuidelines` on high-traffic tools | `src/adapters/pi/tools.ts` or registry metadata | Medium |
+| `promptGuidelines` on high-traffic tools | `packages/pi-accord/src/adapters/pi/tools.ts` or registry metadata | Medium |
 | `before_provider_headers` — inject run / work-item correlation headers | `pi-hook-listeners.ts` | Low |
 | `setWorkingVisible(false)` during orchestrator spawn | `spawn-status.ts` | Low |
-| `xhigh` / `max` thinking in subagent profiles + agent frontmatter | `packages/pi-subagent`, `assets/agents` | Medium |
+| `xhigh` / `max` thinking in subagent profiles + agent frontmatter | `packages/pi-subagent`, `packages/pi-accord/assets/agents` | Medium |
 | README: `compat.sessionAffinityFormat` for OpenRouter | `README.md` | Low |
 
 **Acceptance criteria**
@@ -375,8 +375,8 @@ Resolve before Phase 2–3 land:
 
 | Feature | Implementation |
 |---------|----------------|
-| RPC `get_entries` / `get_tree` parity | `src/core/queries/session-transcript.ts` — `SessionManager.open` for `dev_retro` enrichment |
-| Built-in tool render overrides | `src/adapters/pi/builtin-tool-renders.ts` — harness path highlighting on `read`/`write`/`edit` |
+| RPC `get_entries` / `get_tree` parity | `packages/pi-accord/src/core/queries/session-transcript.ts` — `SessionManager.open` for `dev_retro` enrichment |
+| Built-in tool render overrides | `packages/pi-accord/src/adapters/pi/builtin-tool-renders.ts` — harness path highlighting on `read`/`write`/`edit` |
 
 ## SDK features still deferred
 

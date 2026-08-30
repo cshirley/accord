@@ -4,14 +4,14 @@ Lives in the project's `AGENTS.md` under the compatibility heading `## Dev Harne
 
 1. Detects stack from marker files (`go.mod`, `Cargo.toml`, `package.json`, etc.)
 2. Infers commands from project config (`package.json` scripts, `pyproject.toml` tool sections, Makefile targets)
-3. Falls back to `assets/lang-profiles/<lang>.json` for gaps
+3. Falls back to `packages/pi-accord/assets/lang-profiles/<lang>.json` for gaps
 4. User confirms, then writes
 
-The block is validated against `schemas/accord-schema.json`. See [`docs/extending.md`](extending.md) for how to add custom providers in this same JSON block.
+The block is validated against `packages/pi-accord/schemas/accord-schema.json`. See [`docs/extending.md`](extending.md) for how to add custom providers in this same JSON block.
 
 ## Quick-fix loop policy (`orchestration.quick_fix_loop`)
 
-When the harness applies a validated **`review-test`** return packet for a **`quick_fix`** work item in **`fixing`**, it uses optional fields under `orchestration.quick_fix_loop` (defaults match `src/core/orchestration/policy.ts`):
+When the harness applies a validated **`review-test`** return packet for a **`quick_fix`** work item in **`fixing`**, it uses optional fields under `orchestration.quick_fix_loop` (defaults match `packages/pi-accord/src/core/orchestration/policy.ts`):
 
 | Field | Type | Default | Meaning |
 |-------|------|---------|--------|
@@ -56,7 +56,7 @@ Post-result footers and resume briefs echo the active gate (`severity_gate=…`)
 
 ## Orchestration judgment (`orchestration.judgment`, Pi)
 
-Optional **Phase 5** bounded LLM step before certain `/dev resume` subagent spawns (default agents: `review-test`, `phase-test`). The model returns JSON validated against `schemas/orchestration-judgment-packet.json`; invalid output gets a **template** appendix instead. Routing stays in core — the packet must not include agent or tool routing fields.
+Optional **Phase 5** bounded LLM step before certain `/dev resume` subagent spawns (default agents: `review-test`, `phase-test`). The model returns JSON validated against `packages/pi-accord/schemas/orchestration-judgment-packet.json`; invalid output gets a **template** appendix instead. Routing stays in core — the packet must not include agent or tool routing fields.
 
 | Field | Type | Meaning |
 |-------|------|--------|
@@ -91,13 +91,13 @@ Subagent **spawns** are unchanged: they always follow agent `tier:` + `subagent.
 
 ## Core orchestrator (`ACCORD_CORE_ORCHESTRATOR`)
 
-Programmatic `/dev` workflow routing (align, spec, plan, resume, finish, check, amend-spec, and conditional gaps/deviations spawns) runs through **`src/core/orchestration/`** by default. The env var **`ACCORD_CORE_ORCHESTRATOR`** defaults to **on** when unset; set to `0`, `false`, `no`, or `off` to disable programmatic spawns. The bundled accord skill was removed — disabling the orchestrator leaves only local extension handlers and in-session `dev_*` / `subagent` tooling.
+Programmatic `/dev` workflow routing (align, spec, plan, resume, finish, check, amend-spec, and conditional gaps/deviations spawns) runs through **`packages/pi-accord/src/core/orchestration/`** by default. The env var **`ACCORD_CORE_ORCHESTRATOR`** defaults to **on** when unset; set to `0`, `false`, `no`, or `off` to disable programmatic spawns. The bundled accord skill was removed — disabling the orchestrator leaves only local extension handlers and in-session `dev_*` / `subagent` tooling.
 
 Global defaults can live in `~/.config/pi/agent/accord.json` under `orchestration` (merged into each project's Dev Harness block; project subsections override). Per-project overrides still go in the `## Dev Harness` JSON in `AGENTS.md`.
 
 ## Resume replan loop (`orchestration.resume`)
 
-Each `/dev resume` under the core orchestrator can chain multiple subagent spawns until a stop condition. Defaults match `src/core/orchestration/policy.ts`:
+Each `/dev resume` under the core orchestrator can chain multiple subagent spawns until a stop condition. Defaults match `packages/pi-accord/src/core/orchestration/policy.ts`:
 
 | Field | Type | Default | Meaning |
 |-------|------|---------|--------|

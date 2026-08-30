@@ -112,14 +112,14 @@ flowchart TB
 
 | Layer        | Lives in              | Responsibilities                                                                |
 | ------------ | --------------------- | ------------------------------------------------------------------------------- |
-| Pi extension | `src/adapters/pi/`    | `/dev` command, autocomplete, local subcommands, orchestrator host, lifecycle hooks, tools |
-| Core orchestrator | `src/core/orchestration/` | Deterministic workflow routing, resume/finish loops, return-packet policy, programmatic spawns |
-| Phase agents | `assets/agents/accord/phase-*.md` | Do the work; each runs in an isolated subagent process                |
-| Review agents | `assets/agents/accord/review-*.md` | Read-only critique; each runs in an isolated subagent process       |
-| Core         | `src/core/`           | Host-neutral logic (config, artifacts, queries, briefing, telemetry, verification) |
-| Schemas      | `schemas/`            | Source of truth for every artifact and every agent return packet                |
+| Pi extension | `packages/pi-accord/src/adapters/pi/`    | `/dev` command, autocomplete, local subcommands, orchestrator host, lifecycle hooks, tools |
+| Core orchestrator | `packages/pi-accord/src/core/orchestration/` | Deterministic workflow routing, resume/finish loops, return-packet policy, programmatic spawns |
+| Phase agents | `packages/pi-accord/assets/agents/accord/phase-*.md` | Do the work; each runs in an isolated subagent process                |
+| Review agents | `packages/pi-accord/assets/agents/accord/review-*.md` | Read-only critique; each runs in an isolated subagent process       |
+| Core         | `packages/pi-accord/src/core/`           | Host-neutral logic (config, artifacts, queries, briefing, telemetry, verification) |
+| Schemas      | `packages/pi-accord/schemas/`            | Source of truth for every artifact and every agent return packet                |
 
-Every phase and review agent is a fresh subagent process — a separate Pi conversation with its own context window. The core orchestrator reads work item JSON on disk and structured return packets from each spawn; the main Pi session does not accumulate phase-agent context. Companion skills (`commit`, `pr`, `review`) ship under `assets/skills/` for post-implementation workflows.
+Every phase and review agent is a fresh subagent process — a separate Pi conversation with its own context window. The core orchestrator reads work item JSON on disk and structured return packets from each spawn; the main Pi session does not accumulate phase-agent context. Companion skills (`commit`, `pr`, `review`) ship under `packages/pi-accord/assets/skills/` for post-implementation workflows.
 
 ---
 
@@ -185,7 +185,7 @@ Each phase is dispatched as a separate subagent process. The core orchestrator (
 
 1. **Constructs a brief** for the phase from the work item, the relevant slice of the spec/plan, the active decisions, and the preflight report.
 2. **Spawns the agent** programmatically (`runSubagent`, same isolated child process as the `subagent` tool). The brief is the only context the agent has.
-3. **Reads the return packet** — a JSON blob in the agent's final assistant message, validated against `schemas/return-schemas/<agent>.json`.
+3. **Reads the return packet** — a JSON blob in the agent's final assistant message, validated against `packages/pi-accord/schemas/return-schemas/<agent>.json`.
 4. **Processes the packet**: writes artifacts, updates work item phase, promotes events (escalations → decisions, deviations → deviations), increments cost.
 5. **Routes to the next phase** based on the packet's `status` field (`done`, `needs_input`, `stuck`, `blocked`) and orchestration policy (retry caps, severity gates).
 
@@ -229,7 +229,7 @@ All phase agents have isolated context. Tools and write permission vary by role.
 | `phase-verify-infra`    | read, bash              | IaC paths                                      | `{ valid, preview, resources }`                                         |
 | `phase-gaps`            | read, write             | verify.json, existing tickets                  | `{ gaps: [{ ac_id, suggested_action, recommended_ticket }] }`           |
 
-Every agent's return shape is enforced by `schemas/return-schemas/<agent>.json` and validated by the orchestrator on receipt. Malformed output retries inside the agent's own context — never reaches the engineer.
+Every agent's return shape is enforced by `packages/pi-accord/schemas/return-schemas/<agent>.json` and validated by the orchestrator on receipt. Malformed output retries inside the agent's own context — never reaches the engineer.
 
 ### Pattern → phase mapping
 
@@ -301,7 +301,7 @@ flowchart TB
   end
 ```
 
-These files are immutable after their generating phase emits `done`. The schemas live in `schemas/{spec,plan,verify}-schema.json`.
+These files are immutable after their generating phase emits `done`. The schemas live in `packages/pi-accord/schemas/{spec,plan,verify}-schema.json`.
 
 ### Transient (`.tasks/`, gitignored)
 
@@ -366,7 +366,7 @@ Gaps are filtered from `criteria` at render time — there is no separate `gaps`
 
 ## Hooks
 
-Pi lifecycle events are mapped to host-neutral functions in `src/core/harness/`. Cursor and other hosts can invoke the same functions from their own hook scripts.
+Pi lifecycle events are mapped to host-neutral functions in `packages/pi-accord/src/core/harness/`. Cursor and other hosts can invoke the same functions from their own hook scripts.
 
 | Hook                          | Fires on                                        | What it does                                                                                  |
 | ----------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -387,7 +387,7 @@ The schema-validation, config-guard, and post-code-verification hooks are the st
 
 ## Commands
 
-`/dev` (alias `/accord`) is the only entry point. Routing is deterministic — see `src/core/commands/subcommand-routing.ts` and `src/core/commands/help.ts`.
+`/dev` (alias `/accord`) is the only entry point. Routing is deterministic — see `packages/pi-accord/src/core/commands/subcommand-routing.ts` and `packages/pi-accord/src/core/commands/help.ts`.
 
 ```
 /dev init                    — detect stack, write ## Dev Harness block to AGENTS.md (in-session dev_init_* flow)

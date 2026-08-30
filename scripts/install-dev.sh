@@ -39,9 +39,15 @@ for d in "$@"; do
 done
 
 echo "pi install $ROOT"
-pi install "$ROOT"
+if ! pi install "$ROOT"; then
+  echo "error: pi install failed — check that 'pi' is on PATH and package.json pi.extensions paths exist" >&2
+  exit 1
+fi
 
-echo "bun run install:assets"
-bun run install:assets
+echo "Linking Pi assets (install:assets --force)..."
+if ! bun packages/pi-accord/scripts/install-assets.ts --force; then
+  echo "error: install:assets failed" >&2
+  exit 1
+fi
 
 echo "Done. Restart pi.dev if it is already running."

@@ -13,10 +13,9 @@
     "types": ["bun-types"]
   },
   "include": [
-    "src/**/*.ts",
     "packages/*/src/**/*.ts",
     "packages/*/tests/**/*.ts",
-    "tests/**/*.ts",
+    "packages/pi-accord/scripts/**/*.ts",
     "scripts/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]

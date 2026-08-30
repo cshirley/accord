@@ -58,7 +58,7 @@ The extension's bootstrap behaviour:
 | Metadata stale (version or manifest changed) | re-install | `info`: "re-linked N assets — restart pi" |
 | Metadata stale, install no-op (already correct) | reconcile metadata | none |
 | Local modifications block the install | abort install for those paths | `warning`: "N file(s) blocked — run with `--force`" |
-| Bundled `assets/manifest.json` missing | abort with diagnostic | `warning`: "cannot read bundled manifest — run `bun install`" |
+| Bundled `packages/pi-accord/assets/manifest.json` missing | abort with diagnostic | `warning`: "cannot read bundled manifest — run `bun install`" |
 
 ### Opting out
 
@@ -107,16 +107,16 @@ Inside pi (after the second restart):
 If pi loads but `/dev` is missing, check:
 
 - `jq '.packages' ~/.config/pi/agent/settings.json` — should include the **real path** to this checkout (and any other roots you added with further **`pi install`** runs). Plain strings are local package roots; `npm:…` entries are unrelated npm Pi packages.
-- From the repo: `jq '.pi.extensions' package.json` — should list the six `./packages/.../src/index.ts` entries and `./src/index.ts`.
+- From the repo: `jq '.pi.extensions' package.json` — should list the six `./packages/.../packages/pi-accord/src/index.ts` entries and `./packages/pi-accord/src/index.ts`.
 - `ls ~/.config/pi/agent/skills/{commit,pr,review} ~/.config/pi/agent/agents/accord ~/.config/pi/agent/providers` — should resolve (from auto-install / `install:assets`).
 - `cat ~/.config/pi/agent/.accord-assets.json` — confirms the bootstrap ran. If absent, the auto-install was either disabled (check `ACCORD_AUTO_INSTALL_ASSETS` and `asset_bootstrap.auto_install` in `~/.config/pi/agent/accord.json`) or failed silently — check the Pi notifications log.
 
 ## Edit-test loop
 
 - TypeScript edits under `src/` or `packages/` take effect on the next pi session restart (Pi loads extension modules from the registered checkout, so there's no rebuild step).
-- Prompt edits under `assets/agents/` and `assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
-- Skill edits under `assets/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation.
-- Schema edits require running `node schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
+- Prompt edits under `packages/pi-accord/assets/agents/` and `packages/pi-accord/assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
+- Skill edits under `packages/pi-accord/assets/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation.
+- Schema edits require running `node packages/pi-accord/schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
 
 Run `npm run check` before any structural change you intend to keep — the suite covers tests, schemas, asset/manifest consistency, type-check, bundle, and a runtime smoke.
 
