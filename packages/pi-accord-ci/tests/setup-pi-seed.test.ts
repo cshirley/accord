@@ -27,8 +27,8 @@ import { parse as parseYaml } from "yaml";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 const SETUP_PI = join(REPO_ROOT, ".github/actions/setup-pi/action.yml");
-const SUBAGENT_TEMPLATE = join(REPO_ROOT, "assets/ci/subagent.json");
-const THRIFT_TEMPLATE = join(REPO_ROOT, "assets/ci/thrift.json");
+const SUBAGENT_TEMPLATE = join(REPO_ROOT, "packages/pi-accord/assets/ci/subagent.json");
+const THRIFT_TEMPLATE = join(REPO_ROOT, "packages/pi-accord/assets/ci/thrift.json");
 
 const composite = parseYaml(readFileSync(SETUP_PI, "utf8")) as {
   inputs: Record<string, { default?: unknown; required?: boolean; description?: string }>;
@@ -86,13 +86,13 @@ describe("setup-pi seed step — ~/.pi → ~/.config/pi symlink", () => {
 describe("setup-pi seed step — cp -n (no-clobber) contract", () => {
   test("copies subagent.json from assets/ci with -n flag", () => {
     expect(stepRunBody(seedStep!)).toMatch(
-      /cp\s+-n\s+\.accord-ci\/assets\/ci\/subagent\.json\s+"\$SUBAGENT_DST"/,
+      /cp\s+-n\s+\.accord-ci\/packages\/pi-accord\/assets\/ci\/subagent\.json\s+"\$SUBAGENT_DST"/,
     );
   });
 
   test("copies thrift.json from assets/ci with -n flag", () => {
     expect(stepRunBody(seedStep!)).toMatch(
-      /cp\s+-n\s+\.accord-ci\/assets\/ci\/thrift\.json\s+"\$THRIFT_DST"/,
+      /cp\s+-n\s+\.accord-ci\/packages\/pi-accord\/assets\/ci\/thrift\.json\s+"\$THRIFT_DST"/,
     );
   });
 

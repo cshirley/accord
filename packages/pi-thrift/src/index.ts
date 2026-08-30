@@ -253,19 +253,19 @@ export default async function (pi: ExtensionAPI) {
               `    Context fill:  ${pct}`,
               `    Watermarks:    engage ${config.input.highWaterPercent}%, release ${config.input.lowWaterPercent}%`,
               `    State:         ${inputStats.state.engaged ? "engaged" : "idle"} — ${REASON_TEXT[inputStats.lastReason] ?? inputStats.lastReason}`,
-             `    Decisions:     ${inputStats.state.decisions.size} tracked`,
-             ...(inputStats.lastCompactionReason
-               ? [
-                   "",
-                   "  Compaction:",
-                   `    Last reason:   ${inputStats.lastCompactionReason}`,
-                   `    Tokens before: ${inputStats.lastCompactionTokensBefore ?? "unknown"}`,
-                   ...(inputStats.lastCompactionUsageTokens !== null
-                     ? [`    Summary usage: ${inputStats.lastCompactionUsageTokens} tokens`]
-                     : []),
-                 ]
-               : []),
-             "",
+              `    Decisions:     ${inputStats.state.decisions.size} tracked`,
+              ...(inputStats.lastCompactionReason
+                ? [
+                    "",
+                    "  Compaction:",
+                    `    Last reason:   ${inputStats.lastCompactionReason}`,
+                    `    Tokens before: ${inputStats.lastCompactionTokensBefore ?? "unknown"}`,
+                    ...(inputStats.lastCompactionUsageTokens !== null
+                      ? [`    Summary usage: ${inputStats.lastCompactionUsageTokens} tokens`]
+                      : []),
+                  ]
+                : []),
+              "",
               "  Recall:",
               `    ${store.size} artifacts held (${formatSize(store.totalBytes)})`,
               ...(store.failures > 0

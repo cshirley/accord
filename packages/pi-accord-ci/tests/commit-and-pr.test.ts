@@ -245,7 +245,7 @@ describe("commitAndPr — autopilot label idempotency (AC-9)", () => {
     const { gh, calls } = makeGh(null, false);
     await commitAndPr(defaultOpts(repo), { exec, gh });
     const labelCall = calls.find((c) => c.method === "createLabel");
-    expect((labelCall?.payload as { name: string }).name).toBe("autopilot/v1");
+    expect(labelCall?.payload).toEqual(expect.objectContaining({ name: "autopilot/v1" }));
   });
 });
 

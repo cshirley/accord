@@ -33,7 +33,7 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 | [`docs/artifacts.md`](docs/artifacts.md)                 | …know where work-item state and committed artifacts live on disk, plus the work-item-ID format.                                                                      |
 | [`docs/schemas.md`](docs/schemas.md)                     | …look up the JSON schema for any artifact or agent return packet.                                                                                                    |
 | [`docs/hooks-and-tools.md`](docs/hooks-and-tools.md)     | …trace what runs at each Pi lifecycle event and which `dev_*` tools the harness exposes (also over stdio MCP).                                                       |
-| [`docs/packaged-assets.md`](docs/packaged-assets.md)     | …understand what ships in `assets/`, how the installer wires it in, and how the agent registry connects prompts to schemas.                                          |
+| [`docs/packaged-assets.md`](docs/packaged-assets.md)     | …understand what ships in `packages/pi-accord/assets/`, how the installer wires it in, and how the agent registry connects prompts to schemas.                                          |
 | [`docs/configuration.md`](docs/configuration.md)         | …see how `/dev init` detects the project stack and what supported languages are inferred.                                                                            |
 | [`docs/extending.md`](docs/extending.md)                 | …add a language profile, a new agent, or a custom tracker/enrichment provider (bundled or per-project).                                                              |
 | [`docs/file-structure.md`](docs/file-structure.md)       | …navigate the source tree by responsibility.                                                                                                                         |
@@ -107,7 +107,7 @@ Use `pi list` to confirm Pi sees every entry.
 
 ### MCP servers used by bundled providers
 
-ACCORD’s bundled tracker/enrichment sidecars under [`assets/providers/`](assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
+ACCORD’s bundled tracker/enrichment sidecars under [`packages/pi-accord/assets/providers/`](assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
 
 | Provider                                      | `mcpTools` (from sidecars)                                                        | You typically configure…                                                                                                                                    |
 | --------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

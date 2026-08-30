@@ -71,11 +71,11 @@ If nothing happens, see `docs/ci/troubleshooting.md`.
 
 By default the autopipeline runs against Anthropic (Opus reasoning,
 Sonnet workhorse, Haiku lightweight — see
-`assets/ci/subagent.json` in the pi-accord repo). To run against
+`packages/pi-accord/assets/ci/subagent.json` in the pi-accord repo). To run against
 a different provider or tighter model choices:
 
 1. Commit a `ci/subagent.json` into **your** repo with the
-   profiles you want — see `assets/ci/subagent.json` for the
+   profiles you want — see `packages/pi-accord/assets/ci/subagent.json` for the
    shape and `packages/pi-subagent/src/agents.ts` for the resolution
    rules.
 2. Add the matching API key as a repository secret (e.g. `OPENAI_API_KEY`).

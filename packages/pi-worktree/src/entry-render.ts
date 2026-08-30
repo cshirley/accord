@@ -44,8 +44,11 @@ export function renderWorktreeStateEntry(data: WorktreeStateEntryData, theme: Th
 }
 
 export function registerWorktreeStateEntryRenderer(pi: ExtensionAPI): void {
-  pi.registerEntryRenderer<WorktreeStateEntryData>(WORKTREE_STATE_ENTRY_TYPE, (entry, _options, theme) => {
-    if (!entry.data) return undefined;
-    return renderWorktreeStateEntry(entry.data, theme);
-  });
+  pi.registerEntryRenderer<WorktreeStateEntryData>(
+    WORKTREE_STATE_ENTRY_TYPE,
+    (entry, _options, theme) => {
+      if (!entry.data) return undefined;
+      return renderWorktreeStateEntry(entry.data, theme);
+    },
+  );
 }

@@ -23,7 +23,7 @@ const composite = parseYaml(readFileSync(SETUP_PI, "utf8")) as {
 const steps = composite.runs.steps;
 
 const EXPECTED_CACHE_KEY =
-  "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/assets/manifest.json') }}";
+  "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/pi-accord/assets/manifest.json') }}";
 
 const EXPECTED_RESTORE_KEYS = [
   "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-",
@@ -49,7 +49,9 @@ describe("setup-pi composite — single actions/cache@v4 step (AC-12)", () => {
   });
 
   test("the cache step uses actions/cache@v4 (pinned major)", () => {
-    expect((findCacheSteps()[0]?.uses as string).startsWith("actions/cache@v4")).toBe(true);
+    const cacheSteps = findCacheSteps();
+    expect(cacheSteps.length).toBeGreaterThan(0);
+    expect((cacheSteps[0].uses as string).startsWith("actions/cache@v4")).toBe(true);
   });
 });
 

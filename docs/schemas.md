@@ -1,6 +1,6 @@
 # Schemas
 
-Source of truth for all artifact shapes. Located in `schemas/`.
+Source of truth for all artifact shapes. Located in `packages/pi-accord/schemas/`.
 
 ## Artifact schemas
 
@@ -16,7 +16,7 @@ Source of truth for all artifact shapes. Located in `schemas/`.
 | `investigation-schema.json` | `.tasks/<ID>-investigation.json` | `work_item_id` |
 | `accord-schema.json` | `## Dev Harness` compatibility config block in AGENTS.md | `schema_version` |
 | `orchestration-judgment-packet.json` | Bounded LLM output merged into resume task text (Phase 5); no routing fields | `schema_version` |
-| `provider-schema.json` | `assets/providers/{trackers,enrichments}/<name>.json` connectivity sidecars | `name` |
+| `provider-schema.json` | `packages/pi-accord/assets/providers/{trackers,enrichments}/<name>.json` connectivity sidecars | `name` |
 | `model-pricing.json` | Token pricing lookup for cost tracking | — |
 
 ## Return schemas
@@ -41,13 +41,13 @@ One per agent in `return-schemas/`. Define the JSON packet agents must emit as t
 
 ## Validated examples
 
-`schemas/examples/` contains one JSON file per return schema. Each file is an array of example payloads (one per status). These are:
+`packages/pi-accord/schemas/examples/` contains one JSON file per return schema. Each file is an array of example payloads (one per status). These are:
 
 - **Injected** alongside schemas into agent briefs at spawn time by `formatSchemaBrief()`
 - **Validated** by `validate-examples.mjs` against their corresponding return schema
 
 ```bash
-node schemas/examples/validate-examples.mjs
+node packages/pi-accord/schemas/examples/validate-examples.mjs
 # 24 passed, 0 failed
 ```
 

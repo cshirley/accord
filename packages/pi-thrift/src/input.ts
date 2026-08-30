@@ -17,9 +17,13 @@
  * elision is reversible by the model on demand.
  */
 
-import type { ExtensionAPI, ExtensionContext, ToolResultEvent } from "@earendil-works/pi-coding-agent";
-import { formatSize, truncateHead, truncateTail } from "@earendil-works/pi-coding-agent";
 import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+  ToolResultEvent,
+} from "@earendil-works/pi-coding-agent";
+import { formatSize, truncateHead, truncateTail } from "@earendil-works/pi-coding-agent";
 import { type Artifact, type ArtifactStore, registerRecallTool } from "./artifacts.js";
 import type { ThriftConfig } from "./config.js";
 import {

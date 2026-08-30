@@ -12,7 +12,7 @@
 # Runtime seed configs: pi-subagent reads `subagent.json` and
 # pi-thrift reads `thrift.json` from the Pi agent directory. Neither file
 # exists on a fresh runner. The "Seed runtime configs" step below copies
-# CI-tuned templates from `assets/ci/` into the agent directory using
+# CI-tuned templates from `packages/pi-accord/assets/ci/` into the agent directory using
 # `cp -n` (no-clobber) so a restored cache version always wins.
 #
 # pi-thrift hard-codes `homedir()/.pi/agent` whereas pi-coding-agent on
@@ -63,7 +63,7 @@ runs:
     - name: Cache pi + accord install (AC-12 + AC-13)
       uses: actions/cache@v4
       with:
-        key: accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/assets/manifest.json') }}
+        key: accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/pi-accord/assets/manifest.json') }}
         restore-keys: |
           accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-
           accord-${{ runner.os }}-${{ inputs.pi_version }}-
@@ -119,8 +119,8 @@ runs:
         THRIFT_DST="$HOME/.config/pi/agent/thrift.json"
 
         # Seed CI-tuned configs only if they don't already exist (cache wins).
-        cp -n .accord-ci/assets/ci/subagent.json "$SUBAGENT_DST" || true
-        cp -n .accord-ci/assets/ci/thrift.json   "$THRIFT_DST"   || true
+        cp -n .accord-ci/packages/pi-accord/assets/ci/subagent.json "$SUBAGENT_DST" || true
+        cp -n .accord-ci/packages/pi-accord/assets/ci/thrift.json   "$THRIFT_DST"   || true
 
         # Apply the requested activeProfile. We fail fast if the named profile
         # is not present in the resulting JSON — better than letting pi-subagent

@@ -163,7 +163,7 @@ export function resolveProfileForCredentials(
   requestedProfileName: string,
 ): string {
   const profile = cfg.profiles[requestedProfileName];
-  if (!profile || profile.provider !== "anthropic" || process.env.ANTHROPIC_API_KEY) {
+  if (profile?.provider !== "anthropic" || process.env.ANTHROPIC_API_KEY) {
     return requestedProfileName;
   }
 
