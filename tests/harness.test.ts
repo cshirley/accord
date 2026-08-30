@@ -181,14 +181,14 @@ describe("harness subagent-prepare", () => {
     expect(String(input.task)).toBe("TASK");
   });
 
-  test("remaps cursor-agent/ model prefix", () => {
+  test("leaves a provider-qualified model untouched", () => {
     const input: Record<string, unknown> = {
       agent: "phase-align",
       task: "x",
-      model: "cursor-agent/composer-2",
+      model: "cursor/composer-2.5",
     };
     prepareSubagentToolCall(input, null);
-    expect(input.model).toBe("composer-2");
+    expect(input.model).toBe("cursor/composer-2.5");
   });
 });
 

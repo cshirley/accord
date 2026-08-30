@@ -60,7 +60,7 @@ export const SubagentParamsSchema = Type.Object({
     }),
   ),
   thinking: Type.Optional(
-    StringEnum(["off", "minimal", "low", "medium", "high", "xhigh"] as const, {
+    StringEnum(["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const, {
       description: "Override thinking level when the provider supports --thinking",
     }),
   ),

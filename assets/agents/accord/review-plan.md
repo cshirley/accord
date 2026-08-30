@@ -2,6 +2,7 @@
 name: review-plan
 description: "Plan review — mechanical checks (AC coverage, reuse usage, TDD ordering, constraint honoring) and architectural judgement in a single pass."
 tier: reasoning
+thinking: xhigh
 tools:
   read: true
   grep: true

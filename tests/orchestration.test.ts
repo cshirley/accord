@@ -133,8 +133,10 @@ describe("resume orchestration", () => {
     expect(r.outcome).toBe("spawn");
     if (r.outcome === "spawn") {
       expect(r.agent).toBe("phase-spec");
-      expect(r.task).toContain("dispatch_agent: phase-spec");
+      expect(r.task).toContain("ACCORD harness — phase-spec");
       expect(r.task).toContain("work_item_phase: speccing");
+      expect(r.task).toContain("draft:");
+      expect(r.task).toContain("answered:");
     }
   });
 

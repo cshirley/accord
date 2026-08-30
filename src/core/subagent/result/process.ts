@@ -186,7 +186,7 @@ export async function processSubagentToolResult(
       if (stderrTail) log.error(`stderr: ${stderrTail}`);
       const billedHint =
         billedOutput > 0
-          ? `The subagent billed ~${String(billedOutput)} output tokens but returned no harvestable text or return packet. If using \`cursor-agent\`, set \`hideThinkingBlock\` to \`false\` in Pi settings or ensure the agent ends with a \`\`\`json return block.`
+          ? `The subagent billed ~${String(billedOutput)} output tokens but returned no harvestable text or return packet. If using \`cursor\`, set \`hideThinkingBlock\` to \`false\` in Pi settings or ensure the agent ends with a \`\`\`json return block.`
           : `This usually means the model or provider is not available in the subagent process. Check credentials (\`dev_subagent_preflight\`) and that the model profile matches your API keys.`;
       contentAppend += [
         `\n\n❌ **${agentName} returned an empty response — pipeline cannot continue.**`,

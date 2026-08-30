@@ -18,6 +18,7 @@ import {
 } from "../../../core/telemetry/usage.js";
 import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../../../integrations/pi-subagent.js";
 import type { HookState } from "../hook-state.js";
+import { activateForDispatchAgent } from "../dynamic-tools.js";
 import { syncHarnessRunSessionEntry } from "../hook-state.js";
 import { updateStatusBar } from "../status-bar.js";
 import { startOrchestratorSubagentChatDisplay } from "./chat-display.js";
@@ -78,6 +79,8 @@ export function createResumeOrchestrationRuntimeHost(
       }
 
       const { agent, task } = prepared;
+
+      activateForDispatchAgent(pi, state, agent);
 
       ctx.ui.notify(`${spawnLabel}: starting ${agent}…`, "info");
 

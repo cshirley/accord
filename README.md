@@ -28,6 +28,8 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 | [`docs/pipeline.md`](docs/pipeline.md)                   | …see the command flow and the per-pattern execution diagrams (standard, quick_fix, express, orchestrated, investigate, infra, analyse) plus pattern selection rules. |
 | [`docs/harness-orchestration.md`](docs/harness-orchestration.md) | …read the **target** design: workflow graph in core, deterministic routing, validation boundaries, thin Pi adapter, and phased migration off skill-driven orchestration. |
 | [`docs/harness-orchestration-implementation-plan.md`](docs/harness-orchestration-implementation-plan.md) | …follow the **build plan**: spikes, phases 1–7, acceptance criteria, feature flags, MCP options, and open decisions. |
+| [`docs/pi-sdk-upgrade-plan.md`](docs/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
+| [`CHANGELOG.md`](CHANGELOG.md) | …see release notes for the Pi 0.83 upgrade (phases 0–5). |
 | [`docs/artifacts.md`](docs/artifacts.md)                 | …know where work-item state and committed artifacts live on disk, plus the work-item-ID format.                                                                      |
 | [`docs/schemas.md`](docs/schemas.md)                     | …look up the JSON schema for any artifact or agent return packet.                                                                                                    |
 | [`docs/hooks-and-tools.md`](docs/hooks-and-tools.md)     | …trace what runs at each Pi lifecycle event and which `dev_*` tools the harness exposes (also over stdio MCP).                                                       |
@@ -50,6 +52,10 @@ For the CI autopipeline (Jira-triggered, fully autonomous spec→PR), see the de
 ## Install Pi ([pi.dev](https://pi.dev/))
 
 ACCORD is a [Pi](https://pi.dev/) package: the `/dev` command, hooks, and bundled skills run inside the **Pi coding agent** terminal app. Install Pi first, then add this repo (see [Quickstart](#quickstart) below).
+
+**Requires Pi ≥ 0.83.0** (`@earendil-works/pi-coding-agent` and peer packages). Upgrade with `npm install -g @earendil-works/pi-coding-agent@latest` or the [pi.dev installer](https://pi.dev/install.sh) if your CLI is older.
+
+**OpenRouter:** when routing OpenAI-compatible models through OpenRouter, set `compat.sessionAffinityFormat` to `"openrouter"` on those models in Pi `models.json` so session-affinity headers use `x-session-id` (Pi 0.83+). See Pi [models.md](https://github.com/earendil-works/pi-coding-agent/blob/main/docs/models.md#compat-fields).
 
 **Linux and macOS** — recommended installer from the Pi site:
 

@@ -21,22 +21,22 @@
  *   └───────────────────────────────────────────────┘
  *
  * Profiles own the `provider` prefix and the `thinkingMode` (how thinking is
- * expressed for that provider): `flag` (Anthropic/Google), `embedded` (Cursor —
- * baked into the model id), `reasoning_effort` (OpenAI), `none` (local).
+ * expressed for that provider): `flag` (Anthropic/Google/Cursor),
+ * `reasoning_effort` (OpenAI), `none` (local).
  * That decoupling fixes the bug where switching session provider produced
  * invalid model ids like `openai/claude-opus-4-7`.
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { getAgentDir, readStoredCredential } from "@earendil-works/pi-coding-agent";
 import { loadAgentFromFile } from "./agent-load.js";
 
 export type AgentScope = "user" | "project" | "both";
 
 export type ModelTier = "reasoning" | "workhorse" | "lightweight";
-export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
-export type ThinkingMode = "flag" | "embedded" | "reasoning_effort" | "none";
+export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+export type ThinkingMode = "flag" | "reasoning_effort" | "none";
 export type ReasoningEffort = "low" | "medium" | "high";
 
 export interface TierConfig {
@@ -127,24 +127,36 @@ let _configCachePath: string | null = null;
 let _configWarned = false;
 let _credentialFallbackWarned = false;
 
-function hasCursorAgentCredentials(): boolean {
-  return Boolean(process.env.CURSOR_API_KEY || process.env.CURSOR_ACCESS_TOKEN);
+/** Provider name for Cursor-backed profiles. */
+export const CURSOR_PROVIDER = "cursor";
+
+/**
+ * Cursor accepts an env-var key, and also stores an OAuth credential in pi's
+ * auth store under the provider name — which is how a browser/CLI login shows
+ * up, with no env var set.
+ */
+export function hasCursorCredentials(): boolean {
+  if (process.env.CURSOR_API_KEY || process.env.CURSOR_ACCESS_TOKEN) return true;
+  return Boolean(readStoredCredential(CURSOR_PROVIDER));
 }
 
-function findCursorAgentProfileName(cfg: SubagentConfig): string | null {
-  if (cfg.profiles["cursor-claude"]?.provider === "cursor-agent") {
-    return "cursor-claude";
-  }
+/**
+ * First Cursor profile, or null when we hold no Cursor credentials. A profile
+ * literally named `cursor-claude` wins, matching the shipped template.
+ */
+export function findCursorProfileName(cfg: SubagentConfig): string | null {
+  if (!hasCursorCredentials()) return null;
+  if (cfg.profiles["cursor-claude"]?.provider === CURSOR_PROVIDER) return "cursor-claude";
   for (const [name, profile] of Object.entries(cfg.profiles)) {
-    if (profile.provider === "cursor-agent") return name;
+    if (profile.provider === CURSOR_PROVIDER) return name;
   }
   return null;
 }
 
 /**
  * When the chosen profile targets Anthropic directly but no API key is present,
- * prefer a cursor-agent profile when Cursor credentials are available. Avoids
- * child `pi` processes that hang until spawn timeout.
+ * prefer a Cursor profile when Cursor credentials are available. Avoids child
+ * `pi` processes that hang until spawn timeout.
  */
 export function resolveProfileForCredentials(
   cfg: SubagentConfig,
@@ -155,15 +167,16 @@ export function resolveProfileForCredentials(
     return requestedProfileName;
   }
 
-  const cursorProfile = findCursorAgentProfileName(cfg);
-  if (!cursorProfile || !hasCursorAgentCredentials()) {
+  const cursorProfile = findCursorProfileName(cfg);
+  if (!cursorProfile) {
     return requestedProfileName;
   }
 
   if (!_credentialFallbackWarned) {
     console.error(
       `[subagent] profile "${requestedProfileName}" uses provider "anthropic" but ANTHROPIC_API_KEY is unset; ` +
-        `using "${cursorProfile}" (cursor-agent). Set ANTHROPIC_API_KEY or change activeProfile in subagent.json.`,
+        `using "${cursorProfile}" (${cfg.profiles[cursorProfile].provider}). ` +
+        `Set ANTHROPIC_API_KEY or change activeProfile in subagent.json.`,
     );
     _credentialFallbackWarned = true;
   }
@@ -179,10 +192,11 @@ function isValidConfig(parsed: unknown): parsed is SubagentConfig {
   for (const [name, p] of Object.entries(cfg.profiles)) {
     if (!p || typeof p !== "object") return false;
     if (typeof p.provider !== "string") return false;
-    if (
-      !p.thinkingMode ||
-      !["flag", "embedded", "reasoning_effort", "none"].includes(p.thinkingMode)
-    )
+    // `embedded` belonged to the removed cursor-agent provider. Coerce rather
+    // than reject: an invalid mode fails the whole config, so a profile left
+    // over from that era would take every other profile down with it.
+    if ((p.thinkingMode as string) === "embedded") p.thinkingMode = "flag";
+    if (!p.thinkingMode || !["flag", "reasoning_effort", "none"].includes(p.thinkingMode))
       return false;
     if (!p.tiers || typeof p.tiers !== "object") {
       console.error(`[subagent] profile "${name}" missing tiers`);
@@ -353,7 +367,7 @@ export function resolveModelConfig(
   // Partial-profile fallback: if the target profile doesn't define this tier,
   // borrow the *whole* tier recipe from the default profile (provider +
   // thinkingMode + model). Borrowing piecemeal would recreate the original bug
-  // (e.g. cursor-agent provider with an Anthropic-shaped model id).
+  // (e.g. Cursor provider with an Anthropic-shaped model id).
   if (!tierConfig && targetProfile !== defaultProfile) {
     tierConfig = defaultProfile.tiers[tier];
     if (tierConfig) {

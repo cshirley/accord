@@ -8,7 +8,7 @@
  * No dependency on pi's extension API.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -43,7 +43,10 @@ export function loadAuth(): AuthStore {
 
 export function saveAuth(auth: AuthStore): void {
   try {
-    writeFileSync(AUTH_FILE, JSON.stringify(auth, null, 2));
+    writeFileSync(AUTH_FILE, JSON.stringify(auth, null, 2), { mode: 0o600 });
+    // `mode` only applies when the file is created, so re-assert it for files
+    // written before this was enforced.
+    chmodSync(AUTH_FILE, 0o600);
   } catch (e) {
     console.error("Failed to save auth file:", e);
   }

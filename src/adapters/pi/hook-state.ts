@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { DevHarnessConfig } from "../../core/config/index.js";
+import type { AccordToolBundle } from "../../core/tools/active-set.js";
 import { discoverWorkItems, readHarnessRunMeta } from "../../core/telemetry/usage.js";
 
 export interface HookState {
@@ -11,6 +12,8 @@ export interface HookState {
   /** In-memory running cost totals per work item. Seeded from file on session_start,
    *  incremented on each usage event. Avoids re-parsing full JSONL on every append. */
   costCache: Map<string, number>;
+  /** Phase 2 — bundles activated for dynamic `dev_*` tool surface. */
+  activatedToolBundles: Set<AccordToolBundle>;
 }
 
 /**

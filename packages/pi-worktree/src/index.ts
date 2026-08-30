@@ -10,6 +10,10 @@ import * as path from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import {
+  registerWorktreeStateEntryRenderer,
+  WORKTREE_STATE_ENTRY_TYPE,
+} from "./entry-render.js";
+import {
   abortMerge,
   addWorktree,
   aheadBehind,
@@ -37,7 +41,7 @@ import {
 
 const WORKTREE_DIR = ".worktrees";
 const BRANCH_PREFIX = "wt/";
-const STATE_TYPE = "worktree-state";
+const STATE_TYPE = WORKTREE_STATE_ENTRY_TYPE;
 
 // ── State ──────────────────────────────────────────────────
 
@@ -101,6 +105,7 @@ function formatWorktreeTable(
 export default function (pi: ExtensionAPI) {
   const exec = makeExec(pi);
   const state: WorktreeState = { worktrees: {} };
+  registerWorktreeStateEntryRenderer(pi);
 
   // ── State persistence ──────────────────────────────────
 

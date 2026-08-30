@@ -26,12 +26,13 @@ import { reconcileCoarsePhaseUntilStable } from "./reconcile-coarse-phase.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
 import { resolveDevSubcommandOrchestration } from "./resolve/subcommand.js";
 import {
+  extractReturnStatus,
   postSpawnReplanDecision,
   runSpawnFollowUpChain,
 } from "./spawn-followup.js";
 import type { NextStep, ResumeOrchestrationResolution, RunUntilStopResult } from "./types.js";
 
-export type ResumeOrchestrationStallReason = "repeat_spawn";
+export type ResumeOrchestrationStallReason = "repeat_spawn" | "needs_input";
 
 async function applySpawnFollowUps(
   workItemId: string,
@@ -54,6 +55,10 @@ async function applySpawnFollowUps(
       parsedReturn: initial.parsedReturn,
     },
   });
+}
+
+function stallReasonAfterStop(parsedReturn: unknown): ResumeOrchestrationStallReason | undefined {
+  return extractReturnStatus(parsedReturn) === "needs_input" ? "needs_input" : undefined;
 }
 
 export interface RunResumeOrchestrationWithReplansResult {
@@ -146,7 +151,12 @@ export async function runResumeOrchestrationWithReplans(
       lastRun.lastSpawn &&
       postSpawnReplanDecision(lastRun.lastSpawn.parsedReturn, lastRun.lastSpawn.agent) === "stop"
     ) {
-      return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
+      return {
+        firstResolution: firstResolution ?? resolution,
+        lastRun,
+        iterations: iter + 1,
+        stalledReason: stallReasonAfterStop(lastRun.lastSpawn.parsedReturn),
+      };
     }
 
     const reconcileSteps = reconcileCoarsePhaseUntilStable(workItemId);
@@ -266,7 +276,12 @@ export async function runDevSubcommandOrchestrationWithReplans(
       lastRun.lastSpawn &&
       postSpawnReplanDecision(lastRun.lastSpawn.parsedReturn, lastRun.lastSpawn.agent) === "stop"
     ) {
-      return { firstResolution: firstResolution ?? resolution, lastRun, iterations: iter + 1 };
+      return {
+        firstResolution: firstResolution ?? resolution,
+        lastRun,
+        iterations: iter + 1,
+        stalledReason: stallReasonAfterStop(lastRun.lastSpawn.parsedReturn),
+      };
     }
 
     const reconcileSteps = reconcileCoarsePhaseUntilStable(workItemId);

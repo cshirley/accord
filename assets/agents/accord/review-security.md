@@ -2,6 +2,7 @@
 name: review-security
 description: "Security review — OWASP top 10, auth, payment, input validation, secrets, supply chain, and privilege escalation. Triggered on security-sensitive paths."
 tier: reasoning
+thinking: xhigh
 tools:
   read: true
   grep: true

@@ -10,6 +10,7 @@ import { devResumeState } from "../../queries/resume-state.js";
 import { isWorkItemPattern } from "../phase-coarse-routing.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import type { ResumeOrchestrationResolution } from "../types.js";
+import { buildInterviewResumeTaskOrGeneric } from "./interview-task.js";
 import { buildResumeTaskBrief } from "./resume.js";
 
 export interface ForcedAgentOrchestrationOptions {
@@ -92,6 +93,14 @@ export function resolveForcedAgentOrchestration(
 
   const baseTask =
     implementBrief.value ??
+    buildInterviewResumeTaskOrGeneric({
+      workItemId: state.id,
+      phase: state.phase,
+      title: state.title,
+      pattern: state.pattern,
+      variant: state.variant,
+      dispatchAgent: agentId,
+    }) ??
     buildResumeTaskBrief({
       workItemId: state.id,
       phase: state.phase,

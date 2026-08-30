@@ -31,6 +31,25 @@ const activeSpawns = new Map<string, ActiveOrchestratorSpawn>();
 let lastSpawnWidgetTui: { requestRender: () => void } | undefined;
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 let heartbeatCtx: Pick<ExtensionCommandContext, "hasUI" | "ui"> | undefined;
+let spawnWorkingRowHidden = false;
+
+function updateSpawnWorkingRowVisibility(
+  ctx: Pick<ExtensionCommandContext, "hasUI" | "ui">,
+  hide: boolean,
+): void {
+  if (!ctx.hasUI) {
+    return;
+  }
+  if (hide && !spawnWorkingRowHidden) {
+    ctx.ui.setWorkingVisible(false);
+    spawnWorkingRowHidden = true;
+    return;
+  }
+  if (!hide && spawnWorkingRowHidden) {
+    ctx.ui.setWorkingVisible(true);
+    spawnWorkingRowHidden = false;
+  }
+}
 
 function formatSpawnLine(spawn: ActiveOrchestratorSpawn): string {
   const { agent, progress } = spawn;
@@ -173,6 +192,7 @@ export function applyOrchestratorSpawnStatus(
     return;
   }
   const lines = formatOrchestratorSpawnStatusLines();
+  updateSpawnWorkingRowVisibility(ctx, lines.length > 0);
   if (lines.length === 0) {
     ctx.ui.setStatus(ORCHESTRATOR_SPAWN_STATUS_KEY, undefined);
     ctx.ui.setWorkingMessage(undefined);

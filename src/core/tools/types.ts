@@ -9,10 +9,13 @@
 
 import type { Static, TSchema } from "typebox";
 import type { DevHarnessConfig } from "../config/types.js";
+import type { SubagentPreflightHostHints } from "../queries/subagent-preflight.js";
 
 export interface ToolHandlerContext {
   /** Returns the live ACCORD dev harness config (or `null` when not loaded). */
   getConfig: () => DevHarnessConfig | null;
+  /** Pi host: scoped models + resolved judgment model for preflight diagnostics. */
+  getSubagentPreflightHints?: () => SubagentPreflightHostHints | undefined;
 }
 
 export interface ToolHandlerResult {
@@ -40,6 +43,8 @@ export interface ToolDefinition<TParams extends TSchema = TSchema> {
   description: string;
   /** LLM prompt hint surfaced by Pi via `promptSnippet`. Ignored by MCP. */
   promptSnippet: string;
+  /** Optional Pi `Guidelines` bullets while the tool is active. Ignored by MCP. */
+  promptGuidelines?: string[];
   /** TypeBox schema for the tool parameters (always a `Type.Object(...)`). */
   parameters: TParams;
   /** Host-neutral handler called by both adapters. */

@@ -24,7 +24,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type ArtifactStore, findArtifactRef, stripArtifactNotice } from "./artifacts.js";
 import type { ThriftConfig } from "./config.js";
-import type { InputStats } from "./input.js";
+import { collectToolCalls, describeCall, type InputStats } from "./input.js";
 import { reduceToolOutput } from "./reducers.js";
 
 /** Below pi's own serialisation cut there is nothing to gain by reducing. */
@@ -32,6 +32,7 @@ const REDUCE_ABOVE_BYTES = 2_000;
 
 interface MutableToolResult {
   role: string;
+  toolCallId?: string;
   toolName?: string;
   content?: Array<{ type: string; text?: string }>;
 }
@@ -44,11 +45,20 @@ export async function reduceMessagesInPlace(
   if (!Array.isArray(messages)) return 0;
 
   let reduced = 0;
+  const calls = collectToolCalls(messages);
 
   for (const message of messages as MutableToolResult[]) {
     if (message?.role !== "toolResult" || !Array.isArray(message.content)) continue;
 
     const toolName = message.toolName ?? "";
+
+    // Artifacts first spilled here are the ones stage 1 declined to touch — every
+    // result between the 2KB floor above and that tool's `maxResultBytes`, which
+    // is a wide band rather than an edge case. Labelling them with the bare tool
+    // name left the recall inventory listing several indistinguishable `bash`
+    // rows, and post-compaction is exactly when the model is relying on it.
+    const label = describeCall(toolName, calls.get(message.toolCallId ?? "")?.arguments ?? {});
+
     for (const block of message.content) {
       if (block?.type !== "text" || typeof block.text !== "string") continue;
       const original = block.text;
@@ -61,8 +71,7 @@ export async function reduceMessagesInPlace(
 
       // A block reduced at source already names the artifact holding its full
       // output; reuse that rather than storing the abbreviated copy again.
-      const ref =
-        findArtifactRef(original) ?? (await store.spill(toolName, toolName, original))?.ref;
+      const ref = findArtifactRef(original) ?? (await store.spill(toolName, label, original))?.ref;
       if (ref === undefined) continue;
 
       block.text =
@@ -75,6 +84,14 @@ export async function reduceMessagesInPlace(
   return reduced;
 }
 
+/** Skip turn-prefix reduction when overflow recovery will retry the aborted turn. */
+export function shouldSkipTurnPrefixCompactionPrep(
+  reason: "manual" | "threshold" | "overflow",
+  willRetry: boolean,
+): boolean {
+  return reason === "overflow" && willRetry;
+}
+
 export function registerCompactionSupport(
   pi: ExtensionAPI,
   config: ThriftConfig,
@@ -83,8 +100,9 @@ export function registerCompactionSupport(
   pi.on("session_before_compact", async (event) => {
     if (!config.enabled || !config.input.enabled || !config.input.reduce) return;
 
-    const { preparation } = event;
+    const { preparation, reason, willRetry } = event;
     await reduceMessagesInPlace(preparation.messagesToSummarize, config, stats.store);
+    if (shouldSkipTurnPrefixCompactionPrep(reason, willRetry)) return;
     await reduceMessagesInPlace(preparation.turnPrefixMessages, config, stats.store);
   });
 
@@ -92,12 +110,15 @@ export function registerCompactionSupport(
   // enough room that the hysteresis latch should not stay engaged. Holding
   // either would make the next call prune against a conversation that no
   // longer exists.
-  pi.on("session_compact", async () => {
+  pi.on("session_compact", async (event) => {
     stats.state = { decisions: new Map(), engaged: false };
     stats.lastContextBytesSaved = 0;
     stats.lastContextStubbed = 0;
     stats.lastContextSuperseded = 0;
     stats.lastContextHeldBack = 0;
     stats.lastReason = "idle";
+    stats.lastCompactionReason = event.reason;
+    stats.lastCompactionTokensBefore = event.compactionEntry.tokensBefore;
+    stats.lastCompactionUsageTokens = event.compactionEntry.usage?.totalTokens ?? null;
   });
 }

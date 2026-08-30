@@ -44,13 +44,35 @@ Before any verify agent runs:
 1. **Staleness check** — confirms `spec.json` and `plan.json` exist at `docs/dev/<ID>/` and that `verify.json` (if it exists) isn't stale (spec/plan modified since last verify).
 2. **Verification commands** — runs the full `verification_commands` array from config. Blocks if ALL commands fail. Injects results into the verify agent's brief.
 
-### End-of-turn notification (agent_end)
+### End-of-turn notification (agent_settled)
 
-Counts pending decisions across all work items. Notifies the user if any exist.
+After the agent loop fully settles (auto-retry, compaction, and queued continuations finished — not on bare `agent_end`), counts pending decisions across all work items and notifies the user if any exist.
 
 ### Session start (session_start)
 
-Loads `devConfig` from `AGENTS.md`. Discovers work items. Restores the status bar.
+- Loads `devConfig` from `AGENTS.md`, clears harness run tag state, seeds cost cache, and syncs the `dev-harness-run` session entry.
+- **Dynamic tools (default on):** applies `setActiveTools` with the core `dev_*` set; expands phase bundles on `/dev` subcommands, bootstrap, and orchestration dispatch. Set `ACCORD_DYNAMIC_TOOLS=0` to keep every registered `dev_*` tool active (MCP stdio always exposes the full registry).
+- Restores the status bar.
+
+### Provider correlation headers (before_provider_headers)
+
+When harness run metadata or an active work item is known, injects `X-Accord-Run-Id`, `X-Accord-Session-Tag`, and `X-Accord-Work-Item-Id` on outgoing provider requests for traceability.
+
+### Session entry renderers (registerEntryRenderer)
+
+Display-only markers appended via `appendEntry` (not in LLM context):
+
+| `customType` | Renderer |
+|--------------|----------|
+| `dev-harness-run` | Run tag, run_id, work item ids, auto-provisioned flag |
+| `thrift-output-level` | Current output compression level |
+| `pi-worktree` | Branch/path summary |
+
+Orchestrator subagent spawns still use `registerMessageRenderer` for live progress rows.
+
+### Built-in tool render overrides
+
+`read`, `write`, and `edit` are re-registered with harness-aware `renderCall` (paths under `.tasks/` or `docs/dev/` are highlighted). Execution delegates to Pi's built-in tool factories — only the TUI call row changes.
 
 ### Status bar
 
@@ -58,7 +80,20 @@ Displays: language, active work item ID + phase, pending decision count, cumulat
 
 ## Tools
 
-All registered in `src/adapters/pi/tools.ts` as thin wrappers around core domain functions.
+All registered in `src/adapters/pi/tools.ts` as thin wrappers around core domain functions. Core harness tools may include `promptSnippet` (Available tools section) and `promptGuidelines` (Guidelines bullets while active) when dynamic activation exposes them.
+
+### Dynamic activation (Pi only)
+
+| Set | Tools |
+|-----|-------|
+| **Core (always)** | `dev_intent`, `dev_intent_enrich`, `dev_bootstrap`, `dev_resume_state`, `dev_work_item_status`, `dev_tasks`, `subagent` |
+| **spec** | checkpoint, spec_gaps, transition, finalize, subagent_preflight |
+| **plan** | checkpoint, transition, subagent_preflight |
+| **code** | code_brief, nonce, quick_fix_brief, verify_summary, promote_events, decision_packet, subagent_preflight |
+| **init** | init_detect, init_write |
+| **meta** | retro, review_queue, workflow_cost, orchestrate, rehydrate |
+
+Bundles activate on `/dev` subcommands, bootstrap success, orchestration dispatch, and as a fallback when the model calls an inactive `dev_*` tool. See `src/core/tools/active-set.ts`.
 
 | Tool | Domain function | Purpose |
 |------|----------------|---------|
@@ -83,7 +118,7 @@ All registered in `src/adapters/pi/tools.ts` as thin wrappers around core domain
 | `dev_rehydrate` | `src/core/work-items/rehydrate.ts` | Recreate `.tasks/<ID>.json` (and task files) from `docs/dev/<ID>/` when runtime state was lost |
 | `dev_workflow_cost` | `src/core/queries/workflow-cost.ts` | Token and estimated USD cost rollup from `.tasks/<ID>-usage.jsonl` |
 | `dev_finalize` | `src/core/work-items/lifecycle.ts` | Persist terminal outcome, next action, retro, shift-left findings |
-| `dev_retro` | `src/core/queries/retro.ts` | Analyse harness sessions for shift-left improvements |
+| `dev_retro` | `src/core/queries/retro.ts` | Analyse harness sessions for shift-left improvements (enriched via `SessionManager` / RPC `get_entries` parity) |
 | `dev_init_detect` | `src/core/config/init-detect.ts` | Detect project stack, infer commands, resolve config placement |
 | `dev_init_write` | `src/core/config/init-write.ts` | Write detected config to AGENTS.md |
 

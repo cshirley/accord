@@ -21,7 +21,7 @@ Both files are deliberately tuned for a non-interactive Anthropic-only run:
 
 - **Single provider** (`anthropic`). The autopipeline only wires
   `ANTHROPIC_API_KEY`, so the profile uses `provider: "anthropic"` with
-  `thinkingMode: "flag"`. There is no `cursor-agent` or `openai` profile to
+  `thinkingMode: "flag"`. There is no `cursor` or `openai` profile to
   swap to — keep the file minimal so a missing key never silently routes to
   a profile that cannot authenticate.
 - **Lower thinking levels** than a developer's local setup. CI runs are

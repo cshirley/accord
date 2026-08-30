@@ -14,6 +14,7 @@ import {
   summarizeSubagentProgress,
 } from "../progress/index.js";
 import { parseSubagentReturnJson } from "../response-contract.js";
+import { appendThinkingCliArgs } from "./cli-args.js";
 import { getFinalOutput } from "./output.js";
 import {
   buildSystemPrompt,
@@ -85,23 +86,7 @@ export async function spawnSubagent(params: SpawnSubagentParams): Promise<SpawnS
 
   const args: string[] = ["--mode", "json", "-p", "--no-session"];
   if (qualifiedModel) args.push("--model", qualifiedModel);
-  if (modelResolved) {
-    switch (modelResolved.thinkingMode) {
-      case "flag":
-        if (modelResolved.thinking) args.push("--thinking", modelResolved.thinking);
-        break;
-      case "reasoning_effort":
-        if (modelResolved.reasoningEffort) {
-          args.push("--reasoning-effort", modelResolved.reasoningEffort);
-        }
-        break;
-      case "embedded":
-      case "none":
-        break;
-    }
-  } else if (params.thinking) {
-    args.push("--thinking", params.thinking);
-  }
+  appendThinkingCliArgs(args, modelResolved, params.thinking);
   if (tools && tools.length > 0) args.push("--tools", tools.join(","));
 
   const activity = new SubagentActivityBuffer();

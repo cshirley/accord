@@ -3,9 +3,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  type Artifact,
   ArtifactStore,
   type ArtifactStoreOptions,
   findArtifactRef,
+  formatInventory,
   stripArtifactNotice,
 } from "../packages/pi-thrift/src/artifacts.js";
 
@@ -193,5 +195,111 @@ describe("refs in text", () => {
     const annotated = 'body\n\n[thrift: reduced. Full output: thrift_recall(ref="abc123").]';
 
     expect(stripArtifactNotice(annotated)).toBe("body");
+  });
+});
+
+describe("formatInventory", () => {
+  function artifact(overrides: Partial<Artifact> = {}): Artifact {
+    return {
+      ref: "a".repeat(16),
+      toolName: "read",
+      label: "read src/input.ts",
+      path: "/tmp/x.txt",
+      bytes: 2048,
+      lines: 90,
+      createdAt: 0,
+      ...overrides,
+    };
+  }
+
+  test("says plainly when there is nothing to recall", () => {
+    expect(formatInventory([])).toMatch(/No artifacts held/);
+  });
+
+  test("lists the ref, size, line count and origin of each artifact", () => {
+    const text = formatInventory([artifact()]);
+
+    expect(text).toContain("a".repeat(16));
+    expect(text).toContain("90 lines");
+    expect(text).toContain("read src/input.ts");
+  });
+
+  test("counts one artifact in the singular", () => {
+    expect(formatInventory([artifact()])).toContain("1 recoverable artifact,");
+  });
+
+  test("caps the listing and reports the exact remainder", () => {
+    const many = Array.from({ length: 45 }, (_, i) =>
+      artifact({ ref: String(i).padStart(16, "0"), label: `read file-${i}.ts` }),
+    );
+
+    const text = formatInventory(many);
+
+    expect(text).toContain("45 recoverable artifacts");
+    expect(text).toContain("read file-39.ts");
+    expect(text).not.toContain("read file-40.ts");
+    expect(text).toContain("[5 older artifacts not shown.]");
+  });
+
+  test("omits the remainder footer when everything fits", () => {
+    expect(formatInventory([artifact()])).not.toContain("not shown");
+  });
+
+  // The inventory exists because a ref outlives the text that carried it, so the
+  // store's own ordering is what makes the cap tolerable.
+  test("preserves the newest-first order it is given", () => {
+    const text = formatInventory([
+      artifact({ ref: "b".repeat(16), label: "read newer.ts" }),
+      artifact({ ref: "c".repeat(16), label: "read older.ts" }),
+    ]);
+
+    expect(text.indexOf("read newer.ts")).toBeLessThan(text.indexOf("read older.ts"));
+  });
+});
+
+describe("recall without a ref", () => {
+  test("points a bad ref at the inventory rather than dumping bare refs", async () => {
+    const store = await newStore();
+    await store.put("read", "read a.ts", "content");
+
+    await expect(store.recall("nope")).rejects.toThrow(/with no ref to list what is available/);
+  });
+
+  test("lists what the store holds, newest first", async () => {
+    const store = await newStore();
+    await store.put("read", "read older.ts", "one\ntwo");
+    await store.put("bash", "bash npm test", "three\nfour");
+
+    const text = formatInventory(store.list());
+
+    expect(text).toContain("2 recoverable artifacts");
+    expect(text.indexOf("bash npm test")).toBeLessThan(text.indexOf("read older.ts"));
+  });
+
+  // A stage-2 pass spills everything it elides inside one loop, so `Date.now()`
+  // is identical across the batch. Sorting on it left the batch oldest-first,
+  // which is precisely the half the inventory cap discards.
+  test("orders a same-millisecond batch newest-first", async () => {
+    const store = await newStore();
+    for (let i = 0; i < 5; i++) await store.put("read", `read file-${i}.ts`, `body ${i}`);
+
+    const labels = store.list().map((a) => a.label);
+
+    expect(labels).toEqual([
+      "read file-4.ts",
+      "read file-3.ts",
+      "read file-2.ts",
+      "read file-1.ts",
+      "read file-0.ts",
+    ]);
+  });
+
+  test("keeps a re-spill of identical content at its original position", async () => {
+    const store = await newStore();
+    await store.put("read", "read first.ts", "same body");
+    await store.put("read", "read second.ts", "other body");
+    await store.put("read", "read first.ts", "same body");
+
+    expect(store.list().map((a) => a.label)).toEqual(["read second.ts", "read first.ts"]);
   });
 });

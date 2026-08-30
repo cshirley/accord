@@ -23,7 +23,15 @@ import {
   clearHarnessRunTag,
   inferWorkItemIdFromSession,
   loadPricing,
+  readHarnessRunMeta,
 } from "../../core/telemetry/usage.js";
+import { buildHarnessCorrelationHeaders } from "./correlation-headers.js";
+import {
+  activateForWorkItemPhase,
+  applyAccordActiveTools,
+  maybeActivateDevToolCall,
+  resetDynamicToolBundles,
+} from "./dynamic-tools.js";
 import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
 import { isPlanModeActive, planModeSubagentBlockReason } from "./plan-mode.js";
 import { updateStatusBar } from "./status-bar.js";
@@ -31,6 +39,25 @@ import { updateStatusBar } from "./status-bar.js";
 export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookState): void {
   const pricing = loadPricing();
   const orchestratorDedup = createOrchestratorUsageDedup();
+
+  // ── Provider correlation headers ─────────────────────
+
+  pi.on("before_provider_headers", async (_event, ctx) => {
+    const envTag = process.env.DEV_HARNESS_RUN_TAG?.trim();
+    const envRunId = process.env.DEV_HARNESS_RUN_ID?.trim();
+    const meta = readHarnessRunMeta();
+    const headers = buildHarnessCorrelationHeaders({
+      runId: envRunId || meta?.run_id,
+      sessionTag: envTag || meta?.tag,
+      workItemId:
+        state.activeWorkItem ??
+        inferWorkItemIdFromSession(ctx, state.activeWorkItem) ??
+        meta?.work_item_ids?.[0],
+    });
+    for (const [key, value] of Object.entries(headers)) {
+      _event.headers[key] = value;
+    }
+  });
 
   // ── File validation ──────────────────────────────────
 
@@ -70,6 +97,8 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
   // ── Config guard + brief injection (+ gather/verify preflight) ──
 
   pi.on("tool_call", async (event, ctx) => {
+    maybeActivateDevToolCall(pi, state, event.toolName);
+
     if (event.toolName !== "subagent") return;
     if (isPlanModeActive(ctx)) return { block: true, reason: planModeSubagentBlockReason() };
 
@@ -90,6 +119,14 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
   // ── Subagent result processing ───────────────────────
 
   pi.on("tool_result", async (event, ctx) => {
+    if (event.toolName === "dev_bootstrap" && !event.isError) {
+      const details = event.details as { work_item?: { phase?: string } } | undefined;
+      const phase = details?.work_item?.phase;
+      if (phase) {
+        activateForWorkItemPhase(pi, state, phase);
+      }
+    }
+
     if (event.toolName !== "subagent") return;
 
     const contentAppend = await processSubagentToolResult({
@@ -124,13 +161,17 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
     });
   });
 
-  // ── End-of-turn notification ─────────────────────────
+  // ── End-of-turn notification (after settle: no auto-retry/compaction pending) ──
 
-  pi.on("agent_end", async (_event, ctx) => {
+  pi.on("agent_settled", async (_event, ctx) => {
     notifyPendingDecisionsIfAny({
       notify: (level, msg) => ctx.ui.notify(msg, level === "warning" ? "warning" : "info"),
     });
     updateStatusBar(ctx, state);
+  });
+
+  pi.on("session_info_changed", async () => {
+    syncHarnessRunSessionEntry(pi, state);
   });
 
   // ── Session start ────────────────────────────────────
@@ -139,6 +180,8 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
     state.devConfig = loadDevHarnessConfig();
     setLogLevel(resolveLogLevel(state.devConfig?.log_level));
     clearHarnessRunTag();
+    resetDynamicToolBundles(state);
+    applyAccordActiveTools(pi, state);
     applyHarnessCostSeed(state, seedHarnessSessionCostState());
     updateStatusBar(ctx, state);
     syncHarnessRunSessionEntry(pi, state);
