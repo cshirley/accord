@@ -6,7 +6,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 ## Goals (unchanged from design)
 
-1. **Graph and transition policy** live in `packages/pi-accord/src/core/` as declarative config + interpreter, with unit tests.
+1. **Graph and transition policy** live in `packages/accord-core/src/` as declarative config + interpreter, with unit tests.
 2. **Orchestrator** owns boundary validation and routing; **components** (agents, briefers) own domain validation.
 3. **`packages/pi-accord/src/adapters/pi`** implements **host ports only** (especially programmatic or equivalent `spawnSubagent`); no workflow graph in the adapter.
 4. **`packages/pi-accord/assets/skills/accord/SKILL.md`** — **removed** (D3 complete). Orchestration prose lives in core; companion skills (`commit`, `pr`, `review`) remain bundled.
@@ -31,7 +31,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 ### Deliverables
 
-1. **`packages/pi-accord/src/core/orchestration/`** (exact name per team preference; keep stable once imported). **D1:** hand-rolled declarative graph + interpreter (no FSM library):
+1. **`packages/accord-core/src/orchestration/`** (exact name per team preference; keep stable once imported). **D1:** hand-rolled declarative graph + interpreter (no FSM library):
    - `host.ts` — `OrchestrationHost` interface: `spawnSubagent`, `notify`, `confirm` (minimal set); optional `runJudgment` stub behind flag.
    - `types.ts` — `OrchestrationContext`, `NextStep` union (`SpawnSubagent`, `RunTool`, `NotifyUser`, `StopForUser`, `DelegateToSkill` placeholder), `StopReason`, `SubagentSpawnRequest` (align with existing subagent payload shapes).
    - `graph.ts` — declarative nodes/edges + metadata (`agentId`, policy keys); `validateGraph(registry)` at module load or explicit `init`.
@@ -44,11 +44,11 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
    - Interpreter: given fixture `WorkItem` + checkpoint + synthetic `SubagentCompleted` event → expected `NextStep`.
    - Golden fixtures copied from minimal `.tasks/*.json` + `docs/dev/*/…` snippets (redact noise).
 
-3. **Exports** — `packages/pi-accord/src/core/orchestration/index.ts` re-export surface for adapters.
+3. **Exports** — `packages/accord-core/src/orchestration/index.ts` re-export surface for adapters.
 
 ### Acceptance criteria
 
-- `bun test` includes new tests; no new dependency on Pi types inside `packages/pi-accord/src/core/orchestration/`.
+- `bun test` includes new tests; no new dependency on Pi types inside `packages/accord-core/src/orchestration/`.
 - `validateGraph` runs in CI (import side effect or explicit test).
 
 ### Out of scope
@@ -57,7 +57,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 ### Status (landed slice)
 
-- **Module:** `packages/pi-accord/src/core/orchestration/` — `types.ts` (`NextStep`, graph types, S0c chain/parallel spawn requests, `RunUntilStopResult`), `graph.ts` (`REFERENCE_ORCHESTRATION_GRAPH` + `validateOrchestrationGraph` with reachability + guard keys + resume agent registry checks), `guards.ts` (`always_true` / `always_false`), `interpreter.ts` (edge selection + `interpretResume` alias), `implement-resume.ts` (`resolveImplementResumeAgentId`), `implement-phase-code.ts`, `finish-resolve.ts`, `runner.ts` (`planDevResumeOrchestration`, `planDevFinishOrchestration`, `resumeResolutionToNextSteps`, `runUntilStop`, `runResumeOrchestrationWithReplans`, `runFinishOrchestration`, `runFinishOrchestrationFromResolution`, `buildDevOrchestratePayload`), `policy.ts` (quick-fix + implement loop defaults).
+- **Module:** `packages/accord-core/src/orchestration/` — `types.ts` (`NextStep`, graph types, S0c chain/parallel spawn requests, `RunUntilStopResult`), `graph.ts` (`REFERENCE_ORCHESTRATION_GRAPH` + `validateOrchestrationGraph` with reachability + guard keys + resume agent registry checks), `guards.ts` (`always_true` / `always_false`), `interpreter.ts` (edge selection + `interpretResume` alias), `implement-resume.ts` (`resolveImplementResumeAgentId`), `implement-phase-code.ts`, `finish-resolve.ts`, `runner.ts` (`planDevResumeOrchestration`, `planDevFinishOrchestration`, `resumeResolutionToNextSteps`, `runUntilStop`, `runResumeOrchestrationWithReplans`, `runFinishOrchestration`, `runFinishOrchestrationFromResolution`, `buildDevOrchestratePayload`), `policy.ts` (quick-fix + implement loop defaults).
 - **Tests:** graph/orphan validation, reference transitions, `runUntilStop` with fake host (`tests/orchestration.test.ts`).
 - **MCP / Pi:** `dev_orchestrate` tool (parity list) returns resume orchestration JSON for headless clients (`docs/hooks-and-tools.md`).
 
@@ -101,7 +101,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 - **Resume:** when the effective phase resolves to a registered agent id, `/dev resume <ID>` runs that subagent via `runSubagent()`. **Coarse WI phases** map in core (`phase-coarse-routing.ts`): `aligning`→`phase-align`, `speccing`→`phase-spec`, `planning`→`phase-plan`, `gathering`→`phase-gather`, `exploring`→`phase-explore`; `researching`→`phase-gather` **only** for pattern `analyse`. **`implement` + `implementing`:** primary task file `phase` → harness agent via `resolve/primary-task.ts` and `post-result/`. **`quick_fix` + `fixing`:** per-task phases via `quick-fix.ts`. Agents that `requiresConfig` block when no dev harness config is loaded.
 - **Finish:** `/dev finish <ID>` surfaces **review queue** + **tasks**, then runs `runFinishOrchestrationFromResolution` → **phase-verify-acceptance**; on exit 0 runs **dev_verify_summary** + **dev_finalize** (`finish-orchestration.ts`).
 - **Adapter files:** `workflow-orchestration.ts` drives `runResumeOrchestrationWithReplans` / `runDevSubcommandOrchestrationWithReplans` with `createResumeOrchestrationRuntimeHost` (`subagent/runtime-host.ts`: preflight + `runSubagent()` + `processSubagentToolResult`). Replans after each successful spawn until a non-spawn outcome, duplicate spawn fingerprint, subagent failure, or sequential cap.
-- **Core module:** `packages/pi-accord/src/core/orchestration/*` — `resolve/` (resume, finish, subcommand), `runner`, `graph`/`interpreter`/`policy`, `post-result/`, types, `env.ts`.
+- **Core module:** `packages/accord-core/src/orchestration/*` — `resolve/` (resume, finish, subcommand), `runner`, `graph`/`interpreter`/`policy`, `post-result/`, types, `env.ts`.
 
 ---
 
@@ -125,7 +125,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 ### Acceptance criteria
 
 - No duplicate conflicting instructions between skill and core for covered flows.
-- Schema validation on return packets before policy runs (reuse `packages/pi-accord/src/core/artifacts/` validation where applicable).
+- Schema validation on return packets before policy runs (reuse `packages/accord-core/src/artifacts/` validation where applicable).
 
 ### Status (Phase 3 — landed)
 
@@ -147,7 +147,7 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
    - Runner calls existing `recommendIntentMode` / bootstrap (`dev_bootstrap`) deterministically where possible.
    - Optional: one bounded LLM step only if product requires it — behind host `runJudgment` with strict schema; default off.
 
-3. **`devDispatch` extensions** if the runner needs richer parsing than raw `args` string (keep parsing in `packages/pi-accord/src/core/commands/`).
+3. **`devDispatch` extensions** if the runner needs richer parsing than raw `args` string (keep parsing in `packages/accord-core/src/commands/`).
 
 ### Acceptance criteria
 
@@ -156,8 +156,8 @@ This document turns [`harness-orchestration.md`](harness-orchestration.md) into 
 
 ### Status (Phase 4 — landed)
 
-1. **Routing table** — `packages/pi-accord/src/core/commands/subcommand-routing.ts` maps every `DEV_SUBCOMMANDS` entry to `extension_local` or `core_orchestrator` (`assertSubcommandRoutingComplete` enforces parity with `DEV_SUBCOMMANDS`). `isPlanModeReadOnlyDevSubcommand` centralises Pi plan-mode allowlist (`help`, `tasks`, `retro`).
-2. **Classify / free text** — `packages/pi-accord/src/core/commands/classify-dispatch.ts` (`classifyPreflight`): runs `recommendIntentMode` (same rules as `dev_intent`); optional deterministic `dev_bootstrap` when input is `TICKET title…`, `needs_confirmation` is false, intent supports a persisted pattern, and the work item id is not already present. Pi `extension.ts` notifies intent, then `tryClassifyFollowUpViaCoreOrchestrator` or in-session follow-up with `dev_*` tools.
+1. **Routing table** — `packages/accord-core/src/commands/subcommand-routing.ts` maps every `DEV_SUBCOMMANDS` entry to `extension_local` or `core_orchestrator` (`assertSubcommandRoutingComplete` enforces parity with `DEV_SUBCOMMANDS`). `isPlanModeReadOnlyDevSubcommand` centralises Pi plan-mode allowlist (`help`, `tasks`, `retro`).
+2. **Classify / free text** — `packages/accord-core/src/commands/classify-dispatch.ts` (`classifyPreflight`): runs `recommendIntentMode` (same rules as `dev_intent`); optional deterministic `dev_bootstrap` when input is `TICKET title…`, `needs_confirmation` is false, intent supports a persisted pattern, and the work item id is not already present. Pi `extension.ts` notifies intent, then `tryClassifyFollowUpViaCoreOrchestrator` or in-session follow-up with `dev_*` tools.
 3. **`devDispatch` extension** — `parseKnownDevSubcommandArgs` + `DEV_WORK_ITEM_ID_PATTERN` in `dispatch.ts` for structured tails (flags vs leading work item id).
 4. **Help** — `help.ts` documents local vs flagged orchestrator vs skill vs free-text routing.
 5. **Tests** — `tests/core-contracts.test.ts` covers `parseKnownDevSubcommandArgs`, routing completeness, and `classifyPreflight` bootstrap / skip paths.
@@ -190,10 +190,10 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 
 ### Status (Phase 5 — landed)
 
-1. **Schema** — `packages/pi-accord/schemas/orchestration-judgment-packet.json` (`schema_version`, `brief_appendix`, optional `focus_points`). No routing fields.
-2. **Core** — `packages/pi-accord/src/core/orchestration/judgment.ts` (`validateOrchestrationJudgmentPacket`, `mergeResumeTaskWithJudgment`, `extractJsonObjectFromModelText`, `isOrchestrationJudgmentConfigured`). `runResumeOrchestrationWithReplans` merges judgment **after** plan fingerprinting (fingerprint uses pre-judgment task) and **before** spawn.
+1. **Schema** — `packages/accord-core/schemas/orchestration-judgment-packet.json` (`schema_version`, `brief_appendix`, optional `focus_points`). No routing fields.
+2. **Core** — `packages/accord-core/src/orchestration/judgment.ts` (`validateOrchestrationJudgmentPacket`, `mergeResumeTaskWithJudgment`, `extractJsonObjectFromModelText`, `isOrchestrationJudgmentConfigured`). `runResumeOrchestrationWithReplans` merges judgment **after** plan fingerprinting (fingerprint uses pre-judgment task) and **before** spawn.
 3. **Pi host** — `createResumeOrchestrationRuntimeHost` implements `runJudgment` via `@earendil-works/pi-ai` `completeSimple` when `ACCORD_ORCHESTRATION_JUDGMENT=1` **and** `orchestration.judgment.enabled` in Dev Harness JSON; otherwise returns `undefined` (core applies template appendix when judgment is configured, or skips merge when not configured).
-4. **Config** — `orchestration.judgment` in `packages/pi-accord/schemas/accord-schema.json` + `DevHarnessOrchestrationConfig` (`enabled`, optional `agents`, optional `max_tokens`).
+4. **Config** — `orchestration.judgment` in `packages/accord-core/schemas/accord-schema.json` + `DevHarnessOrchestrationConfig` (`enabled`, optional `agents`, optional `max_tokens`).
 5. **Tests** — `tests/orchestration-judgment.test.ts` (validation, merge, oversized appendix, random-input fuzz → template).
 
 ---
@@ -214,7 +214,7 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 
 ### Status (landed slice)
 
-- **Option A (partial):** `dev_orchestrate` with `command: "resume"` | `"finish"` returns `{ resolution, next_steps, programmatic_spawn_supported, judgment_configured_for_spawn, spawn_task_after_template_judgment? }` JSON on both Pi tools and MCP (registered from `packages/pi-accord/src/core/tools/registry.ts`). Stdio MCP remains spawnless and judgment-LLM-less; clients interpret `next_steps` locally and use `spawn_task_after_template_judgment` when present for resume/judgment template parity.
+- **Option A (partial):** `dev_orchestrate` with `command: "resume"` | `"finish"` returns `{ resolution, next_steps, programmatic_spawn_supported, judgment_configured_for_spawn, spawn_task_after_template_judgment? }` JSON on both Pi tools and MCP (registered from `packages/accord-core/src/tools/registry.ts`). Stdio MCP remains spawnless and judgment-LLM-less; clients interpret `next_steps` locally and use `spawn_task_after_template_judgment` when present for resume/judgment template parity.
 - **Contract test:** `tests/dev-orchestrate-payload-contract.test.ts` asserts the stable payload shape (Phase 6 acceptance — MCP tests extended).
 
 ---
@@ -233,7 +233,7 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 
 ### Status (D3 complete)
 
-- **`packages/pi-accord/assets/skills/accord/SKILL.md`** — **Removed.** Orchestration routing, policy, and help text live in `packages/pi-accord/src/core/orchestration/` and `packages/pi-accord/src/core/commands/help.ts`.
+- **`packages/pi-accord/assets/skills/accord/SKILL.md`** — **Removed.** Orchestration routing, policy, and help text live in `packages/accord-core/src/orchestration/` and `packages/accord-core/src/commands/help.ts`.
 - **Docs** — `docs/` updated to describe core-orchestrator-default behaviour (this pass).
 
 ### Status (partial — performance note)
@@ -274,7 +274,7 @@ Phases 3–4 can split into parallel streams **after** Phase 2 proves the host p
 
 | ID | Decision | Chosen option | Notes |
 |----|-----------|---------------|--------|
-| **D1** | Graph notation | **Hand-rolled TypeScript** | Declarative config + small interpreter in `packages/pi-accord/src/core/orchestration/`; no third-party FSM library. Keeps dependency surface minimal and matches repo style. |
+| **D1** | Graph notation | **Hand-rolled TypeScript** | Declarative config + small interpreter in `packages/accord-core/src/orchestration/`; no third-party FSM library. Keeps dependency surface minimal and matches repo style. |
 | **D2** | Where retry counters live | **Task file** (e.g. per-task JSON under `.tasks/`) | Loop caps and pre-impl gate state for test/review adversary flows stay on the task artifact; work item JSON stays high-level. Align new fields with existing task shape where possible. |
 | **D3** | Skill removal aggressiveness | **Big-bang** | **Done.** `packages/pi-accord/assets/skills/accord/SKILL.md` removed after core runner + Pi host covered workflow subcommands. |
 

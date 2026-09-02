@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/provider-schema.json",
+  "$schema": "../../../../accord-core/schemas/provider-schema.json",
   "name": "google-docs",
   "kind": "enrichment",
   "label": "Google Docs",

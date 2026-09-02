@@ -6,11 +6,11 @@ import { join } from "node:path";
 import {
   appendReviewFeedbackToResumeBrief,
   persistValidatedAgentReturn,
-} from "../src/core/orchestration/index.js";
+} from "@clive.shirley/accord-core/orchestration/index.js";
 import {
   extractAnalysisFromAssistantText,
   extractAnalysisFromSubagentResult,
-} from "../src/core/subagent/index.js";
+} from "@clive.shirley/accord-core/subagent/index.js";
 
 let tempCwd: string;
 let originalCwd: string;

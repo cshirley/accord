@@ -16,13 +16,15 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 - Takes a free-text request to `/dev` and routes it to the right pipeline (quick fix, full implement, investigate, infrastructure, analysis).
 - Persists every step as a validated artifact (`brief.md`, `spec.json`, `plan.json`, `verify.json`) so review and verification agents have something concrete to work against.
 - Runs preflight and post-step hooks (config guard, schema injection, gather/verify preflight, post-code verification, usage accounting) without the agent needing to know they exist.
-- Bundles its own Pi skill, agent, and provider prompts; an installer links them into the host's config directory.
+- Runs the same orchestration loop headlessly via the **`accord`** CLI (`packages/accord-cli`) — no Pi REPL required for `resume`, `finish`, workflow phases, `init`, or standalone `review`.
 
 ## Documentation
 
 | Doc                                                      | Read this when you want to…                                                                                                                                          |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`docs/accord-workflow.md`](docs/accord-workflow.md)     | …get the single end-to-end overview of the harness: phases, agents, schemas, hooks, commands. Start here.                                                            |
+| [`docs/accord-cli.md`](docs/accord-cli.md) | …run ACCORD headlessly: `accord resume`, harness backends (`pi` / `exec`), MCP `ACCORD_MCP_HARNESS`, env vars. |
+| [`docs/accord-cli-extraction.md`](docs/accord-cli-extraction.md) | …see the monorepo split (`accord-core`, `accord-cli`, `pi-accord`) and extraction phases. |
 | [`docs/accord-research.md`](docs/accord-research.md)     | …understand _why_ ACCORD is shaped the way it is — the principles, the design decisions that emerged in the build, and what got cut.                                 |
 | [`docs/concepts.md`](docs/concepts.md)                   | …understand the naming and the codebase shape (Core / Adapters / Crucible / Briefing / Harness).                                                                     |
 | [`docs/pipeline.md`](docs/pipeline.md)                   | …see the command flow and the per-pattern execution diagrams (standard, quick_fix, express, orchestrated, investigate, infra, analyse) plus pattern selection rules. |
@@ -197,6 +199,15 @@ Or expose the same `dev_*` tools over stdio MCP without registering as a Pi exte
 ```bash
 ACCORD_CWD=/path/to/your/repo bun run mcp
 ```
+
+Headless orchestration without MCP or Pi:
+
+```bash
+bun run accord init
+bun run accord resume YOUR-TICKET-1 --harness pi -y
+```
+
+See [`docs/accord-cli.md`](docs/accord-cli.md).
 
 Inside a project that has the extension installed:
 

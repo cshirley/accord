@@ -1,7 +1,7 @@
+import { resolveActivePrimaryTaskId } from "@clive.shirley/accord-core/orchestration/post-result/primary-task.js";
+import { discoverWorkItems } from "@clive.shirley/accord-core/telemetry/usage.js";
+import { loadWorkItem } from "@clive.shirley/accord-core/work-items/io.js";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { resolveActivePrimaryTaskId } from "../../core/orchestration/post-result/primary-task.js";
-import { discoverWorkItems } from "../../core/telemetry/usage.js";
-import { loadWorkItem } from "../../core/work-items/io.js";
 import type { HookState } from "./hook-state.js";
 
 export function updateStatusBar(ctx: ExtensionContext, state: HookState): void {

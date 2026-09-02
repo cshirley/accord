@@ -15,13 +15,13 @@ import {
   currentAssetSignature,
   installPiAssets,
   readInstalledMetadata,
-} from "../src/core/asset-install.js";
+} from "@clive.shirley/accord-core/asset-install.js";
 import {
   defaultGlobalConfigTemplate,
   seedGlobalConfigFile,
   stripJsonComments,
-} from "../src/core/config/global.js";
-import { maybeAutoInstallAssets } from "../src/core/harness/asset-bootstrap.js";
+} from "@clive.shirley/accord-core/config/global.js";
+import { maybeAutoInstallAssets } from "@clive.shirley/accord-core/harness/asset-bootstrap.js";
 
 const tempDirs: string[] = [];
 

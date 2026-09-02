@@ -2,17 +2,18 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dirname, "..");
+const coreRoot = join(repoRoot, "..", "accord-core");
 
+import {
+  buildSubagentResponseContract,
+  resolveHarnessAgentFile,
+} from "@clive.shirley/accord-core/subagent/index.js";
 import {
   formatResponseContractAppendix,
   loadAgentFromFile,
   parseSubagentReturnJson,
   resolveSpawnAgent,
 } from "../../pi-subagent/src/api.js";
-import {
-  buildSubagentResponseContract,
-  resolveHarnessAgentFile,
-} from "../src/core/subagent/index.js";
 
 describe("loadAgentFromFile", () => {
   test("loads bundled phase-code agent", () => {
@@ -38,7 +39,7 @@ describe("resolveSpawnAgent", () => {
 
 describe("response contract", () => {
   test("formatResponseContractAppendix includes schema path content", () => {
-    const schemaPath = join(repoRoot, "schemas/return-schemas/phase-code.json");
+    const schemaPath = join(coreRoot, "schemas/return-schemas/phase-code.json");
     const appendix = formatResponseContractAppendix({
       format: "json_schema_path",
       schemaPath,

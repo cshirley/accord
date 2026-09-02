@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/provider-schema.json",
+  "$schema": "../../../../accord-core/schemas/provider-schema.json",
   "name": "github-pr",
   "kind": "enrichment",
   "label": "GitHub PRs",

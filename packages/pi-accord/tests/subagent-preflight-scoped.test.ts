@@ -3,7 +3,7 @@ import {
   applyScopedPreflightWarnings,
   modelInScopedList,
   resolveJudgmentModelRefFromHarness,
-} from "../src/core/queries/subagent-preflight-scoped.js";
+} from "@clive.shirley/accord-core/queries/subagent-preflight-scoped.js";
 
 describe("subagent preflight scoped diagnostics", () => {
   test("modelInScopedList matches provider and modelId", () => {

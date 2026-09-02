@@ -116,7 +116,7 @@ If pi loads but `/dev` is missing, check:
 - TypeScript edits under `src/` or `packages/` take effect on the next pi session restart (Pi loads extension modules from the registered checkout, so there's no rebuild step).
 - Prompt edits under `packages/pi-accord/assets/agents/` and `packages/pi-accord/assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
 - Skill edits under `packages/pi-accord/assets/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation.
-- Schema edits require running `node packages/pi-accord/schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
+- Schema edits require running `node packages/accord-core/schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
 
 Run `npm run check` before any structural change you intend to keep — the suite covers tests, schemas, asset/manifest consistency, type-check, bundle, and a runtime smoke.
 
@@ -154,3 +154,22 @@ ACCORD_CWD=/path/to/your/project bun run mcp
 ```
 
 This serves the same tool surface over stdio MCP. The Pi-only event hooks (on-write schema validation, post-code verification, brief injection) don't run in this mode — wire equivalent behaviour into your client's hook system if you need it. See [`docs/hooks-and-tools.md`](hooks-and-tools.md) for the full hook list.
+
+To run orchestration spawns from MCP (not just `dev_orchestrate` plan JSON):
+
+```bash
+ACCORD_MCP_HARNESS=pi ACCORD_CWD=/path/to/your/project bun run mcp
+```
+
+## Standalone `accord` CLI (no Pi)
+
+From this checkout:
+
+```bash
+bun run accord tasks
+bun run accord init --write
+bun run accord resume DEMO-1 --harness pi -y
+bun run accord review --json
+```
+
+Full reference: [`docs/accord-cli.md`](accord-cli.md). Pi `/dev` workflow subcommands delegate to the same `accord-cli` commands in-process (or set `ACCORD_CLI_DELEGATE=subprocess`).

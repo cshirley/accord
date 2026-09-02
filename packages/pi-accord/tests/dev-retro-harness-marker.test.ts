@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { devRetro } from "../src/core/queries/retro.js";
+import { devRetro } from "@clive.shirley/accord-core/queries/retro.js";
 
 describe("devRetro harness marker correlation", () => {
   const originalCwd = process.cwd();

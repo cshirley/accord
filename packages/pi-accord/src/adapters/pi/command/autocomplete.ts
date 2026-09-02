@@ -1,12 +1,16 @@
 import * as path from "node:path";
+import { DEV_SUBCOMMANDS } from "@clive.shirley/accord-core/commands/dispatch.js";
+import {
+  listWorkItemFileRefs,
+  loadWorkItem,
+  readJson,
+} from "@clive.shirley/accord-core/work-items/io.js";
+import type { WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
 import type {
   AutocompleteItem,
   AutocompleteProvider,
   AutocompleteSuggestions,
 } from "@earendil-works/pi-tui";
-import { DEV_SUBCOMMANDS } from "../../../core/commands/dispatch.js";
-import { listWorkItemFileRefs, loadWorkItem, readJson } from "../../../core/work-items/io.js";
-import type { WorkItem } from "../../../core/work-items/types.js";
 
 export const WORK_ITEM_ID_SUBCOMMANDS = new Set([
   "align",

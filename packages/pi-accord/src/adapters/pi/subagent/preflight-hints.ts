@@ -2,18 +2,18 @@
  * Build Pi-session hints for core subagent preflight diagnostics.
  */
 
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import { resolveJudgmentModelRefFromHarness } from "@clive.shirley/accord-core/queries/subagent-preflight-scoped.js";
+import type {
+  SubagentPreflightHostHints,
+  SubagentPreflightScopedModel,
+} from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
   type AgentConfig,
   loadSubagentConfig,
   resolveModelConfig,
 } from "../../../../../pi-subagent/src/agents.js";
-import type { DevHarnessConfig } from "../../../core/config/index.js";
-import {
-  resolveJudgmentModelRefFromHarness,
-  type SubagentPreflightHostHints,
-  type SubagentPreflightScopedModel,
-} from "../../../core/queries/subagent-preflight.js";
 
 const JUDGMENT_LIGHTWEIGHT_AGENT: AgentConfig = {
   name: "__judgment__",

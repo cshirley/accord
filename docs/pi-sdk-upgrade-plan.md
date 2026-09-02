@@ -161,13 +161,13 @@ Pi 0.80.x: `session_before_compact` / `session_compact` include `reason: "manual
 | init | `dev_init_detect`, `dev_init_write` |
 | meta | `dev_retro`, `dev_review_queue`, `dev_workflow_cost`, `dev_orchestrate`, `dev_rehydrate`, … |
 
-Exact grouping should mirror `packages/pi-accord/src/core/orchestration/` phase → agent mapping.
+Exact grouping should mirror `packages/accord-core/src/orchestration/` phase → agent mapping.
 
 ### Deliverables
 
 | Task | File(s) |
 |------|---------|
-| Define `ACCORD_CORE_TOOLS` + phase bundles | `packages/pi-accord/src/core/tools/active-set.ts` (new) |
+| Define `ACCORD_CORE_TOOLS` + phase bundles | `packages/accord-core/src/tools/active-set.ts` (new) |
 | Apply `setActiveTools` on `session_start` | `packages/pi-accord/src/adapters/pi/extension.ts` |
 | Expand on orchestration phase | `packages/pi-accord/src/adapters/pi/workflow-orchestration.ts`, `subagent/runtime-host.ts` |
 | Expand on bootstrap | `pi-hook-listeners.ts` or tool wrapper |
@@ -199,7 +199,7 @@ Exact grouping should mirror `packages/pi-accord/src/core/orchestration/` phase 
 
 ### 3a — `orchestration.judgment.model` config + resolution
 
-**Files:** `packages/pi-accord/schemas/accord-schema.json`, `packages/pi-accord/src/core/config/types.ts`, [`configuration.md`](configuration.md), `packages/pi-accord/src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
+**Files:** `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/src/config/types.ts`, [`configuration.md`](configuration.md), `packages/pi-accord/src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
 
 **Schema** — extend `orchestration.judgment`:
 
@@ -232,7 +232,7 @@ Exact grouping should mirror `packages/pi-accord/src/core/orchestration/` phase 
 
 ### 3b — Preflight diagnostics (scoped models as reference)
 
-**Files:** `packages/pi-accord/src/core/queries/subagent-preflight.ts`, optional Pi adapter bridge to pass scoped snapshot into core preflight
+**Files:** `packages/accord-core/src/queries/subagent-preflight.ts`, optional Pi adapter bridge to pass scoped snapshot into core preflight
 
 **Add to preflight payload** when the host can supply them:
 
@@ -375,7 +375,7 @@ Resolve before Phase 2–3 land:
 
 | Feature | Implementation |
 |---------|----------------|
-| RPC `get_entries` / `get_tree` parity | `packages/pi-accord/src/core/queries/session-transcript.ts` — `SessionManager.open` for `dev_retro` enrichment |
+| RPC `get_entries` / `get_tree` parity | `packages/accord-core/src/queries/session-transcript.ts` — `SessionManager.open` for `dev_retro` enrichment |
 | Built-in tool render overrides | `packages/pi-accord/src/adapters/pi/builtin-tool-renders.ts` — harness path highlighting on `read`/`write`/`edit` |
 
 ## SDK features still deferred

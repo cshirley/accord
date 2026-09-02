@@ -3,12 +3,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { DevHarnessConfig } from "../src/core/config/index.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import {
   planSpawnFollowUp,
   postSpawnReplanDecision,
   runResumeOrchestrationWithReplans,
-} from "../src/core/orchestration/index.js";
+} from "@clive.shirley/accord-core/orchestration/index.js";
 
 function minimalDevConfig(): DevHarnessConfig {
   return {

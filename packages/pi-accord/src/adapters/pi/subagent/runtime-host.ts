@@ -2,20 +2,20 @@
  * Pi {@link OrchestrationRuntimeHost} — preflight, programmatic spawn, harness result path.
  */
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { tryCommitOnTaskDone } from "../../../core/orchestration/commit-on-task-done.js";
-import type { OrchestrationRuntimeHost } from "../../../core/orchestration/host.js";
+import { tryCommitOnTaskDone } from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
+import type { OrchestrationRuntimeHost } from "@clive.shirley/accord-core/orchestration/host.js";
 import {
   buildSingleSubagentRunRequest,
   processSubagentToolResult,
   readPreparedSingleSubagentInput,
   runSubagentToolPreflight,
-} from "../../../core/subagent/index.js";
+} from "@clive.shirley/accord-core/subagent/index.js";
 import {
   extractTaskIdFromTaskText,
   extractWorkItemId,
   loadPricing,
-} from "../../../core/telemetry/usage.js";
+} from "@clive.shirley/accord-core/telemetry/usage.js";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../../../integrations/pi-subagent.js";
 import { activateForDispatchAgent } from "../dynamic-tools.js";
 import type { HookState } from "../hook-state.js";
@@ -119,15 +119,18 @@ export function createResumeOrchestrationRuntimeHost(
             timeoutMs: SPAWN_TIMEOUT_DISABLED,
             signal: ctx.signal,
             onEvent: (event) => {
-              if (event.type === "progress") {
-                updateOrchestratorSpawn(spawnStatusId, event.progress);
+              if (event.type === "progress" && event.progress) {
+                updateOrchestratorSpawn(
+                  spawnStatusId,
+                  event.progress as Parameters<typeof updateOrchestratorSpawn>[1],
+                );
               }
             },
             onUpdate: createOrchestrationSubagentOnUpdate(
               (results) => ({ ...subagentDetails, results }),
               (partial) => chatUi.onUpdate(partial as Parameters<typeof chatUi.onUpdate>[0]),
             ),
-          }),
+          }) as import("../../../integrations/pi-subagent.js").RunSubagentRequest,
         );
       } catch (e) {
         if (e instanceof SubagentRunError) {

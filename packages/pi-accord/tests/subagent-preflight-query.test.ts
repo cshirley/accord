@@ -5,7 +5,7 @@ import * as path from "node:path";
 import {
   agentRequiresSpawnPreflight,
   runSubagentSpawnPreflightCheck,
-} from "../src/core/queries/subagent-preflight.js";
+} from "../src/queries/subagent-preflight.js";
 
 const savedAnthropicKey = process.env.ANTHROPIC_API_KEY;
 const savedCursorKey = process.env.CURSOR_API_KEY;

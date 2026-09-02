@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { renderSpecMarkdown } from "../src/core/artifacts/render-spec-markdown.js";
-import { syncSpecMarkdownFromJson } from "../src/core/artifacts/spec-markdown.js";
+import { renderSpecMarkdown } from "@clive.shirley/accord-core/artifacts/render-spec-markdown.js";
+import { syncSpecMarkdownFromJson } from "@clive.shirley/accord-core/artifacts/spec-markdown.js";
 
 describe("renderSpecMarkdown", () => {
   test("renders AC headings and mermaid diagrams by section", () => {

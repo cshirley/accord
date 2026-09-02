@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -10,7 +12,15 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["bun-types"]
+    "types": ["bun-types"],
+    "paths": {
+      "@clive.shirley/accord-core": ["packages/accord-core/src/index.ts"],
+      "@clive.shirley/accord-core/*": ["packages/accord-core/src/*"],
+      "@clive.shirley/accord-cli": ["packages/accord-cli/src/index.ts"],
+      "@clive.shirley/accord-cli/*": ["packages/accord-cli/src/*"],
+      "@clive.shirley/pi-accord-harness": ["packages/pi-accord/src/index.ts"],
+      "@clive.shirley/pi-accord-harness/*": ["packages/pi-accord/src/*"]
+    }
   },
   "include": [
     "packages/*/src/**/*.ts",

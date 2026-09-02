@@ -20,11 +20,12 @@ Suggested product-language flow:
 
 The codebase is organized around harness concepts first, then host integration:
 
-- **Core** (`packages/pi-accord/src/core/`) contains host-neutral harness logic: work items, artifacts, config, queries, agent roles, briefing, telemetry, and Crucible verification.
+- **Core** (`packages/accord-core/src/`) contains host-neutral harness logic: work items, artifacts, config, queries, agent roles, briefing, telemetry, Crucible verification, and orchestration.
+- **Standalone CLI** (`packages/accord-cli/`) runs the same orchestration loop headlessly via `accord` — see [`docs/accord-cli.md`](accord-cli.md).
 - **ACCORD** is represented by the work item lifecycle, spec/plan artifacts, decisions, deviations, and intent contract helpers.
-- **Briefing** (`packages/pi-accord/src/core/briefing/`) is the context router that packages ACCORD artifacts into role-specific agent briefs.
-- **Crucible** (`packages/pi-accord/src/core/verification/`) owns verification pressure: command execution, formatted results, and stale-artifact checks.
-- **Harness** (`packages/pi-accord/src/core/harness/`) holds host-neutral hook logic (artifact validation, subagent prep/results, gather/verify preflight, orchestrator usage, session cost seeding). Pi maps lifecycle events to these callables; Cursor hook scripts can import the same module.
+- **Briefing** (`packages/accord-core/src/briefing/`) is the context router that packages ACCORD artifacts into role-specific agent briefs.
+- **Crucible** (`packages/accord-core/src/verification/`) owns verification pressure: command execution, formatted results, and stale-artifact checks.
+- **Harness** (`packages/accord-core/src/harness/`) holds host-neutral hook logic (artifact validation, subagent prep/results, gather/verify preflight, orchestrator usage, session cost seeding). Pi maps lifecycle events to these callables; Cursor hook scripts can import the same module.
 - **Adapters** (`packages/pi-accord/src/adapters/`) contain host-specific glue: Pi (`packages/pi-accord/src/adapters/pi/`) and a stdio MCP server (`packages/pi-accord/src/adapters/mcp/`) that exposes the same `dev_*` tools.
 
 See [`docs/pipeline.md`](pipeline.md) for the runtime command flow and pattern-by-pattern execution diagrams, and [`docs/file-structure.md`](file-structure.md) for the full directory tree. For the **target** harness-owned orchestration design (state machine in core, thin Pi adapter), see [`docs/harness-orchestration.md`](harness-orchestration.md). For the **implementation plan** (phased delivery), see [`docs/harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md).

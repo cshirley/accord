@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { agentSchemas, registeredAgentNames } from "../src/core/agents/registry.js";
-import { loadBundledProviders } from "../src/integrations/provider-deps.js";
+import { agentSchemas, registeredAgentNames } from "@clive.shirley/accord-core/agents/registry.js";
+import { loadBundledProviders } from "@clive.shirley/accord-core/integrations/provider-deps.js";
 
 type Manifest = {
   schema_version: string;
@@ -25,6 +25,7 @@ type PackageJson = {
 };
 
 const root = join(import.meta.dir, "..");
+const coreRoot = join(root, "..", "accord-core");
 const repoRoot = join(root, "..", "..");
 const manifestPath = join(root, "assets", "manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest;
@@ -84,7 +85,7 @@ for (const agent of manifest.assets.agents) {
   if (name !== agent) fail(`agent ${agent} frontmatter name is ${name ?? "missing"}`);
 
   for (const schema of agentSchemas(agent)) {
-    const schemaPath = join(root, "schemas", schema);
+    const schemaPath = join(coreRoot, "schemas", schema);
     if (!existsSync(schemaPath)) fail(`agent ${agent} references missing schema: ${schema}`);
   }
 }

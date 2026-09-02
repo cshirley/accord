@@ -2,15 +2,14 @@
  * Core orchestration entry for `/dev` subcommands (align, spec, plan, gaps, …).
  */
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import {
   isCoreOrchestratorEnabled,
   planDevResumeOrchestration,
   resolveDevSubcommandOrchestration,
-  runDevSubcommandOrchestrationWithReplans,
-  runResumeOrchestrationWithReplans,
-} from "../../core/orchestration/index.js";
-import { devResumeState } from "../../core/queries/resume-state.js";
+} from "@clive.shirley/accord-core/orchestration/index.js";
+import { devResumeState } from "@clive.shirley/accord-core/queries/resume-state.js";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { delegateResumeViaAccordCli, delegateSubcommandViaAccordCli } from "./cli-client.js";
 import { activateForDevSubcommand, activateForDispatchAgent } from "./dynamic-tools.js";
 import type { HookState } from "./hook-state.js";
 import { runOrchestratorPreflight } from "./subagent/command-preflight.js";
@@ -60,13 +59,12 @@ export async function tryDevSubcommandViaCoreOrchestrator(
 
   const preflight = runOrchestratorPreflight(args, pi, ctx, state, {
     command: subcommand,
-    spawnNotifyLabel: subcommand,
   });
   if (preflight.kind !== "ready") {
     return preflight.kind === "forward" ? "orchestrator_disabled" : "handled";
   }
 
-  const { workItemId, host } = preflight;
+  const { workItemId } = preflight;
   activateForDevSubcommand(pi, state, subcommand);
 
   const initialPlan =
@@ -82,14 +80,12 @@ export async function tryDevSubcommandViaCoreOrchestrator(
 
   const result =
     subcommand === "resume"
-      ? await runResumeOrchestrationWithReplans(workItemId, state.devConfig, host)
-      : await runDevSubcommandOrchestrationWithReplans(
-          subcommand,
-          workItemId,
-          args,
-          state.devConfig,
-          host,
-        );
+      ? await delegateResumeViaAccordCli(pi, ctx, state, workItemId, {
+          spawnNotifyLabel: subcommand,
+        })
+      : await delegateSubcommandViaAccordCli(pi, ctx, state, subcommand, workItemId, args, {
+          spawnNotifyLabel: subcommand,
+        });
 
   if (result.stalledReason === "repeat_spawn") {
     ctx.ui.notify(

@@ -3,8 +3,7 @@
  * module stays a small surface for exports + `registerHooks` wiring.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadDevHarnessConfig } from "../../core/config/index.js";
+import { loadDevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import {
   applyHarnessCostSeed,
   assembleHandoffContent,
@@ -17,14 +16,15 @@ import {
   runSubagentToolPreflight,
   seedHarnessSessionCostState,
   validateHarnessArtifactWriteIfApplicable,
-} from "../../core/harness/index.js";
-import { resolveLogLevel, setLogLevel } from "../../core/logging.js";
+} from "@clive.shirley/accord-core/harness/index.js";
+import { resolveLogLevel, setLogLevel } from "@clive.shirley/accord-core/logging.js";
 import {
   clearHarnessRunTag,
   inferWorkItemIdFromSession,
   loadPricing,
   readHarnessRunMeta,
-} from "../../core/telemetry/usage.js";
+} from "@clive.shirley/accord-core/telemetry/usage.js";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { buildHarnessCorrelationHeaders } from "./correlation-headers.js";
 import {
   activateForWorkItemPhase,

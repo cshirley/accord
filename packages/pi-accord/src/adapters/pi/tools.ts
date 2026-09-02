@@ -6,14 +6,17 @@
  * `AgentToolResult` envelope here.
  */
 
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import { ACCORD_TOOLS } from "@clive.shirley/accord-core/tools/registry.js";
+import type {
+  ToolHandlerContext,
+  ToolHandlerResult,
+} from "@clive.shirley/accord-core/tools/types.js";
 import type {
   AgentToolResult,
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import type { DevHarnessConfig } from "../../core/config/index.js";
-import { ACCORD_TOOLS } from "../../core/tools/registry.js";
-import type { ToolHandlerContext, ToolHandlerResult } from "../../core/tools/types.js";
 import { buildPiSubagentPreflightHints } from "./subagent/preflight-hints.js";
 
 function toPiResult(result: ToolHandlerResult): AgentToolResult<unknown> {
@@ -30,6 +33,11 @@ function buildToolHandlerContext(
     getSubagentPreflightHints: piCtx
       ? () => buildPiSubagentPreflightHints(piCtx, getConfig())
       : undefined,
+    getOrchestrateHostHints: () => ({
+      harness: "pi",
+      programmatic_spawn_supported: true,
+      execute_by_default: false,
+    }),
   };
 }
 

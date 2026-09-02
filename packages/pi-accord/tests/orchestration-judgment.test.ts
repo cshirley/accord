@@ -3,7 +3,7 @@ import {
   extractJsonObjectFromModelText,
   mergeResumeTaskWithJudgment,
   validateOrchestrationJudgmentPacket,
-} from "../src/core/orchestration/judgment.js";
+} from "@clive.shirley/accord-core/orchestration/judgment.js";
 
 describe("orchestration judgment packet", () => {
   test("accepts minimal valid packet", () => {

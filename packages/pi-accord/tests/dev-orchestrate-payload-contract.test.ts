@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import type { DevHarnessConfig } from "../src/core/config/index.js";
-import { buildDevOrchestratePayload } from "../src/core/orchestration/plan.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import {
+  buildDevOrchestratePayload,
+  enrichDevOrchestratePayload,
+} from "@clive.shirley/accord-core/orchestration/plan.js";
 
 /** Minimal valid Dev Harness block — enough for orchestration planning. */
 function stubDevConfig(): DevHarnessConfig {
@@ -17,6 +20,18 @@ function stubDevConfig(): DevHarnessConfig {
 }
 
 describe("dev_orchestrate payload contract (MCP / Pi tools)", () => {
+  test("enrichDevOrchestratePayload matches accord plan --json shape", () => {
+    const devConfig = stubDevConfig();
+    const base = buildDevOrchestratePayload("resume", "NO-SUCH-WORK-ITEM", devConfig);
+    const enriched = enrichDevOrchestratePayload(base, {
+      harness: "cli",
+      programmatic_spawn_supported: true,
+    });
+    expect(enriched.harness).toBe("cli");
+    expect(enriched.programmatic_spawn_supported).toBe(true);
+    expect(enriched.resolution).toEqual(base.resolution);
+  });
+
   test("every payload includes stable top-level keys for headless clients", () => {
     const devConfig = stubDevConfig();
     for (const command of ["resume", "finish"] as const) {

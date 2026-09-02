@@ -6,11 +6,19 @@
  * rendered into MCP `content[]` here.
  */
 
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import { compileSchemaToZodShape } from "@clive.shirley/accord-core/tools/compile-zod.js";
+import { ACCORD_TOOLS } from "@clive.shirley/accord-core/tools/registry.js";
+import type {
+  ToolHandlerContext,
+  ToolHandlerResult,
+} from "@clive.shirley/accord-core/tools/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { DevHarnessConfig } from "../../core/config/index.js";
-import { compileSchemaToZodShape } from "../../core/tools/compile-zod.js";
-import { ACCORD_TOOLS } from "../../core/tools/registry.js";
-import type { ToolHandlerResult } from "../../core/tools/types.js";
+import {
+  createMcpHarnessState,
+  createMcpOrchestrateToolContext,
+  resolveMcpHarnessId,
+} from "./mcp-orchestrate-host.js";
 
 function toMcpResult(result: ToolHandlerResult): {
   content: Array<{ type: "text"; text: string }>;
@@ -26,11 +34,31 @@ function toMcpResult(result: ToolHandlerResult): {
   return { content: [{ type: "text", text: body }] };
 }
 
+export type RegisterAccordMcpToolsOptions = {
+  cwd: string;
+};
+
 export function registerAccordMcpTools(
   mcp: McpServer,
   getConfig: () => DevHarnessConfig | null,
+  options: RegisterAccordMcpToolsOptions,
 ): void {
-  const ctx = { getConfig };
+  const harnessId = resolveMcpHarnessId();
+  const harnessState = createMcpHarnessState(getConfig);
+  const orchestrateHost = createMcpOrchestrateToolContext(
+    { cwd: options.cwd, getConfig, state: harnessState },
+    harnessId,
+  );
+
+  const ctx: ToolHandlerContext = {
+    getConfig: () => {
+      const config = getConfig();
+      harnessState.devConfig = config;
+      return config;
+    },
+    ...orchestrateHost,
+  };
+
   for (const tool of ACCORD_TOOLS) {
     mcp.registerTool(
       tool.name,

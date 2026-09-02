@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { devTasks } from "../src/core/queries/dashboard.js";
+import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
 import {
   isFinishReady,
   missingArtifactsForWorkItem,
   resolveDashboardActionHint,
   resolveReadOnlyResumeAgent,
-} from "../src/core/queries/dashboard-hints.js";
-import { writeJson } from "../src/core/work-items/io.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
-import type { TaskFile, WorkItem } from "../src/core/work-items/types.js";
+} from "@clive.shirley/accord-core/queries/dashboard-hints.js";
+import { writeJson } from "@clive.shirley/accord-core/work-items/io.js";
+import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
+import type { TaskFile, WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
 
 function tempProject(): string {
   const dir = join(

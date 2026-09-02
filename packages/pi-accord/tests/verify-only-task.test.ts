@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { applyPhaseVerifyTaskPostResult } from "../src/core/orchestration/post-result/phase-verify-task.js";
+import { applyPhaseVerifyTaskPostResult } from "@clive.shirley/accord-core/orchestration/post-result/phase-verify-task.js";
 import {
   bootstrapImplementTasksFromPlan,
   reconcileVerifyOnlyTasksFromPlan,
-} from "../src/core/work-items/artifact-discovery.js";
+} from "@clive.shirley/accord-core/work-items/artifact-discovery.js";
 
 const tmpRoot = join(import.meta.dirname, ".tmp-verify-only");
 const originalCwd = process.cwd();

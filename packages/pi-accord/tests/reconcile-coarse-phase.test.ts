@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { reconcileCoarsePhaseBeforeResume } from "../src/core/orchestration/reconcile-coarse-phase.js";
-import { devCheckpointWrite } from "../src/core/work-items/checkpoint.js";
-import { loadWorkItem } from "../src/core/work-items/io.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
+import { reconcileCoarsePhaseBeforeResume } from "@clive.shirley/accord-core/orchestration/reconcile-coarse-phase.js";
+import { devCheckpointWrite } from "@clive.shirley/accord-core/work-items/checkpoint.js";
+import { loadWorkItem } from "@clive.shirley/accord-core/work-items/io.js";
+import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
 
 let tempRoot: string;
 let cwdBefore: string;
