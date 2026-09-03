@@ -63,7 +63,7 @@ runs:
     - name: Cache pi + accord install (AC-12 + AC-13)
       uses: actions/cache@v4
       with:
-        key: accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/pi-accord/assets/manifest.json') }}
+        key: accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/accord-assets/manifest.json', '.accord-ci/packages/pi-accord/assets/manifest.pi.json') }}
         restore-keys: |
           accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-
           accord-${{ runner.os }}-${{ inputs.pi_version }}-

@@ -58,12 +58,12 @@ describe("installPiAssets", () => {
     // through-link reads which break under macOS /var → /private/var
     // canonicalisation when readlink returns a relative path).
     expect(readlinkSync(join(target, "skills", "commit"))).toContain("assets/skills/commit");
-    expect(readlinkSync(join(target, "agents", "accord"))).toContain("assets/agents/accord");
-    expect(readlinkSync(join(target, "providers"))).toContain("assets/providers");
+    expect(readlinkSync(join(target, "agents", "accord"))).toContain("accord-assets/agents/accord");
+    expect(readlinkSync(join(target, "providers"))).toContain("accord-assets/providers");
     expect(existsSync(result.metadataPath)).toBe(true);
 
     const meta = JSON.parse(readFileSync(result.metadataPath, "utf8"));
-    expect(meta.package).toBe("@clive.shirley/pi-accord");
+    expect(meta.package).toBe("@clive.shirley/accord-assets");
     expect(typeof meta.manifest_sha256).toBe("string");
     expect(typeof meta.version).toBe("string");
   });
@@ -397,7 +397,7 @@ describe("maybeAutoInstallAssets", () => {
     const brokenRoot = tempPiAgent(); // empty dir, no assets/manifest.json
     const { host, events } = captureNotifies();
 
-    const r = maybeAutoInstallAssets(host, { target, packageRoot: brokenRoot, env: {} });
+    const r = maybeAutoInstallAssets(host, { target, assetsRoot: brokenRoot, env: {} });
 
     expect(r.status).toBe("error");
     expect(events).toHaveLength(1);

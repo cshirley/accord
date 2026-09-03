@@ -61,9 +61,10 @@ Host-neutral tree: `pi-accord/src/core/` → `accord-core/src/`. Schemas: `accor
 | Constant | Points to |
 |----------|-----------|
 | `CORE_DIR` | `packages/accord-core` (schemas) |
-| `HARNESS_PKG_DIR` | `packages/pi-accord` (agents, providers, lang-profiles) |
+| `ASSETS_DIR` | `packages/accord-assets` (agents, providers, lang-profiles) |
+| `PI_PKG_DIR` | `packages/pi-accord` (skills, ci templates) |
 
-Override harness root: `ACCORD_HARNESS_PKG_DIR`.
+Override: `ACCORD_ASSETS_DIR` (alias: deprecated `ACCORD_HARNESS_PKG_DIR`), `ACCORD_PI_PKG_DIR`.
 
 ---
 

@@ -2,6 +2,12 @@
 
 ```
 packages/                      Bun workspaces — Pi extensions bundled with pi-accord
+  accord-assets/               Host-neutral agents, providers, lang-profiles
+    agents/
+    providers/
+    lang-profiles/
+    manifest.json
+    scripts/validate-assets.ts
   accord-core/                 Host-neutral ACCORD harness (orchestration, work-items, schemas)
     src/
       orchestration/           Graph, runner, policy, post-result handlers, plan payload
@@ -36,8 +42,8 @@ packages/                      Bun workspaces — Pi extensions bundled with pi-
       adapters/mcp/            Stdio MCP server, mcp-orchestrate-host, register-tools
       integrations/            pi-subagent re-exports
       queries/                 Pi-backed subagent spawn preflight
-    assets/                    Skills, agents, providers, lang-profiles, manifest.json
-    scripts/                   install-assets, validate-assets, runtime-smoke
+    assets/                    Pi skills + CI templates (agents/providers → accord-assets)
+    scripts/                   install-assets, validate-pi-skills, runtime-smoke
     tests/                     Bun unit tests for the harness
   pi-subagent/src/             subagent tool + agent discovery
   pi-worktree/src/             wt_* tools, /wt command

@@ -1,0 +1,17 @@
+{
+  "name": "@clive.shirley/accord-assets",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Host-neutral ACCORD prompt assets — agents, providers, lang-profiles",
+  "type": "module",
+  "exports": {
+    "./manifest.json": "./manifest.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "agents/",
+    "providers/",
+    "lang-profiles/",
+    "manifest.json"
+  ]
+}

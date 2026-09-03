@@ -58,7 +58,7 @@ The extension's bootstrap behaviour:
 | Metadata stale (version or manifest changed) | re-install | `info`: "re-linked N assets — restart pi" |
 | Metadata stale, install no-op (already correct) | reconcile metadata | none |
 | Local modifications block the install | abort install for those paths | `warning`: "N file(s) blocked — run with `--force`" |
-| Bundled `packages/pi-accord/assets/manifest.json` missing | abort with diagnostic | `warning`: "cannot read bundled manifest — run `bun install`" |
+| Bundled `packages/accord-assets/manifest.json` missing | abort with diagnostic | `warning`: "cannot read bundled manifest — run `bun install`" |
 
 ### Opting out
 
@@ -114,7 +114,7 @@ If pi loads but `/dev` is missing, check:
 ## Edit-test loop
 
 - TypeScript edits under `src/` or `packages/` take effect on the next pi session restart (Pi loads extension modules from the registered checkout, so there's no rebuild step).
-- Prompt edits under `packages/pi-accord/assets/agents/` and `packages/pi-accord/assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
+- Prompt edits under `packages/accord-assets/agents/` and `packages/accord-assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
 - Skill edits under `packages/pi-accord/assets/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation.
 - Schema edits require running `node packages/accord-core/schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
 

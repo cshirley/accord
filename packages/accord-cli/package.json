@@ -16,6 +16,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@clive.shirley/accord-assets": "workspace:*",
     "@clive.shirley/accord-core": "workspace:*",
     "@clive.shirley/pi-accord-harness": "workspace:*"
   },

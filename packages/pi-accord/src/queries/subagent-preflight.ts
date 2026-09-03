@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { getAgentMeta } from "@clive.shirley/accord-core/agents/registry.js";
 import { loadDevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
-import { HARNESS_PKG_DIR } from "@clive.shirley/accord-core/config/paths.js";
+import { AGENTS_ACCORD_DIR } from "@clive.shirley/accord-core/config/paths.js";
 import {
   applyScopedPreflightWarnings,
   resolveJudgmentModelRefFromHarness,
@@ -143,7 +143,7 @@ export function runSubagentSpawnPreflightCheck(
 ): SubagentPreflightCheck {
   const cfg = loadSubagentConfig();
   const agentPath = resolveAgentFile(agent, cwd, "user");
-  const bundledAccordPath = path.join(HARNESS_PKG_DIR, "assets", "agents", "accord", `${agent}.md`);
+  const bundledAccordPath = path.join(AGENTS_ACCORD_DIR, `${agent}.md`);
   const agentFileFound =
     Boolean(agentPath && existsSync(agentPath)) || existsSync(bundledAccordPath);
   const agentFilePath =

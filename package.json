@@ -11,7 +11,7 @@
   "scripts": {
     "test": "bun test",
     "validate:schemas": "node packages/accord-core/schemas/examples/validate-examples.mjs",
-    "validate:assets": "bun packages/pi-accord/scripts/validate-assets.ts",
+    "validate:assets": "bun packages/accord-assets/scripts/validate-assets.ts && bun packages/pi-accord/scripts/validate-pi-skills.ts",
     "install:assets": "bun packages/pi-accord/scripts/install-assets.ts",
     "install:assets:force": "bun packages/pi-accord/scripts/install-assets.ts --force",
     "install:dev": "bash scripts/install-dev.sh",
@@ -72,11 +72,11 @@
       "./packages/pi-accord/assets/skills/review"
     ],
     "agents": [
-      "./packages/pi-accord/assets/agents"
+      "./packages/accord-assets/agents"
     ]
   },
   "accord": {
-    "assetManifest": "./packages/pi-accord/assets/manifest.json"
+    "assetManifest": "./packages/accord-assets/manifest.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",

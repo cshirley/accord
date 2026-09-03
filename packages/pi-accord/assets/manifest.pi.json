@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "host": "pi",
+  "package": "@clive.shirley/pi-accord-harness",
+  "assets": {
+    "skills": ["commit", "crq-notify", "pr", "review"]
+  },
+  "requires": {
+    "pi_extensions": ["subagent"],
+    "tools": ["subagent"]
+  }
+}

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dirname, "..");
+const assetsRoot = join(repoRoot, "..", "accord-assets");
 const coreRoot = join(repoRoot, "..", "accord-core");
 
 import {
@@ -17,7 +18,7 @@ import {
 
 describe("loadAgentFromFile", () => {
   test("loads bundled phase-code agent", () => {
-    const filePath = join(repoRoot, "assets/agents/accord/phase-code.md");
+    const filePath = join(assetsRoot, "agents/accord/phase-code.md");
     const agent = loadAgentFromFile(filePath);
     expect(agent?.name).toBe("phase-code");
     expect(agent?.tier).toBe("workhorse");
@@ -27,7 +28,7 @@ describe("loadAgentFromFile", () => {
 
 describe("resolveSpawnAgent", () => {
   test("prefers agentFile over name", () => {
-    const filePath = join(repoRoot, "assets/agents/accord/phase-spec.md");
+    const filePath = join(assetsRoot, "agents/accord/phase-spec.md");
     const resolved = resolveSpawnAgent({
       cwd: repoRoot,
       agent: "phase-code",

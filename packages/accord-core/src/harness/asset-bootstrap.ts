@@ -118,7 +118,10 @@ function metadataMatches(
 export interface BootstrapOptions {
   /** Override the Pi config target dir (defaults to ~/.config/pi/agent via the installer). */
   target?: string;
-  /** Override the package root (mainly for tests). */
+  /** Override install roots (mainly for tests). */
+  assetsRoot?: string;
+  skillsRoot?: string;
+  /** @deprecated Use {@link assetsRoot}. */
   packageRoot?: string;
   /** Override env lookup (mainly for tests). */
   env?: NodeJS.ProcessEnv;
@@ -141,7 +144,10 @@ export function maybeAutoInstallAssets(
 ): AssetBootstrapResult {
   let current: { version: string; manifest_sha256: string };
   try {
-    current = currentAssetSignature(opts.packageRoot);
+    current = currentAssetSignature({
+      assetsRoot: opts.assetsRoot ?? opts.packageRoot,
+      skillsRoot: opts.skillsRoot,
+    });
   } catch (e) {
     const msg = `ACCORD: cannot read bundled manifest (${e instanceof Error ? e.message : String(e)}). Run \`bun install\` in the extension repo.`;
     log.debug(`asset bootstrap aborted: ${msg}`);
@@ -192,7 +198,11 @@ export function maybeAutoInstallAssets(
 
   let result: InstallResult;
   try {
-    result = installPiAssets({ target: opts.target, packageRoot: opts.packageRoot });
+    result = installPiAssets({
+      target: opts.target,
+      assetsRoot: opts.assetsRoot ?? opts.packageRoot,
+      skillsRoot: opts.skillsRoot,
+    });
   } catch (e) {
     const msg = `ACCORD: asset install failed (${e instanceof Error ? e.message : String(e)}). Run \`bun run install:assets\` manually for details.`;
     log.debug(`installPiAssets threw: ${msg}`);

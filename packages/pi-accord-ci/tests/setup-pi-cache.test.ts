@@ -23,7 +23,7 @@ const composite = parseYaml(readFileSync(SETUP_PI, "utf8")) as {
 const steps = composite.runs.steps;
 
 const EXPECTED_CACHE_KEY =
-  "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/pi-accord/assets/manifest.json') }}";
+  "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/accord-assets/manifest.json', '.accord-ci/packages/pi-accord/assets/manifest.pi.json') }}";
 
 const EXPECTED_RESTORE_KEYS = [
   "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-",

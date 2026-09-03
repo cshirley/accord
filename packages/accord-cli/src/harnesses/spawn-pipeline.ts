@@ -38,7 +38,9 @@ export type SpawnPipelineOptions = {
 export async function runSpawnPipeline(
   request: { agent: string; task: string },
   options: SpawnPipelineOptions,
-  executeSpawn: (prepared: { agent: string; task: string }) => Promise<SpawnExecutionResult>,
+  executeSpawn: (
+    prepared: import("@clive.shirley/accord-core/subagent/run-request.js").PreparedSingleSubagentInput,
+  ) => Promise<SpawnExecutionResult>,
 ): Promise<SubagentSpawnResult> {
   const pricing = loadPricing();
   const spawnLabel = options.spawnNotifyLabel ?? "accord";

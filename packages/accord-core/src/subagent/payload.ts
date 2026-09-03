@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { agentSchemas } from "../agents/registry.js";
 import { formatIntentContractForTask } from "../briefing/intent-contract-brief.js";
 import type { DevHarnessConfig } from "../config/index.js";
-import { CORE_DIR, EXT_DIR, PI_AGENT_DIR } from "../config/paths.js";
+import { AGENTS_ACCORD_DIR, CORE_DIR, PI_AGENT_DIR } from "../config/paths.js";
 import type { SubagentResponseContract } from "../types/subagent-spawn.js";
 import { formatConfigBrief } from "../verification/runner.js";
 import { collectSubagentEntries } from "./entries.js";
@@ -28,7 +28,7 @@ function readSchemaFile(absolutePath: string): string {
 function resolveInstalledAgentFile(agentName: string): string | null {
   const candidates = [
     join(PI_AGENT_DIR, "agents", "accord", `${agentName}.md`),
-    join(EXT_DIR, "assets", "agents", "accord", `${agentName}.md`),
+    join(AGENTS_ACCORD_DIR, `${agentName}.md`),
   ];
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;

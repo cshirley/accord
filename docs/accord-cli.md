@@ -17,7 +17,7 @@ bun run accord resume DEMO-1 --harness pi -y
 
 Global install: link or publish `@clive.shirley/accord-cli` and run `accord` directly.
 
-Requires **AGENTS.md** with a `## Dev Harness` JSON block (or run `accord init --write` first). Agent markdown and provider playbooks still ship from `packages/pi-accord/assets/` (or `~/.config/pi/agent/` after `install:assets`).
+Requires **AGENTS.md** with a `## Dev Harness` JSON block (or run `accord init --write` first). Agent markdown and provider playbooks ship from `packages/accord-assets/` (or `~/.config/pi/agent/` after `install:assets`).
 
 ## Commands
 
@@ -70,7 +70,7 @@ Configure in Dev Harness JSON or `~/.config/pi/agent/accord.json`:
 }
 ```
 
-Tokens: `{{agentId}}`, `{{agent}}`, `{{task}}`, `{{taskFile}}`, `{{cwd}}`. Task briefs stage under `.tasks/.exec-spawn/` when `{{taskFile}}` is used.
+Tokens: `{{agentId}}`, `{{agent}}`, `{{agentFile}}`, `{{task}}`, `{{taskFile}}`, `{{systemAppend}}`, `{{systemAppendFile}}`, `{{assetsDir}}`, `{{schemasDir}}`, `{{cwd}}`. Task briefs stage under `.tasks/.exec-spawn/` when `{{taskFile}}` is used.
 
 ```bash
 accord resume DEMO-1 --harness exec

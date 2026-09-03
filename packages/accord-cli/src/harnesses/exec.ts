@@ -5,9 +5,10 @@
 import { spawn } from "node:child_process";
 import type { ExecHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
 import { extractReturnPacket } from "@clive.shirley/accord-core/subagent/result/packet.js";
+import type { PreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/run-request.js";
 import type { HarnessMutableState } from "@clive.shirley/accord-core/types/host.js";
 import { cliNotify } from "../notify.js";
-import { renderExecCommand, resolveExecTemplateVars, writeExecTaskFile } from "./exec-template.js";
+import { renderExecCommand, resolveExecTemplateVars } from "./exec-template.js";
 import { runSpawnPipeline } from "./spawn-pipeline.js";
 import type { AgentHarness, AgentHarnessFactoryOptions } from "./types.js";
 
@@ -59,7 +60,7 @@ export function createExecHarness(options: ExecHarnessOptions): AgentHarness {
 }
 
 export async function runExecSpawn(
-  prepared: { agent: string; task: string },
+  prepared: PreparedSingleSubagentInput,
   cwd: string,
   execConfig: ExecHarnessConfig,
 ): Promise<{
@@ -70,12 +71,17 @@ export async function runExecSpawn(
   stderr?: string;
   parsedReturn?: unknown;
 }> {
-  const { agent, task } = prepared;
-  const vars = resolveExecTemplateVars(cwd, agent, task);
+  const { agent } = prepared;
+  const vars = resolveExecTemplateVars(cwd, prepared);
   const argv = renderExecCommand(execConfig.command, vars);
   const [command, ...args] = argv;
   if (!command) {
-    return { agent, task, exitCode: 1, stderr: "harness.exec.command resolved to an empty argv" };
+    return {
+      agent,
+      task: vars.task,
+      exitCode: 1,
+      stderr: "harness.exec.command resolved to an empty argv",
+    };
   }
 
   const responseSource = execConfig.response_json ?? "stdout";
@@ -89,7 +95,7 @@ export async function runExecSpawn(
 
   return {
     agent,
-    task,
+    task: vars.task,
     exitCode: result.exitCode,
     output: result.stdout,
     stderr: result.stderr,
@@ -129,6 +135,3 @@ export function spawnExecProcess(
     });
   });
 }
-
-/** @internal test helper — write task file without running spawn */
-export { writeExecTaskFile };

@@ -109,7 +109,7 @@ Use `pi list` to confirm Pi sees every entry.
 
 ### MCP servers used by bundled providers
 
-ACCORD’s bundled tracker/enrichment sidecars under [`packages/pi-accord/assets/providers/`](assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
+ACCORD’s bundled tracker/enrichment sidecars under [`packages/accord-assets/providers/`](assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
 
 | Provider                                      | `mcpTools` (from sidecars)                                                        | You typically configure…                                                                                                                                    |
 | --------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

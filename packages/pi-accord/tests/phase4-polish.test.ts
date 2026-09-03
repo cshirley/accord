@@ -17,6 +17,7 @@ import {
 } from "../src/adapters/pi/correlation-headers.js";
 
 const repoRoot = join(import.meta.dirname, "..");
+const assetsRoot = join(repoRoot, "..", "accord-assets");
 
 describe("buildHarnessCorrelationHeaders", () => {
   test("omits empty values", () => {
@@ -105,7 +106,7 @@ describe("review agent thinking frontmatter", () => {
   };
 
   test("review-code frontmatter pins xhigh over workhorse tier default", () => {
-    const filePath = join(repoRoot, "assets/agents/accord/review-code.md");
+    const filePath = join(assetsRoot, "agents/accord/review-code.md");
     const agent = loadAgentFromFile(filePath);
     expect(agent?.thinking).toBe("xhigh");
     const resolved = resolveModelConfig(agent as AgentConfig, BASE_CFG);

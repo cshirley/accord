@@ -17,8 +17,9 @@ This npm package registers **multiple Pi extensions** (see root `package.json` �
 This extension is one part of the larger pi.dev harness. The package bundles its Pi prompt assets under `packages/pi-accord/assets/`, and local installed copies may also exist under `~/.config/pi/agent/` for development:
 
 - Workflow orchestration lives in `packages/accord-core/src/orchestration/`. Pi delegates workflow subcommands to `@clive.shirley/accord-cli`; headless: `bun run accord`. Companion skills: `commit`, `pr`, `review`.
+- Host-neutral prompt assets live in `packages/accord-assets/` (agents, providers, lang-profiles). Pi-only skills and CI templates remain under `packages/pi-accord/assets/`.
 - The **`subagent` tool** lives in `packages/pi-subagent/` (registered via root `package.json` → `pi.extensions`, not by reading `packages/pi-subagent/README.md`). To delegate work, **call the `subagent` tool** (`agent` + `task`); do not open the README for execution. The core orchestrator delegates each phase or review step through it so every phase runs in an isolated Pi process.
-- Agent definition files are bundled at `packages/pi-accord/assets/agents/accord/*.md`, covering all `phase-*` and `review-*` agents. The `accord/` namespace is path-derived: subagent's discovery walker tags each file with `namespace = "accord"`, which lets `subagent.json` apply per-skill profile overrides without any frontmatter change.
+- Agent definition files are bundled at `packages/accord-assets/agents/accord/*.md`, covering all `phase-*` and `review-*` agents. The `accord/` namespace is path-derived: subagent's discovery walker tags each file with `namespace = "accord"`, which lets `subagent.json` apply per-skill profile overrides without any frontmatter change.
 
 ### Review agent scope matrix
 
@@ -34,9 +35,9 @@ This extension is one part of the larger pi.dev harness. The package bundles its
 | Plan deviation classification | `review-deviation` | — |
 
 Harness routing: **pre-impl** `review-test` → `phase-code` → optional `review-security` → `review-code`. `phase-code` never writes tests; violations respawn `phase-test`.
-- Provider prompts are bundled at `packages/pi-accord/assets/providers/trackers/*.md` (primary ticket sources) and `packages/pi-accord/assets/providers/enrichments/*.md` (supplementary context); each is paired with a `<name>.json` connectivity sidecar (validated by `packages/accord-core/schemas/provider-schema.json`). `packages/pi-accord/src/integrations/provider-deps.ts` loads the sidecars at runtime — there is no separate hardcoded dependency map. `phase-gather` reads the markdown playbooks (via the absolute paths the orchestrator injects in the preflight report) to fetch context. Providers are not invokable agents (no frontmatter).
+- Provider prompts are bundled at `packages/accord-assets/providers/trackers/*.md` (primary ticket sources) and `packages/accord-assets/providers/enrichments/*.md` (supplementary context); each is paired with a `<name>.json` connectivity sidecar (validated by `packages/accord-core/schemas/provider-schema.json`). `packages/accord-core/src/integrations/provider-deps.ts` loads the sidecars at runtime — there is no separate hardcoded dependency map. `phase-gather` reads the markdown playbooks (via the absolute paths the orchestrator injects in the preflight report) to fetch context. Providers are not invokable agents (no frontmatter).
 - Projects can declare additional providers (or override a bundled provider by name) in `accord.json` under the top-level `providers` array. Each entry has the same shape as a sidecar but with an absolute or `~/`-prefixed `promptFile`. The merged provider set is what the gather preflight checks and what phase-gather receives.
-- `packages/accord-core/src/agents/registry.ts`, `packages/pi-accord/assets/providers/{trackers,enrichments}/*.json`, and `packages/pi-accord/assets/manifest.json` must stay aligned (the asset validator enforces this).
+- `packages/accord-core/src/agents/registry.ts`, `packages/accord-assets/providers/{trackers,enrichments}/*.json`, and `packages/accord-assets/manifest.json` must stay aligned (the asset validator enforces this).
 
 Do not treat this package as a standalone workflow engine. The extension supplies `/dev` command wiring, tools, hooks, schemas, validation, status, and telemetry; the skill and agent definitions supply the actual orchestration prompts and execution roles.
 
@@ -47,7 +48,8 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 - `packages/accord-cli/` — CLI, harness registry, commands.
 - `packages/pi-accord/src/adapters/pi/` — extension, hooks, `cli-client`, spawn UI.
 - `packages/pi-accord/src/adapters/mcp/` — stdio MCP + `ACCORD_MCP_HARNESS`.
-- `packages/pi-accord/assets/` — skills, agents, providers, lang-profiles.
+- `packages/accord-assets/` — host-neutral agents, providers, lang-profiles
+- `packages/pi-accord/assets/` — Pi skills, CI templates.
 - `packages/pi-accord/scripts/install-assets.ts` — links bundled assets into `~/.config/pi/agent/`.
 - `packages/accord-core/schemas/` — artifact and return-packet schemas.
 - `.tasks/` — transient runtime state; `docs/dev/<ID>/` — committed artifacts.
@@ -63,8 +65,8 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 - Use `bun run install:assets --dry-run` to preview linking bundled skills and agents into `~/.config/pi/agent`.
 - Use the Pi CLI **`pi install <path>`** (from any shell) to add this repo to global `settings.json` → `packages`, or run **`bun run install:dev`** (`scripts/install-dev.sh`) to `pi install` this repo and then **`bun run install:assets`**. Pi loads `package.json` → `pi` (extensions, skills, prompts, themes) from that checkout. Use **`pi install -l <path>`** for project-local `.pi/settings.json`. **`pi list`** / **`pi remove <source>`** inspect or drop entries. If you still have a legacy `extensions/accord` symlink, remove it so the harness is not loaded twice; run **`pi install <path>`** again for each other local Pi package checkout you develop alongside ACCORD (or pass those paths as arguments to `scripts/install-dev.sh` before the script installs this repo).
 - `npm run check` runs the full validation suite declared in `package.json`.
-- When adding or changing an agent, update `packages/pi-accord/assets/agents/accord/<agent>.md`, `packages/pi-accord/assets/manifest.json`, `packages/accord-core/src/agents/registry.ts`, add or adjust `packages/accord-core/schemas/return-schemas/<agent>.json`, and keep `packages/accord-core/schemas/examples/<agent>.json` valid.
-- When adding or changing a bundled provider or enrichment, drop the playbook + sidecar into `packages/pi-accord/assets/providers/{trackers,enrichments}/<name>.{md,json}` (validated against `packages/accord-core/schemas/provider-schema.json`) and add the name to `packages/pi-accord/assets/manifest.json`. The loader picks the sidecar up automatically — no TS edits required.
+- When adding or changing an agent, update `packages/accord-assets/agents/accord/<agent>.md`, `packages/accord-assets/manifest.json`, `packages/accord-core/src/agents/registry.ts`, add or adjust `packages/accord-core/schemas/return-schemas/<agent>.json`, and keep `packages/accord-core/schemas/examples/<agent>.json` valid.
+- When adding or changing a bundled provider or enrichment, drop the playbook + sidecar into `packages/accord-assets/providers/{trackers,enrichments}/<name>.{md,json}` (validated against `packages/accord-core/schemas/provider-schema.json`) and add the name to `packages/accord-assets/manifest.json`. The loader picks the sidecar up automatically — no TS edits required.
 - When changing artifact shapes, update the matching schema and `packages/accord-core/src/artifacts/validation.ts` mappings if a new persisted file type is introduced.
 - Preserve the `## Dev Harness` section below. The extension reads its fenced JSON block from `AGENTS.md` at runtime.
 

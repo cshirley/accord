@@ -7,6 +7,11 @@ describe("exec harness templates", () => {
     const vars = {
       agent: "phase-gather",
       agentId: "phase-gather",
+      agentFile: "/repo/agents/accord/phase-gather.md",
+      assetsDir: "/repo/packages/accord-assets",
+      schemasDir: "/repo/packages/accord-core/schemas",
+      systemAppend: "",
+      systemAppendFile: "",
       task: "Gather context",
       taskFile: "/tmp/task.md",
       cwd: "/repo",

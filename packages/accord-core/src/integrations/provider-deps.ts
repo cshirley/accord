@@ -17,7 +17,7 @@ import { execSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
-import { EXT_DIR } from "../config/paths.js";
+import { PROVIDERS_ENRICHMENTS_DIR, PROVIDERS_TRACKERS_DIR } from "../config/paths.js";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -50,8 +50,8 @@ export interface ProviderSet {
 
 // ── Bundled provider loader ────────────────────────────────
 
-const TRACKERS_DIR = join(EXT_DIR, "assets", "providers", "trackers");
-const ENRICHMENTS_DIR = join(EXT_DIR, "assets", "providers", "enrichments");
+const TRACKERS_DIR = PROVIDERS_TRACKERS_DIR;
+const ENRICHMENTS_DIR = PROVIDERS_ENRICHMENTS_DIR;
 
 let _bundled: ProviderSet | null = null;
 

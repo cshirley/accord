@@ -4,7 +4,7 @@ Lives in the project's `AGENTS.md` under the compatibility heading `## Dev Harne
 
 1. Detects stack from marker files (`go.mod`, `Cargo.toml`, `package.json`, etc.)
 2. Infers commands from project config (`package.json` scripts, `pyproject.toml` tool sections, Makefile targets)
-3. Falls back to `packages/pi-accord/assets/lang-profiles/<lang>.json` for gaps
+3. Falls back to `packages/accord-assets/lang-profiles/<lang>.json` for gaps
 4. User confirms, then writes
 
 The block is validated against `packages/accord-core/schemas/accord-schema.json`. See [`docs/extending.md`](extending.md) for how to add custom providers in this same JSON block.

@@ -188,7 +188,7 @@
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
               "minItems": 1,
-              "description": "argv template. Tokens: {{agentId}}, {{agent}}, {{task}}, {{taskFile}}, {{cwd}}."
+              "description": "argv template. Tokens: {{agentId}}, {{agent}}, {{agentFile}}, {{task}}, {{taskFile}}, {{systemAppend}}, {{systemAppendFile}}, {{assetsDir}}, {{schemasDir}}, {{cwd}}."
             },
             "response_json": {
               "type": "string",

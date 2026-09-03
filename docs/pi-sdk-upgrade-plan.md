@@ -283,7 +283,7 @@ Scoped models / `enabledModels` are **not** in the spawn precedence chain in Pha
 | `promptGuidelines` on high-traffic tools | `packages/pi-accord/src/adapters/pi/tools.ts` or registry metadata | Medium |
 | `before_provider_headers` — inject run / work-item correlation headers | `pi-hook-listeners.ts` | Low |
 | `setWorkingVisible(false)` during orchestrator spawn | `spawn-status.ts` | Low |
-| `xhigh` / `max` thinking in subagent profiles + agent frontmatter | `packages/pi-subagent`, `packages/pi-accord/assets/agents` | Medium |
+| `xhigh` / `max` thinking in subagent profiles + agent frontmatter | `packages/pi-subagent`, `packages/accord-assets/agents` | Medium |
 | README: `compat.sessionAffinityFormat` for OpenRouter | `README.md` | Low |
 
 **Acceptance criteria**

@@ -1,9 +1,7 @@
 {
   "schema_version": "1.0",
-  "host": "pi",
-  "package": "@clive.shirley/pi-accord",
+  "package": "@clive.shirley/accord-assets",
   "assets": {
-    "skills": ["commit", "crq-notify", "pr", "review"],
     "agents": [
       "phase-align",
       "phase-code",
@@ -37,9 +35,5 @@
         "slack"
       ]
     }
-  },
-  "requires": {
-    "pi_extensions": ["subagent"],
-    "tools": ["subagent"]
   }
 }

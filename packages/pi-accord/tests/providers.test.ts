@@ -91,7 +91,7 @@ describe("loadBundledProviders", () => {
     const jira = loadBundledProviders().trackers.get("jira")!;
     expect(jira.kind).toBe("tracker");
     expect(isAbsolute(jira.promptFile)).toBe(true);
-    expect(jira.promptFile.endsWith("/assets/providers/trackers/jira.md")).toBe(true);
+    expect(jira.promptFile.endsWith("/accord-assets/providers/trackers/jira.md")).toBe(true);
   });
 
   test("preserves mcpTools, cliFallback and envFallback from the sidecar", () => {
