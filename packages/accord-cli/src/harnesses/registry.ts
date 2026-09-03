@@ -23,7 +23,7 @@ export function parseHarnessId(raw: string | undefined): AgentHarnessId {
 }
 
 function loadPiHeadlessHarnessFactory(): (options: AgentHarnessFactoryOptions) => AgentHarness {
-  const mod = require("@clive.shirley/pi-accord-harness/adapters/pi/headless-harness.js") as {
+  const mod = require("@clive.shirley/pi-accord/adapters/pi/headless-harness.js") as {
     createPiHeadlessHarness: (options: AgentHarnessFactoryOptions) => AgentHarness;
   };
   return mod.createPiHeadlessHarness;

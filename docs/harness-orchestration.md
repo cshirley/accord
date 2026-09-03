@@ -2,7 +2,7 @@
 
 This document captures the **architecture** for ACCORD workflow control: deterministic routing, an in-code workflow graph, validation boundaries, and a thin Pi adapter that implements host ports only. The bundled `accord` orchestrator skill has been **removed**; routing lives in `packages/accord-core/src/orchestration/` (on by default).
 
-For runtime behaviour and diagrams, see [`pipeline.md`](pipeline.md). For directory layout, see [`file-structure.md`](file-structure.md). For the standalone CLI, see [`accord-cli.md`](accord-cli.md). For delivery history, see [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md).
+For runtime behaviour and diagrams, see [`pipeline.md`](pipeline.md). For directory layout, see [`file-structure.md`](file-structure.md). For the standalone CLI, see [`accord-cli.md`](accord-cli.md). For delivery history, see [`plans/harness-orchestration-implementation-plan.md`](plans/harness-orchestration-implementation-plan.md).
 
 ---
 
@@ -95,7 +95,7 @@ src/core/orchestration/        (or similarly named)
 
 ## Implementation roadmap
 
-The executable phased plan (spikes, deliverables per phase, acceptance criteria, feature flags, MCP options, architecture decisions **D1–D3**) lives in [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md). The high-level sequence is: spikes → core skeleton → `resume` pilot → deterministic subgraphs → full subcommand coverage → optional judgment hook → MCP contract → cleanup.
+The executable phased plan (spikes, deliverables per phase, acceptance criteria, feature flags, MCP options, architecture decisions **D1–D3**) lives in [`plans/harness-orchestration-implementation-plan.md`](plans/harness-orchestration-implementation-plan.md). The high-level sequence is: spikes → core skeleton → `resume` pilot → deterministic subgraphs → full subcommand coverage → optional judgment hook → MCP contract → cleanup.
 
 ---
 
@@ -123,7 +123,7 @@ The executable phased plan (spikes, deliverables per phase, acceptance criteria,
 
 ## Related documentation
 
-- [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md) — phased implementation plan, spikes, acceptance criteria.
+- [`plans/harness-orchestration-implementation-plan.md`](plans/harness-orchestration-implementation-plan.md) — phased implementation plan, spikes, acceptance criteria.
 - [`concepts.md`](concepts.md) — core vs adapters overview.
 - [`pipeline.md`](pipeline.md) — current command and phase flow diagrams.
 - [`file-structure.md`](file-structure.md) — where code lives today and navigation hints.

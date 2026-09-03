@@ -24,13 +24,14 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`docs/accord-workflow.md`](docs/accord-workflow.md)     | …get the single end-to-end overview of the harness: phases, agents, schemas, hooks, commands. Start here.                                                            |
 | [`docs/accord-cli.md`](docs/accord-cli.md) | …run ACCORD headlessly: `accord resume`, harness backends (`pi` / `exec`), MCP `ACCORD_MCP_HARNESS`, env vars. |
-| [`docs/accord-cli-extraction.md`](docs/accord-cli-extraction.md) | …see the monorepo split (`accord-core`, `accord-cli`, `pi-accord`) and extraction phases. |
+| [`docs/plans/accord-cli-extraction.md`](docs/plans/accord-cli-extraction.md) | …see the monorepo split (`accord-core`, `accord-cli`, `pi-accord`) and extraction phases. |
 | [`docs/accord-research.md`](docs/accord-research.md)     | …understand _why_ ACCORD is shaped the way it is — the principles, the design decisions that emerged in the build, and what got cut.                                 |
 | [`docs/concepts.md`](docs/concepts.md)                   | …understand the naming and the codebase shape (Core / Adapters / Crucible / Briefing / Harness).                                                                     |
 | [`docs/pipeline.md`](docs/pipeline.md)                   | …see the command flow and the per-pattern execution diagrams (standard, quick_fix, express, orchestrated, investigate, infra, analyse) plus pattern selection rules. |
 | [`docs/harness-orchestration.md`](docs/harness-orchestration.md) | …read the **target** design: workflow graph in core, deterministic routing, validation boundaries, thin Pi adapter, and phased migration off skill-driven orchestration. |
-| [`docs/harness-orchestration-implementation-plan.md`](docs/harness-orchestration-implementation-plan.md) | …follow the **build plan**: spikes, phases 1–7, acceptance criteria, feature flags, MCP options, and open decisions. |
-| [`docs/pi-sdk-upgrade-plan.md`](docs/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
+| [`docs/plans/harness-orchestration-implementation-plan.md`](docs/plans/harness-orchestration-implementation-plan.md) | …follow the **build plan**: spikes, phases 1–7, acceptance criteria, feature flags, MCP options, and open decisions. |
+| [`docs/plans/pi-sdk-upgrade-plan.md`](docs/plans/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
+| [`docs/plans/host-agnostic-plan.md`](docs/plans/host-agnostic-plan.md) | …make CLI, MCP, and agent runtimes Pi-optional (config paths, MCP extract, exec harness, hook parity). |
 | [`CHANGELOG.md`](CHANGELOG.md) | …see release notes for the Pi 0.83 upgrade (phases 0–5). |
 | [`docs/artifacts.md`](docs/artifacts.md)                 | …know where work-item state and committed artifacts live on disk, plus the work-item-ID format.                                                                      |
 | [`docs/schemas.md`](docs/schemas.md)                     | …look up the JSON schema for any artifact or agent return packet.                                                                                                    |

@@ -154,7 +154,7 @@ above and that no file under `packages/pi-accord-ci/src/` imports
 `@earendil-works/pi-coding-agent`. ACCORD's own `dev_*` tools
 (`devBootstrap`, `devTransition`, `devFinalize`) are called by
 `bootstrap-work-item.ts` via direct TypeScript imports from
-`@clive.shirley/pi-accord/packages/accord-core/src/...`.
+`packages/accord-core/src/...`.
 
 ## Local testing
 

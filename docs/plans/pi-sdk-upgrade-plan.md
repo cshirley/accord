@@ -2,7 +2,7 @@
 
 This document turns the Pi SDK 0.83 review into an **executable** roadmap: upgrade `@earendil-works/*` peers, adopt new extension APIs, and decouple orchestration judgment from the interactive chat model.
 
-**Related:** [`hooks-and-tools.md`](hooks-and-tools.md), [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md), [`configuration.md`](configuration.md), [`local-development.md`](local-development.md).
+**Related:** [`hooks-and-tools.md`](../hooks-and-tools.md), [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md), [`configuration.md`](../configuration.md), [`local-development.md`](../local-development.md).
 
 ---
 
@@ -47,7 +47,7 @@ This document turns the Pi SDK 0.83 review into an **executable** roadmap: upgra
 
 - `npm run check` green on branch.
 - Pi starts with ACCORD registered; no extension load errors.
-- README / [`local-development.md`](local-development.md) state minimum Pi **0.83.0** when peers require it.
+- README / [`local-development.md`](../local-development.md) state minimum Pi **0.83.0** when peers require it.
 
 ### Risks
 
@@ -199,7 +199,7 @@ Exact grouping should mirror `packages/accord-core/src/orchestration/` phase →
 
 ### 3a — `orchestration.judgment.model` config + resolution
 
-**Files:** `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/src/config/types.ts`, [`configuration.md`](configuration.md), `packages/pi-accord/src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
+**Files:** `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/src/config/types.ts`, [`configuration.md`](../configuration.md), `packages/pi-accord/src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
 
 **Schema** — extend `orchestration.judgment`:
 
@@ -252,7 +252,7 @@ Exact grouping should mirror `packages/accord-core/src/orchestration/` phase →
 
 ### 3c — Document three-layer model policy
 
-**File:** [`configuration.md`](configuration.md) (short section)
+**File:** [`configuration.md`](../configuration.md) (short section)
 
 | Layer | Purpose | Configuration |
 |-------|---------|----------------|
@@ -301,8 +301,8 @@ Scoped models / `enabledModels` are **not** in the spawn precedence chain in Pha
 
 ### Deliverables
 
-- Update [`hooks-and-tools.md`](hooks-and-tools.md) — `agent_settled`, entry renderers, dynamic tools.
-- Update [`local-development.md`](local-development.md) — require Pi ≥ 0.83.
+- Update [`hooks-and-tools.md`](../hooks-and-tools.md) — `agent_settled`, entry renderers, dynamic tools.
+- Update [`local-development.md`](../local-development.md) — require Pi ≥ 0.83.
 - Changelog / release notes for package consumers.
 - Default `ACCORD_DYNAMIC_TOOLS=1` after Phase 2 bake-in (if not already default).
 

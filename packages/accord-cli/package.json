@@ -18,7 +18,7 @@
   "dependencies": {
     "@clive.shirley/accord-assets": "workspace:*",
     "@clive.shirley/accord-core": "workspace:*",
-    "@clive.shirley/pi-accord-harness": "workspace:*"
+    "@clive.shirley/pi-accord": "workspace:*"
   },
   "peerDependencies": {
     "@earendil-works/pi-agent-core": "^0.83.0",

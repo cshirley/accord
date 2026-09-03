@@ -5,7 +5,7 @@
  * {@link createPiExtensionHarness} instead for full UI integration.
  */
 
-import "@clive.shirley/pi-accord-harness/queries/subagent-preflight.js";
+import "@clive.shirley/pi-accord/queries/subagent-preflight.js";
 import {
   runSpawnPipeline,
   type SpawnExecutionResult,

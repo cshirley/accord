@@ -1,6 +1,6 @@
 # Harness orchestration — implementation plan
 
-This document turns [`harness-orchestration.md`](harness-orchestration.md) into an **executable** roadmap: ordered work, deliverables, acceptance criteria, and risk spikes. It is a living plan — update it as phases land.
+This document turns [`harness-orchestration.md`](../harness-orchestration.md) into an **executable** roadmap: ordered work, deliverables, acceptance criteria, and risk spikes. It is a living plan — update it as phases land.
 
 ---
 
@@ -248,7 +248,7 @@ Phase 3 quick-fix / implement-loop bullets remain in the Phase 3 section above; 
 |-----------|-------------|
 | **Feature flag** | `ACCORD_CORE_ORCHESTRATOR` defaults **on**; set `0`/`false`/`no`/`off` to disable programmatic orchestration spawns (accord skill removed). |
 | **PR size** | Prefer small PRs for **core and adapter code** (one subgraph or subsystem at a time). **D3:** skill orchestration removal stays **one** Phase 7 PR, not dribbled per subcommand. |
-| **Docs** | Update [`pipeline.md`](pipeline.md) diagrams with "harness runner" swimlane when behaviour changes. |
+| **Docs** | Update [`pipeline.md`](../pipeline.md) diagrams with "harness runner" swimlane when behaviour changes. |
 | **Biome / check** | Full `npm run check` before merge. |
 
 ---
@@ -284,6 +284,6 @@ Further options remain open on other topics; add new rows (D4, …) as they aris
 
 ## Related documentation
 
-- [`harness-orchestration.md`](harness-orchestration.md) — design rationale and patterns.
-- [`pipeline.md`](pipeline.md) — current runtime diagrams.
-- [`hooks-and-tools.md`](hooks-and-tools.md) — hook surfaces and tools.
+- [`harness-orchestration.md`](../harness-orchestration.md) — design rationale and patterns.
+- [`pipeline.md`](../pipeline.md) — current runtime diagrams.
+- [`hooks-and-tools.md`](../hooks-and-tools.md) — hook surfaces and tools.

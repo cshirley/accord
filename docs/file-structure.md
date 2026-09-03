@@ -35,7 +35,7 @@ packages/                      Bun workspaces — Pi extensions bundled with pi-
       harnesses/               types, registry, spawn-pipeline, exec, as-runtime-host
       index.ts                 Programmatic exports (Pi client, MCP)
     tests/                     CLI smoke + exec harness tests
-  pi-accord/                   Pi extension (/dev, hooks, MCP, assets) — npm: pi-accord-harness
+  pi-accord/                   Pi extension (/dev, hooks, MCP, assets) — npm: `@clive.shirley/pi-accord`
     src/
       index.ts                 Harness entry; registers pi-subagent preflight backend
       adapters/pi/             Extension, cli-client, headless-harness, hooks, tools, spawn UI
@@ -56,6 +56,7 @@ scripts/install-dev.sh         pi install + install:assets (`install:dev`)
 
 docs/dev/<ID>/                 Committed work artifacts (brief, spec, plan, verify, …)
 docs/*.md                      Project documentation (see accord-cli.md for standalone CLI)
+docs/plans/                    Phased implementation and migration plans
 .tasks/                        Runtime work item state (transient)
 ```
 

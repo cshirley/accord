@@ -18,8 +18,8 @@
       "@clive.shirley/accord-core/*": ["packages/accord-core/src/*"],
       "@clive.shirley/accord-cli": ["packages/accord-cli/src/index.ts"],
       "@clive.shirley/accord-cli/*": ["packages/accord-cli/src/*"],
-      "@clive.shirley/pi-accord-harness": ["packages/pi-accord/src/index.ts"],
-      "@clive.shirley/pi-accord-harness/*": ["packages/pi-accord/src/*"]
+      "@clive.shirley/pi-accord": ["packages/pi-accord/src/index.ts"],
+      "@clive.shirley/pi-accord/*": ["packages/pi-accord/src/*"]
     }
   },
   "include": [

@@ -1,6 +1,6 @@
 # ACCORD Pi Extension
 
-This directory is the `@clive.shirley/pi-accord` Pi package (Bun workspace monorepo). It provides ACCORD, an agentic delivery harness exposed through the `/dev` command. The extension helps agents and users agree the work, persist that agreement as schemas and artifacts, route phase agents, and verify implementation evidence before final handoff.
+This directory is the `@clive.shirley/accord` monorepo (Bun workspaces). The Pi extension package is `@clive.shirley/pi-accord` in `packages/pi-accord/`. It provides ACCORD, an agentic delivery harness exposed through the `/dev` command. The extension helps agents and users agree the work, persist that agreement as schemas and artifacts, route phase agents, and verify implementation evidence before final handoff.
 
 ## Extension Surface
 

@@ -1,5 +1,5 @@
 {
-  "name": "@clive.shirley/pi-accord-harness",
+  "name": "@clive.shirley/pi-accord",
   "version": "0.1.0",
   "private": true,
   "description": "ACCORD harness — /dev command, tools, hooks, orchestration, and MCP adapter",

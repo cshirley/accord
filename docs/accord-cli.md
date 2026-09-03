@@ -2,7 +2,7 @@
 
 Headless ACCORD orchestrator — same core routing as `/dev`, without the Pi REPL. Pi extension and stdio MCP are optional clients on top of `@clive.shirley/accord-core`.
 
-For extraction history and package layout, see [`accord-cli-extraction.md`](accord-cli-extraction.md).
+For extraction history and package layout, see [`plans/accord-cli-extraction.md`](plans/accord-cli-extraction.md).
 
 ## Quick start
 

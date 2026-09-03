@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@clive.shirley/pi-accord",
+      "name": "@clive.shirley/accord",
       "devDependencies": {
         "@biomejs/biome": "^2.5.6",
         "ajv": "^8.20.0",
@@ -32,7 +32,7 @@
       "dependencies": {
         "@clive.shirley/accord-assets": "workspace:*",
         "@clive.shirley/accord-core": "workspace:*",
-        "@clive.shirley/pi-accord-harness": "workspace:*",
+        "@clive.shirley/pi-accord": "workspace:*",
       },
       "peerDependencies": {
         "@earendil-works/pi-agent-core": "^0.83.0",
@@ -53,7 +53,7 @@
       },
     },
     "packages/pi-accord": {
-      "name": "@clive.shirley/pi-accord-harness",
+      "name": "@clive.shirley/pi-accord",
       "version": "0.1.0",
       "dependencies": {
         "@clive.shirley/accord-assets": "workspace:*",
@@ -74,7 +74,7 @@
       "name": "@clive.shirley/pi-accord-ci",
       "version": "0.1.0",
       "dependencies": {
-        "@clive.shirley/pi-accord": "file:../..",
+        "@clive.shirley/accord-core": "workspace:*",
       },
       "devDependencies": {
         "yaml": "^2.9.0",
@@ -204,11 +204,9 @@
 
     "@clive.shirley/accord-core": ["@clive.shirley/accord-core@workspace:packages/accord-core"],
 
-    "@clive.shirley/pi-accord": ["@clive.shirley/pi-accord@root:", {}],
+    "@clive.shirley/pi-accord": ["@clive.shirley/pi-accord@workspace:packages/pi-accord"],
 
     "@clive.shirley/pi-accord-ci": ["@clive.shirley/pi-accord-ci@workspace:packages/pi-accord-ci"],
-
-    "@clive.shirley/pi-accord-harness": ["@clive.shirley/pi-accord-harness@workspace:packages/pi-accord"],
 
     "@clive.shirley/pi-git-tools": ["@clive.shirley/pi-git-tools@workspace:packages/pi-git-tools"],
 

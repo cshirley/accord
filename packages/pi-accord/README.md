@@ -1,8 +1,8 @@
-# @clive.shirley/pi-accord-harness
+# @clive.shirley/pi-accord
 
 ACCORD harness Pi extension — `/dev` command, `dev_*` tools, hooks, orchestration, and MCP adapter.
 
-Loaded via the root `@clive.shirley/pi-accord` package (`package.json` → `pi.extensions`).
+Loaded via the root `@clive.shirley/accord` monorepo (`package.json` → `pi.extensions`).
 
 ## Layout
 

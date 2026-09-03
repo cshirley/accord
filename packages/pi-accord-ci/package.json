@@ -8,7 +8,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@clive.shirley/pi-accord": "file:../.."
+    "@clive.shirley/accord-core": "workspace:*"
   },
   "devDependencies": {
     "yaml": "^2.9.0"

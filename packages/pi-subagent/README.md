@@ -54,7 +54,7 @@ Parallel fan-out is capped (max tasks and concurrency are enforced in code) so a
 
 ## Installation
 
-Bundled with **`@clive.shirley/pi-accord`** via root `package.json` → `pi.extensions` (this entry is registered **before** the ACCORD harness so orchestration skills can call `subagent` reliably).
+Bundled with the **`@clive.shirley/accord`** monorepo via root `package.json` → `pi.extensions` (this entry is registered **before** the ACCORD harness so orchestration skills can call `subagent` reliably).
 
 To smoke-test the extension file alone:
 

@@ -2,7 +2,9 @@
 
 Standalone orchestrator CLI (`packages/accord-cli`) on host-neutral `@clive.shirley/accord-core`. Pi extension and MCP are thin clients.
 
-**User guide:** [`accord-cli.md`](accord-cli.md) — commands, flags, env vars, harness config.
+**User guide:** [`accord-cli.md`](../accord-cli.md) — commands, flags, env vars, harness config.
+
+**Next:** [`host-agnostic-plan.md`](host-agnostic-plan.md) — remaining work to make CLI, MCP, and agent runtimes Pi-optional.
 
 ## Target package layout
 
@@ -10,7 +12,7 @@ Standalone orchestrator CLI (`packages/accord-cli`) on host-neutral `@clive.shir
 packages/
   accord-core/          # Host-neutral harness (orchestration, artifacts, schemas, review helpers)
   accord-cli/           # `accord` bin, harness registry, CLI commands
-  pi-accord/            # Pi extension (adapters/pi, assets, MCP) — npm: @clive.shirley/pi-accord-harness
+  pi-accord/            # Pi extension (adapters/pi, assets, MCP) — npm: @clive.shirley/pi-accord
   pi-subagent/          # Pi subagent backend (one AgentHarness implementation)
   pi-git-tools/         # Optional Pi companion
   pi-tools/             # Optional Pi companion
@@ -24,7 +26,7 @@ Published names:
 |---------|----------|------|
 | `accord-core` | `@clive.shirley/accord-core` | Orchestration, artifacts, briefing, verification, schemas, standalone review helpers |
 | `accord-cli` | `@clive.shirley/accord-cli` | `accord` bin, harness registry, programmatic API |
-| `pi-accord` | `@clive.shirley/pi-accord-harness` | Pi `/dev` extension, bundled assets, MCP adapter |
+| `pi-accord` | `@clive.shirley/pi-accord` | Pi `/dev` extension, bundled assets, MCP adapter |
 
 ---
 
@@ -109,9 +111,9 @@ Shared pre/post: `packages/accord-cli/src/harnesses/spawn-pipeline.ts`.
 ```
 accord-cli
   ├── accord-core
-  └── pi-accord-harness (lazy — pi headless harness only)
+  └── pi-accord (lazy — pi headless harness only)
 
-pi-accord-harness
+pi-accord
   ├── accord-cli
   ├── accord-core
   └── @earendil-works/pi-coding-agent
@@ -123,7 +125,8 @@ pi-accord-harness
 
 ## Related docs
 
-- [`accord-cli.md`](accord-cli.md) — CLI usage reference
-- [`harness-orchestration.md`](harness-orchestration.md) — ports + state machine
-- [`file-structure.md`](file-structure.md) — monorepo layout
-- [`hooks-and-tools.md`](hooks-and-tools.md) — `dev_*` tools and MCP
+- [`accord-cli.md`](../accord-cli.md) — CLI usage reference
+- [`harness-orchestration.md`](../harness-orchestration.md) — ports + state machine
+- [`file-structure.md`](../file-structure.md) — monorepo layout
+- [`hooks-and-tools.md`](../hooks-and-tools.md) — `dev_*` tools and MCP
+- [`host-agnostic-plan.md`](host-agnostic-plan.md) — Pi-optional hosts and agent backends
