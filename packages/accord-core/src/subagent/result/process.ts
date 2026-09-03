@@ -4,11 +4,10 @@
 
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
 import { validateReturn } from "../../artifacts/validation.js";
+import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
-import { runPostResultHandlerForAgent } from "../../orchestration/post-result/registry.js";
 import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
 import { tryRecoverMissingReturnPacketFromTaskFile } from "../../orchestration/recover-task-packet.js";
-import { persistValidatedAgentReturn } from "../../orchestration/task-agent-audit.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
 import {
   appendUsageLine,
@@ -23,10 +22,7 @@ import {
 import type { HarnessMutableState } from "../../types/host.js";
 import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
 import { formatMissingPacketWarning, formatPacketInjection } from "./handoff.js";
-import {
-  extractAnalysisFromSubagentResult,
-  extractReturnPacketFromSubagentResult,
-} from "./packet.js";
+import { extractReturnPacketFromSubagentResult } from "./packet.js";
 
 const log = createLogger("subagent");
 
@@ -228,15 +224,13 @@ export async function processSubagentToolResult(
           ...validation.errors.map((e) => `  • ${e}`),
         ].join("\n");
       } else if (workItemId) {
-        const analysisText = extractAnalysisFromSubagentResult(result);
-        const audit = analysisText ? { analysisText } : undefined;
-        persistValidatedAgentReturn(workItemId, agentName, packet, audit);
-        contentAppend += runPostResultHandlerForAgent(
-          agentName,
+        contentAppend += applyWorkflowStateFromValidatedReturn({
           workItemId,
+          agent: agentName,
           packet,
-          state.devConfig,
-        );
+          devConfig: state.devConfig,
+          subagentResult: result,
+        });
       }
     } else if (
       !packet &&

@@ -13,18 +13,11 @@
   },
   "scripts": {
     "start": "bun src/main.ts",
+    "install:shim": "bun scripts/install-shim.ts",
     "test": "bun test"
   },
   "dependencies": {
     "@clive.shirley/accord-assets": "workspace:*",
-    "@clive.shirley/accord-core": "workspace:*",
-    "@clive.shirley/pi-accord": "workspace:*"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-agent-core": "^0.83.0",
-    "@earendil-works/pi-ai": "^0.83.0",
-    "@earendil-works/pi-coding-agent": "^0.83.0",
-    "@earendil-works/pi-tui": "^0.83.0",
-    "typebox": "^1.3.7"
+    "@clive.shirley/accord-core": "workspace:*"
   }
 }

@@ -3,16 +3,24 @@
  */
 
 import type { OrchestrationNotifyLevel } from "@clive.shirley/accord-core/orchestration/host.js";
+import { bold, dim, error, muted, warn } from "./ui/colors.js";
 
-const PREFIX: Record<OrchestrationNotifyLevel, string> = {
-  info: "info",
-  warning: "warn",
-  error: "error",
-};
+function formatNotifyLine(level: OrchestrationNotifyLevel, line: string): string {
+  const tag =
+    level === "error"
+      ? error(bold("[accord:error]"))
+      : level === "warning"
+        ? warn(bold("[accord:warn]"))
+        : dim(bold("[accord:info]"));
+  return `${tag} ${line}`;
+}
 
 export function cliNotify(level: OrchestrationNotifyLevel, text: string): void {
-  const tag = PREFIX[level];
   for (const line of text.split("\n")) {
-    console.error(`[accord:${tag}] ${line}`);
+    if (!line.trim()) {
+      console.error("");
+      continue;
+    }
+    console.error(formatNotifyLine(level, line));
   }
 }

@@ -5,6 +5,29 @@
   "description": "Stack-specific configuration for the /dev ACCORD workflow, embedded in a project's AGENTS.md under the ## Dev Harness compatibility heading as a fenced JSON block.",
   "type": "object",
   "required": ["schema_version", "language", "test", "verification_commands"],
+  "definitions": {
+    "agent_tier": {
+      "type": "object",
+      "required": ["harness", "model"],
+      "additionalProperties": false,
+      "properties": {
+        "harness": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Backend id from harness.backends (e.g. claude, cursor, pi)."
+        },
+        "model": { "type": "string", "minLength": 1 },
+        "thinking": {
+          "type": "string",
+          "enum": ["off", "minimal", "low", "medium", "high", "xhigh", "max"]
+        },
+        "reasoning_effort": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        }
+      }
+    }
+  },
   "additionalProperties": false,
   "properties": {
     "schema_version": { "const": "1.0" },
@@ -178,6 +201,46 @@
       "description": "Agent runtime backends for the standalone `accord` CLI (Phase 3+).",
       "additionalProperties": false,
       "properties": {
+        "default": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Default backend id (e.g. claude, cursor, pi) or legacy runtime id (`pi`|`exec`)."
+        },
+        "backends": {
+          "type": "array",
+          "description": "Installed agent runtime backends for headless accord spawns.",
+          "items": {
+            "type": "object",
+            "required": ["id", "label", "kind"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+              "label": { "type": "string", "minLength": 1 },
+              "kind": { "type": "string", "enum": ["pi", "exec"] },
+              "command": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "response_json": { "type": "string", "enum": ["stdout", "stderr"] },
+              "env": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              },
+              "binary_env": { "type": "string" }
+            }
+          }
+        },
+        "tiers": {
+          "type": "object",
+          "description": "Per-tier harness + model + thinking for accord-cli spawns.",
+          "additionalProperties": false,
+          "properties": {
+            "reasoning": { "$ref": "#/definitions/agent_tier" },
+            "workhorse": { "$ref": "#/definitions/agent_tier" },
+            "lightweight": { "$ref": "#/definitions/agent_tier" },
+            "review": { "$ref": "#/definitions/agent_tier" }
+          }
+        },
         "exec": {
           "type": "object",
           "description": "Subprocess template backend for `accord --harness exec`.",

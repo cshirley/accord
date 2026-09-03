@@ -1,8 +1,9 @@
 /**
  * Headless Pi harness — programmatic pi-subagent spawn + core pre/post hooks.
  *
- * Used by standalone `accord --harness pi` (no Pi TUI). The Pi extension uses
- * {@link createPiExtensionHarness} instead for full UI integration.
+ * @deprecated Standalone `accord --harness pi` uses `accord-cli/harnesses/pi-exec.ts`
+ * directly. Kept for Pi extension in-process paths that may still import this module.
+ * The Pi extension uses {@link createPiExtensionHarness} for full TUI integration.
  */
 
 import "@clive.shirley/pi-accord/queries/subagent-preflight.js";
@@ -36,6 +37,7 @@ export function createPiHeadlessHarness(options: PiHeadlessHarnessOptions): Agen
         {
           cwd: options.cwd,
           state: options.state,
+          lifecycleHost: options.lifecycleHost,
           availableToolNames: options.availableToolNames,
           autoConfirm: options.autoConfirm,
           spawnNotifyLabel: options.spawnNotifyLabel,

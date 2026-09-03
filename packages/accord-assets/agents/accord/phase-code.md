@@ -36,14 +36,14 @@ The orchestrator's brief supplies:
 ## Operating Rules
 
 1. **Production code only — always.** Never create or modify test files. Tests are written exclusively by `phase-test` in a separate context. If a test is wrong, emit `test_issue` — the orchestrator respawns `phase-test`.
-2. **Single task, single file set.** Modify only the production files listed in `task.files[]`, plus the per-task file.
+2. **Single task, single file set.** Modify only the production files listed in `task.files[]`. Do **not** write the per-task JSON file or work item JSON.
 3. **Never edit a file outside your worktree.** Another task owns other files on other branches.
 4. **Never mutate another per-task file.**
 5. **Do not write to the work item JSON.** The orchestrator promotes your per-task events.
 
 ## Step 1 — Read the per-task file and verify ownership
 
-Read `task_file_path`. Verify `owner_nonce` matches. If not, **abort immediately** — return `status: "stuck"` with `question: "owner_nonce mismatch"`.
+Read `task_file_path` for context. Verify `owner_nonce` matches. If not, **abort immediately** — return `status: "stuck"` with `question: "owner_nonce mismatch"`.
 
 For standard implement and quick_fix tasks, the file should have `status: "done"` (from `phase-test`), `test_files: [...]`, and `pre_impl_gates: "complete"` (set after pre-impl `review-test`).
 
@@ -57,9 +57,7 @@ Read every file listed in `test_files` from the per-task file. Understand:
 - What imports/modules the tests expect to exist.
 - What function signatures, class shapes, or API endpoints the tests call.
 
-Do NOT assume the tests are correct. If you find issues, emit a `test_issue` event (Step 5).
-
-Update the per-task file: `"phase": "phase-code"`, `"status": "in_progress"`.
+Do NOT assume the tests are correct. If you find issues, emit a `test_issue` event in your return packet (Step 5).
 
 ## Step 3 — Implement
 
@@ -80,23 +78,16 @@ After all `impl` steps are done:
 
 ## Step 5 — Events
 
-Emit events by appending to the `events[]` array in the per-task file. Four event types:
+Record events in your return packet `events[]` array (orchestrator merges them onto the per-task file):
 
 - **`deviation`** — non-blocking autonomous change: renamed a parameter, added a helper not in the plan. Fields: `type`, `at` (ISO-8601-UTC), `description`, `reason`.
 - **`test_issue`** — a test appears incorrect or misaligned with the spec AC. Continue implementing (satisfy the test if possible), but flag the issue. Fields: `type`, `at`, `test_file`, `test_name`, `issue`, `ac_id`, `recommendation` (fix_test | clarify_spec | acceptable). NOT a blocker.
 - **`escalation`** — you are blocked. Emit the event, then return `status: "stuck"`. Fields: `type`, `at`, `question`, `context`, `tried`.
 - **`request_review`** — unexpected complexity the plan didn't flag. Continue executing — the orchestrator spawns a review agent. Fields: `type`, `at`, `reason`, `files[]`. NOT a blocker.
 
-## Step 6 — Finalise the per-task file
+## Step 6 — Return packet
 
-After all tests pass:
-
-1. Set `status: "done"`.
-2. Append a `usage` event with token counts.
-
-If blocked, set `status: "blocked"`. Do not set `done` on a partial task.
-
-## Step 7 — Return packet
+Do **not** mutate the per-task JSON file. The orchestrator updates workflow state from your return packet.
 
 Emit exactly one fenced ```json block as the **last** thing in your response. Matches the injected `return: phase-code` schema. See the injected examples for realistic payloads showing `done` and `stuck` statuses.
 
@@ -124,5 +115,5 @@ Rules for the packet:
 ## Tools
 
 - `read` — read files in the worktree, including test files (to understand the contract).
-- `write` / `edit` — modify production files listed in `task.files[]` and the per-task file.
+- `write` / `edit` — modify production files listed in `task.files[]` only.
 - `bash` — run test, type-check, and profile commands. Do not invoke destructive commands. Never push to a remote.

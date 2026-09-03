@@ -1,20 +1,24 @@
 /**
  * Shared preflight → spawn → post-process path for headless harness backends.
+ *
+ * Uses core {@link runSubagentPrepareHook} / {@link runSubagentResultHook} so
+ * CLI and Pi headless get the same gather/verify/schema injection gates as Pi hooks.
  */
 
+import {
+  runSubagentPrepareHook,
+  runSubagentResultHook,
+} from "@clive.shirley/accord-core/harness/lifecycle-wiring.js";
 import { tryCommitOnTaskDone } from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
 import type { OrchestrationNotifyLevel } from "@clive.shirley/accord-core/orchestration/host.js";
 import type { SubagentSpawnResult } from "@clive.shirley/accord-core/orchestration/types.js";
-import {
-  processSubagentToolResult,
-  readPreparedSingleSubagentInput,
-  runSubagentToolPreflight,
-} from "@clive.shirley/accord-core/subagent/index.js";
+import { readPreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/index.js";
 import {
   extractTaskIdFromTaskText,
   extractWorkItemId,
   loadPricing,
 } from "@clive.shirley/accord-core/telemetry/usage.js";
+import type { HarnessLifecycleHost } from "@clive.shirley/accord-core/types/harness-lifecycle.js";
 import type { HarnessMutableState } from "@clive.shirley/accord-core/types/host.js";
 
 export type SpawnExecutionResult = {
@@ -29,10 +33,11 @@ export type SpawnExecutionResult = {
 export type SpawnPipelineOptions = {
   cwd: string;
   state: HarnessMutableState;
+  lifecycleHost: HarnessLifecycleHost;
   availableToolNames?: Set<string>;
   autoConfirm?: boolean;
   spawnNotifyLabel?: string;
-  notify: (level: OrchestrationNotifyLevel, text: string) => void;
+  notify?: (level: OrchestrationNotifyLevel, text: string) => void;
 };
 
 export async function runSpawnPipeline(
@@ -46,20 +51,26 @@ export async function runSpawnPipeline(
   const spawnLabel = options.spawnNotifyLabel ?? "accord";
   const availableToolNames = options.availableToolNames ?? new Set<string>();
   const autoConfirm = options.autoConfirm ?? true;
-  const { notify, state } = options;
+  const { state, lifecycleHost } = options;
+  const notify = options.notify ?? ((level, text) => lifecycleHost.notify(level, text));
 
   const input: Record<string, unknown> = { agent: request.agent, task: request.task };
 
-  const preflight = await runSubagentToolPreflight(input, {
-    devConfig: state.devConfig,
-    availableToolNames,
-    host: {
-      notify: (level, msg) => notify(level === "warning" ? "warning" : "info", msg),
-      confirm: async () => autoConfirm,
+  const hostWithConfirm: HarnessLifecycleHost = {
+    ...lifecycleHost,
+    confirm: lifecycleHost.confirm ?? (async () => autoConfirm),
+  };
+
+  const prepare = await runSubagentPrepareHook(
+    { agent: request.agent, task: request.task, input },
+    {
+      devConfig: state.devConfig,
+      host: hostWithConfirm,
+      availableToolNames,
     },
-  });
-  if (preflight.blockReason) {
-    notify("warning", preflight.blockReason);
+  );
+  if (!prepare.ok) {
+    notify("warning", prepare.reason);
     return { exitCode: 1 };
   }
 
@@ -89,10 +100,12 @@ export async function runSpawnPipeline(
     ],
   };
 
-  const append = await processSubagentToolResult({
-    details: subagentDetails,
+  const append = await runSubagentResultHook(subagentDetails, {
+    host: lifecycleHost,
     state,
+    devConfig: state.devConfig,
     pricing,
+    availableToolNames,
   });
 
   if (agent === "review-code" && singleResult.exitCode === 0) {

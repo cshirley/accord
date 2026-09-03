@@ -7,6 +7,7 @@ import { DEV_WORK_ITEM_ID_PATTERN } from "@clive.shirley/accord-core/commands/di
 import type { WriteTarget } from "@clive.shirley/accord-core/config/init-write.js";
 import type { PlanCommand } from "./commands/plan.js";
 import { WORKFLOW_SUBCOMMANDS, type WorkflowSubcommand } from "./commands/workflow.js";
+import { renderHelp } from "./ui/help-display.js";
 
 export type GlobalOptions = {
   cwd: string;
@@ -14,6 +15,10 @@ export type GlobalOptions = {
   json: boolean;
   yes: boolean;
   help: boolean;
+  finish: boolean;
+  maxRounds: number | undefined;
+  select: boolean;
+  noColor: boolean;
 };
 
 export type InitOptions = GlobalOptions & {
@@ -21,9 +26,34 @@ export type InitOptions = GlobalOptions & {
   target: WriteTarget | undefined;
 };
 
+export type ConfigInitOptions = GlobalOptions & {
+  write: boolean;
+  force: boolean;
+  defaultHarness?: string;
+};
+
 export type ParsedCli =
   | { kind: "help" }
+  | { kind: "interactive"; options: GlobalOptions }
+  | { kind: "completion"; shell: string; options: GlobalOptions }
+  | { kind: "dev-help"; options: GlobalOptions }
   | { kind: "tasks"; options: GlobalOptions }
+  | { kind: "retro"; options: GlobalOptions }
+  | { kind: "tag"; rawArgs: string; options: GlobalOptions }
+  | { kind: "rehydrate"; workItemId: string; options: GlobalOptions }
+  | { kind: "spec-gaps"; workItemId: string; options: GlobalOptions }
+  | {
+      kind: "gaps";
+      workItemId: string;
+      rawArgs: string;
+      options: GlobalOptions;
+    }
+  | {
+      kind: "deviations";
+      workItemId: string;
+      rawArgs: string;
+      options: GlobalOptions;
+    }
   | { kind: "plan"; command: PlanCommand; workItemId: string; options: GlobalOptions }
   | {
       kind: "workflow";
@@ -34,31 +64,15 @@ export type ParsedCli =
     }
   | { kind: "resume"; workItemId: string; options: GlobalOptions }
   | { kind: "finish"; workItemId: string; options: GlobalOptions }
+  | { kind: "drive"; workItemId: string; options: GlobalOptions }
+  | { kind: "run"; text: string; options: GlobalOptions }
   | { kind: "init"; options: InitOptions }
+  | { kind: "config-init"; options: ConfigInitOptions }
   | { kind: "review"; options: GlobalOptions }
   | { kind: "error"; message: string };
 
-const HELP = `accord — standalone ACCORD orchestrator
-
-Usage:
-  accord tasks [--json]
-  accord plan <resume|finish> <work-item-id> [--json]
-  accord align|spec|plan|check <work-item-id> [--harness pi|exec] [--cwd DIR] [-y]
-  accord resume <work-item-id> [--harness pi|exec] [--cwd DIR] [-y]
-  accord finish <work-item-id> [--harness pi|exec] [--cwd DIR] [-y]
-  accord init [--json] [--write [--target local|root|root_replace|link_only]]
-  accord review [--harness pi|exec] [--cwd DIR] [--json]
-
-Options:
-  --harness <id>   Agent runtime backend (default: pi)
-  --cwd <dir>      Project root (default: process.cwd())
-  --json           Machine-readable output
-  -y, --yes        Auto-confirm gather preflight prompts
-  -h, --help       Show this help
-`;
-
 export function printHelp(): void {
-  console.log(HELP.trim());
+  console.log(renderHelp());
 }
 
 const INIT_TARGETS = new Set<WriteTarget>(["local", "root", "root_replace", "link_only"]);
@@ -70,6 +84,10 @@ function parseGlobalFlags(argv: string[]): { flags: GlobalOptions; rest: string[
     json: false,
     yes: false,
     help: false,
+    finish: false,
+    maxRounds: undefined,
+    select: false,
+    noColor: false,
   };
   const rest: string[] = [];
 
@@ -91,14 +109,61 @@ function parseGlobalFlags(argv: string[]): { flags: GlobalOptions; rest: string[
       const next = argv[++index];
       if (!next) throw new Error("--harness requires pi or exec");
       flags.harness = next;
+    } else if (token === "--finish") {
+      flags.finish = true;
+    } else if (token === "--max-rounds") {
+      const next = argv[++index];
+      const parsed = Number.parseInt(next ?? "", 10);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        throw new Error("--max-rounds requires a positive integer");
+      }
+      flags.maxRounds = parsed;
+    } else if (token.startsWith("--max-rounds=")) {
+      const parsed = Number.parseInt(token.slice("--max-rounds=".length), 10);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        throw new Error("--max-rounds requires a positive integer");
+      }
+      flags.maxRounds = parsed;
     } else if (token.startsWith("--harness=")) {
       flags.harness = token.slice("--harness=".length);
+    } else if (token === "--select") {
+      flags.select = true;
+    } else if (token === "--no-color") {
+      flags.noColor = true;
     } else {
       rest.push(token);
     }
   }
 
   return { flags, rest };
+}
+
+function parseConfigInitFlags(flags: GlobalOptions, tail: string[]): ConfigInitOptions {
+  const configInit: ConfigInitOptions = {
+    ...flags,
+    write: false,
+    force: false,
+    defaultHarness: undefined,
+  };
+
+  for (let index = 0; index < tail.length; index++) {
+    const token = tail[index];
+    if (token === "--write") {
+      configInit.write = true;
+    } else if (token === "--force") {
+      configInit.force = true;
+    } else if (token === "--harness") {
+      const next = tail[++index];
+      if (!next) throw new Error("--harness requires a backend id");
+      configInit.defaultHarness = next;
+    } else if (token.startsWith("--harness=")) {
+      configInit.defaultHarness = token.slice("--harness=".length);
+    } else {
+      throw new Error(`Unknown config init flag: ${token}`);
+    }
+  }
+
+  return configInit;
 }
 
 function parseInitFlags(flags: GlobalOptions, tail: string[]): InitOptions {
@@ -140,14 +205,95 @@ export function parseCli(argv: string[]): ParsedCli {
     return { kind: "error", message };
   }
 
-  if (flags.help || rest.length === 0) {
+  if (flags.help) {
+    return { kind: "help" };
+  }
+
+  if (rest.length === 0) {
+    if (process.stdin.isTTY) {
+      return { kind: "interactive", options: flags };
+    }
     return { kind: "help" };
   }
 
   const [command, ...tail] = rest;
 
+  if (command === "help") {
+    return { kind: "dev-help", options: flags };
+  }
+
+  if (command === "completion") {
+    const shell = tail[0];
+    if (!shell) {
+      return { kind: "error", message: "completion requires a shell: bash or zsh" };
+    }
+    return { kind: "completion", shell, options: flags };
+  }
+
   if (command === "tasks") {
     return { kind: "tasks", options: flags };
+  }
+
+  if (command === "retro") {
+    return { kind: "retro", options: flags };
+  }
+
+  if (command === "tag") {
+    return { kind: "tag", rawArgs: tail.join(" "), options: flags };
+  }
+
+  if (command === "rehydrate") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return { kind: "error", message: "rehydrate requires a work item id" };
+    }
+    return { kind: "rehydrate", workItemId, options: flags };
+  }
+
+  if (command === "spec-gaps") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return { kind: "error", message: "spec-gaps requires a work item id" };
+    }
+    return { kind: "spec-gaps", workItemId, options: flags };
+  }
+
+  if (command === "gaps") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return { kind: "error", message: "gaps requires a work item id" };
+    }
+    return {
+      kind: "gaps",
+      workItemId,
+      rawArgs: tail.slice(1).join(" "),
+      options: flags,
+    };
+  }
+
+  if (command === "deviations") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return {
+        kind: "error",
+        message: "deviations requires a work item id (accept|revert|review optional)",
+      };
+    }
+    return {
+      kind: "deviations",
+      workItemId,
+      rawArgs: tail.slice(1).join(" "),
+      options: flags,
+    };
+  }
+
+  if (command === "config" && tail[0] === "init") {
+    try {
+      return { kind: "config-init", options: parseConfigInitFlags(flags, tail.slice(1)) };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { kind: "error", message };
+    }
   }
 
   if (command === "init") {
@@ -202,6 +348,22 @@ export function parseCli(argv: string[]): ParsedCli {
       rawArgs: tail.slice(1).join(" "),
       options: flags,
     };
+  }
+
+  if (command === "drive") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return { kind: "error", message: "drive requires a work item id" };
+    }
+    return { kind: "drive", workItemId, options: flags };
+  }
+
+  if (command === "run") {
+    const text = tail.join(" ").trim();
+    if (!text) {
+      return { kind: "error", message: "run requires a ticket id or description" };
+    }
+    return { kind: "run", text, options: flags };
   }
 
   if (command === "resume" || command === "finish") {

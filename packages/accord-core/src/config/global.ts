@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { GLOBAL_CONFIG_PATH } from "./paths.js";
+import { resolveLegacyGlobalConfigPath, resolveNeutralGlobalConfigPath } from "./paths.js";
 import type {
   ContextSourceConfig,
   DevHarnessGlobalConfig,
@@ -8,8 +8,30 @@ import type {
   DevHarnessOrchestrationConfig,
 } from "./types.js";
 
+let legacyGlobalConfigWarned = false;
+
 /**
- * Load the global accord.json from ~/.config/pi/agent/.
+ * Resolve global `accord.json` — prefers `~/.config/accord/accord.json`, falls back
+ * to deprecated `~/.config/pi/agent/accord.json` with a one-time stderr warning.
+ */
+export function resolveGlobalConfigPath(): string | null {
+  const neutral = resolveNeutralGlobalConfigPath();
+  const legacy = resolveLegacyGlobalConfigPath();
+  if (fs.existsSync(neutral)) return neutral;
+  if (fs.existsSync(legacy)) {
+    if (!legacyGlobalConfigWarned) {
+      console.error(
+        "[accord] Deprecated: reading ~/.config/pi/agent/accord.json — migrate to ~/.config/accord/accord.json",
+      );
+      legacyGlobalConfigWarned = true;
+    }
+    return legacy;
+  }
+  return null;
+}
+
+/**
+ * Load the global accord.json from `~/.config/accord/` (legacy fallback above).
  * Returns null if not found or invalid.
  *
  * The seeded file (see `seedGlobalConfigFile`) contains JSONC-style
@@ -19,9 +41,10 @@ import type {
  * loader failing.
  */
 export function loadGlobalConfig(): DevHarnessGlobalConfig | null {
-  if (!fs.existsSync(GLOBAL_CONFIG_PATH)) return null;
+  const configPath = resolveGlobalConfigPath();
+  if (!configPath) return null;
   try {
-    const raw = fs.readFileSync(GLOBAL_CONFIG_PATH, "utf8");
+    const raw = fs.readFileSync(configPath, "utf8");
     return JSON.parse(stripJsonc(raw));
   } catch {
     return null;
@@ -142,21 +165,19 @@ export function stripJsonComments(input: string): string {
 }
 
 /**
- * Default JSONC content seeded into a fresh `accord.json`. All
- * configuration is commented out so the runtime sees an empty object
- * (the safe default) until the user opts in. The block-comment header
- * documents the file's purpose; line comments inside the object give
- * paste-ready snippets for each supported field.
+ * Default JSONC content seeded into a fresh `accord.json`. Prefer
+ * `accord config init --write` for the full harness + tier template.
+ * This stub keeps all fields commented until the user opts in.
  */
 export function defaultGlobalConfigTemplate(): string {
   return `// ACCORD global configuration. Applies across every project that
-// uses /dev. Loaded from ~/.config/pi/agent/accord.json at
-// extension start. Edit freely — // and /* ... */ comments are
-// preserved on disk and stripped by the loader at runtime.
+// uses ACCORD (/dev or accord CLI). Loaded from ~/.config/accord/accord.json
+// at startup (legacy fallback: ~/.config/pi/agent/accord.json). Edit freely —
+// // and /* ... */ comments are preserved on disk and stripped by the loader.
 //
-// Schema: schemas/accord-schema.json (in the pi-accord repo).
+// Schema: schemas/accord-schema.json (in the accord monorepo).
 // All keys are optional; with everything commented out ACCORD uses
-// its built-in defaults (auto-install on, no extra context sources,
+// its built-in defaults (auto-install on Pi, no extra context sources,
 // no user-defined providers).
 {
   // ── Asset bootstrap ──────────────────────────────────────────────
@@ -205,7 +226,7 @@ export function defaultGlobalConfigTemplate(): string {
 }
 
 export interface SeedGlobalConfigOptions {
-  /** Pi config directory (defaults to the dir containing GLOBAL_CONFIG_PATH). */
+  /** Config directory (defaults to ACCORD_CONFIG_DIR / GLOBAL_CONFIG_PATH parent). */
   target?: string;
   /** Override the file content (mainly for tests). */
   content?: string;
@@ -227,7 +248,9 @@ export interface SeedGlobalConfigResult {
  * failure as non-fatal.
  */
 export function seedGlobalConfigFile(opts: SeedGlobalConfigOptions = {}): SeedGlobalConfigResult {
-  const filePath = opts.target ? path.join(opts.target, "accord.json") : GLOBAL_CONFIG_PATH;
+  const filePath = opts.target
+    ? path.join(opts.target, "accord.json")
+    : resolveNeutralGlobalConfigPath();
 
   if (fs.existsSync(filePath)) {
     return { status: "exists", path: filePath };
@@ -283,7 +306,7 @@ export function mergeContextSources(
 }
 
 /**
- * Merge global `~/.config/pi/agent/accord.json` orchestration defaults with a
+ * Merge global `~/.config/accord/accord.json` orchestration defaults with a
  * project's Dev Harness `orchestration` block. Each subsection is shallow-merged;
  * project fields win when both define the same key.
  */
@@ -312,17 +335,6 @@ export function mergeOrchestrationConfig(
 }
 
 /**
- * Merge global and project harness backend config. Project `harness.exec`
- * overrides global when both are set.
+ * Merge global and project harness backend config. Project fields override global.
  */
-export function mergeHarnessConfig(
-  global: DevHarnessHarnessConfig | undefined,
-  project: DevHarnessHarnessConfig | undefined,
-): DevHarnessHarnessConfig | undefined {
-  if (!global && !project) return undefined;
-  const g = global ?? {};
-  const p = project ?? {};
-  const exec = p.exec ?? g.exec;
-  if (!exec) return undefined;
-  return { exec };
-}
+export { mergeHarnessConfig } from "./harness-resolve.js";

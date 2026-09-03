@@ -10,6 +10,7 @@ Cursor Marketplace-style plugin for **Cursor Agent in the CLI** (interactive `ag
 | `rules/agent-cli.mdc` | Rule scoped to automation-oriented file globs |
 | `skills/agent-cli/SKILL.md` | Skill invoked for CLI/ACP/scripting topics |
 | `commands/agent-print.md` | Agent-executable command doc for non-interactive runs |
+| `../../accord-cli/scripts/cursor-agent-exec.ts` | ACCORD exec harness backend — frontmatter → `--model`, body-only prompt |
 
 Optional directories you can add later: `agents/`, `hooks/`, `mcp.json`, `assets/`, `scripts/`. See [Plugins reference](https://cursor.com/docs/reference/plugins.md).
 

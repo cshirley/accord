@@ -187,7 +187,7 @@ npm run check                    # bun test + schemas + assets + types + bundle 
 Make pi.dev load `/dev` from this checkout:
 
 ```bash
-bun run install:dev       # pi install this repo + link bundled assets (see scripts/install-dev.sh)
+bun run install:dev       # pi install this repo + link bundled assets + ~/.local/bin/accord shim
 # or: pi install .
 # Start pi → it auto-links the bundled skills/agents/providers and
 # notifies you to restart. Restart pi once more — done.

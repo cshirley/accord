@@ -8,7 +8,53 @@ export interface ExecHarnessConfig {
   env?: Record<string, string>;
 }
 
+export type HarnessBackendKind = "pi" | "exec";
+
+/** Named agent runtime backend (Pi CLI, Claude Code, Cursor Agent, …). */
+export interface HarnessBackendDef {
+  /** Stable id referenced by `harness.default` and tier entries (e.g. pi, claude, cursor). */
+  id: string;
+  /** Human label for setup prompts. */
+  label: string;
+  /** Runtime implementation: built-in Pi harness or exec subprocess template. */
+  kind: HarnessBackendKind;
+  /** Exec argv template when kind is `exec`. */
+  command?: string[];
+  response_json?: "stdout" | "stderr";
+  env?: Record<string, string>;
+  /** Env var that overrides the CLI binary path (e.g. ACCORD_CLAUDE_CODE_BIN). */
+  binary_env?: string;
+}
+
+export type ModelTierName = "reasoning" | "workhorse" | "lightweight";
+
+/** Per-tier spawn routing for accord-cli (replaces subagent.json profiles for headless runs). */
+export interface AgentTierConfig {
+  /** Backend id from `harness.backends`. */
+  harness: string;
+  model: string;
+  thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+  reasoning_effort?: "low" | "medium" | "high";
+}
+
+export interface HarnessTierMap {
+  reasoning?: AgentTierConfig;
+  workhorse?: AgentTierConfig;
+  lightweight?: AgentTierConfig;
+  /** Optional override for review-* agents. */
+  review?: AgentTierConfig;
+}
+
 export interface DevHarnessHarnessConfig {
+  /**
+   * Default backend id (e.g. claude, cursor, pi) or legacy runtime id (`pi`|`exec`).
+   */
+  default?: string;
+  /** Installed runtime backends detected or configured for this machine. */
+  backends?: HarnessBackendDef[];
+  /** Tier → harness + model + thinking (accord-cli headless spawns). */
+  tiers?: HarnessTierMap;
+  /** Legacy single exec template when `default` is `exec`. */
   exec?: ExecHarnessConfig;
 }
 

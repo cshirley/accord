@@ -29,3 +29,29 @@ export {
   parseHarnessId,
 } from "./harnesses/registry.js";
 export type { AgentHarnessFactoryOptions } from "./harnesses/types.js";
+export {
+  buildCursorAgentPrompt,
+  CURSOR_AGENT_EXEC_COMMAND,
+  CURSOR_AGENT_EXEC_HARNESS,
+  resolveCursorAgentModel,
+} from "./harnesses/cursor-agent-exec.js";
+export { formatCursorAgentCliModel } from "./harnesses/cursor-agent-model.js";
+export {
+  CLAUDE_CODE_EXEC_COMMAND,
+  CLAUDE_CODE_EXEC_HARNESS,
+  runClaudeCodeExec,
+} from "./harnesses/claude-code-exec.js";
+export { formatClaudeCodeCliEffort, formatClaudeCodeCliModel } from "./harnesses/claude-code-model.js";
+export {
+  createPiHarness,
+  PI_EXEC_COMMAND,
+  PI_EXEC_HARNESS,
+  runPiExec,
+  runPiExecSpawn,
+} from "./harnesses/pi-exec.js";
+export {
+  formatClaudeCodeTools,
+  inferAgentNamespace,
+  loadAgentFromSpawnFile,
+  resolveSpawnModelFromAgentFile,
+} from "./harnesses/exec-agent-shared.js";

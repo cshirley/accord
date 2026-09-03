@@ -48,11 +48,12 @@ describe("subagent preflight query", () => {
     const check = runSubagentSpawnPreflightCheck("phase-plan");
     expect(check.ok).toBe(false);
     expect(check.credential_ok).toBe(false);
-    expect(check.blocks.some((b) => b.includes("ANTHROPIC_API_KEY is unset"))).toBe(true);
+    expect(check.provider).toBe("cursor");
+    expect(check.blocks.some((block) => block.includes("Cursor credentials"))).toBe(true);
   });
 
-  test("passes when anthropic key is set", () => {
-    process.env.ANTHROPIC_API_KEY = "test-key";
+  test("passes when cursor credentials are available", () => {
+    process.env.CURSOR_API_KEY = "test-key";
     const check = runSubagentSpawnPreflightCheck("phase-plan");
     expect(check.credential_ok).toBe(true);
     expect(check.agent_file_found).toBe(true);
@@ -62,13 +63,13 @@ describe("subagent preflight query", () => {
   });
 
   test("warns when spawn model is outside scoped list", () => {
-    process.env.ANTHROPIC_API_KEY = "test-key";
+    process.env.CURSOR_API_KEY = "test-key";
     const check = runSubagentSpawnPreflightCheck("phase-plan", process.cwd(), {
       scoped_models: [{ provider: "openai", modelId: "gpt-4o" }],
       judgment_model: null,
     });
     expect(check.ok).toBe(true);
     expect(check.scoped_models.length).toBe(1);
-    expect(check.warnings.some((w) => w.includes("scoped models"))).toBe(true);
+    expect(check.warnings.some((warning) => warning.includes("scoped models"))).toBe(true);
   });
 });

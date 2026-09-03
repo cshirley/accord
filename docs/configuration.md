@@ -1,5 +1,19 @@
 # Project configuration
 
+## Global config (`~/.config/accord/accord.json`)
+
+Run `accord config init --write` to generate a global config with detected harness backends (`pi`, `claude`, `cursor`) and per-tier model defaults (`reasoning`, `workhorse`, `lightweight`, `review`). Use `--force` to overwrite an existing file.
+
+```bash
+accord config init              # dry-run (prints JSON)
+accord config init --write -y   # non-interactive write
+accord config init --write --harness claude
+```
+
+Project-level overrides still live in AGENTS.md (below).
+
+## Project AGENTS.md
+
 Lives in the project's `AGENTS.md` under the compatibility heading `## Dev Harness` as a fenced JSON block. Created by `/dev init`:
 
 1. Detects stack from marker files (`go.mod`, `Cargo.toml`, `package.json`, etc.)
@@ -29,9 +43,113 @@ Example:
 }
 ```
 
+## Harness backends and tiers
+
+`accord config init` writes `harness.backends[]` (one entry per installed CLI) and `harness.tiers` (per-tier `harness`, `model`, `thinking`). At spawn time, accord-cli resolves the backend from the agent markdown `tier:` frontmatter (or review agent name) and routes to `pi` or the matching exec backend.
+
+Example (abbreviated):
+
+```json
+"harness": {
+  "default": "claude",
+  "backends": [
+    { "id": "claude", "label": "Claude Code", "kind": "exec", "command": ["bun", "packages/accord-cli/scripts/claude-code-exec.ts", "..."] },
+    { "id": "cursor", "label": "Cursor Agent", "kind": "exec", "command": ["bun", "packages/accord-cli/scripts/cursor-agent-exec.ts", "..."] },
+    { "id": "pi", "label": "Pi CLI", "kind": "pi" }
+  ],
+  "tiers": {
+    "reasoning": { "harness": "claude", "model": "claude-opus-4-7", "thinking": "high" },
+    "workhorse": { "harness": "cursor", "model": "composer-2.5", "thinking": "medium" },
+    "review": { "harness": "pi", "model": "anthropic/claude-opus-4-7", "thinking": "xhigh" }
+  }
+}
+```
+
+Legacy `harness.exec` (single command) remains supported for `default: "exec"`.
+
 ## Exec harness (`harness.exec`)
 
 For `accord --harness exec` and `ACCORD_MCP_HARNESS=exec`. Subprocess template; core contract unchanged (`exitCode` + parsed return packet).
+
+### Pi CLI preset
+
+Built-in `--harness pi` spawns isolated `pi --mode json -p` subprocesses via `pi-subagent` (no `pi-accord` required). Frontmatter resolves through `subagent.json` the same way as `/dev` subagent spawns.
+
+Optional exec preset (same backend, file-based argv):
+
+```json
+"harness": {
+  "default": "exec",
+  "exec": {
+    "command": [
+      "bun",
+      "packages/accord-cli/scripts/pi-exec.ts",
+      "--agent={{agentId}}",
+      "--agent-file={{agentFile}}",
+      "--task-file={{taskFile}}",
+      "--system-append-file={{systemAppendFile}}",
+      "--cwd={{cwd}}"
+    ],
+    "response_json": "stdout"
+  }
+}
+```
+
+Preset: `PI_EXEC_HARNESS` from `@clive.shirley/accord-cli`.
+
+### Claude Code CLI preset
+
+Bundled backend for the Anthropic `claude` binary (`claude -p`). Frontmatter (`tier`, `model`, `thinking`) resolves through `subagent.json` → `claude --model` + `--effort`. Agent **body** → `--system-prompt`; project stack → `--append-system-prompt`; orchestrator task → prompt arg. Tool flags map to `--tools`.
+
+Use an **Anthropic-direct** profile in `subagent.json` (e.g. `anthropic-direct`) — Cursor-shaped model ids are invalid here.
+
+```json
+"harness": {
+  "default": "exec",
+  "exec": {
+    "command": [
+      "bun",
+      "packages/accord-cli/scripts/claude-code-exec.ts",
+      "--agent={{agentId}}",
+      "--agent-file={{agentFile}}",
+      "--task-file={{taskFile}}",
+      "--system-append-file={{systemAppendFile}}",
+      "--cwd={{cwd}}"
+    ],
+    "response_json": "stdout"
+  }
+}
+```
+
+Preset: `CLAUDE_CODE_EXEC_HARNESS` from `@clive.shirley/accord-cli`. Override binary: `ACCORD_CLAUDE_CODE_BIN`. Permissions: `ACCORD_CLAUDE_SKIP_PERMISSIONS=1` (default) adds `--dangerously-skip-permissions`.
+
+### Cursor Agent CLI preset
+
+Bundled backend for the Cursor `agent` binary. Agent markdown **frontmatter** (`tier`, `model`, `thinking`) is the **control plane** — resolved through `~/.config/pi/agent/subagent.json` profiles and mapped to `agent --model`. Frontmatter is **not** passed as argv or prompt text (YAML `---` would collide with CLI parsing).
+
+The prompt is: agent body + `systemAppend` (project stack) + orchestrator task.
+
+```json
+"harness": {
+  "default": "exec",
+  "exec": {
+    "command": [
+      "bun",
+      "packages/accord-cli/scripts/cursor-agent-exec.ts",
+      "--agent={{agentId}}",
+      "--agent-file={{agentFile}}",
+      "--task-file={{taskFile}}",
+      "--system-append-file={{systemAppendFile}}",
+      "--cwd={{cwd}}"
+    ],
+    "response_json": "stdout"
+  }
+}
+```
+
+Programmatic preset: `CURSOR_AGENT_EXEC_HARNESS` from `@clive.shirley/accord-cli`. Override binary with `ACCORD_CURSOR_AGENT_BIN`.
+
+### Generic exec template
 
 ```json
 "harness": {
@@ -43,7 +161,7 @@ For `accord --harness exec` and `ACCORD_MCP_HARNESS=exec`. Subprocess template; 
 }
 ```
 
-Tokens: `{{agentId}}`, `{{agent}}`, `{{task}}`, `{{taskFile}}`, `{{cwd}}`. See [`accord-cli.md`](accord-cli.md).
+Tokens: `{{agentId}}`, `{{agent}}`, `{{task}}`, `{{taskFile}}`, `{{agentFile}}`, `{{systemAppendFile}}`, `{{cwd}}`. See [`accord-cli.md`](accord-cli.md).
 
 ## Implement review retry policy (`orchestration.review_loop`)
 

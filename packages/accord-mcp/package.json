@@ -1,0 +1,25 @@
+{
+  "name": "@clive.shirley/accord-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ACCORD stdio MCP server — host-neutral dev_* tools",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./*": "./src/*"
+  },
+  "bin": {
+    "accord-mcp": "./src/server.ts"
+  },
+  "scripts": {
+    "start": "bun src/server.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@clive.shirley/accord-cli": "workspace:*",
+    "@clive.shirley/accord-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  }
+}

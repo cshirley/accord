@@ -118,6 +118,13 @@ export function parseTicketIdOnly(text: string): string | null {
   return trimmed;
 }
 
+/** Leading ticket id from free-text (`PROJ-1 title…`), if present. */
+export function resolveWorkItemIdFromClassifyText(text: string): string | null {
+  const ticketOnly = parseTicketIdOnly(text);
+  if (ticketOnly) return ticketOnly;
+  return parseLeadingTicketAndTitle(text)?.id ?? null;
+}
+
 /**
  * Create `.tasks/<ID>.json` when classify preflight allows it.
  * Idempotent when the work item already exists or rehydrate succeeds.

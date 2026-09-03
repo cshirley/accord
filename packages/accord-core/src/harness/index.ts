@@ -4,6 +4,10 @@
  * Pi adapter maps lifecycle events → these functions and applies UI-specific return shapes.
  */
 
+export {
+  discoverAvailableToolNames,
+  readMcpServerKeys,
+} from "../integrations/mcp-tool-discovery.js";
 /**
  * @deprecated Import from `../subagent/index.js`. Re-exported for existing callers (d978cc1).
  */
@@ -51,6 +55,14 @@ export {
   type BootstrapOptions,
   maybeAutoInstallAssets,
 } from "./asset-bootstrap.js";
+export type { SessionStartHookOptions, WireHarnessLifecycleOptions } from "./lifecycle-wiring.js";
+export {
+  createNoopHarnessLifecycleHost,
+  runArtifactWriteHook,
+  runSessionStartHook,
+  runSubagentPrepareHook,
+  runSubagentResultHook,
+} from "./lifecycle-wiring.js";
 export {
   createOrchestratorUsageDedup,
   isAssistantTurnMessage,
@@ -69,3 +81,22 @@ export {
   type HarnessCostSeed,
   seedHarnessSessionCostState,
 } from "./session-start.js";
+export {
+  type ApplyWorkflowStateInput,
+  applyWorkflowStateFromValidatedReturn,
+} from "./workflow-state-apply.js";
+export {
+  applyTaskEventsFromPacket,
+  extractTaskEventsFromPacket,
+} from "./workflow-state-events.js";
+export {
+  classifyWorkflowStatePath,
+  isOrchestratorOwnedWorkflowStatePath,
+  type WorkflowStatePathKind,
+} from "./workflow-state-paths.js";
+export { prepareWorkflowStateBeforeSpawn } from "./workflow-state-spawn.js";
+export {
+  allowAgentWorkflowStateWrites,
+  formatWorkflowStateWriteBlockedMessage,
+  validateWorkflowStateWrite,
+} from "./workflow-state-write-guard.js";

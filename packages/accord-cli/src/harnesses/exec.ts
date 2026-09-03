@@ -3,6 +3,8 @@
  */
 
 import { spawn } from "node:child_process";
+import { loadGlobalConfig } from "@clive.shirley/accord-core/config/global.js";
+import { mergeHarnessConfig, resolveBackendExecConfig } from "@clive.shirley/accord-core/config/harness-resolve.js";
 import type { ExecHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
 import { extractReturnPacket } from "@clive.shirley/accord-core/subagent/result/packet.js";
 import type { PreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/run-request.js";
@@ -19,12 +21,22 @@ export type ExecHarnessOptions = AgentHarnessFactoryOptions & {
 
 export function resolveExecHarnessConfig(
   state: HarnessMutableState,
+  options?: { harnessConfig?: import("@clive.shirley/accord-core/config/types.js").DevHarnessHarnessConfig; backendId?: string },
 ): ExecHarnessConfig | undefined {
-  return state.devConfig?.harness?.exec;
+  const globalConfig = loadGlobalConfig();
+  const merged =
+    options?.harnessConfig ??
+    mergeHarnessConfig(globalConfig?.harness, state.devConfig?.harness);
+  return resolveBackendExecConfig(merged, options?.backendId);
 }
 
 export function createExecHarness(options: ExecHarnessOptions): AgentHarness {
-  const execConfig = options.execConfig ?? resolveExecHarnessConfig(options.state);
+  const execConfig =
+    options.execConfig ??
+    resolveExecHarnessConfig(options.state, {
+      harnessConfig: options.harnessConfig,
+      backendId: options.execBackendId,
+    });
 
   return {
     id: "exec",
@@ -38,7 +50,7 @@ export function createExecHarness(options: ExecHarnessOptions): AgentHarness {
       if (!execConfig?.command?.length) {
         cliNotify(
           "error",
-          "exec harness requires harness.exec.command in AGENTS.md Dev Harness JSON or ~/.config/pi/agent/accord.json.",
+          "exec harness requires harness.exec.command in AGENTS.md Dev Harness JSON or ~/.config/accord/accord.json.",
         );
         return { exitCode: 1 };
       }
@@ -48,6 +60,7 @@ export function createExecHarness(options: ExecHarnessOptions): AgentHarness {
         {
           cwd: options.cwd,
           state: options.state,
+          lifecycleHost: options.lifecycleHost,
           availableToolNames: options.availableToolNames,
           autoConfirm: options.autoConfirm,
           spawnNotifyLabel: options.spawnNotifyLabel,

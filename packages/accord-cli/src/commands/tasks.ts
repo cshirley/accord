@@ -1,6 +1,17 @@
 import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
+import { parseCli } from "../cli.js";
+import { executeParsed } from "../dispatch.js";
+import { renderTasksDashboard, renderTasksDashboardHeader } from "../ui/tasks-display.js";
+import { selectWorkItem, selectWorkItemAction } from "../ui/select.js";
+import { muted } from "../ui/colors.js";
 
-export function runTasksCommand(options: { json?: boolean }): number {
+export type TasksCommandOptions = {
+  json?: boolean;
+  select?: boolean;
+  cwd?: string;
+};
+
+export async function runTasksCommand(options: TasksCommandOptions = {}): Promise<number> {
   const dashboard = devTasks();
 
   if (options.json) {
@@ -8,12 +19,41 @@ export function runTasksCommand(options: { json?: boolean }): number {
     return 0;
   }
 
-  for (const item of dashboard.rows) {
-    const cost = item.display_cost_usd > 0 ? ` $${item.display_cost_usd.toFixed(4)}` : "";
-    console.log(`${item.id}\t${item.phase}\t${item.title ?? ""}${cost}`);
-  }
+  console.log("");
+  console.log(renderTasksDashboardHeader(dashboard));
+  console.log("");
+  console.log(renderTasksDashboard(dashboard));
+
   if (dashboard.attention_summary) {
+    console.log("");
     console.error(dashboard.attention_summary);
   }
-  return 0;
+
+  if (!options.select) {
+    return 0;
+  }
+
+  const selected = await selectWorkItem(dashboard.rows);
+  if (!selected) {
+    console.log(muted("Selection cancelled."));
+    return 0;
+  }
+
+  const action = await selectWorkItemAction(selected.id);
+  if (!action) {
+    console.log(muted("Selection cancelled."));
+    return 0;
+  }
+
+  const cwd = options.cwd ?? process.cwd();
+  const parsed = parseCli([action, selected.id, "--cwd", cwd]);
+  if (parsed.kind === "error") {
+    console.error(parsed.message);
+    return 1;
+  }
+
+  console.log("");
+  console.log(muted(`Running: accord ${action} ${selected.id}`));
+  console.log("");
+  return executeParsed(parsed);
 }

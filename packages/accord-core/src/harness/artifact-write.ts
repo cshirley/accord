@@ -2,6 +2,7 @@ import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import { validateArtifact } from "../artifacts/validation.js";
 import { syncWorkflowCostMarkdownFromJson } from "../artifacts/workflow-cost-artifact.js";
 import { isHarnessTrackedJsonWritePath, normalizeHarnessRelativePath } from "./paths.js";
+import { validateWorkflowStateWrite } from "./workflow-state-write-guard.js";
 
 /** User-facing block message when validation fails (host maps to tool_result shape). */
 export function formatArtifactValidationFailureMessage(filePath: string, errors: string[]): string {
@@ -23,6 +24,12 @@ export async function validateHarnessArtifactWriteIfApplicable(
   if (!filePath || !isHarnessTrackedJsonWritePath(filePath)) {
     return { skip: true };
   }
+
+  const workflowBlock = validateWorkflowStateWrite(filePath);
+  if (workflowBlock.blocked) {
+    return { skip: false, valid: false, errors: [workflowBlock.message] };
+  }
+
   const result = await validateArtifact(filePath);
   if (result.valid) {
     const normPath = normalizeHarnessRelativePath(filePath);

@@ -40,13 +40,38 @@ export const PI_SKILLS_DIR = path.join(PI_PKG_DIR, "assets", "skills");
 export const PI_MANIFEST_PATH = path.join(PI_PKG_DIR, "assets", "manifest.pi.json");
 export const ASSETS_MANIFEST_PATH = path.join(ASSETS_DIR, "manifest.json");
 
-/**
- * Pi agent config directory. Mirrors `DEFAULT_PI_AGENT_DIR` from
- * `core/asset-install.ts` so global config lookups are resolved by the
- * user's home directory rather than by the on-disk install layout of
- * this extension. Override via `ACCORD_PI_AGENT_DIR` for tests.
- */
-export const PI_AGENT_DIR =
-  process.env.ACCORD_PI_AGENT_DIR ?? path.join(homedir(), ".config", "pi", "agent");
+/** Host-neutral global config directory (`ACCORD_CONFIG_DIR` override). */
+export function resolveAccordConfigDir(): string {
+  return process.env.ACCORD_CONFIG_DIR?.trim() ?? path.join(homedir(), ".config", "accord");
+}
 
-export const GLOBAL_CONFIG_PATH = path.join(PI_AGENT_DIR, "accord.json");
+/** Pi agent config directory (`ACCORD_PI_AGENT_DIR` override). */
+export function resolvePiAgentDir(): string {
+  return process.env.ACCORD_PI_AGENT_DIR ?? path.join(homedir(), ".config", "pi", "agent");
+}
+
+/** Host-neutral global `accord.json` path. */
+export function resolveNeutralGlobalConfigPath(): string {
+  return path.join(resolveAccordConfigDir(), "accord.json");
+}
+
+/** Deprecated global `accord.json` path under Pi config layout. */
+export function resolveLegacyGlobalConfigPath(): string {
+  return path.join(resolvePiAgentDir(), "accord.json");
+}
+
+/**
+ * @deprecated Use {@link resolveAccordConfigDir} — evaluated once at import in older callers.
+ */
+export const ACCORD_CONFIG_DIR = resolveAccordConfigDir();
+
+/** @deprecated Use {@link resolveNeutralGlobalConfigPath}. */
+export const GLOBAL_CONFIG_PATH = resolveNeutralGlobalConfigPath();
+
+/**
+ * Pi agent config directory. Prefer {@link resolvePiAgentDir} when env may change after import.
+ */
+export const PI_AGENT_DIR = resolvePiAgentDir();
+
+/** @deprecated Use {@link resolveLegacyGlobalConfigPath}. */
+export const LEGACY_GLOBAL_CONFIG_PATH = resolveLegacyGlobalConfigPath();

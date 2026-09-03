@@ -141,9 +141,9 @@ Add rows (A7, …) as new decisions arise.
 
 ### Status
 
-- [ ] 1a optional Pi harness
-- [ ] 1b config paths
-- [ ] 1c CLI parity
+- [x] 1a optional Pi harness
+- [x] 1b config paths
+- [x] 1c CLI parity
 
 ---
 
@@ -198,8 +198,8 @@ Ship **`packages/accord-mcp/examples/cursor-hooks/`** (or `examples/cursor-hooks
 
 ### Status
 
-- [ ] 2a accord-mcp package
-- [ ] 2b HarnessHost port + examples
+- [x] 2a accord-mcp package
+- [x] 2b HarnessHost port + examples
 
 ---
 

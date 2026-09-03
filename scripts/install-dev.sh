@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Register this repo with Pi (`pi install`) so `package.json` → `pi` loads the
 # bundled extension modules (pi-subagent, pi-worktree, …) plus the ACCORD harness,
-# then link bundled skills/agents/providers (`bun run install:assets`).
+# then link bundled skills/agents/providers (`bun run install:assets`), and install
+# a `~/.local/bin/accord` shim for headless CLI use from any directory.
 #
 # Usage:
 #   scripts/install-dev.sh
@@ -47,6 +48,12 @@ fi
 echo "Linking Pi assets (install:assets --force)..."
 if ! bun packages/pi-accord/scripts/install-assets.ts --force; then
   echo "error: install:assets failed" >&2
+  exit 1
+fi
+
+echo "Installing accord shim (~/.local/bin/accord)..."
+if ! bun packages/accord-cli/scripts/install-shim.ts --force; then
+  echo "error: install:shim failed" >&2
   exit 1
 fi
 

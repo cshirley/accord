@@ -17,6 +17,8 @@ bun run accord resume DEMO-1 --harness pi -y
 
 Global install: link or publish `@clive.shirley/accord-cli` and run `accord` directly.
 
+Dev checkout: `bun run install:dev` (or `bun run install:shim`) installs `~/.local/bin/accord` pointing at this repo. Ensure `~/.local/bin` is on your `PATH`.
+
 Requires **AGENTS.md** with a `## Dev Harness` JSON block (or run `accord init --write` first). Agent markdown and provider playbooks ship from `packages/accord-assets/` (or `~/.config/pi/agent/` after `install:assets`).
 
 ## Commands
@@ -29,6 +31,7 @@ Requires **AGENTS.md** with a `## Dev Harness` JSON block (or run `accord init -
 | `accord finish <ID>` | Finish closeout + verify acceptance spawn |
 | `accord align\|spec\|plan\|check <ID>` | Forced phase subcommands (`runDevSubcommandOrchestrationWithReplans`) |
 | `accord init [--json] [--write [--target …]]` | Stack detect + optional AGENTS.md write |
+| `accord config init [--write] [--force] [--harness <id>]` | Generate `~/.config/accord/accord.json` with backends + tiers |
 | `accord review [--json]` | Standalone diff review (`review-code`, `review-security`, optional `review-test`) |
 
 **Naming:** `accord plan resume DEMO-1` is the **orchestrate preview** (resume/finish). `accord plan DEMO-1` is the **workflow** subcommand that spawns `phase-plan`.
@@ -37,7 +40,7 @@ Requires **AGENTS.md** with a `## Dev Harness` JSON block (or run `accord init -
 
 | Flag | Description |
 |------|-------------|
-| `--harness pi\|exec` | Agent runtime backend (default: `pi`) |
+| `--harness <id>` | Agent backend (`pi`, `claude`, `cursor`, legacy `exec`) |
 | `--cwd <dir>` | Project root (default: `process.cwd()`) |
 | `--json` | Machine-readable output where supported |
 | `-y`, `--yes` | Auto-confirm gather preflight (non-interactive) |
@@ -54,9 +57,80 @@ accord init --write --target=local
 
 Targets: `local`, `root`, `root_replace`, `link_only` (same as `dev_init_write`).
 
+### Global config init
+
+```bash
+accord config init --write -y     # ~/.config/accord/accord.json
+accord config init --write --harness cursor --force
+```
+
+Detects installed CLIs (`pi`, `claude`, `agent`) and writes `harness.backends[]` plus `harness.tiers` (model + thinking per tier). Per-agent tier routing uses the agent markdown `tier:` frontmatter or review agent name.
+
 ### Exec harness
 
-Configure in Dev Harness JSON or `~/.config/pi/agent/accord.json`:
+#### Pi CLI (built-in `--harness pi`)
+
+Spawns `pi --mode json -p` via `pi-subagent` — no `pi-accord` headless harness. Use when Pi is your agent runtime and you want native subagent.json profile resolution.
+
+```bash
+accord resume DEMO-1 --harness pi -y
+```
+
+Optional exec preset: import `PI_EXEC_HARNESS` or point `harness.exec.command` at `packages/accord-cli/scripts/pi-exec.ts`.
+
+#### Claude Code CLI (bundled preset)
+
+For headless `claude -p` spawns. Frontmatter controls `claude --model` and `--effort` via `subagent.json`. Agent body → `--system-prompt`; project stack → `--append-system-prompt`; task → prompt. Prefer `anthropic-direct` (or similar) in `subagent.json`.
+
+```json
+{
+  "harness": {
+    "default": "exec",
+    "exec": {
+      "command": [
+        "bun",
+        "packages/accord-cli/scripts/claude-code-exec.ts",
+        "--agent={{agentId}}",
+        "--agent-file={{agentFile}}",
+        "--task-file={{taskFile}}",
+        "--system-append-file={{systemAppendFile}}",
+        "--cwd={{cwd}}"
+      ],
+      "response_json": "stdout"
+    }
+  }
+}
+```
+
+Or import `CLAUDE_CODE_EXEC_HARNESS`. Set `ACCORD_CLAUDE_CODE_BIN` to override the `claude` path.
+
+#### Cursor Agent CLI (bundled preset)
+
+For headless `agent --print` spawns. Frontmatter in agent markdown (`tier`, `model`, `thinking`) controls `agent --model` via `subagent.json` — same resolution as Pi subagent spawns. Only the agent **body**, project stack append, and orchestrator task are sent as the prompt.
+
+```json
+{
+  "harness": {
+    "default": "exec",
+    "exec": {
+      "command": [
+        "bun",
+        "packages/accord-cli/scripts/cursor-agent-exec.ts",
+        "--agent={{agentId}}",
+        "--agent-file={{agentFile}}",
+        "--task-file={{taskFile}}",
+        "--system-append-file={{systemAppendFile}}",
+        "--cwd={{cwd}}"
+      ],
+      "response_json": "stdout"
+    }
+  }
+}
+```
+
+Or import `CURSOR_AGENT_EXEC_HARNESS` from `@clive.shirley/accord-cli`. Set `ACCORD_CURSOR_AGENT_BIN` to override the `agent` binary path.
+
+#### Generic subprocess template
 
 ```json
 {
@@ -91,8 +165,8 @@ Core helpers: `packages/accord-core/src/review/standalone.ts`.
 
 | ID | Implementation | Notes |
 |----|----------------|-------|
-| `pi` | `pi-accord/adapters/pi/headless-harness.ts` | Lazy-loaded from `accord-cli` to avoid import cycles; uses pi-subagent programmatic API |
-| `exec` | `accord-cli/harnesses/exec.ts` | Subprocess template; parses fenced JSON return packet from stdout/stderr |
+| `pi` | `accord-cli/harnesses/pi-exec.ts` | `pi --mode json -p` via pi-subagent subprocess spawns |
+| `exec` | `accord-cli/harnesses/exec.ts` + exec presets | Subprocess template; claude/cursor/pi presets map frontmatter → CLI flags |
 
 Shared spawn path: `accord-cli/src/harnesses/spawn-pipeline.ts` (preflight → spawn → `processSubagentToolResult`).
 
