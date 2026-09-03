@@ -2,25 +2,25 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateArtifact } from "../src/core/artifacts/validation.js";
-import { devQuickFixBrief } from "../src/core/briefing/code-brief.js";
-import { classifyPreflight } from "../src/core/commands/classify-dispatch.js";
+import { validateArtifact } from "@clive.shirley/accord-core/artifacts/validation.js";
+import { devQuickFixBrief } from "@clive.shirley/accord-core/briefing/code-brief.js";
+import { classifyPreflight } from "@clive.shirley/accord-core/commands/classify-dispatch.js";
 import {
   devDispatch,
   parseHarnessTagArgs,
   parseKnownDevSubcommandArgs,
-} from "../src/core/commands/dispatch.js";
+} from "@clive.shirley/accord-core/commands/dispatch.js";
 import {
   formatRefinementResult,
   recommendIntentMode,
   refineWithTicketSignals,
-} from "../src/core/commands/intent.js";
+} from "@clive.shirley/accord-core/commands/intent.js";
 import {
   assertSubcommandRoutingComplete,
   getDevSubcommandOwner,
-} from "../src/core/commands/subcommand-routing.js";
-import type { DevHarnessConfig } from "../src/core/config/types.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
+} from "@clive.shirley/accord-core/commands/subcommand-routing.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
+import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();

@@ -2,19 +2,19 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { validateArtifact } from "../src/core/artifacts/validation.js";
+import { validateArtifact } from "@clive.shirley/accord-core/artifacts/validation.js";
 import {
   devPersistWorkflowCost,
   syncWorkflowCostMarkdownFromJson,
   workflowCostJsonPath,
-} from "../src/core/artifacts/workflow-cost-artifact.js";
+} from "@clive.shirley/accord-core/artifacts/workflow-cost-artifact.js";
 import {
   buildWorkflowCostReport,
   formatWorkflowCostForFinish,
-} from "../src/core/queries/workflow-cost.js";
-import { extractTaskIdFromTaskText } from "../src/core/telemetry/usage.js";
-import { loadWorkItem } from "../src/core/work-items/io.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
+} from "@clive.shirley/accord-core/queries/workflow-cost.js";
+import { extractTaskIdFromTaskText } from "@clive.shirley/accord-core/telemetry/usage.js";
+import { loadWorkItem } from "@clive.shirley/accord-core/work-items/io.js";
+import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
 
 let tempRoot: string;
 let cwdBefore: string;

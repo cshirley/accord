@@ -141,13 +141,13 @@ This means the orchestration logic is editable as a markdown skill and survives 
 
 ### 2. Subagent dispatch via the `subagent` extension, not raw `Task`
 
-Pi's `Task` tool spawns subagents but does not enforce profile overrides per skill. The `subagent` extension provides a `subagent.json` mechanism that applies per-skill profile rules (model selection, tool allowlist, namespace) by walking the agent discovery tree. ACCORD's agents live under `packages/pi-accord/assets/agents/accord/` and are tagged `namespace = "accord"` automatically — `subagent.json` then applies the right model/tool profile to each phase without per-agent frontmatter.
+Pi's `Task` tool spawns subagents but does not enforce profile overrides per skill. The `subagent` extension provides a `subagent.json` mechanism that applies per-skill profile rules (model selection, tool allowlist, namespace) by walking the agent discovery tree. ACCORD's agents live under `packages/accord-assets/agents/accord/` and are tagged `namespace = "accord"` automatically — `subagent.json` then applies the right model/tool profile to each phase without per-agent frontmatter.
 
 This is a small detail but it means every phase agent is configured *uniformly* without the agent files knowing they're part of ACCORD.
 
 ### 3. Providers are config-driven, not hardcoded
 
-The blueprint had `TRACKER_DEPS` / `ENRICHMENT_DEPS` const maps in TypeScript — every new tracker required a code change. The shipping design replaced those with JSON sidecars (`packages/pi-accord/assets/providers/{trackers,enrichments}/<name>.json`) paired with markdown playbooks. Projects can add or override providers via `accord.json` without touching the extension.
+The blueprint had `TRACKER_DEPS` / `ENRICHMENT_DEPS` const maps in TypeScript — every new tracker required a code change. The shipping design replaced those with JSON sidecars (`packages/accord-assets/providers/{trackers,enrichments}/<name>.json`) paired with markdown playbooks. Projects can add or override providers via `accord.json` without touching the extension.
 
 This unlocks two things: (a) custom in-house trackers (Linear, Shortcut, internal systems) without forking, and (b) provider-level scoping in the project config (e.g. `slack` enabled with a fixed channel allowlist).
 

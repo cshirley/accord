@@ -11,20 +11,23 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { formatIntentContractForTask } from "../src/core/briefing/intent-contract-brief.js";
+import { formatIntentContractForTask } from "@clive.shirley/accord-core/briefing/intent-contract-brief.js";
 import {
   buildDevHarnessConfig,
   detectMonorepo,
   detectProjectStack,
   detectTracker,
   findMonorepoRoot,
-} from "../src/core/config/detect/index.js";
-import { mergeContextSources, mergeOrchestrationConfig } from "../src/core/config/global.js";
-import { devInitDetect } from "../src/core/config/init-detect.js";
-import { notifyPendingDecisionsIfAny } from "../src/core/harness/index.js";
-import { devTasks } from "../src/core/queries/dashboard.js";
-import { extractReturnPacket } from "../src/core/subagent/index.js";
-import type { PricingConfig } from "../src/core/telemetry/usage.js";
+} from "@clive.shirley/accord-core/config/detect/index.js";
+import {
+  mergeContextSources,
+  mergeOrchestrationConfig,
+} from "@clive.shirley/accord-core/config/global.js";
+import { devInitDetect } from "@clive.shirley/accord-core/config/init-detect.js";
+import { notifyPendingDecisionsIfAny } from "@clive.shirley/accord-core/harness/index.js";
+import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
+import { extractReturnPacket } from "@clive.shirley/accord-core/subagent/index.js";
+import type { PricingConfig } from "@clive.shirley/accord-core/telemetry/usage.js";
 import {
   appendUsageLine,
   clearHarnessRunTag,
@@ -37,16 +40,16 @@ import {
   pricingFor,
   recomputeCost,
   setHarnessRunTag,
-} from "../src/core/telemetry/usage.js";
-import { checkVerifyStaleness } from "../src/core/verification/staleness.js";
+} from "@clive.shirley/accord-core/telemetry/usage.js";
+import { checkVerifyStaleness } from "@clive.shirley/accord-core/verification/staleness.js";
 import {
   devCheckpointDelete,
   devCheckpointRead,
   devCheckpointWrite,
-} from "../src/core/work-items/checkpoint.js";
-import { writeJson } from "../src/core/work-items/io.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
-import type { Checkpoint } from "../src/core/work-items/types.js";
+} from "@clive.shirley/accord-core/work-items/checkpoint.js";
+import { writeJson } from "@clive.shirley/accord-core/work-items/io.js";
+import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
+import type { Checkpoint } from "@clive.shirley/accord-core/work-items/types.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();

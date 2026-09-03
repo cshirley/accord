@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getDevSubcommandOwner } from "../src/core/commands/subcommand-routing.js";
-import { acceptDeviation } from "../src/core/queries/deviation-actions.js";
-import { devDeviations } from "../src/core/queries/deviations.js";
-import { devGaps } from "../src/core/queries/gaps.js";
+import { getDevSubcommandOwner } from "@clive.shirley/accord-core/commands/subcommand-routing.js";
+import { acceptDeviation } from "@clive.shirley/accord-core/queries/deviation-actions.js";
+import { devDeviations } from "@clive.shirley/accord-core/queries/deviations.js";
+import { devGaps } from "@clive.shirley/accord-core/queries/gaps.js";
 
 const project = join(import.meta.dir, ".tmp-gaps-deviations");
 const tasksDir = join(project, ".tasks");

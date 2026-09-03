@@ -1,5 +1,5 @@
 {
-  "name": "@clive.shirley/pi-accord",
+  "name": "@clive.shirley/accord",
   "version": "0.1.0",
   "description": "ACCORD for pi — agentic contract, briefing, Crucible verification, and rigorous delivery workflow",
   "keywords": [
@@ -10,19 +10,21 @@
   ],
   "scripts": {
     "test": "bun test",
-    "validate:schemas": "node packages/pi-accord/schemas/examples/validate-examples.mjs",
-    "validate:assets": "bun packages/pi-accord/scripts/validate-assets.ts",
+    "validate:schemas": "node packages/accord-core/schemas/examples/validate-examples.mjs",
+    "validate:assets": "bun packages/accord-assets/scripts/validate-assets.ts && bun packages/pi-accord/scripts/validate-pi-skills.ts",
     "install:assets": "bun packages/pi-accord/scripts/install-assets.ts",
     "install:assets:force": "bun packages/pi-accord/scripts/install-assets.ts --force",
+    "install:shim": "bun packages/accord-cli/scripts/install-shim.ts",
     "install:dev": "bash scripts/install-dev.sh",
-    "check:bundle": "bun build ./packages/pi-accord/src/index.ts --target=node --outfile=/tmp/accord-check.js --external @earendil-works/pi-ai --external @earendil-works/pi-agent-core --external @earendil-works/pi-coding-agent --external @earendil-works/pi-tui --external typebox",
+    "check:bundle": "bun build ./packages/pi-accord/src/index.ts --target=node --outfile=/tmp/accord-check.js --external @earendil-works/pi-ai --external @earendil-works/pi-agent-core --external @earendil-works/pi-coding-agent --external @earendil-works/pi-tui --external @clive.shirley/accord-core --external typebox",
     "check:types": "tsc --noEmit",
     "check:biome": "biome check .",
     "check:biome:fix": "biome check --write .",
     "lint": "biome check .",
     "format": "biome format --write .",
     "check:runtime": "bun packages/pi-accord/scripts/runtime-smoke.ts",
-    "mcp": "bun run packages/pi-accord/src/adapters/mcp/server.ts",
+    "mcp": "bun run packages/accord-mcp/src/server.ts",
+    "accord": "bun packages/accord-cli/src/main.ts",
     "check": "npm run test && npm run check:biome && npm run validate:schemas && npm run validate:assets && npm run check:types && npm run check:bundle && npm run check:runtime",
     "smoke:act:self-test": "bun run packages/pi-accord-ci/src/smoke-act.ts pull_request -W .github/workflows/test-autopipeline.yml",
     "smoke:act:autopipeline": "bun run packages/pi-accord-ci/src/smoke-act.ts workflow_dispatch -W .github/workflows/autopipeline-smoke.yml --input ticket=DEMO-1 --input dry_run=true --secret-file .env.smoke",
@@ -71,11 +73,11 @@
       "./packages/pi-accord/assets/skills/review"
     ],
     "agents": [
-      "./packages/pi-accord/assets/agents"
+      "./packages/accord-assets/agents"
     ]
   },
   "accord": {
-    "assetManifest": "./packages/pi-accord/assets/manifest.json"
+    "assetManifest": "./packages/accord-assets/manifest.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",

@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
-import type { DevHarnessConfig } from "../src/core/config/types.js";
-import { runGatherPreflightOnSubagentCall } from "../src/core/harness/index.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
+import { runGatherPreflightOnSubagentCall } from "@clive.shirley/accord-core/harness/index.js";
 import {
   checkProviderDeps,
   type DepCheckResult,
@@ -13,7 +13,7 @@ import {
   loadUserProviders,
   normaliseUserProvider,
   type ProviderDef,
-} from "../src/integrations/provider-deps.js";
+} from "@clive.shirley/accord-core/integrations/provider-deps.js";
 
 const tempDirs: string[] = [];
 const savedEnv: Record<string, string | undefined> = {};
@@ -91,7 +91,7 @@ describe("loadBundledProviders", () => {
     const jira = loadBundledProviders().trackers.get("jira")!;
     expect(jira.kind).toBe("tracker");
     expect(isAbsolute(jira.promptFile)).toBe(true);
-    expect(jira.promptFile.endsWith("/assets/providers/trackers/jira.md")).toBe(true);
+    expect(jira.promptFile.endsWith("/accord-assets/providers/trackers/jira.md")).toBe(true);
   });
 
   test("preserves mcpTools, cliFallback and envFallback from the sidecar", () => {

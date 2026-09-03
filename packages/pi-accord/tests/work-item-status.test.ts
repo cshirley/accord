@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
-import { devWorkItemStatus } from "../src/core/queries/work-item-status.js";
-import { TASKS_DIR, writeJson } from "../src/core/work-items/io.js";
-import type { TaskFile, WorkItem } from "../src/core/work-items/types.js";
+import { devWorkItemStatus } from "@clive.shirley/accord-core/queries/work-item-status.js";
+import { TASKS_DIR, writeJson } from "@clive.shirley/accord-core/work-items/io.js";
+import type { TaskFile, WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
 
 const WI_ID = "WISTAT-1";
 const wiPath = path.join(TASKS_DIR, `${WI_ID}.json`);

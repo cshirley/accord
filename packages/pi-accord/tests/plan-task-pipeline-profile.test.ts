@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { planTaskPipelineProfile } from "../src/core/plan/task-pipeline-profile.js";
+import { planTaskPipelineProfile } from "@clive.shirley/accord-core/plan/task-pipeline-profile.js";
 
 describe("planTaskPipelineProfile", () => {
   test("verify-only task skips TDD pipeline", () => {

@@ -26,7 +26,7 @@ All notable changes to this package are documented here.
 
 - [`docs/hooks-and-tools.md`](docs/hooks-and-tools.md) — `agent_settled`, entry renderers, dynamic tools, correlation headers, built-in renders.
 - [`docs/local-development.md`](docs/local-development.md) — Pi ≥ 0.83 requirement and `ACCORD_DYNAMIC_TOOLS`.
-- [`docs/pi-sdk-upgrade-plan.md`](docs/pi-sdk-upgrade-plan.md) — phases 0–5 complete.
+- [`docs/plans/pi-sdk-upgrade-plan.md`](docs/plans/pi-sdk-upgrade-plan.md) — phases 0–5 complete.
 
 ## [0.1.0] — Initial release
 

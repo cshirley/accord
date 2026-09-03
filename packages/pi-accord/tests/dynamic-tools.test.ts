@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { ACCORD_CORE_TOOLS } from "@clive.shirley/accord-core/tools/active-set.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   applyAccordActiveTools,
@@ -7,7 +8,6 @@ import {
   resetDynamicToolBundles,
 } from "../src/adapters/pi/dynamic-tools.js";
 import type { HookState } from "../src/adapters/pi/hook-state.js";
-import { ACCORD_CORE_TOOLS } from "../src/core/tools/active-set.js";
 
 function minimalHookState(): HookState {
   return {

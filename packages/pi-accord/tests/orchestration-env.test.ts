@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { isCoreOrchestratorEnabled } from "../src/core/orchestration/env.js";
+import { isCoreOrchestratorEnabled } from "@clive.shirley/accord-core/orchestration/env.js";
 
 const KEY = "ACCORD_CORE_ORCHESTRATOR";
 

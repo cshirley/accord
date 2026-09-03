@@ -5,7 +5,7 @@ import {
   nextPhaseAfterPhaseCode,
   pathsIncludeSecuritySensitive,
   phaseCodeMustRespawnPhaseTest,
-} from "../src/core/orchestration/review-paths.js";
+} from "@clive.shirley/accord-core/orchestration/review-paths.js";
 
 describe("review-paths", () => {
   test("isTestFilePath matches common test paths", () => {

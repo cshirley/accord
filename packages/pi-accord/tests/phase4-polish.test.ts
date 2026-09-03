@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { ACCORD_CORE_TOOLS } from "@clive.shirley/accord-core/tools/active-set.js";
+import { ACCORD_TOOLS } from "@clive.shirley/accord-core/tools/registry.js";
 import { loadAgentFromFile } from "../../pi-subagent/src/agent-load.js";
 import {
   type AgentConfig,
@@ -13,10 +15,9 @@ import {
   ACCORD_WORK_ITEM_ID_HEADER,
   buildHarnessCorrelationHeaders,
 } from "../src/adapters/pi/correlation-headers.js";
-import { ACCORD_CORE_TOOLS } from "../src/core/tools/active-set.js";
-import { ACCORD_TOOLS } from "../src/core/tools/registry.js";
 
 const repoRoot = join(import.meta.dirname, "..");
+const assetsRoot = join(repoRoot, "..", "accord-assets");
 
 describe("buildHarnessCorrelationHeaders", () => {
   test("omits empty values", () => {
@@ -105,7 +106,7 @@ describe("review agent thinking frontmatter", () => {
   };
 
   test("review-code frontmatter pins xhigh over workhorse tier default", () => {
-    const filePath = join(repoRoot, "assets/agents/accord/review-code.md");
+    const filePath = join(assetsRoot, "agents/accord/review-code.md");
     const agent = loadAgentFromFile(filePath);
     expect(agent?.thinking).toBe("xhigh");
     const resolved = resolveModelConfig(agent as AgentConfig, BASE_CFG);

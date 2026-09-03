@@ -22,7 +22,7 @@ Commit and PR flows repeat the same steps: status, diff, branch, ticket hints, s
 
 ## Installation
 
-When you use **`@clive.shirley/pi-accord`**, this package is already listed in the root `package.json` → `pi.extensions` after the other bundled extensions.
+When you use the **`@clive.shirley/accord`** monorepo, this package is already listed in the root `package.json` → `pi.extensions` after the other bundled extensions.
 
 To load only this entry for smoke testing:
 

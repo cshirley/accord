@@ -2,6 +2,7 @@
  * Resolve the model for orchestration judgment `completeSimple` — independent of chat model when possible.
  */
 
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import {
@@ -14,7 +15,6 @@ import {
   loadSubagentConfig,
   resolveModelConfig,
 } from "../../../../../pi-subagent/src/agents.js";
-import type { DevHarnessConfig } from "../../../core/config/index.js";
 
 export type JudgmentModelSource = "config" | "lightweight_tier" | "scoped" | "chat";
 

@@ -16,19 +16,22 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 - Takes a free-text request to `/dev` and routes it to the right pipeline (quick fix, full implement, investigate, infrastructure, analysis).
 - Persists every step as a validated artifact (`brief.md`, `spec.json`, `plan.json`, `verify.json`) so review and verification agents have something concrete to work against.
 - Runs preflight and post-step hooks (config guard, schema injection, gather/verify preflight, post-code verification, usage accounting) without the agent needing to know they exist.
-- Bundles its own Pi skill, agent, and provider prompts; an installer links them into the host's config directory.
+- Runs the same orchestration loop headlessly via the **`accord`** CLI (`packages/accord-cli`) — no Pi REPL required for `resume`, `finish`, workflow phases, `init`, or standalone `review`.
 
 ## Documentation
 
 | Doc                                                      | Read this when you want to…                                                                                                                                          |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`docs/accord-workflow.md`](docs/accord-workflow.md)     | …get the single end-to-end overview of the harness: phases, agents, schemas, hooks, commands. Start here.                                                            |
+| [`docs/accord-cli.md`](docs/accord-cli.md) | …run ACCORD headlessly: `accord resume`, harness backends (`pi` / `exec`), MCP `ACCORD_MCP_HARNESS`, env vars. |
+| [`docs/plans/accord-cli-extraction.md`](docs/plans/accord-cli-extraction.md) | …see the monorepo split (`accord-core`, `accord-cli`, `pi-accord`) and extraction phases. |
 | [`docs/accord-research.md`](docs/accord-research.md)     | …understand _why_ ACCORD is shaped the way it is — the principles, the design decisions that emerged in the build, and what got cut.                                 |
 | [`docs/concepts.md`](docs/concepts.md)                   | …understand the naming and the codebase shape (Core / Adapters / Crucible / Briefing / Harness).                                                                     |
 | [`docs/pipeline.md`](docs/pipeline.md)                   | …see the command flow and the per-pattern execution diagrams (standard, quick_fix, express, orchestrated, investigate, infra, analyse) plus pattern selection rules. |
 | [`docs/harness-orchestration.md`](docs/harness-orchestration.md) | …read the **target** design: workflow graph in core, deterministic routing, validation boundaries, thin Pi adapter, and phased migration off skill-driven orchestration. |
-| [`docs/harness-orchestration-implementation-plan.md`](docs/harness-orchestration-implementation-plan.md) | …follow the **build plan**: spikes, phases 1–7, acceptance criteria, feature flags, MCP options, and open decisions. |
-| [`docs/pi-sdk-upgrade-plan.md`](docs/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
+| [`docs/plans/harness-orchestration-implementation-plan.md`](docs/plans/harness-orchestration-implementation-plan.md) | …follow the **build plan**: spikes, phases 1–7, acceptance criteria, feature flags, MCP options, and open decisions. |
+| [`docs/plans/pi-sdk-upgrade-plan.md`](docs/plans/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
+| [`docs/plans/host-agnostic-plan.md`](docs/plans/host-agnostic-plan.md) | …make CLI, MCP, and agent runtimes Pi-optional (config paths, MCP extract, exec harness, hook parity). |
 | [`CHANGELOG.md`](CHANGELOG.md) | …see release notes for the Pi 0.83 upgrade (phases 0–5). |
 | [`docs/artifacts.md`](docs/artifacts.md)                 | …know where work-item state and committed artifacts live on disk, plus the work-item-ID format.                                                                      |
 | [`docs/schemas.md`](docs/schemas.md)                     | …look up the JSON schema for any artifact or agent return packet.                                                                                                    |
@@ -107,7 +110,7 @@ Use `pi list` to confirm Pi sees every entry.
 
 ### MCP servers used by bundled providers
 
-ACCORD’s bundled tracker/enrichment sidecars under [`packages/pi-accord/assets/providers/`](assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
+ACCORD’s bundled tracker/enrichment sidecars under [`packages/accord-assets/providers/`](assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
 
 | Provider                                      | `mcpTools` (from sidecars)                                                        | You typically configure…                                                                                                                                    |
 | --------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -184,7 +187,7 @@ npm run check                    # bun test + schemas + assets + types + bundle 
 Make pi.dev load `/dev` from this checkout:
 
 ```bash
-bun run install:dev       # pi install this repo + link bundled assets (see scripts/install-dev.sh)
+bun run install:dev       # pi install this repo + link bundled assets + ~/.local/bin/accord shim
 # or: pi install .
 # Start pi → it auto-links the bundled skills/agents/providers and
 # notifies you to restart. Restart pi once more — done.
@@ -197,6 +200,15 @@ Or expose the same `dev_*` tools over stdio MCP without registering as a Pi exte
 ```bash
 ACCORD_CWD=/path/to/your/repo bun run mcp
 ```
+
+Headless orchestration without MCP or Pi:
+
+```bash
+bun run accord init
+bun run accord resume YOUR-TICKET-1 --harness pi -y
+```
+
+See [`docs/accord-cli.md`](docs/accord-cli.md).
 
 Inside a project that has the extension installed:
 

@@ -3,14 +3,14 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { DevHarnessConfig } from "../src/core/config/index.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import {
   commitOnTaskDoneFromDevConfig,
   defaultResumeReplanPolicy,
   resumeAllowsAutoReplanToAgent,
   resumeReplanPolicyFromDevConfig,
   runResumeOrchestrationWithReplans,
-} from "../src/core/orchestration/index.js";
+} from "@clive.shirley/accord-core/orchestration/index.js";
 
 function minimalDevConfig(overrides?: DevHarnessConfig["orchestration"]): DevHarnessConfig {
   return {

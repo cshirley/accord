@@ -2,7 +2,6 @@
  * Pi adapter — dynamic activation of `dev_*` tools to shrink the system-prompt surface.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   type AccordToolBundle,
   allRegisteredDevToolNames,
@@ -12,7 +11,8 @@ import {
   bundlesForDevSubcommand,
   bundlesForWorkItemPhase,
   isDynamicToolsEnabled,
-} from "../../core/tools/active-set.js";
+} from "@clive.shirley/accord-core/tools/active-set.js";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { HookState } from "./hook-state.js";
 
 export function resetDynamicToolBundles(state: HookState): void {

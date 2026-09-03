@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "return-schemas/phase-test.json",
+  "title": "phase-test return packet",
+  "description": "Return packet for phase-test. Covers both implement-pipeline (TDD test writing) and investigate-pipeline (hypothesis testing) modes, discriminated by presence of test_files vs hypothesis_id.",
+  "type": "object",
+  "definitions": {
+    "task_event": {
+      "type": "object",
+      "required": ["type", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": ["usage", "escalation", "deviation", "request_review", "test_issue"]
+        },
+        "at": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "usage": {
+          "type": "object",
+          "required": ["prompt_tokens", "completion_tokens"],
+          "additionalProperties": false,
+          "properties": {
+            "prompt_tokens": { "type": "integer", "minimum": 0 },
+            "completion_tokens": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "question": { "type": "string", "minLength": 1 },
+        "context": { "type": "string" },
+        "tried": { "type": "string" },
+        "phase": { "type": "string" },
+        "description": { "type": "string" },
+        "reason": { "type": "string" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "test_file": { "type": "string", "minLength": 1 },
+        "test_name": { "type": "string" },
+        "issue": { "type": "string", "minLength": 1 },
+        "ac_id": { "type": "string" },
+        "recommendation": { "enum": ["fix_test", "clarify_spec", "acceptable"] }
+      },
+      "oneOf": [
+        {
+          "required": ["type", "at", "model", "usage"],
+          "properties": { "type": { "const": "usage" } }
+        },
+        {
+          "required": ["type", "at", "question"],
+          "properties": { "type": { "const": "escalation" } }
+        },
+        {
+          "required": ["type", "at", "description", "reason"],
+          "properties": { "type": { "const": "deviation" } }
+        },
+        {
+          "required": ["type", "at", "files"],
+          "properties": { "type": { "const": "request_review" } }
+        },
+        {
+          "required": ["type", "at", "test_file", "issue", "recommendation"],
+          "properties": { "type": { "const": "test_issue" } }
+        }
+      ]
+    }
+  },
+  "required": ["status", "usage"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["done", "stuck"] },
+    "test_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Test files written (implement pipeline)"
+    },
+    "red_confirmed": {
+      "type": "boolean",
+      "description": "Whether tests fail as expected before implementation (implement pipeline)"
+    },
+    "test_output": {
+      "type": "string",
+      "maxLength": 65536,
+      "description": "Truncated stdout/stderr from the RED test run (implement pipeline). Last ~64 KiB if longer."
+    },
+    "ac_covered": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "AC ids covered by the written tests (implement pipeline)"
+    },
+    "deviations_emitted": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of deviation events emitted (implement pipeline)"
+    },
+    "events": {
+      "type": "array",
+      "description": "Per-task events for orchestrator promotion (deviation, escalation, test_issue, request_review)",
+      "items": { "$ref": "#/definitions/task_event" }
+    },
+    "hypothesis_id": {
+      "type": "string",
+      "pattern": "^H\\d+$",
+      "description": "Hypothesis being tested (investigate pipeline)"
+    },
+    "outcome": {
+      "enum": ["confirmed", "rejected", "inconclusive"],
+      "description": "Hypothesis test result (investigate pipeline)"
+    },
+    "evidence": {
+      "type": "string",
+      "description": "Evidence supporting the outcome (investigate pipeline)"
+    },
+    "next_hypothesis_to_test": {
+      "type": ["string", "null"],
+      "pattern": "^(H\\d+)?$",
+      "description": "Next hypothesis to test (investigate pipeline)"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Blocking question (when status=stuck)"
+    },
+    "context": {
+      "type": "string",
+      "description": "Context for the blocking question (when status=stuck)"
+    },
+    "tried": {
+      "type": "string",
+      "description": "Approaches tried before getting stuck (when status=stuck)"
+    },
+    "usage": {
+      "type": "object",
+      "required": ["prompt_tokens", "completion_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "stuck" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["question", "context"] }
+    }
+  ]
+}

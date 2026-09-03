@@ -8,7 +8,7 @@ import {
   listWorkItemFileRefs,
   resolveTasksDir,
   resolveWorkItemFilePath,
-} from "../src/core/work-items/tasks-dir.js";
+} from "@clive.shirley/accord-core/work-items/tasks-dir.js";
 
 const TEST_ID = "STEP-99999";
 let cwdBefore: string;

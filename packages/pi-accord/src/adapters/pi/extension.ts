@@ -10,34 +10,34 @@
  * for the full agentic flow diagrams. README.md is the entry point.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { AutocompleteItem } from "@earendil-works/pi-tui";
-import { classifyPreflight } from "../../core/commands/classify-dispatch.js";
+import { classifyPreflight } from "@clive.shirley/accord-core/commands/classify-dispatch.js";
 import {
   devDispatch,
   parseHarnessTagArgs,
   parseKnownDevSubcommandArgs,
-} from "../../core/commands/dispatch.js";
-import { DEV_HELP_TEXT } from "../../core/commands/help.js";
+} from "@clive.shirley/accord-core/commands/dispatch.js";
+import { DEV_HELP_TEXT } from "@clive.shirley/accord-core/commands/help.js";
 import {
   getDevSubcommandOwner,
   isPlanModeReadOnlyDevSubcommand,
-} from "../../core/commands/subcommand-routing.js";
-import { loadDevHarnessConfig } from "../../core/config/index.js";
-import { maybeAutoInstallAssets } from "../../core/harness/asset-bootstrap.js";
-import { createLogger, resolveLogLevel, setLogLevel } from "../../core/logging.js";
-import { devTasks } from "../../core/queries/dashboard.js";
-import { devDeviations } from "../../core/queries/deviations.js";
-import { devGaps, gapsArgsWantTickets } from "../../core/queries/gaps.js";
-import { devRetro } from "../../core/queries/retro.js";
-import { devReviewQueue } from "../../core/queries/review-queue.js";
-import { devSpecGaps } from "../../core/queries/spec-gaps.js";
+} from "@clive.shirley/accord-core/commands/subcommand-routing.js";
+import { loadDevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import { maybeAutoInstallAssets } from "@clive.shirley/accord-core/harness/asset-bootstrap.js";
+import { createLogger, resolveLogLevel, setLogLevel } from "@clive.shirley/accord-core/logging.js";
+import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
+import { devDeviations } from "@clive.shirley/accord-core/queries/deviations.js";
+import { devGaps, gapsArgsWantTickets } from "@clive.shirley/accord-core/queries/gaps.js";
+import { devRetro } from "@clive.shirley/accord-core/queries/retro.js";
+import { devReviewQueue } from "@clive.shirley/accord-core/queries/review-queue.js";
+import { devSpecGaps } from "@clive.shirley/accord-core/queries/spec-gaps.js";
 import {
   clearHarnessRunTag,
   describeHarnessRunMeta,
   setHarnessRunTag,
-} from "../../core/telemetry/usage.js";
-import { devRehydrateWorkItem } from "../../core/work-items/rehydrate.js";
+} from "@clive.shirley/accord-core/telemetry/usage.js";
+import { devRehydrateWorkItem } from "@clive.shirley/accord-core/work-items/rehydrate.js";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { getSubagentToolRenderers } from "../../integrations/pi-subagent.js";
 import { registerHarnessBuiltinToolRenders } from "./builtin-tool-renders.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";

@@ -3,10 +3,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { applyInterviewNeedsInputPostResult } from "../src/core/orchestration/post-result/needs-input.js";
-import { applyPhaseSpecPostResult } from "../src/core/orchestration/post-result/phase-spec.js";
-import { buildInterviewResumeTaskIfApplicable } from "../src/core/orchestration/resolve/interview-task.js";
-import { postSpawnReplanDecision } from "../src/core/orchestration/spawn-followup.js";
+import { applyInterviewNeedsInputPostResult } from "@clive.shirley/accord-core/orchestration/post-result/needs-input.js";
+import { applyPhaseSpecPostResult } from "@clive.shirley/accord-core/orchestration/post-result/phase-spec.js";
+import { buildInterviewResumeTaskIfApplicable } from "@clive.shirley/accord-core/orchestration/resolve/interview-task.js";
+import { postSpawnReplanDecision } from "@clive.shirley/accord-core/orchestration/spawn-followup.js";
 
 let tempCwd: string;
 let originalCwd: string;

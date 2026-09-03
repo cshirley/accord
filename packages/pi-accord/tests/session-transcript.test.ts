@@ -2,11 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isHarnessArtifactPath, normalizeHarnessRelativePath } from "../src/core/harness/paths.js";
+import {
+  isHarnessArtifactPath,
+  normalizeHarnessRelativePath,
+} from "@clive.shirley/accord-core/harness/paths.js";
 import {
   analyzeSessionTranscript,
   readHarnessMarkerFromSession,
-} from "../src/core/queries/session-transcript.js";
+} from "@clive.shirley/accord-core/queries/session-transcript.js";
 
 describe("harness path helpers", () => {
   test("normalizeHarnessRelativePath strips repo prefix", () => {

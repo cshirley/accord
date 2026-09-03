@@ -2,15 +2,15 @@
  * Optional LLM judgment hook for orchestration resume spawns (Pi session model).
  */
 
-import type { AssistantMessage, TextContent, UserMessage } from "@earendil-works/pi-ai";
-import { completeSimple } from "@earendil-works/pi-ai/compat";
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import type { DevHarnessConfig } from "../../../core/config/index.js";
-import type { OrchestrationJudgmentRequest } from "../../../core/orchestration/host.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import type { OrchestrationJudgmentRequest } from "@clive.shirley/accord-core/orchestration/host.js";
 import {
   isOrchestrationJudgmentConfigured,
   ORCHESTRATION_JUDGMENT_SCHEMA_VERSION,
-} from "../../../core/orchestration/judgment.js";
+} from "@clive.shirley/accord-core/orchestration/judgment.js";
+import type { AssistantMessage, TextContent, UserMessage } from "@earendil-works/pi-ai";
+import { completeSimple } from "@earendil-works/pi-ai/compat";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { resolveJudgmentModel } from "./resolve-judgment-model.js";
 
 const JUDGMENT_SYSTEM_PROMPT = [

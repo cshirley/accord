@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { devQuickFixBrief } from "../src/core/briefing/code-brief.js";
-import { recommendIntentMode } from "../src/core/commands/intent.js";
-import type { DevHarnessConfig } from "../src/core/config/types.js";
+import { devQuickFixBrief } from "@clive.shirley/accord-core/briefing/code-brief.js";
+import { recommendIntentMode } from "@clive.shirley/accord-core/commands/intent.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
 import {
   applyHarnessCostSeed,
   collectSubagentEntries,
@@ -25,10 +25,10 @@ import {
   runVerifyPreflightOnSubagentCall,
   seedHarnessSessionCostState,
   validateHarnessArtifactWriteIfApplicable,
-} from "../src/core/harness/index.js";
-import type { HarnessMutableState } from "../src/core/harness/types.js";
-import { loadPricing } from "../src/core/telemetry/usage.js";
-import { devBootstrap } from "../src/core/work-items/lifecycle.js";
+} from "@clive.shirley/accord-core/harness/index.js";
+import type { HarnessMutableState } from "@clive.shirley/accord-core/harness/types.js";
+import { loadPricing } from "@clive.shirley/accord-core/telemetry/usage.js";
+import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -975,7 +975,7 @@ describe("harness pipeline artifact preflight", () => {
     devBootstrap("GATE-1", "Gate test", "implement", "standard");
 
     const { runPipelineArtifactPreflightOnSubagentCall } = await import(
-      "../src/core/subagent/preflight/pipeline-artifacts.js"
+      "@clive.shirley/accord-core/subagent/preflight/pipeline-artifacts.js"
     );
     const r = await runPipelineArtifactPreflightOnSubagentCall({
       agent: "phase-spec",
@@ -993,7 +993,7 @@ describe("harness pipeline artifact preflight", () => {
     devBootstrap("GATE-2", "Gate test 2", "implement", "standard");
 
     const { runPipelineArtifactPreflightOnSubagentCall } = await import(
-      "../src/core/subagent/preflight/pipeline-artifacts.js"
+      "@clive.shirley/accord-core/subagent/preflight/pipeline-artifacts.js"
     );
     const r = await runPipelineArtifactPreflightOnSubagentCall({
       agent: "phase-spec",
@@ -1012,7 +1012,7 @@ describe("phase-align post-result", () => {
     devBootstrap("ALN-1", "Align done", "implement", "standard");
 
     const { applyPhaseAlignPostResult } = await import(
-      "../src/core/orchestration/post-result/phase-align.js"
+      "@clive.shirley/accord-core/orchestration/post-result/phase-align.js"
     );
     const out = applyPhaseAlignPostResult("ALN-1", {
       status: "done",
@@ -1059,7 +1059,7 @@ describe("phase-spec post-result", () => {
     writeFileSync(join(project, ".tasks", "SPC-1.json"), `${JSON.stringify(wiBefore, null, 2)}\n`);
 
     const { applyPhaseSpecPostResult } = await import(
-      "../src/core/orchestration/post-result/phase-spec.js"
+      "@clive.shirley/accord-core/orchestration/post-result/phase-spec.js"
     );
     const out = applyPhaseSpecPostResult("SPC-1", {
       status: "done",
@@ -1097,7 +1097,7 @@ describe("dev artifact scope (monorepo app cwd)", () => {
     devBootstrap("APP-1", "App scoped", "implement", "standard");
 
     const { checkBriefPresentForSpeccing } = await import(
-      "../src/core/subagent/preflight/pipeline-artifacts.js"
+      "@clive.shirley/accord-core/subagent/preflight/pipeline-artifacts.js"
     );
     const missing = checkBriefPresentForSpeccing("APP-1");
     expect(missing.ok).toBe(false);
@@ -1126,7 +1126,7 @@ describe("dev artifact scope (monorepo app cwd)", () => {
     process.chdir(appDir);
 
     const { resolveDevArtifactPathForId } = await import(
-      "../src/core/work-items/artifact-discovery.js"
+      "@clive.shirley/accord-core/work-items/artifact-discovery.js"
     );
     expect(resolveDevArtifactPathForId("APP-2", "brief")).toBe("docs/dev/APP-2/brief.md");
     expect(existsSync(join(appDir, "docs", "dev", "APP-2", "brief.md"))).toBe(false);

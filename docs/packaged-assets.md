@@ -1,46 +1,43 @@
-# Packaged Pi assets
+# Packaged ACCORD assets
 
-The extension bundles the prompt assets it needs to run in pi.dev:
+Host-neutral prompt assets ship from **`packages/accord-assets/`**; Pi-only companion skills and CI templates stay under **`packages/pi-accord/assets/`**.
 
 ```mermaid
 flowchart TB
-  A["assets/"] --> M["manifest.json"]
+  A["accord-assets/"] --> M["manifest.json"]
   A --> L["lang-profiles/*.json"]
-  A --> SK["skills/"]
-  SK --> SA["commit, pr, review — SKILL.md"]
   A --> AG["agents/accord/ — phase-*.md, review-*.md"]
   A --> PR["providers/"]
   PR --> TR["trackers/(name).md + .json"]
   PR --> EN["enrichments/(name).md + .json"]
+  P["pi-accord/assets/"] --> SK["skills/"]
+  SK --> SA["commit, pr, review — SKILL.md"]
+  P --> CI["ci/ — subagent.json, thrift.json"]
 ```
 
-`package.json` advertises these through the `pi.skills`, `pi.agents`, and `accord.assetManifest` fields. The Pi extension drives workflow via `/dev` and the **core orchestrator** (`packages/pi-accord/src/core/orchestration/`, programmatic `subagent` spawns). Companion skills (`commit`, `pr`, `review`) and phase agents install via the asset linker. There is no bundled `accord` orchestrator skill — routing lives in core.
+Root `package.json` advertises agents via `pi.agents` → `packages/accord-assets/agents` and skills via `pi.skills` → `packages/pi-accord/assets/skills/*`. Workflow routing lives in `packages/accord-core/src/orchestration/` (Pi and `accord` CLI).
 
 ## Installer
-
-Install or refresh the bundled Pi assets with:
 
 ```bash
 bun run install:assets
 ```
 
-The installer targets `~/.config/pi/agent` by default, creates relative symlinks to the bundled assets, refuses to replace locally modified files unless `--force` is supplied, supports `--dry-run`, and writes `.accord-assets.json` metadata with the package version and manifest checksum.
+Links **accord-assets** (agents, providers, default.md) and **pi-accord skills** into `~/.config/pi/agent`. Refuses to replace locally modified files unless `--force`. Writes `.accord-assets.json` with combined manifest checksum.
+
+Override roots: `ACCORD_ASSETS_DIR`, `ACCORD_PI_PKG_DIR` (see `packages/accord-core/src/config/paths.ts`).
 
 ## Validation
 
-Run `bun run validate:assets` after prompt, registry, provider, or manifest changes. It checks that bundled skill and agent frontmatter names match, the manifest matches `packages/pi-accord/src/core/agents/registry.ts`, the manifest provider lists match the sidecars under `packages/pi-accord/assets/providers/{trackers,enrichments}/`, and referenced schemas exist.
+```bash
+bun run validate:assets
+```
+
+Runs:
+
+1. `packages/accord-assets/scripts/validate-assets.ts` — agents ↔ registry ↔ schemas ↔ provider sidecars
+2. `packages/pi-accord/scripts/validate-pi-skills.ts` — skills ↔ `package.json` `pi.skills`
 
 ## Agent registry
 
-`packages/pi-accord/src/core/agents/registry.ts` maps agent names to their configuration:
-
-```typescript
-{
-  schemas: string[],         // Schemas to inject into the agent's brief
-  requiresConfig: boolean,   // Block if devConfig is null
-  verifyAfter: boolean,      // Run post-code verification after completion
-  deferConfigGuard: boolean, // Exempt from config guard (e.g. phase-gather)
-}
-```
-
-The registry is the source of truth that ties an agent's bundled markdown definition (`packages/pi-accord/assets/agents/accord/<name>.md`) to its return schema (`packages/pi-accord/schemas/return-schemas/<name>.json`) and runtime behaviour. See [`docs/extending.md`](extending.md) for how to add a new agent.
+`packages/accord-core/src/agents/registry.ts` maps agent names to runtime behaviour. Bundled markdown: `packages/accord-assets/agents/accord/<name>.md`. Return schemas: `packages/accord-core/schemas/return-schemas/<name>.json`. See [`docs/extending.md`](extending.md).

@@ -1,5 +1,5 @@
 {
-  "name": "@clive.shirley/pi-accord-harness",
+  "name": "@clive.shirley/pi-accord",
   "version": "0.1.0",
   "private": true,
   "description": "ACCORD harness — /dev command, tools, hooks, orchestration, and MCP adapter",
@@ -7,10 +7,13 @@
     "pi-package"
   ],
   "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
   "files": [
     "src/",
-    "assets/",
-    "schemas/"
+    "assets/"
   ],
   "peerDependencies": {
     "@earendil-works/pi-agent-core": "^0.83.0",
@@ -20,6 +23,10 @@
     "typebox": "^1.3.7"
   },
   "dependencies": {
+    "@clive.shirley/accord-assets": "workspace:*",
+    "@clive.shirley/accord-cli": "workspace:*",
+    "@clive.shirley/accord-core": "workspace:*",
+    "@clive.shirley/accord-mcp": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^4.4.3"
   },
@@ -29,6 +36,7 @@
     ]
   },
   "accord": {
-    "assetManifest": "./assets/manifest.json"
+    "assetManifest": "../accord-assets/manifest.json",
+    "piManifest": "./assets/manifest.pi.json"
   }
 }

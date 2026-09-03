@@ -10,7 +10,7 @@ import {
   isDynamicToolsEnabled,
   isManagedAccordTool,
   toolsForBundles,
-} from "../src/core/tools/active-set.js";
+} from "@clive.shirley/accord-core/tools/active-set.js";
 
 describe("isDynamicToolsEnabled", () => {
   const original = process.env.ACCORD_DYNAMIC_TOOLS;

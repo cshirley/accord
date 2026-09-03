@@ -4,7 +4,7 @@
  * SDK in-process runtime. The AC-6 architectural rule is enforced by
  * `tests/ci/no-extra-pi-spawns.test.ts`, which also scans for SDK imports.
  *
- * For consumer repos this script imports from `@clive.shirley/pi-accord/packages/pi-accord/src/core/...`
+ * For consumer repos this script imports from `@clive.shirley/accord-core`.
  * once published; in-tree we import via relative paths.
  *
  * Idempotency: if `.tasks/<ticket>.json` already exists we trust it (the
@@ -15,7 +15,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { devBootstrap, devTransition } from "../../pi-accord/src/core/work-items/lifecycle.js";
+import { devBootstrap, devTransition } from "@clive.shirley/accord-core/work-items/lifecycle.js";
 import type { JiraIssue } from "./gate-ticket.js";
 
 export interface BootstrapOpts {

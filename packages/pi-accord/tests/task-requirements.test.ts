@@ -2,16 +2,16 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { devCodeBrief } from "../src/core/briefing/code-brief.js";
-import { syncTaskFileOwnerNonceForSpawn } from "../src/core/briefing/sync-task-owner-nonce.js";
+import { devCodeBrief } from "@clive.shirley/accord-core/briefing/code-brief.js";
+import { syncTaskFileOwnerNonceForSpawn } from "@clive.shirley/accord-core/briefing/sync-task-owner-nonce.js";
 import {
   buildImplementSpawnTaskBrief,
   filterTestCasesForAcIds,
   formatAcceptanceCriterionLine,
   sliceTaskRequirements,
-} from "../src/core/briefing/task-requirements.js";
-import type { DevHarnessConfig } from "../src/core/config/index.js";
-import { resolveResumeOrchestration } from "../src/core/orchestration/resolve/resume.js";
+} from "@clive.shirley/accord-core/briefing/task-requirements.js";
+import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import { resolveResumeOrchestration } from "@clive.shirley/accord-core/orchestration/resolve/resume.js";
 
 function minimalDevConfig(): DevHarnessConfig {
   return {

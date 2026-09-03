@@ -3,10 +3,10 @@
  * Execution delegates to Pi's create*Tool factories; only renderCall is customized.
  */
 
+import { isHarnessArtifactPath } from "@clive.shirley/accord-core/harness/paths.js";
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
 import { createEditTool, createReadTool, createWriteTool } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { isHarnessArtifactPath } from "../../core/harness/paths.js";
 
 export function formatHarnessToolPath(path: string, theme: Theme): string {
   if (isHarnessArtifactPath(path)) {

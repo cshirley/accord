@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
-import { devResumeState } from "../src/core/queries/resume-state.js";
-import { loadWorkItem, readJson, TASKS_DIR } from "../src/core/work-items/io.js";
+import { devResumeState } from "@clive.shirley/accord-core/queries/resume-state.js";
+import { loadWorkItem, readJson, TASKS_DIR } from "@clive.shirley/accord-core/work-items/io.js";
 import {
   devRehydrateWorkItem,
   rehydrateWorkItemFromArtifacts,
-} from "../src/core/work-items/rehydrate.js";
+} from "@clive.shirley/accord-core/work-items/rehydrate.js";
 
 const TEST_ID = "REHY-1";
 const DEV_DIR = path.join("docs", "dev", TEST_ID);
