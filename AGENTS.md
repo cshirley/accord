@@ -43,11 +43,11 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 
 ## Project Layout
 
-- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`pi-accord`** (Pi extension + MCP + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`, `pi-accord-ci`.
+- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`, `pi-accord-ci`.
 - `packages/accord-core/` — orchestration, work items, artifacts, briefing, verification, schemas, `dev_*` tools, standalone review.
 - `packages/accord-cli/` — CLI, harness registry, commands.
 - `packages/pi-accord/src/adapters/pi/` — extension, hooks, `cli-client`, spawn UI.
-- `packages/pi-accord/src/adapters/mcp/` — stdio MCP + `ACCORD_MCP_HARNESS`.
+- `packages/accord-mcp/` — stdio MCP server + `ACCORD_MCP_HARNESS`.
 - `packages/accord-assets/` — host-neutral agents, providers, lang-profiles
 - `packages/pi-accord/assets/` — Pi skills, CI templates.
 - `packages/pi-accord/scripts/install-assets.ts` — links bundled assets into `~/.config/pi/agent/`.

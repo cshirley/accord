@@ -4,7 +4,7 @@ import {
   mergeConfig,
   migrateLegacyKeys,
   type ThriftConfig,
-} from "../../pi-thrift/src/config.js";
+} from "../src/config.js";
 
 function defaults(): ThriftConfig {
   return structuredClone(DEFAULT_CONFIG);

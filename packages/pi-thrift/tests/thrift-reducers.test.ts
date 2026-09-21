@@ -10,7 +10,7 @@ import {
   reduceLog,
   reduceToolOutput,
   stripAnsi,
-} from "../../pi-thrift/src/reducers.js";
+} from "../src/reducers.js";
 
 describe("stripAnsi", () => {
   test("removes colour escapes but keeps the text", () => {

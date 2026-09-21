@@ -122,7 +122,7 @@ Bundles activate on `/dev` subcommands, bootstrap success, orchestration dispatc
 | `dev_init_detect` | `packages/accord-core/src/config/init-detect.ts` | Detect project stack, infer commands, resolve config placement |
 | `dev_init_write` | `packages/accord-core/src/config/init-write.ts` | Write detected config to AGENTS.md |
 
-The same tool names and behaviour are exposed over **stdio MCP** for Cursor / other MCP clients: `packages/pi-accord/src/adapters/mcp/server.ts` (registered in `packages/pi-accord/src/adapters/mcp/register-tools.ts`). Run from this package:
+The same tool names and behaviour are exposed over **stdio MCP** for Cursor / other MCP clients via `packages/accord-mcp/` (`server.ts`, `register-tools.ts`). Run from the repo root:
 
 ```bash
 ACCORD_CWD=/path/to/your/repo bun run mcp

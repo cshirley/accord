@@ -2,7 +2,7 @@
   "name": "@clive.shirley/pi-accord",
   "version": "0.1.0",
   "private": true,
-  "description": "ACCORD harness — /dev command, tools, hooks, orchestration, and MCP adapter",
+  "description": "ACCORD harness — /dev command, tools, hooks, and orchestration",
   "keywords": [
     "pi-package"
   ],
@@ -25,10 +25,7 @@
   "dependencies": {
     "@clive.shirley/accord-assets": "workspace:*",
     "@clive.shirley/accord-cli": "workspace:*",
-    "@clive.shirley/accord-core": "workspace:*",
-    "@clive.shirley/accord-mcp": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.4.3"
+    "@clive.shirley/accord-core": "workspace:*"
   },
   "pi": {
     "extensions": [

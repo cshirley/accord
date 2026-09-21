@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { runSubagent, SubagentRunError, type SubagentRunEvent } from "../../pi-subagent/src/api.js";
+import { runSubagent, SubagentRunError, type SubagentRunEvent } from "../src/api.js";
 
 describe("runSubagent programmatic API", () => {
   test("emits resolving then failed for missing agent file", async () => {

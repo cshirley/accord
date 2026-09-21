@@ -9,7 +9,7 @@ import {
   findArtifactRef,
   formatInventory,
   stripArtifactNotice,
-} from "../../pi-thrift/src/artifacts.js";
+} from "../src/artifacts.js";
 
 const stores: ArtifactStore[] = [];
 

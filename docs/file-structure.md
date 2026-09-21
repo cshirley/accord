@@ -27,6 +27,7 @@ packages/                      Bun workspaces — Pi extensions bundled with pi-
       types/                   HarnessHost, domain enums, spawn contracts
       integrations/            Provider sidecar loader
     schemas/                   Artifact + return-packet JSON schemas and examples
+    tests/                     Host-neutral harness tests (orchestration, work-items, briefing, …)
   accord-cli/                  Standalone `accord` CLI
     src/
       main.ts, cli.ts          Entry + argv parser
@@ -35,19 +36,29 @@ packages/                      Bun workspaces — Pi extensions bundled with pi-
       harnesses/               types, registry, spawn-pipeline, exec, as-runtime-host
       index.ts                 Programmatic exports (Pi client, MCP)
     tests/                     CLI smoke + exec harness tests
-  pi-accord/                   Pi extension (/dev, hooks, MCP, assets) — npm: `@clive.shirley/pi-accord`
+  accord-mcp/                  Stdio MCP server — npm: `@clive.shirley/accord-mcp`
+    src/
+      server.ts                MCP entry (`bun run mcp` from repo root)
+      register-tools.ts        dev_* tool registration
+      mcp-orchestrate-host.ts  ACCORD_MCP_HARNESS + dev_orchestrate execution
+    examples/cursor-hooks/     Reference Cursor hook scripts
+    tests/
+  pi-accord/                   Pi extension (/dev, hooks, assets) — npm: `@clive.shirley/pi-accord`
     src/
       index.ts                 Harness entry; registers pi-subagent preflight backend
       adapters/pi/             Extension, cli-client, headless-harness, hooks, tools, spawn UI
-      adapters/mcp/            Stdio MCP server, mcp-orchestrate-host, register-tools
       integrations/            pi-subagent re-exports
       queries/                 Pi-backed subagent spawn preflight
     assets/                    Pi skills + CI templates (agents/providers → accord-assets)
     scripts/                   install-assets, validate-pi-skills, runtime-smoke
-    tests/                     Bun unit tests for the harness
-  pi-subagent/src/             subagent tool + agent discovery
+    tests/                     Pi adapter tests only (hooks, CLI client, spawn UI, …)
+  pi-subagent/
+    src/                       subagent tool + agent discovery
+    tests/
   pi-worktree/src/             wt_* tools, /wt command
-  pi-thrift/src/               /thrift (alias /tp) input + output token pruning
+  pi-thrift/
+    src/                       /thrift (alias /tp) input + output token pruning
+    tests/
   pi-git-tools/src/            git_commit_*, gh_pr_* tools
   pi-tools/src/                Jira / Slack / Google Workspace integrations
   pi-accord-ci/                GitHub Actions autopipeline scripts + contract tests

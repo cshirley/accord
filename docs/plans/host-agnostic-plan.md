@@ -22,7 +22,7 @@ This document turns the host-agnostic roadmap into an **executable** plan: decou
 |------|--------|
 | **Orchestration** | Host-neutral in `accord-core` ✅ |
 | **`accord-cli`** | Headless loop ✅; **hard-depends on `pi-accord`**; default harness **`pi`** ⚠️ |
-| **MCP** | Lives under `pi-accord/adapters/mcp` ⚠️ |
+| **MCP** | `accord-mcp` package ✅ |
 | **Agent spawn** | `pi` → `pi-subagent` child process; `exec` → subprocess template ✅ |
 | **Global config** | `~/.config/pi/agent/accord.json` ⚠️ |
 | **Asset install** | Symlinks into `~/.config/pi/agent` ⚠️ |
@@ -65,7 +65,7 @@ pi-accord-ci       → accord-cli (exec path) OR pi-accord (legacy Pi path)
 |----|-----------|---------------|--------|
 | **A1** | Global config path | **`~/.config/accord/accord.json`** | Read `~/.config/pi/agent/accord.json` as deprecated fallback; warn once |
 | **A2** | Default harness | **`exec` when configured**; else explicit error with setup hint | `pi` via `--harness pi` or env; deprecation: auto-detect Pi install → default `pi` for one release |
-| **A3** | MCP package | **`accord-mcp`** extracted from `pi-accord` | `pi-accord` may thin-reexport for backward compat |
+| **A3** | MCP package | **`accord-mcp`** extracted from `pi-accord` | Thin re-exports removed |
 | **A4** | Hook parity | **`HarnessHost` port** in core + reference Cursor hook scripts | Pi maps lifecycle events; MCP documents minimum hook set |
 | **A5** | Judgment LLM | **Core provider port** | Pi is one implementation; CLI/MCP use OpenAI-compatible HTTP or optional `pi-ai` peer |
 | **A6** | Skills | **Host-neutral playbooks** in `accord-assets` or `accord-skills` | Pi SKILL.md wrappers remain thin |

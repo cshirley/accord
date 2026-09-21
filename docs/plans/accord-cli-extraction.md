@@ -12,7 +12,8 @@ Standalone orchestrator CLI (`packages/accord-cli`) on host-neutral `@clive.shir
 packages/
   accord-core/          # Host-neutral harness (orchestration, artifacts, schemas, review helpers)
   accord-cli/           # `accord` bin, harness registry, CLI commands
-  pi-accord/            # Pi extension (adapters/pi, assets, MCP) — npm: @clive.shirley/pi-accord
+  pi-accord/            # Pi extension (adapters/pi, assets) — npm: @clive.shirley/pi-accord
+  accord-mcp/           # Stdio MCP server — npm: @clive.shirley/accord-mcp
   pi-subagent/          # Pi subagent backend (one AgentHarness implementation)
   pi-git-tools/         # Optional Pi companion
   pi-tools/             # Optional Pi companion
@@ -26,7 +27,8 @@ Published names:
 |---------|----------|------|
 | `accord-core` | `@clive.shirley/accord-core` | Orchestration, artifacts, briefing, verification, schemas, standalone review helpers |
 | `accord-cli` | `@clive.shirley/accord-cli` | `accord` bin, harness registry, programmatic API |
-| `pi-accord` | `@clive.shirley/pi-accord` | Pi `/dev` extension, bundled assets, MCP adapter |
+| `pi-accord` | `@clive.shirley/pi-accord` | Pi `/dev` extension, bundled assets |
+| `accord-mcp` | `@clive.shirley/accord-mcp` | Stdio MCP server (`dev_*` tools) |
 
 ---
 
@@ -88,7 +90,7 @@ Shared pre/post: `packages/accord-cli/src/harnesses/spawn-pipeline.ts`.
 
 ## Phase 5 — MCP spawn delegation ✅
 
-`packages/pi-accord/src/adapters/mcp/mcp-orchestrate-host.ts` — `ACCORD_MCP_HARNESS=pi|exec`, enriched `dev_orchestrate` payload, optional execution.
+`packages/accord-mcp/src/mcp-orchestrate-host.ts` — `ACCORD_MCP_HARNESS=pi|exec`, enriched `dev_orchestrate` payload, optional execution.
 
 ---
 

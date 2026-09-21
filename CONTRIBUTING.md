@@ -63,7 +63,7 @@ bun run check:biome:fix
 
 ## Project layout
 
-- [`src/`](src/) — core harness, `/dev` command, MCP adapter
+- [`packages/accord-core/`](packages/accord-core/) — host-neutral harness; [`packages/accord-mcp/`](packages/accord-mcp/) — stdio MCP server
 - [`packages/`](packages/) — Pi extension modules (subagent, worktree, git tools, CI, etc.)
 - [`packages/pi-accord/assets/`](assets/) — bundled skills, agents, provider sidecars
 - [`packages/pi-accord/schemas/`](schemas/) — JSON schemas for artifacts and agent return packets

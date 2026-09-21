@@ -14,7 +14,7 @@ import {
   loadAgentFromFile,
   parseSubagentReturnJson,
   resolveSpawnAgent,
-} from "../../pi-subagent/src/api.js";
+} from "../src/api.js";
 
 describe("loadAgentFromFile", () => {
   test("loads bundled phase-code agent", () => {
