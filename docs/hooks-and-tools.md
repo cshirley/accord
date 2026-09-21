@@ -4,7 +4,7 @@ The harness exposes two runtime extension surfaces: **event hooks** that fire on
 
 ## Event hooks
 
-Registered by `packages/pi-accord/src/adapters/pi/pi-hook-listeners.ts`, which delegates behaviour to `packages/accord-core/src/harness/` so the same logic can be invoked from Cursor hook scripts or tests without Pi types.
+Registered by `packages/pi-accord/src/pi-hook-listeners.ts`, which delegates behaviour to `packages/accord-core/src/harness/` so the same logic can be invoked from Cursor hook scripts or tests without Pi types.
 
 ### Schema validation (tool_result → write/edit)
 
@@ -80,7 +80,7 @@ Displays: language, active work item ID + phase, pending decision count, cumulat
 
 ## Tools
 
-All registered in `packages/pi-accord/src/adapters/pi/tools.ts` as thin wrappers around core domain functions. Core harness tools may include `promptSnippet` (Available tools section) and `promptGuidelines` (Guidelines bullets while active) when dynamic activation exposes them.
+All registered in `packages/pi-accord/src/tools.ts` as thin wrappers around core domain functions. Core harness tools may include `promptSnippet` (Available tools section) and `promptGuidelines` (Guidelines bullets while active) when dynamic activation exposes them.
 
 ### Dynamic activation (Pi only)
 

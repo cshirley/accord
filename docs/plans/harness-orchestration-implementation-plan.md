@@ -8,7 +8,7 @@ This document turns [`harness-orchestration.md`](../harness-orchestration.md) in
 
 1. **Graph and transition policy** live in `packages/accord-core/src/` as declarative config + interpreter, with unit tests.
 2. **Orchestrator** owns boundary validation and routing; **components** (agents, briefers) own domain validation.
-3. **`packages/pi-accord/src/adapters/pi`** implements **host ports only** (especially programmatic or equivalent `spawnSubagent`); no workflow graph in the adapter.
+3. **`packages/pi-accord/src`** implements **host ports only** (especially programmatic or equivalent `spawnSubagent`); no workflow graph in pi-accord.
 4. **`packages/pi-accord/assets/skills/accord/SKILL.md`** — **removed** (D3 complete). Orchestration prose lives in core; companion skills (`commit`, `pr`, `review`) remain bundled.
 
 ---
@@ -69,7 +69,7 @@ This document turns [`harness-orchestration.md`](../harness-orchestration.md) in
 
 ### Deliverables
 
-1. **`OrchestrationHost` Pi implementation** (new file under `packages/pi-accord/src/adapters/pi/`, e.g. `orchestration-host.ts`):
+1. **`OrchestrationHost` Pi implementation** (new file under `packages/pi-accord/src/`, e.g. `orchestration-host.ts`):
    - Implements `spawnSubagent` per S0a outcome.
    - Maps `notify` / `confirm` to `ctx.ui` (same semantics as gather/verify preflight callers).
 

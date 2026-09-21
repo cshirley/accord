@@ -14,7 +14,7 @@ import {
   HARNESS_RUN_ENTRY_TYPE,
   registerHarnessRunEntryRenderer,
   renderHarnessRunEntry,
-} from "../src/adapters/pi/custom-entry-renderers.js";
+} from "../src/custom-entry-renderers.js";
 
 function mockTheme(): Theme {
   return {

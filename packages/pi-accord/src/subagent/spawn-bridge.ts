@@ -8,7 +8,7 @@ import {
   runSubagent,
   type SpawnSubagentResult,
   type SpawnSubagentUpdate,
-} from "../../../integrations/pi-subagent.js";
+} from "../integrations/pi-subagent.js";
 
 /** One row in orchestration `details.results` — aligned with pi-subagent {@link SpawnSubagentResult}. */
 export type OrchestrationSubagentSingleResult = Pick<

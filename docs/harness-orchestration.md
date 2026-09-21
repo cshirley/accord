@@ -10,7 +10,7 @@ For runtime behaviour and diagrams, see [`pipeline.md`](pipeline.md). For direct
 
 Previously the **orchestration playbook** lived in a bundled **accord skill**. The main-session model parsed `/dev` subcommands, classified free text, and chose `subagent({ agent })` names — coupling **infrastructure** to **model behaviour**.
 
-**Solution (shipped):** **Routing and the outer execution loop** live in **`packages/accord-core/src/orchestration/`**. The Pi extension (`packages/pi-accord/src/adapters/pi/`) is a **thin façade**: commands, hooks, tools, UI, and `OrchestrationHost` implementation (`subagent/runtime-host.ts`) — no workflow graph in the adapter. Free-text `/dev` input still uses deterministic `dev_intent` / bootstrap in core, then either programmatic resume or an in-session follow-up with `dev_*` tools.
+**Solution (shipped):** **Routing and the outer execution loop** live in **`packages/accord-core/src/orchestration/`**. The Pi extension (`packages/pi-accord/src/`) is a **thin façade**: commands, hooks, tools, UI, and `OrchestrationHost` implementation (`subagent/runtime-host.ts`) — no workflow graph in the adapter. Free-text `/dev` input still uses deterministic `dev_intent` / bootstrap in core, then either programmatic resume or an in-session follow-up with `dev_*` tools.
 
 ---
 
@@ -99,7 +99,7 @@ The executable phased plan (spikes, deliverables per phase, acceptance criteria,
 
 ---
 
-## Role of `packages/pi-accord/src/adapters/pi`
+## Role of `packages/pi-accord/src`
 
 - Registers `/dev` / `/accord`, tools, hooks, autocomplete, status bar.
 - Routes workflow subcommands through **`cli-client.ts`** → `@clive.shirley/accord-cli` (in-process) or subprocess when `ACCORD_CLI_DELEGATE=subprocess`.
@@ -107,7 +107,7 @@ The executable phased plan (spikes, deliverables per phase, acceptance criteria,
 - On **free-text** input: `classifyPreflight` → optional bootstrap → `tryClassifyFollowUpViaCoreOrchestrator` or in-session follow-up (no accord skill).
 - Maps Pi lifecycle events to **`packages/accord-core/src/harness/`** (preflight, validation, usage, subagent prep/results).
 
-**One-line summary:** `adapters/pi` is **“ACCORD on Pi”** — wiring and host I/O only; **orchestration is a core product**.
+**One-line summary:** `pi-accord` is **“ACCORD on Pi”** — wiring and host I/O only; **orchestration is a core product**.
 
 ---
 
@@ -115,7 +115,7 @@ The executable phased plan (spikes, deliverables per phase, acceptance criteria,
 
 - Workflow graph and transition policy live in **`packages/accord-core/src/orchestration/`**, validated by tests.
 - Bundled **`accord` orchestrator skill removed**; companion skills (`commit`, `pr`, `review`) remain under `packages/pi-accord/assets/skills/`.
-- `packages/pi-accord/src/adapters/pi/extension.ts` stays thin: **parse → core runner → map outcome to Pi UI / host calls**.
+- `packages/pi-accord/src/extension.ts` stays thin: **parse → core runner → map outcome to Pi UI / host calls**.
 - Cross-provider behaviour depends on **code + schemas**, not on whether the chat model recalled the playbook.
 - **`/dev retro`** keeps correlating Pi insights sessions with harness work via the `dev-harness-run` transcript marker (regression: `tests/dev-retro-harness-marker.test.ts`).
 

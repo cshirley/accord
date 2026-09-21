@@ -16,7 +16,7 @@ import {
   loadPricing,
 } from "@clive.shirley/accord-core/telemetry/usage.js";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../../../integrations/pi-subagent.js";
+import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../integrations/pi-subagent.js";
 import { activateForDispatchAgent } from "../dynamic-tools.js";
 import type { HookState } from "../hook-state.js";
 import { syncHarnessRunSessionEntry } from "../hook-state.js";
@@ -130,7 +130,7 @@ export function createResumeOrchestrationRuntimeHost(
               (results) => ({ ...subagentDetails, results }),
               (partial) => chatUi.onUpdate(partial as Parameters<typeof chatUi.onUpdate>[0]),
             ),
-          }) as import("../../../integrations/pi-subagent.js").RunSubagentRequest,
+          }) as import("../integrations/pi-subagent.js").RunSubagentRequest,
         );
       } catch (e) {
         if (e instanceof SubagentRunError) {

@@ -112,7 +112,7 @@ flowchart TB
 
 | Layer        | Lives in              | Responsibilities                                                                |
 | ------------ | --------------------- | ------------------------------------------------------------------------------- |
-| Pi extension | `packages/pi-accord/src/adapters/pi/`    | `/dev` command, autocomplete, local subcommands, orchestrator host, lifecycle hooks, tools |
+| Pi extension | `packages/pi-accord/src/`    | `/dev` command, autocomplete, local subcommands, orchestrator host, lifecycle hooks, tools |
 | Core orchestrator | `packages/accord-core/src/orchestration/` | Deterministic workflow routing, resume/finish loops, return-packet policy, programmatic spawns |
 | Phase agents | `packages/accord-assets/agents/accord/phase-*.md` | Do the work; each runs in an isolated subagent process                |
 | Review agents | `packages/accord-assets/agents/accord/review-*.md` | Read-only critique; each runs in an isolated subagent process       |

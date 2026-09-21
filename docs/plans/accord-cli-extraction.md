@@ -12,7 +12,7 @@ Standalone orchestrator CLI (`packages/accord-cli`) on host-neutral `@clive.shir
 packages/
   accord-core/          # Host-neutral harness (orchestration, artifacts, schemas, review helpers)
   accord-cli/           # `accord` bin, harness registry, CLI commands
-  pi-accord/            # Pi extension (adapters/pi, assets) — npm: @clive.shirley/pi-accord
+  pi-accord/            # Pi extension (src/, assets) — npm: @clive.shirley/pi-accord
   accord-mcp/           # Stdio MCP server — npm: @clive.shirley/accord-mcp
   pi-subagent/          # Pi subagent backend (one AgentHarness implementation)
   pi-git-tools/         # Optional Pi companion
@@ -54,11 +54,11 @@ Host-neutral tree: `pi-accord/src/core/` → `accord-core/src/`. Schemas: `accor
 
 | Path | Reason |
 |------|--------|
-| `adapters/pi/subagent/spawn-bridge.ts` | pi-subagent programmatic API |
-| `adapters/pi/headless-harness.ts` | Headless Pi harness for standalone CLI |
+| `subagent/spawn-bridge.ts` | pi-subagent programmatic API |
+| `headless-harness.ts` | Headless Pi harness for standalone CLI |
 | `integrations/pi-subagent.ts` | Re-exports pi-subagent |
 | `queries/subagent-preflight.ts` | Credential/agent-file checks via pi-subagent |
-| `adapters/pi/extension.ts`, hooks, TUI, MCP | Pi host surface |
+| `extension.ts`, hooks, TUI | Pi host surface |
 
 ### Path resolution
 
@@ -82,7 +82,7 @@ Shared pre/post: `packages/accord-cli/src/harnesses/spawn-pipeline.ts`.
 
 ## Phase 4 — Pi extension as client ✅
 
-`packages/pi-accord/src/adapters/pi/cli-client.ts` — in-process `@clive.shirley/accord-cli` or subprocess (`ACCORD_CLI_DELEGATE=subprocess`).
+`packages/pi-accord/src/cli-client.ts` — in-process `@clive.shirley/accord-cli` or subprocess (`ACCORD_CLI_DELEGATE=subprocess`).
 
 `pi-extension-harness.ts` wraps `createResumeOrchestrationRuntimeHost` for full TUI.
 

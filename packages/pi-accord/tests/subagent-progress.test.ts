@@ -14,12 +14,12 @@ import {
   registerOrchestratorSpawn,
   unregisterOrchestratorSpawn,
   updateOrchestratorSpawn,
-} from "../src/adapters/pi/subagent/spawn-status.js";
+} from "../src/subagent/spawn-status.js";
 import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,
   formatOrchestratorStallHint,
-} from "../src/adapters/pi/subagent/spawn-ui.js";
+} from "../src/subagent/spawn-ui.js";
 
 describe("summarizeSubagentProgress", () => {
   test("extracts tool lines and turn count", () => {

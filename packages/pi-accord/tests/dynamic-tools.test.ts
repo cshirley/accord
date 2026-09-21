@@ -6,8 +6,8 @@ import {
   inactiveRegisteredDevTools,
   maybeActivateDevToolCall,
   resetDynamicToolBundles,
-} from "../src/adapters/pi/dynamic-tools.js";
-import type { HookState } from "../src/adapters/pi/hook-state.js";
+} from "../src/dynamic-tools.js";
+import type { HookState } from "../src/hook-state.js";
 
 function minimalHookState(): HookState {
   return {

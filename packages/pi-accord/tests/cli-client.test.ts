@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { resolvePiCliDelegateMode } from "../src/adapters/pi/cli-client.js";
+import { resolvePiCliDelegateMode } from "../src/cli-client.js";
 
 describe("pi cli-client", () => {
   const previous = process.env.ACCORD_CLI_DELEGATE;

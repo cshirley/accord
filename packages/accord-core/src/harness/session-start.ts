@@ -2,7 +2,7 @@
  * After session_start reloads config: seed per–work-item cost cache and active item.
  *
  * Caller should run `loadDevHarnessConfig`, `setLogLevel`, and `clearHarnessRunTag` first
- * (see `adapters/pi/hooks.ts` session_start order).
+ * (see `pi-accord` `pi-hook-listeners.ts` session_start order).
  */
 
 import { discoverWorkItems } from "../telemetry/usage.js";

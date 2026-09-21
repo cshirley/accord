@@ -5,7 +5,7 @@
 
 import type { ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
-import type { SubagentProgress } from "../../../integrations/pi-subagent.js";
+import type { SubagentProgress } from "../integrations/pi-subagent.js";
 import { refreshOrchestratorSubagentChatDisplays } from "./chat-display.js";
 import {
   formatOrchestratorProgressWidgetLines,

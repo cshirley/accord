@@ -6,11 +6,11 @@ This directory is the `@clive.shirley/accord` monorepo (Bun workspaces). The Pi 
 
 This npm package registers **multiple Pi extensions** (see root `package.json` → `pi.extensions`): `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`, then the ACCORD harness in `packages/pi-accord`. Install this package once with the Pi CLI (`pi install <path-to-this-repo>`); you do not need separate copies under `~/.pi/agent/extensions/` for those tools.
 
-- `packages/pi-accord/src/index.ts` is the harness entry point and delegates to `packages/pi-accord/src/adapters/pi/extension.ts`.
-- `packages/pi-accord/src/adapters/pi/extension.ts` registers the `/dev` command, autocomplete, tools, hooks, and status bar integration.
+- `packages/pi-accord/src/index.ts` is the harness entry point and delegates to `packages/pi-accord/src/extension.ts`.
+- `packages/pi-accord/src/extension.ts` registers the `/dev` command, autocomplete, tools, hooks, and status bar integration.
 - `/dev` handles deterministic routes locally (`help`, `tasks`, `retro`, `tag`, `init`, `spec-gaps`, `review` queue) and delegates workflow subcommands to `@clive.shirley/accord-cli` via `cli-client.ts`.
-- Pi tools in `packages/pi-accord/src/adapters/pi/tools.ts` are thin wrappers around host-neutral core functions. Keep orchestration logic in `packages/accord-core/src/`, not in the Pi adapter.
-- Pi hooks in `packages/pi-accord/src/adapters/pi/hooks.ts` enforce schema validation, config reload, agent brief injection, gather/verify preflight, usage accounting, post-code verification, and pending-decision notifications.
+- Pi tools in `packages/pi-accord/src/tools.ts` are thin wrappers around host-neutral core functions. Keep orchestration logic in `packages/accord-core/src/`, not in pi-accord.
+- Pi hooks in `packages/pi-accord/src/pi-hook-listeners.ts` enforce schema validation, config reload, agent brief injection, gather/verify preflight, usage accounting, post-code verification, and pending-decision notifications.
 
 ## Runtime Dependencies
 
@@ -46,7 +46,7 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 - `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`, `pi-accord-ci`.
 - `packages/accord-core/` — orchestration, work items, artifacts, briefing, verification, schemas, `dev_*` tools, standalone review.
 - `packages/accord-cli/` — CLI, harness registry, commands.
-- `packages/pi-accord/src/adapters/pi/` — extension, hooks, `cli-client`, spawn UI.
+- `packages/pi-accord/src/` — Pi extension: `/dev`, hooks, `cli-client`, spawn UI.
 - `packages/accord-mcp/` — stdio MCP server + `ACCORD_MCP_HARNESS`.
 - `packages/accord-assets/` — host-neutral agents, providers, lang-profiles
 - `packages/pi-accord/assets/` — Pi skills, CI templates.

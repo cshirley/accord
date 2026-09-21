@@ -5,7 +5,7 @@
 import {
   looksLikeToolActivityLine,
   type SubagentProgress,
-} from "../../../integrations/pi-subagent.js";
+} from "../integrations/pi-subagent.js";
 
 /** Heartbeat interval while orchestration spawns run (status line + widget repaint). */
 export const ORCHESTRATOR_SPAWN_HEARTBEAT_MS = 500;

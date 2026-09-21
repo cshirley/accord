@@ -72,7 +72,7 @@ Pi 0.80.4+: `agent_end` fires when a loop ends; **`agent_settled`** fires when a
 | Pending-decision notify | `agent_end` | `agent_settled` |
 | Thrift output pruning | `agent_end` | `agent_settled` |
 
-**Files:** `packages/pi-accord/src/adapters/pi/pi-hook-listeners.ts`, `packages/pi-thrift/src/output.ts`
+**Files:** `packages/pi-accord/src/pi-hook-listeners.ts`, `packages/pi-thrift/src/output.ts`
 
 **Acceptance criteria**
 
@@ -89,7 +89,7 @@ Pi 0.80.4+: display-only session entries (`CustomEntry`) render in interactive m
 | `thrift-output-level` | current output compression level |
 | `pi-worktree` state | branch/path summary (if applicable) |
 
-**Files:** `packages/pi-accord/src/adapters/pi/hook-state.ts` (+ small renderer module), `packages/pi-thrift/packages/pi-accord/src/index.ts`, `packages/pi-worktree/packages/pi-accord/src/index.ts`
+**Files:** `packages/pi-accord/src/hook-state.ts` (+ small renderer module), `packages/pi-thrift/packages/pi-accord/src/index.ts`, `packages/pi-worktree/packages/pi-accord/src/index.ts`
 
 Keep `registerMessageRenderer` for **streaming** orchestrator spawn rows (`sendMessage` + live updates).
 
@@ -116,7 +116,7 @@ Pi 0.80.x: `session_before_compact` / `session_compact` include `reason: "manual
 
 ### 1d — `session_info_changed` → re-sync harness marker
 
-**Files:** `packages/pi-accord/src/adapters/pi/hook-state.ts` or `pi-hook-listeners.ts`
+**Files:** `packages/pi-accord/src/hook-state.ts` or `pi-hook-listeners.ts`
 
 **Acceptance criteria**
 
@@ -168,8 +168,8 @@ Exact grouping should mirror `packages/accord-core/src/orchestration/` phase →
 | Task | File(s) |
 |------|---------|
 | Define `ACCORD_CORE_TOOLS` + phase bundles | `packages/accord-core/src/tools/active-set.ts` (new) |
-| Apply `setActiveTools` on `session_start` | `packages/pi-accord/src/adapters/pi/extension.ts` |
-| Expand on orchestration phase | `packages/pi-accord/src/adapters/pi/workflow-orchestration.ts`, `subagent/runtime-host.ts` |
+| Apply `setActiveTools` on `session_start` | `packages/pi-accord/src/extension.ts` |
+| Expand on orchestration phase | `packages/pi-accord/src/workflow-orchestration.ts`, `subagent/runtime-host.ts` |
 | Expand on bootstrap | `pi-hook-listeners.ts` or tool wrapper |
 | Feature flag `ACCORD_DYNAMIC_TOOLS=0` to disable | env guard |
 
@@ -199,7 +199,7 @@ Exact grouping should mirror `packages/accord-core/src/orchestration/` phase →
 
 ### 3a — `orchestration.judgment.model` config + resolution
 
-**Files:** `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/src/config/types.ts`, [`configuration.md`](../configuration.md), `packages/pi-accord/src/adapters/pi/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
+**Files:** `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/src/config/types.ts`, [`configuration.md`](../configuration.md), `packages/pi-accord/src/subagent/judgment.ts` (new helper e.g. `resolveJudgmentModel.ts` in same dir)
 
 **Schema** — extend `orchestration.judgment`:
 
@@ -280,7 +280,7 @@ Scoped models / `enabledModels` are **not** in the spawn precedence chain in Pha
 
 | Item | Where | Priority |
 |------|-------|----------|
-| `promptGuidelines` on high-traffic tools | `packages/pi-accord/src/adapters/pi/tools.ts` or registry metadata | Medium |
+| `promptGuidelines` on high-traffic tools | `packages/pi-accord/src/tools.ts` or registry metadata | Medium |
 | `before_provider_headers` — inject run / work-item correlation headers | `pi-hook-listeners.ts` | Low |
 | `setWorkingVisible(false)` during orchestrator spawn | `spawn-status.ts` | Low |
 | `xhigh` / `max` thinking in subagent profiles + agent frontmatter | `packages/pi-subagent`, `packages/accord-assets/agents` | Medium |
@@ -376,7 +376,7 @@ Resolve before Phase 2–3 land:
 | Feature | Implementation |
 |---------|----------------|
 | RPC `get_entries` / `get_tree` parity | `packages/accord-core/src/queries/session-transcript.ts` — `SessionManager.open` for `dev_retro` enrichment |
-| Built-in tool render overrides | `packages/pi-accord/src/adapters/pi/builtin-tool-renders.ts` — harness path highlighting on `read`/`write`/`edit` |
+| Built-in tool render overrides | `packages/pi-accord/src/builtin-tool-renders.ts` — harness path highlighting on `read`/`write`/`edit` |
 
 ## SDK features still deferred
 

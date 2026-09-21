@@ -14,7 +14,7 @@ import {
   type AgentConfig,
   loadSubagentConfig,
   resolveModelConfig,
-} from "../../../../../pi-subagent/src/agents.js";
+} from "../../../pi-subagent/src/agents.js";
 
 export type JudgmentModelSource = "config" | "lightweight_tier" | "scoped" | "chat";
 

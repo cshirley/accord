@@ -38,7 +38,7 @@ import {
 import { devRehydrateWorkItem } from "@clive.shirley/accord-core/work-items/rehydrate.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
-import { getSubagentToolRenderers } from "../../integrations/pi-subagent.js";
+import { getSubagentToolRenderers } from "./integrations/pi-subagent.js";
 import { registerHarnessBuiltinToolRenders } from "./builtin-tool-renders.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";
 import { registerHarnessRunEntryRenderer } from "./custom-entry-renderers.js";

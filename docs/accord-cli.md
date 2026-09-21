@@ -172,7 +172,7 @@ Shared spawn path: `accord-cli/src/harnesses/spawn-pipeline.ts` (preflight → s
 
 ## Pi extension as client
 
-`/dev resume`, `/dev finish`, and workflow subcommands delegate through `packages/pi-accord/src/adapters/pi/cli-client.ts`:
+`/dev resume`, `/dev finish`, and workflow subcommands delegate through `packages/pi-accord/src/cli-client.ts`:
 
 | Mode | Env | Behaviour |
 |------|-----|-----------|

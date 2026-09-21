@@ -14,7 +14,7 @@ import {
   ACCORD_SESSION_TAG_HEADER,
   ACCORD_WORK_ITEM_ID_HEADER,
   buildHarnessCorrelationHeaders,
-} from "../src/adapters/pi/correlation-headers.js";
+} from "../src/correlation-headers.js";
 
 const repoRoot = join(import.meta.dirname, "..");
 const assetsRoot = join(repoRoot, "..", "accord-assets");

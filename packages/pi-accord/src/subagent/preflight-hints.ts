@@ -13,7 +13,7 @@ import {
   type AgentConfig,
   loadSubagentConfig,
   resolveModelConfig,
-} from "../../../../../pi-subagent/src/agents.js";
+} from "../../../pi-subagent/src/agents.js";
 
 const JUDGMENT_LIGHTWEIGHT_AGENT: AgentConfig = {
   name: "__judgment__",

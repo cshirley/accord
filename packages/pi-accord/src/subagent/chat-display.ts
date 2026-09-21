@@ -17,7 +17,7 @@ import {
   type SubagentProgress,
   type SubagentToolRenderers,
   summarizeSubagentProgress,
-} from "../../../integrations/pi-subagent.js";
+} from "../integrations/pi-subagent.js";
 import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,

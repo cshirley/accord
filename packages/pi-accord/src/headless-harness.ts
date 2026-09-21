@@ -16,7 +16,7 @@ import type {
   AgentHarnessFactoryOptions,
 } from "@clive.shirley/accord-cli/harnesses/types.js";
 import { buildSingleSubagentRunRequest } from "@clive.shirley/accord-core/subagent/index.js";
-import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../../integrations/pi-subagent.js";
+import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "./integrations/pi-subagent.js";
 import { mapSpawnResultToSingle, runOrchestrationSubagent } from "./subagent/spawn-bridge.js";
 
 export type PiHeadlessHarnessOptions = AgentHarnessFactoryOptions;
@@ -66,7 +66,7 @@ async function executePiSpawn(
             emit("info", `${agent}: ${event.progress.lastToolLine}`);
           }
         },
-      }) as import("../../integrations/pi-subagent.js").RunSubagentRequest,
+      }) as import("./integrations/pi-subagent.js").RunSubagentRequest,
     );
     return {
       agent: singleResult.agent,
