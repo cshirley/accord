@@ -15,6 +15,7 @@ import ghPrSubmit from "./defs/gh-pr-submit.js";
 import gitCommitContext from "./defs/git-commit-context.js";
 import gitCommitExecute from "./defs/git-commit-execute.js";
 import gitReviewContext from "./defs/git-review-context.js";
+import gitReviewTasks from "./defs/git-review-tasks.js";
 import { registerToolDefs } from "./framework.js";
 import { initWorktreeSession } from "./worktree/runtime.js";
 
@@ -27,6 +28,7 @@ export default function gitExtension(pi: ExtensionAPI) {
     ghPrContext,
     ghPrSubmit,
     gitReviewContext,
+    gitReviewTasks,
   ];
 
   registerToolDefs(pi, toolDefs);

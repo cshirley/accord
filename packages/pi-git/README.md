@@ -15,6 +15,7 @@ Commit and PR flows repeat the same steps: status, diff, branch, ticket hints, s
 | `gh_pr_context` | Branch vs default remote, existing PR if any, commits summary, diffstat, optional spec/verify snippets, `gh auth` state |
 | `gh_pr_submit` | Push current branch and create or update a PR via the GitHub CLI |
 | `git_review_context` | Standalone review ladder (staged → unstaged → branch); writes full diff to a temp file and returns `diff_path`, `file_list`, and test hints |
+| `git_review_tasks` | Build `tasks[]` for `subagent` (review-code, review-security, optional review-test) — used by the `/review` skill; not `accord review` |
 
 ## Worktrees
 

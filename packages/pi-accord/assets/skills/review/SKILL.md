@@ -11,20 +11,27 @@ General-purpose diff review. Reuses the same `review-*` agents as the ACCORD har
 
 | Surface | Execution |
 | --- | --- |
-| `/review` (this skill) | `git_review_context` → parallel `subagent` `tasks[]` in Pi |
-| `accord review` | Same helpers; harness spawns reviewers **in parallel** (`--harness pi` / exec) |
+| `/review` (this skill) | `git_review_context` → `git_review_tasks` → one `subagent` `tasks[]` |
+| `accord review` (CLI only) | For terminals/CI — **not** this skill; do not spawn from Pi/Cursor review |
+
+## Forbidden (Pi / Cursor `/review`)
+
+- **Never** run `accord review`, `bun run accord review`, or `bun packages/accord-cli/... review` — that is a separate CLI entry, not the skill.
+- **Never** use `accord review --harness pi` as a shortcut; it nests another harness instead of calling `subagent` once.
+- **Never** inline the full diff in task strings or shell one-liners that import `accord-core` to spawn agents; use `git_review_tasks` + `subagent`.
 
 ## Invocation
 
-Standalone review uses **`pi-git`** for the diff ladder and **`pi-subagent`** for reviewers — not shell `git diff` and not `accord-mcp` (`dev_*` only).
+Standalone review uses **`pi-git`** for diff + task briefs and **`pi-subagent`** for reviewers — not shell `git diff`, not `accord-mcp` (`dev_*` only), not **`accord review`**.
 
 | Step | Tool name (exact) |
 |------|-------------------|
 | Diff ladder + temp file | `git_review_context` |
-| Run review agents in parallel | `subagent` (single call, `tasks[]`) |
+| Build `tasks[]` for reviewers | `git_review_tasks` |
+| Run review agents in parallel | `subagent` (single call, pass `details.tasks`) |
 
 - **Pi TUI:** call those names from the agent tool list.
-- **Cursor + pi package:** `git_review_context` is often bridged as `mcp_pi_git_review_context`; `subagent` may appear as `mcp_pi_subagent` or similar. Names are not truncated.
+- **Cursor + pi package:** bridged names are often `mcp_pi_git_review_context`, `mcp_pi_git_review_tasks`, `mcp_pi_subagent` (or similar). Names are not truncated.
 - **Do not** paste the full diff into subagent briefs; reviewers read `details.diff_path` from `git_review_context`.
 - **Do not** search MCP/bash to “find” these tools. If missing, ask the user to `pi install` this repo and confirm `pi-git` and `pi-subagent` are under `pi.extensions` in root `package.json`.
 
@@ -64,22 +71,14 @@ When `details.has_test_files` is true, run tests once:
 
 Capture stdout/stderr as `{test_output}`; truncate to the last **64 KiB** if larger (`truncateStandaloneTestOutput`).
 
-## Step 2 — Launch agents in parallel
+## Step 2 — Build tasks, then launch agents in parallel
 
-Call the **`subagent` tool once** in parallel mode. Do **not** use the Cursor `Task` tool, and do **not** make separate sequential `subagent` calls — independence requires a single `tasks` array so all reviewers start together.
+Call **`git_review_tasks`** with:
 
-All briefs are **standalone**: no spec, no plan, no drift checks. Agents infer intent from the diff file only.
+- `diff_path`, `source`, `file_list` from `git_review_context` `details`
+- `test_output` when Step 1b ran (omit otherwise)
 
-Build `tasks` with `buildStandaloneReviewTasks`:
-
-```ts
-buildStandaloneReviewTasks({
-  diff_path: details.diff_path,
-  source: details.source,
-  file_list: details.file_list,
-  test_output, // when Step 1b ran
-})
-```
+Then call **`subagent` once** with `{ tasks: details.tasks }` from that tool. Do **not** use the Cursor `Task` tool; do **not** make separate sequential `subagent` calls.
 
 | Agent | Include when |
 | --- | --- |
@@ -87,9 +86,9 @@ buildStandaloneReviewTasks({
 | `review-security` | always |
 | `review-test` | `has_test_files` |
 
-Each task tells reviewers to read `diff_path` (absolute path, `source` in text). Do not paste the diff into the task string.
+Briefs are standalone (no spec/plan). Reviewers read `diff_path` on disk — never paste the diff into the task string.
 
-Resolve agents by name (`review-code`, `review-security`, `review-test`). They must be installed in the Pi agent directory (e.g. via `bun run install:assets` in an ACCORD checkout, or equivalent copies under `~/.config/pi/agent/agents/`).
+Agents resolve by name (`review-code`, `review-security`, `review-test`) under `~/.config/pi/agent/agents/` (e.g. `bun run install:assets` in an ACCORD checkout).
 
 ## Step 3 — Synthesise
 
