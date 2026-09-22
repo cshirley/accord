@@ -5,6 +5,20 @@ description: Stage all changes, generate a detailed commit message with context 
 
 # Detailed Commit
 
+## Invocation
+
+Commit flow uses **Pi tools from `pi-git-tools`**, not shell git and not `accord-mcp` (`dev_*` only).
+
+| Step | Tool name (exact) |
+|------|-------------------|
+| Gather context | `git_commit_context` |
+| Stage + commit | `git_commit_execute` |
+
+- **Pi TUI:** call those names from the agent tool list.
+- **Cursor + pi package:** same names, often bridged as `mcp_pi_git_commit_context` / `mcp_pi_git_commit_execute`. Names are not truncated (`t_commit_execute` is invalid).
+- **Do not** run `git add` / `git commit` in bash, and do not search MCP/bash to “find” these tools.
+- If they are missing, ask the user to `pi install` this repo and confirm `pi-git-tools` is listed under `pi.extensions` in root `package.json`.
+
 ## Format
 
 ```
