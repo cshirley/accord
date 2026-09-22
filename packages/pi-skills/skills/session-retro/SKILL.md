@@ -29,4 +29,4 @@ bun packages/pi-skills/scripts/session-retro.ts --sessions-root ~/.config/pi/age
 
 - Read-only — never modify session files.
 - Summarize for the user; attach JSON only when they want raw data.
-- Suggest new skills/tools from patterns (high bash:read ratio, repeated `gh run view`, low `wt_*` usage).
+- Suggest skills/tools from friction patterns (low `repo_verify`, low `wt_*`, repeated `gh run view`). **Do not** treat high bash+`rg` or bash:read ratio as bad — pi.dev prefers `rg` in bash over the grep/read search tools.

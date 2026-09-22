@@ -81,6 +81,7 @@ let totalCost = 0;
 let sessionsWithDev = 0;
 let sessionsWithSubagent = 0;
 let sessionsWithWt = 0;
+let rgBashInvocations = 0;
 
 const INTENT: Array<[string, RegExp]> = [
   ["fix", /\b(fix|broken|bug|failing)\b/i],
@@ -125,6 +126,7 @@ for (const file of files) {
         if (name.startsWith("dev_")) hadDev = true;
         if (name === "bash" && part.arguments?.command) {
           const command = String(part.arguments.command).trim();
+          if (/^rg\b/.test(command)) rgBashInvocations += 1;
           const prefix = command.split(/\s+/).slice(0, 2).join(" ");
           inc(bashPrefixes, prefix.slice(0, 50));
         }
@@ -160,9 +162,13 @@ const report = {
   toolErrors: top(toolErrors, 12),
   intentSignals: top(intentSignals, 10),
   topBashPrefixes: top(bashPrefixes, 15),
+  rgBashInvocations,
   suggestions: [
-    toolCounts.bash > (toolCounts.read ?? 0) * 0.8
-      ? "High bash vs read — enforce grep/read before shell search"
+    (toolCounts.bash ?? 0) > 500 && (toolErrors.bash ?? 0) / (toolCounts.bash ?? 1) > 0.12
+      ? "High bash error rate — triage failed rg/cd/gh (pi.dev prefers rg in bash; do not push read/grep tool over rg)"
+      : null,
+    (toolCounts.grep ?? 0) > 30 && rgBashInvocations > (toolCounts.grep ?? 0) * 5
+      ? "Dedicated grep tool used alongside heavy rg — prefer bash rg per pi.dev"
       : null,
     (toolCounts.bash ?? 0) > 500 && (toolCounts.repo_verify ?? 0) < 5
       ? "Many bash runs, few repo_verify — use /verify skill"
