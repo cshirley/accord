@@ -2,6 +2,8 @@
  * Return-packet extraction from subagent tool rows and assistant text.
  */
 
+import { parseSubagentReturnJson } from "../../agents/response-contract.js";
+
 /**
  * Scan `text` for balanced top-level `{...}` regions and return them in
  * source order. Strings (with escapes) are skipped so braces inside strings
@@ -64,20 +66,9 @@ export function findBalancedJsonRegions(text: string): string[] {
 
 export function extractReturnPacket(text: string): Record<string, unknown> | null {
   if (!text) return null;
-  // Fenced code block first; bounded match avoids any backtracking risk.
-  const fencedMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
-  if (fencedMatch) {
-    const body = fencedMatch[1];
-    if (body !== undefined) {
-      try {
-        const parsed: unknown = JSON.parse(body);
-        if (parsed && typeof parsed === "object") {
-          return parsed as Record<string, unknown>;
-        }
-      } catch {
-        /* fall through */
-      }
-    }
+  const fencedParsed = parseSubagentReturnJson(text);
+  if (fencedParsed && typeof fencedParsed === "object" && !Array.isArray(fencedParsed)) {
+    return fencedParsed as Record<string, unknown>;
   }
   // Walk balanced {...} regions from the end and accept the last one with
   // a recognised packet key.

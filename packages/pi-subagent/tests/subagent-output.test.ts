@@ -30,6 +30,24 @@ describe("getFinalOutput", () => {
     expect(getFinalOutput(messages)).toBe("second");
   });
 
+  test("uses last text block within one assistant message", () => {
+    const messages = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "preamble" },
+          {
+            type: "text",
+            text: '```json\n{"verdict":"clean","findings":[]}\n```',
+          },
+        ],
+        timestamp: 0,
+      },
+    ] as Message[];
+
+    expect(getFinalOutputFromMessages(messages)).toContain('"verdict":"clean"');
+  });
+
   test("falls back to streaming text when final assistant content is empty", () => {
     const messages = [
       {

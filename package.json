@@ -56,7 +56,7 @@
     "@earendil-works/pi-ai": "^0.83.0",
     "@earendil-works/pi-coding-agent": "^0.83.0",
     "@earendil-works/pi-tui": "^0.83.0",
-    "typebox": "^1.3.7"
+    "typebox": "^1.3.10"
   },
   "pi": {
     "extensions": [
@@ -84,10 +84,10 @@
     "assetManifest": "./packages/accord-assets/manifest.json"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.6",
+    "@biomejs/biome": "^2.5.14",
     "ajv": "^8.20.0",
-    "bun-types": "^1.3.14",
+    "bun-types": "^1.4.2",
     "typescript": "^6.0.3",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   }
 }

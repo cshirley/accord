@@ -423,6 +423,9 @@ describe("usage helpers", () => {
     const fenced = '```json\n{"status":"ok"}\n```';
     expect(extractReturnPacket(fenced)).toEqual({ status: "ok" });
 
+    const tightFence = '```json\n{"verdict":"clean","findings":[]}```';
+    expect(extractReturnPacket(tightFence)).toEqual({ verdict: "clean", findings: [] });
+
     const badFenceThenBare = 'intro\n```json\nnot-json\n```\nmore text {"verdict": "pass"}\n';
     expect(extractReturnPacket(badFenceThenBare)).toEqual({ verdict: "pass" });
   });

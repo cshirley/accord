@@ -1,14 +1,21 @@
 import type { Message } from "@earendil-works/pi-ai";
 
-/** Last non-empty assistant `text` block in message history. */
+function hasJsonReturnFence(text: string): boolean {
+  return /```json[\s\S]*?```/i.test(text);
+}
+
+/** Last non-empty assistant `text` block in message history (may follow an earlier preamble block). */
 export function getFinalOutputFromMessages(messages: Message[]): string {
   for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex--) {
     const msg = messages[messageIndex];
-    if (msg.role === "assistant") {
-      for (const part of msg.content) {
-        if (part.type === "text" && part.text.trim()) return part.text;
+    if (msg.role !== "assistant") continue;
+    let lastText = "";
+    for (const part of msg.content) {
+      if (part.type === "text" && part.text.trim()) {
+        lastText = part.text;
       }
     }
+    if (lastText) return lastText;
   }
   return "";
 }
@@ -22,9 +29,12 @@ export function getFinalOutputFromMessages(messages: Message[]): string {
  */
 export function getFinalOutput(messages: Message[], streamingTextFallback?: string): string {
   const fromMessages = getFinalOutputFromMessages(messages);
-  if (fromMessages) return fromMessages;
-  const streamed = streamingTextFallback?.trim();
-  return streamed ?? "";
+  const streamed = streamingTextFallback?.trim() ?? "";
+  if (!fromMessages) return streamed;
+  if (!streamed) return fromMessages;
+  if (hasJsonReturnFence(streamed) && !hasJsonReturnFence(fromMessages)) return streamed;
+  if (hasJsonReturnFence(fromMessages)) return fromMessages;
+  return streamed.length > fromMessages.length ? streamed : fromMessages;
 }
 
 type HarvestableSubagentResult = {
