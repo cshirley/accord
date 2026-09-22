@@ -71,16 +71,15 @@ If nothing happens, see `docs/ci/troubleshooting.md`.
 
 By default the autopipeline runs against Anthropic (Opus reasoning,
 Sonnet workhorse, Haiku lightweight — see
-`packages/pi-accord/assets/ci/subagent.json` in the pi-accord repo). To run against
+`packages/accord-cli/ci/subagent.json` in the accord repo). To run against
 a different provider or tighter model choices:
 
 1. Commit a `ci/subagent.json` into **your** repo with the
-   profiles you want — see `packages/pi-accord/assets/ci/subagent.json` for the
-   shape and `packages/pi-subagent/src/agents.ts` for the resolution
-   rules.
+   profiles you want — see `packages/accord-cli/ci/subagent.json` for the
+   shape and `accord-cli` harness tier resolution for the rules.
 2. Add the matching API key as a repository secret (e.g. `OPENAI_API_KEY`).
 3. In your wrapper workflow, add a step that overrides the seeded
-   template **after** `setup-pi` runs, and pass `subagent_profile`:
+   template **after** `setup-accord` runs, and pass `subagent_profile`:
 
    ```yaml
    jobs:

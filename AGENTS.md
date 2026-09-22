@@ -43,7 +43,7 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 
 ## Project Layout
 
-- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`, `pi-accord-ci`.
+- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`accord-ci`** (GitHub Actions autopipeline), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`.
 - `packages/accord-core/` — orchestration, work items, artifacts, briefing, verification, schemas, `dev_*` tools, standalone review.
 - `packages/accord-cli/` — CLI, harness registry, commands.
 - `packages/pi-accord/src/` — Pi extension: `/dev`, hooks, `cli-client`, spawn UI.

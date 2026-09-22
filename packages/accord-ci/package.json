@@ -1,5 +1,5 @@
 {
-  "name": "@clive.shirley/pi-accord-ci",
+  "name": "@clive.shirley/accord-ci",
   "version": "0.1.0",
   "private": true,
   "description": "ACCORD GitHub Actions autopipeline scripts and contract tests",
@@ -8,6 +8,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@clive.shirley/accord-cli": "workspace:*",
     "@clive.shirley/accord-core": "workspace:*"
   },
   "devDependencies": {

@@ -2,7 +2,7 @@
  * AC-5 / AC-6: bootstrap an ACCORD work item by calling `devBootstrap`
  * directly via TypeScript import — NO `pi` subprocess, NO MCP sidecar, NO
  * SDK in-process runtime. The AC-6 architectural rule is enforced by
- * `tests/ci/no-extra-pi-spawns.test.ts`, which also scans for SDK imports.
+ * `packages/accord-ci/tests/no-extra-pi-spawns.test.ts`, which also scans for SDK imports.
  *
  * For consumer repos this script imports from `@clive.shirley/accord-core`.
  * once published; in-tree we import via relative paths.

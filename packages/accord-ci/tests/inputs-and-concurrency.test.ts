@@ -155,9 +155,9 @@ describe("AC-1: dispatch event-name canonicalisation (real-runner contract)", ()
     expect(env.GITHUB_EVENT_PATH).toBe("${{ github.event_path }}");
   });
 
-  test("dispatch step runs pi-accord-ci dispatch.ts (no inlined validator)", () => {
+  test("dispatch step runs accord-ci dispatch.ts (no inlined validator)", () => {
     const step = dispatchStep();
-    expect(step.run).toBe("bun run .accord-ci/packages/pi-accord-ci/src/dispatch.ts");
+    expect(step.run).toBe("bun run .accord-ci/packages/accord-ci/src/dispatch.ts");
   });
 });
 

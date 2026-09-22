@@ -23,6 +23,17 @@
       "name": "@clive.shirley/accord-assets",
       "version": "0.1.0",
     },
+    "packages/accord-ci": {
+      "name": "@clive.shirley/accord-ci",
+      "version": "0.1.0",
+      "dependencies": {
+        "@clive.shirley/accord-cli": "workspace:*",
+        "@clive.shirley/accord-core": "workspace:*",
+      },
+      "devDependencies": {
+        "yaml": "^2.9.0",
+      },
+    },
     "packages/accord-cli": {
       "name": "@clive.shirley/accord-cli",
       "version": "0.1.0",
@@ -72,16 +83,6 @@
         "@earendil-works/pi-coding-agent": "^0.83.0",
         "@earendil-works/pi-tui": "^0.83.0",
         "typebox": "^1.3.7",
-      },
-    },
-    "packages/pi-accord-ci": {
-      "name": "@clive.shirley/pi-accord-ci",
-      "version": "0.1.0",
-      "dependencies": {
-        "@clive.shirley/accord-core": "workspace:*",
-      },
-      "devDependencies": {
-        "yaml": "^2.9.0",
       },
     },
     "packages/pi-git-tools": {
@@ -207,6 +208,8 @@
 
     "@clive.shirley/accord-assets": ["@clive.shirley/accord-assets@workspace:packages/accord-assets"],
 
+    "@clive.shirley/accord-ci": ["@clive.shirley/accord-ci@workspace:packages/accord-ci"],
+
     "@clive.shirley/accord-cli": ["@clive.shirley/accord-cli@workspace:packages/accord-cli"],
 
     "@clive.shirley/accord-core": ["@clive.shirley/accord-core@workspace:packages/accord-core"],
@@ -214,8 +217,6 @@
     "@clive.shirley/accord-mcp": ["@clive.shirley/accord-mcp@workspace:packages/accord-mcp"],
 
     "@clive.shirley/pi-accord": ["@clive.shirley/pi-accord@workspace:packages/pi-accord"],
-
-    "@clive.shirley/pi-accord-ci": ["@clive.shirley/pi-accord-ci@workspace:packages/pi-accord-ci"],
 
     "@clive.shirley/pi-git-tools": ["@clive.shirley/pi-git-tools@workspace:packages/pi-git-tools"],
 

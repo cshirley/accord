@@ -16,7 +16,7 @@ This document turns the Pi SDK 0.83 review into an **executable** roadmap: upgra
 **Out of scope (for now):**
 
 - Replacing child-process subagents with `createAgentSession` / in-process SDK sessions.
-- `pi-accord-ci` SDK migration (`packages/pi-accord-ci/src/run-phase.ts` deliberately avoids SDK imports).
+- `accord-ci` Pi SDK migration — N/A: `packages/accord-ci/src/run-phase.ts` orchestrates via `accord-cli` / `accord-core` only (no `@earendil-works/pi-coding-agent` imports; enforced by `no-extra-pi-spawns.test.ts`).
 
 ---
 

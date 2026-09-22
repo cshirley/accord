@@ -30,7 +30,7 @@ This document turns the host-agnostic roadmap into an **executable** plan: decou
 | **Judgment LLM** | `runJudgment` on Pi host only; MCP/CLI get template fallback ⚠️ |
 | **MCP hooks** | No on-write validation, post-code verify, or brief injection unless client wires harness ⚠️ |
 | **CLI parity** | Missing `retro`, `tag`, `rehydrate`, `spec-gaps`, `gaps` ⚠️ |
-| **CI** | `pi-accord-ci` is Pi/subagent-centric ⚠️ |
+| **CI** | `accord-ci` runs phases via in-process `accord-cli` orchestration (`setup-accord`, default harness `claude`) ✅ |
 
 **Invariant (must hold):** `accord-core` never imports Pi types or packages.
 
@@ -54,7 +54,7 @@ accord-core        → zero host deps
 accord-cli         → accord-core, accord-assets
 accord-mcp         → accord-core, accord-cli
 pi-accord          → accord-cli, accord-core, pi-coding-agent (optional product)
-pi-accord-ci       → accord-cli (exec path) OR pi-accord (legacy Pi path)
+accord-ci          → accord-cli, accord-core (no Pi subprocess / no pi-coding-agent SDK)
 ```
 
 ---
@@ -310,8 +310,9 @@ type AgentHarnessId = "exec" | "pi" | string;
 
 ### 6a — Headless CI path
 
-- `accord-ci` (new or rename sibling): `accord resume --harness exec` + configured runner.
-- Keep `pi-accord-ci` for consumers on Pi autopipeline.
+- **`accord-ci`** (`packages/accord-ci/`, renamed from `pi-accord-ci`): autopipeline phases call accord-core orchestration in-process with the exec harness selected in `~/.config/accord/accord.json` (CI default `claude` via `setup-accord`).
+- **`.github/actions/setup-accord`**: `bun install`, `accord config init --write`, seed `packages/accord-cli/ci/subagent.json`; replaces `setup-pi` and the `pi_version` workflow input (`harness` instead).
+- **Pre-merge verification:** `bun test packages/accord-ci/tests`, then L3 (`bun run smoke:act:autopipeline`) or L4 (`bun run smoke:gh:autopipeline`) with `dry_run=true` — see [`docs/ci/pre-merge-smoke.md`](../ci/pre-merge-smoke.md).
 
 ### 6b — Docs sweep
 
@@ -334,7 +335,7 @@ Update: [`accord-cli.md`](../accord-cli.md), [`concepts.md`](../concepts.md), [`
 
 ### Status
 
-- [ ] 6a headless CI
+- [x] 6a headless CI (`accord-ci` + `setup-accord`; contract tests in `packages/accord-ci/tests/`)
 - [ ] 6b docs sweep
 - [ ] 6c orchestration cleanup
 

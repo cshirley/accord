@@ -22,14 +22,14 @@ on:
         description: |
           Branch the autopipeline branches from. For pre-merge smoke runs
           this should be the feature branch that actually contains
-          .github/actions/setup-pi/ (e.g. ticket-to-pr-feature). After
+          .github/actions/setup-accord/ (e.g. ticket-to-pr-feature). After
           this work is merged the default `main` is correct.
         required: false
         type: string
         default: main
       accord_ref:
         description: |
-          Ref of pi-accord assets to install. The maintainer-only smoke
+          Ref of the accord monorepo to check out into `.accord-ci/`. The maintainer-only smoke
           wrapper defaults to `main` so it always works against the
           current default branch. Consumer wrappers should pin to a
           tagged release (e.g. `v1`) once one exists on origin.

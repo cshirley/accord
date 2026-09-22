@@ -28,11 +28,12 @@ export const INPUTS = [
     description: "Jira ticket key (e.g. PROJ-123). Required for both triggers.",
   },
   {
-    name: "pi_version",
+    name: "harness",
     type: "string",
     required: false,
-    default: "latest",
-    description: "npm tag or version of @earendil-works/pi-coding-agent.",
+    default: "claude",
+    description:
+      "Default agent harness backend for accord-cli on the runner (claude, cursor, pi). Written via `accord config init`.",
   },
   {
     name: "accord_ref",
@@ -103,7 +104,7 @@ export type InputName = (typeof INPUTS)[number]["name"];
  */
 export interface Inputs {
   ticket: string;
-  pi_version: string;
+  harness: string;
   accord_ref: string;
   max_runtime_minutes: number;
   max_cost_usd: number;
@@ -114,7 +115,7 @@ export interface Inputs {
   subagent_profile: string;
 }
 
-/** AC-15 required-secret list — mirrored in scripts/ci/lib/env.ts SECRET_NAMES (minus the optional GH_PAT_PR). */
+/** AC-15 required-secret list — mirrored in packages/accord-ci/src/lib/env.ts SECRET_NAMES (minus the optional GH_PAT_PR). */
 export const REQUIRED_SECRETS = [
   "ANTHROPIC_API_KEY",
   "JIRA_BASE_URL",

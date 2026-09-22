@@ -1,10 +1,5 @@
 /**
- * AC-12 + AC-13: literal cache key/path/exclusion contract for setup-pi.
- *
- * The test reads .github/actions/setup-pi/action.yml as YAML and pins every
- * literal value in the cache step + the exclusion topology + the post-step
- * auth.json scrub. Any drift from the spec contract trips a verbatim
- * comparison failure.
+ * AC-12 + AC-13: literal cache key/path/exclusion contract for setup-accord.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -14,25 +9,26 @@ import { join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
-const SETUP_PI = join(REPO_ROOT, ".github/actions/setup-pi/action.yml");
+const SETUP_ACCORD = join(REPO_ROOT, ".github/actions/setup-accord/action.yml");
 
-const composite = parseYaml(readFileSync(SETUP_PI, "utf8")) as {
+const composite = parseYaml(readFileSync(SETUP_ACCORD, "utf8")) as {
   runs: { using: string; steps: Array<Record<string, unknown>> };
 };
 
 const steps = composite.runs.steps;
 
 const EXPECTED_CACHE_KEY =
-  "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/accord-assets/manifest.json', '.accord-ci/packages/pi-accord/assets/manifest.pi.json') }}";
+  "accord-${{ runner.os }}-${{ inputs.harness }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/accord-assets/manifest.json') }}";
 
 const EXPECTED_RESTORE_KEYS = [
-  "accord-${{ runner.os }}-${{ inputs.pi_version }}-${{ inputs.accord_ref }}-",
-  "accord-${{ runner.os }}-${{ inputs.pi_version }}-",
+  "accord-${{ runner.os }}-${{ inputs.harness }}-${{ inputs.accord_ref }}-",
+  "accord-${{ runner.os }}-${{ inputs.harness }}-",
 ];
 
 const EXPECTED_PATH_ROOTS = [
   "~/.npm",
   "~/.bun/install/cache",
+  "~/.config/accord",
   "~/.config/pi/agent",
   ".accord-ci/node_modules",
 ] as const;
@@ -43,7 +39,7 @@ function findCacheSteps(): Array<Record<string, unknown>> {
   );
 }
 
-describe("setup-pi composite — single actions/cache@v4 step (AC-12)", () => {
+describe("setup-accord composite — single actions/cache@v4 step (AC-12)", () => {
   test("exactly one actions/cache step exists", () => {
     expect(findCacheSteps().length).toBe(1);
   });
@@ -55,7 +51,7 @@ describe("setup-pi composite — single actions/cache@v4 step (AC-12)", () => {
   });
 });
 
-describe("setup-pi composite — cache key + restore-keys literal (AC-12)", () => {
+describe("setup-accord composite — cache key + restore-keys literal (AC-12)", () => {
   const cacheStep = findCacheSteps()[0]!;
   const cacheWith = cacheStep.with as Record<string, string>;
 
@@ -75,11 +71,11 @@ describe("setup-pi composite — cache key + restore-keys literal (AC-12)", () =
   });
 });
 
-describe("setup-pi composite — cache paths (AC-12 + AC-13)", () => {
+describe("setup-accord composite — cache paths (AC-12 + AC-13)", () => {
   const cacheStep = findCacheSteps()[0]!;
   const cacheWith = cacheStep.with as Record<string, string>;
 
-  test("path lines include each of the four required roots", () => {
+  test("path lines include each of the required roots", () => {
     const pathLines =
       typeof cacheWith.path === "string"
         ? cacheWith.path
@@ -115,7 +111,7 @@ describe("setup-pi composite — cache paths (AC-12 + AC-13)", () => {
   });
 });
 
-describe("setup-pi composite — auth.json scrub post-step (AC-13)", () => {
+describe("setup-accord composite — auth.json scrub post-step (AC-13)", () => {
   test("a step runs `rm -f ~/.config/pi/agent/auth.json` with if: always()", () => {
     const scrub = steps.find((s) => {
       const run = (s.run as string) ?? "";
@@ -139,24 +135,11 @@ describe("setup-pi composite — auth.json scrub post-step (AC-13)", () => {
   });
 });
 
-describe("setup-pi composite — pi offline / skip-version-check env (TC-11)", () => {
-  test("PI_OFFLINE=1 is exported by at least one step", () => {
+describe("setup-accord composite — accord config init (TC-11)", () => {
+  test("runs accord config init --write", () => {
     const found = steps.some((s) => {
-      const env = s.env as Record<string, unknown> | undefined;
-      if ((env && env.PI_OFFLINE === 1) || env?.PI_OFFLINE === "1") return true;
       const run = (s.run as string) ?? "";
-      return /\bPI_OFFLINE=1\b/.test(run);
-    });
-    expect(found).toBe(true);
-  });
-
-  test("PI_SKIP_VERSION_CHECK=1 is exported by at least one step", () => {
-    const found = steps.some((s) => {
-      const env = s.env as Record<string, unknown> | undefined;
-      if (env && (env.PI_SKIP_VERSION_CHECK === 1 || env.PI_SKIP_VERSION_CHECK === "1"))
-        return true;
-      const run = (s.run as string) ?? "";
-      return /\bPI_SKIP_VERSION_CHECK=1\b/.test(run);
+      return /accord-cli\/src\/main\.ts config init/.test(run) && /--write/.test(run);
     });
     expect(found).toBe(true);
   });
