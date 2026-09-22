@@ -88,6 +88,17 @@
     "packages/pi-git-tools": {
       "name": "@clive.shirley/pi-git-tools",
       "version": "0.1.0",
+      "dependencies": {
+        "@clive.shirley/accord-core": "workspace:*",
+      },
+      "peerDependencies": {
+        "@earendil-works/pi-coding-agent": "^0.83.0",
+        "typebox": "^1.3.7",
+      },
+    },
+    "packages/pi-integrations": {
+      "name": "@clive.shirley/pi-integrations",
+      "version": "0.1.0",
       "peerDependencies": {
         "@earendil-works/pi-coding-agent": "^0.83.0",
         "typebox": "^1.3.7",
@@ -113,14 +124,6 @@
       "peerDependencies": {
         "@earendil-works/pi-coding-agent": "^0.83.0",
         "@earendil-works/pi-tui": "^0.83.0",
-        "typebox": "^1.3.7",
-      },
-    },
-    "packages/pi-tools": {
-      "name": "@clive.shirley/pi-tools",
-      "version": "0.1.0",
-      "peerDependencies": {
-        "@earendil-works/pi-coding-agent": "^0.83.0",
         "typebox": "^1.3.7",
       },
     },
@@ -220,11 +223,11 @@
 
     "@clive.shirley/pi-git-tools": ["@clive.shirley/pi-git-tools@workspace:packages/pi-git-tools"],
 
+    "@clive.shirley/pi-integrations": ["@clive.shirley/pi-integrations@workspace:packages/pi-integrations"],
+
     "@clive.shirley/pi-subagent": ["@clive.shirley/pi-subagent@workspace:packages/pi-subagent"],
 
     "@clive.shirley/pi-thrift": ["@clive.shirley/pi-thrift@workspace:packages/pi-thrift"],
-
-    "@clive.shirley/pi-tools": ["@clive.shirley/pi-tools@workspace:packages/pi-tools"],
 
     "@clive.shirley/pi-worktree": ["@clive.shirley/pi-worktree@workspace:packages/pi-worktree"],
 

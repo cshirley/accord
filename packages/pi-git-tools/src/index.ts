@@ -6,13 +6,16 @@
  *   git_commit_execute  — stage files + commit
  *   gh_pr_context       — gather PR context (existing PR/commits/spec/verify)
  *   gh_pr_submit        — push + optionally create PR
+ *   git_review_context  — standalone review diff ladder + temp diff file
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerCommitTools } from "./commit.js";
 import { registerPrTools } from "./pr.js";
+import { registerReviewTools } from "./review.js";
 
 export default function (pi: ExtensionAPI) {
   registerCommitTools(pi);
   registerPrTools(pi);
+  registerReviewTools(pi);
 }

@@ -7,6 +7,13 @@ description: Standalone code review on the current git diff — reuses review-co
 
 General-purpose diff review. Reuses the same `review-*` agents as the ACCORD harness, but **outside** the `/dev` workflow — no work item, no spec, no plan, no orchestrator. Point it at whatever is on disk and get a merged findings report.
 
+**Contract:** Behaviour matches `@clive.shirley/accord-core/review/standalone.js` (`prepareStandaloneReviewContext`, `buildStandaloneReviewTasks`, `synthesizeStandaloneReviewReport`). When changing this skill, update that module (and `accord review`) so Pi and CLI stay aligned.
+
+| Surface | Execution |
+| --- | --- |
+| `/review` (this skill) | `git_review_context` → parallel `subagent` `tasks[]` in Pi |
+| `accord review` | Same helpers; harness spawns reviewers **in parallel** (`--harness pi` / exec) |
+
 ## When to use
 
 | Use `/review` (this skill) | Use `/dev resume` (ACCORD harness) |
@@ -15,86 +22,80 @@ General-purpose diff review. Reuses the same `review-*` agents as the ACCORD har
 | No `docs/dev/<ID>/` artifacts | Spec, plan, and task files drive drift checks |
 | Infer intent from the diff alone | AC coverage, plan steps, and guidance are enforced |
 
-## Step 1 — Gather the diff
+## Step 1 — Gather review context
 
-```bash
-git diff --staged
-git diff --staged --name-only
-```
+Call **`git_review_context`** (no parameters). It runs the same ladder as `gatherStandaloneReviewDiff`:
 
-If nothing staged, fall back to unstaged:
+1. Staged diff (`git diff --staged`)
+2. Else unstaged (`git diff`)
+3. Else branch (`git diff origin/HEAD...HEAD`)
 
-```bash
-git diff
-git diff --name-only
-```
+If git errors (e.g. missing `origin/HEAD`) or every step is empty, report the tool error and stop.
 
-If still empty, diff against the default branch:
+The tool **always** writes the **full** raw diff to an absolute temp path (`details.diff_path` under `details.temp_dir`). Reviewers read that file — never inline the full diff in subagent briefs.
 
-```bash
-git diff origin/HEAD...HEAD
-git diff --name-only origin/HEAD...HEAD
-```
+From `details`:
 
-If all empty, tell the user there is nothing to review. Stop.
+- `source`, `file_list`, `diff_path`, `temp_dir`, `excerpt` (orchestrator display only)
+- `has_test_files`, `test_command` when tests may apply
+
+When the review finishes (success or failure), delete `details.temp_dir` (e.g. `rm -rf`).
 
 ## Step 1b — Gather test output (when test files changed)
 
-If the changed file list includes any test files (patterns below), run the **current repo's** test command once and capture stdout/stderr as `{test_output}` (truncate to the last 64 KiB if larger). If tests cannot be run, use `test_output: "(not run)"` and note that in synthesis.
+When `details.has_test_files` is true, run tests once:
 
-Test file patterns:
-- `*.test.*`, `*.spec.*`, `*_test.go`, `*_test.rs`, `test_*.py`, `*_spec.rb`, `*Test.java`, `*Tests.cs`
-- Paths containing `/test/`, `/__tests__/`, `/tests/`, `/spec/`
+1. Use `details.test_command` when set (from `AGENTS.md` `test.command` or `package.json` `scripts.test`).
+2. Else use `test_output: "(not run)"` and note in synthesis.
+
+Capture stdout/stderr as `{test_output}`; truncate to the last **64 KiB** if larger (`truncateStandaloneTestOutput`).
 
 ## Step 2 — Launch agents in parallel
 
 Call the **`subagent` tool once** in parallel mode. Do **not** use the Cursor `Task` tool, and do **not** make separate sequential `subagent` calls — independence requires a single `tasks` array so all reviewers start together.
 
-All briefs are **standalone**: no spec, no plan, no drift checks. Agents infer intent from the diff only.
+All briefs are **standalone**: no spec, no plan, no drift checks. Agents infer intent from the diff file only.
 
-Build `tasks` dynamically:
+Build `tasks` with `buildStandaloneReviewTasks`:
+
+```ts
+buildStandaloneReviewTasks({
+  diff_path: details.diff_path,
+  source: details.source,
+  file_list: details.file_list,
+  test_output, // when Step 1b ran
+})
+```
 
 | Agent | Include when |
 | --- | --- |
 | `review-code` | always |
 | `review-security` | always |
-| `review-test` | test files in the changed list (Step 1b patterns) |
+| `review-test` | `has_test_files` |
 
-Example (include the `review-test` entry only when test files changed):
-
-```
-subagent({
-  tasks: [
-    {
-      agent: "review-code",
-      task: "Review the following diff. There is no spec or plan — skip the Drift section entirely. Changed files: `{file_list}`. Diff: `{diff}`"
-    },
-    {
-      agent: "review-security",
-      task: "Review the following diff for security issues (OWASP A01–A10). There is no spec or plan — infer intent from the diff only. Flag only security-relevant issues; general correctness belongs to review-code. Changed files: `{file_list}`. Diff: `{diff}`"
-    },
-    {
-      agent: "review-test",
-      task: "Review test quality in the following diff. `mode: post-impl`. There is no spec — skip Check 1 (per-AC adversarial analysis against spec ACs), Check 3/3b (AC negation and inventory), and Check 7 (spec contract). Run Checks 1b, 2, 4, 5, and 6 on changed tests. Changed files: `{file_list}`. Diff: `{diff}`. Test output: `{test_output}`"
-    }
-  ]
-})
-```
+Each task tells reviewers to read `diff_path` (absolute path, `source` in text). Do not paste the diff into the task string.
 
 Resolve agents by name (`review-code`, `review-security`, `review-test`). They must be installed in the Pi agent directory (e.g. via `bun run install:assets` in an ACCORD checkout, or equivalent copies under `~/.config/pi/agent/agents/`).
 
 ## Step 3 — Synthesise
 
-Parse each agent's return packet (last fenced `json` block in its output). Merge `findings[]` by severity across agents. Produce a single report:
+Parse each agent's return packet (last fenced `json` block in its output, or `parsedReturn` when using CLI). Map each `findings[]` entry to:
+
+- **message** ← `message`, else `issue`, else `summary`
+- **file** / **line** when present
+
+Merge by severity across agents. **Security** and **Test Quality** sections repeat findings from those agents for visibility; they are not deduped out of Critical/Warnings/Suggestions.
+
+Mirror `synthesizeStandaloneReviewReport`:
 
 ```
 ## Review
 
 ### Critical
-<must-fix findings from any agent>
+<must-fix findings from any agent — bullet: **agent** (severity) `file:line`: message>
 
 ### Warnings
-<should-fix findings>
+<should-fix>
 
 ### Suggestions
 <nice-to-have>
@@ -103,7 +104,10 @@ Parse each agent's return packet (last fenced `json` block in its output). Merge
 <review-security findings, or "No security issues found.">
 
 ### Test Quality
-<review-test findings, or "No test files changed.">
+<only when review-test ran — findings or "No test issues found.">
+
+### Agent failures
+<when any subagent exitCode !== 0 or isError — agent name and error; keep partial findings from others>
 
 ---
 Simplification opportunities: N
@@ -112,6 +116,7 @@ Security issues: N
 Test quality issues: N
 ```
 
-If `review-test` did not run, omit the Test Quality section and set test quality issues to 0.
-
-If any subagent failed (`exitCode !== 0` or `isError`), report which agent failed and include partial findings from the others.
+- If `review-test` did not run, **omit** the Test Quality section and set test quality issues to **0**.
+- Empty severity sections: `(none)`.
+- Footer counts: suggestions → simplification; critical + warning → quality; security/test counts exclude suggestion-severity items from those agents.
+- Delete `details.temp_dir` after synthesis.

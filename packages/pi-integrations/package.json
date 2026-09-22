@@ -1,5 +1,5 @@
 {
-  "name": "@clive.shirley/pi-tools",
+  "name": "@clive.shirley/pi-integrations",
   "version": "0.1.0",
   "private": true,
   "description": "Pi extension: Jira, Slack, Google Workspace tool integrations",

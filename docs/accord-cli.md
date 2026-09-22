@@ -152,7 +152,7 @@ accord resume DEMO-1 --harness exec
 
 ### Review
 
-Mirrors the bundled `/review` skill: gathers git diff (staged → unstaged → `origin/HEAD...HEAD`), runs review agents via harness, merges findings.
+Mirrors the bundled `/review` skill: gathers git diff (staged → unstaged → `origin/HEAD...HEAD`), writes the full diff to a temp file, runs review agents **in parallel** via harness, merges findings, then deletes the temp dir.
 
 ```bash
 accord review --harness pi

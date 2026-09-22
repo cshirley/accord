@@ -213,7 +213,8 @@ describe("standalone review helpers", () => {
     expect(isStandaloneReviewTestFile("src/foo.ts")).toBe(false);
 
     const tasks = buildStandaloneReviewTasks({
-      diff: "diff",
+      diff_path: "/tmp/accord-review/diff.patch",
+      source: "staged",
       file_list: ["src/foo.test.ts"],
       test_output: "ok",
     });

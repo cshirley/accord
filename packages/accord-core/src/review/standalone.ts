@@ -2,6 +2,9 @@
  * Standalone diff review — core helpers for `/review` skill and `accord review`.
  */
 
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { git } from "../git/helpers.js";
 import { extractReturnPacketFromSubagentResult } from "../subagent/result/packet.js";
 import { err, ok, type Result } from "../types/result.js";
@@ -9,13 +12,27 @@ import { err, ok, type Result } from "../types/result.js";
 const TEST_FILE_PATTERN =
   /(?:\.(?:test|spec)\.|_test\.(?:go|rs)$|test_.*\.py$|_spec\.rb$|Test\.java$|Tests\.cs$|\/(?:test|__tests__|tests|spec)\/)/i;
 
-const MAX_DIFF_BYTES = 512 * 1024;
+/** Max bytes for optional orchestrator excerpt in tool/CLI text (not sent inline to reviewers). */
+export const STANDALONE_REVIEW_MAX_DIFF_BYTES = 512 * 1024;
 const MAX_TEST_OUTPUT_BYTES = 64 * 1024;
 
+export const STANDALONE_REVIEW_DIFF_BASENAME = "diff.patch";
+
 export type StandaloneReviewDiff = {
-  diff: string;
+  /** Full raw diff from git for the resolved ladder step. */
+  raw_diff: string;
   file_list: string[];
   source: "staged" | "unstaged" | "branch";
+};
+
+export type StandaloneReviewPreparedContext = StandaloneReviewDiff & {
+  /** Absolute path to the full diff on disk. */
+  diff_path: string;
+  /** Temp directory containing {@link diff_path} — remove when review finishes. */
+  temp_dir: string;
+  /** Tail excerpt for human/tool display only. */
+  excerpt: string;
+  cleanup: () => Promise<void>;
 };
 
 export type StandaloneReviewTask = {
@@ -27,6 +44,8 @@ export type StandaloneReviewFinding = {
   severity: string;
   message: string;
   agent?: string;
+  file?: string;
+  line?: number;
 };
 
 export type StandaloneReviewAgentResult = {
@@ -52,6 +71,25 @@ export function isStandaloneReviewTestFile(filePath: string): boolean {
   return TEST_FILE_PATTERN.test(filePath);
 }
 
+/** Test command for standalone review — harness `test.command`, then `package.json` `scripts.test`. */
+export async function resolveStandaloneReviewTestCommand(
+  cwd: string,
+  devConfig: { test?: { command?: string | null } } | null | undefined,
+): Promise<string | null> {
+  const harnessCommand = devConfig?.test?.command?.trim();
+  if (harnessCommand) {
+    return harnessCommand;
+  }
+  try {
+    const raw = await readFile(join(cwd, "package.json"), "utf8");
+    const pkg = JSON.parse(raw) as { scripts?: { test?: string } };
+    const script = pkg.scripts?.test?.trim();
+    return script ? script : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function gatherStandaloneReviewDiff(
   cwd: string,
 ): Promise<Result<StandaloneReviewDiff>> {
@@ -64,7 +102,7 @@ export async function gatherStandaloneReviewDiff(
 
     if (stagedDiff.trim() || stagedFiles.length > 0) {
       return ok({
-        diff: truncateText(stagedDiff, MAX_DIFF_BYTES),
+        raw_diff: stagedDiff,
         file_list: stagedFiles,
         source: "staged",
       });
@@ -78,7 +116,7 @@ export async function gatherStandaloneReviewDiff(
 
     if (unstagedDiff.trim() || unstagedFiles.length > 0) {
       return ok({
-        diff: truncateText(unstagedDiff, MAX_DIFF_BYTES),
+        raw_diff: unstagedDiff,
         file_list: unstagedFiles,
         source: "unstaged",
       });
@@ -92,7 +130,7 @@ export async function gatherStandaloneReviewDiff(
 
     if (branchDiff.trim() || branchFiles.length > 0) {
       return ok({
-        diff: truncateText(branchDiff, MAX_DIFF_BYTES),
+        raw_diff: branchDiff,
         file_list: branchFiles,
         source: "branch",
       });
@@ -105,23 +143,72 @@ export async function gatherStandaloneReviewDiff(
   }
 }
 
+export function excerptStandaloneReviewDiff(rawDiff: string): string {
+  return truncateText(rawDiff, STANDALONE_REVIEW_MAX_DIFF_BYTES).text;
+}
+
+export async function writeStandaloneReviewDiffFile(
+  rawDiff: string,
+): Promise<{ diff_path: string; temp_dir: string; cleanup: () => Promise<void> }> {
+  const temp_dir = await mkdtemp(join(tmpdir(), "accord-review-"));
+  const diff_path = join(temp_dir, STANDALONE_REVIEW_DIFF_BASENAME);
+  await writeFile(diff_path, rawDiff, "utf8");
+  return {
+    diff_path,
+    temp_dir,
+    cleanup: async () => {
+      await rm(temp_dir, { recursive: true, force: true });
+    },
+  };
+}
+
+export async function prepareStandaloneReviewContext(
+  cwd: string,
+): Promise<Result<StandaloneReviewPreparedContext>> {
+  const gathered = await gatherStandaloneReviewDiff(cwd);
+  if (!gathered.ok) {
+    return gathered;
+  }
+  const { raw_diff, file_list, source } = gathered.value;
+  const file = await writeStandaloneReviewDiffFile(raw_diff);
+  return ok({
+    raw_diff,
+    file_list,
+    source,
+    diff_path: file.diff_path,
+    temp_dir: file.temp_dir,
+    excerpt: excerptStandaloneReviewDiff(raw_diff),
+    cleanup: file.cleanup,
+  });
+}
+
 export function buildStandaloneReviewTasks(input: {
-  diff: string;
+  /** Absolute path to full git diff (always written to a temp file). */
+  diff_path: string;
+  source: StandaloneReviewDiff["source"];
   file_list: string[];
   test_output?: string;
 }): StandaloneReviewTask[] {
   const fileList = input.file_list.join(", ") || "(none)";
-  const diff = input.diff.trim() || "(empty diff)";
+  const diffSection = formatStandaloneReviewDiffSection(input.diff_path, input.source);
+
+  const codeBrief = (role: string) =>
+    `${role} Changed files: \`${fileList}\`. ${diffSection}`;
+
   const testOutput = input.test_output?.trim() || "(not run)";
 
   const tasks: StandaloneReviewTask[] = [
     {
       agent: "review-code",
-      task: `Review the following diff. There is no spec or plan — skip the Drift section entirely. Changed files: \`${fileList}\`. Diff:\n\n${diff}`,
+      task: codeBrief(
+        "Review the following diff. There is no spec or plan — skip the Drift section entirely.",
+      ),
     },
     {
       agent: "review-security",
-      task: `Review the following diff for security issues (OWASP A01–A10). There is no spec or plan — infer intent from the diff only. Flag only security-relevant issues; general correctness belongs to review-code. Changed files: \`${fileList}\`. Diff:\n\n${diff}`,
+      task: codeBrief(
+        "Review the following diff for security issues (OWASP A01–A10). There is no spec or plan — infer intent from the diff only. Flag only security-relevant issues; general correctness belongs to review-code.",
+      ),
     },
   ];
 
@@ -129,11 +216,20 @@ export function buildStandaloneReviewTasks(input: {
   if (hasTests) {
     tasks.push({
       agent: "review-test",
-      task: `Review test quality in the following diff. \`mode: post-impl\`. There is no spec — skip Check 1 (per-AC adversarial analysis against spec ACs), Check 3/3b (AC negation and inventory), and Check 7 (spec contract). Run Checks 1b, 2, 4, 5, and 6 on changed tests. Changed files: \`${fileList}\`. Diff:\n\n${diff}\n\nTest output:\n${testOutput}`,
+      task: `${codeBrief(
+        "Review test quality in the following diff. `mode: post-impl`. There is no spec — skip Check 1 (per-AC adversarial analysis against spec ACs), Check 3/3b (AC negation and inventory), and Check 7 (spec contract). Run Checks 1b, 2, 4, 5, and 6 on changed tests.",
+      )}\n\nTest output:\n${testOutput}`,
     });
   }
 
   return tasks;
+}
+
+function formatStandaloneReviewDiffSection(
+  diffPath: string,
+  source: StandaloneReviewDiff["source"],
+): string {
+  return `Read the full diff from \`${diffPath}\` (git diff output, source: ${source}). Do not rely on inline excerpts.`;
 }
 
 export function parseStandaloneReviewAgentResult(
@@ -255,9 +351,13 @@ function extractFindings(
       message:
         typeof entry.message === "string"
           ? entry.message
-          : typeof entry.summary === "string"
-            ? entry.summary
-            : JSON.stringify(entry),
+          : typeof entry.issue === "string"
+            ? entry.issue
+            : typeof entry.summary === "string"
+              ? entry.summary
+              : JSON.stringify(entry),
+      file: typeof entry.file === "string" ? entry.file : undefined,
+      line: typeof entry.line === "number" ? entry.line : undefined,
       agent,
     }));
 }
@@ -271,19 +371,33 @@ function formatFindingBlock(findings: StandaloneReviewFinding[]): string {
     return "(none)";
   }
   return findings
-    .map(
-      (finding) => `- **${finding.agent ?? "review"}** (${finding.severity}): ${finding.message}`,
-    )
+    .map((finding) => {
+      const location = formatFindingLocation(finding);
+      const prefix = location ? ` ${location}` : "";
+      return `- **${finding.agent ?? "review"}** (${finding.severity})${prefix}: ${finding.message}`;
+    })
     .join("\n");
 }
 
-function truncateText(text: string, maxBytes: number): string {
-  if (Buffer.byteLength(text, "utf8") <= maxBytes) {
-    return text;
+function formatFindingLocation(finding: StandaloneReviewFinding): string {
+  if (!finding.file) {
+    return "";
   }
-  return `${text.slice(-maxBytes)}\n…(truncated)`;
+  const line =
+    finding.line !== undefined && Number.isFinite(finding.line) ? `:${String(finding.line)}` : "";
+  return `\`${finding.file}${line}\``;
+}
+
+function truncateText(text: string, maxBytes: number): { text: string; truncated: boolean } {
+  const bytes = Buffer.byteLength(text, "utf8");
+  if (bytes <= maxBytes) {
+    return { text, truncated: false };
+  }
+  const buf = Buffer.from(text, "utf8");
+  const tail = buf.subarray(buf.length - maxBytes).toString("utf8");
+  return { text: `${tail}\n…(truncated)`, truncated: true };
 }
 
 export function truncateStandaloneTestOutput(text: string): string {
-  return truncateText(text, MAX_TEST_OUTPUT_BYTES);
+  return truncateText(text, MAX_TEST_OUTPUT_BYTES).text;
 }

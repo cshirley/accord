@@ -6,7 +6,7 @@ The framework handles registration, provider chain wiring, and formatting.
 
 ## Structure
 
-`packages/pi-tools/src/` layout:
+`packages/pi-integrations/src/` layout:
 
 ```mermaid
 flowchart TB

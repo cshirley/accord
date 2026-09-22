@@ -63,7 +63,7 @@ packages/                      Bun workspaces — Pi extensions bundled with pi-
     src/                       /thrift (alias /tp) input + output token pruning
     tests/
   pi-git-tools/src/            git_commit_*, gh_pr_* tools
-  pi-tools/src/                Jira / Slack / Google Workspace integrations
+  pi-integrations/src/         Jira / Slack / Google Workspace integrations
   accord-ci/                   GitHub Actions autopipeline scripts + contract tests
 
 scripts/install-dev.sh         pi install + install:assets (`install:dev`)

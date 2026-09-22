@@ -4,7 +4,7 @@ This directory is the `@clive.shirley/accord` monorepo (Bun workspaces). The Pi 
 
 ## Extension Surface
 
-This npm package registers **multiple Pi extensions** (see root `package.json` → `pi.extensions`): `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`, then the ACCORD harness in `packages/pi-accord`. Install this package once with the Pi CLI (`pi install <path-to-this-repo>`); you do not need separate copies under `~/.pi/agent/extensions/` for those tools.
+This npm package registers **multiple Pi extensions** (see root `package.json` → `pi.extensions`): `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-integrations`, then the ACCORD harness in `packages/pi-accord`. Install this package once with the Pi CLI (`pi install <path-to-this-repo>`); you do not need separate copies under `~/.pi/agent/extensions/` for those tools.
 
 - `packages/pi-accord/src/index.ts` is the harness entry point and delegates to `packages/pi-accord/src/extension.ts`.
 - `packages/pi-accord/src/extension.ts` registers the `/dev` command, autocomplete, tools, hooks, and status bar integration.
@@ -43,7 +43,7 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 
 ## Project Layout
 
-- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`accord-ci`** (GitHub Actions autopipeline), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-tools`.
+- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`accord-ci`** (GitHub Actions autopipeline), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-integrations`.
 - `packages/accord-core/` — orchestration, work items, artifacts, briefing, verification, schemas, `dev_*` tools, standalone review.
 - `packages/accord-cli/` — CLI, harness registry, commands.
 - `packages/pi-accord/src/` — Pi extension: `/dev`, hooks, `cli-client`, spawn UI.

@@ -1,6 +1,6 @@
 # git-tools
 
-Pi extension that exposes **`git_commit_*`** and **`gh_pr_*`** tools so the agent can gather repo context, stage safely, commit with a structured message, and push or open GitHub pull requests — without ad-hoc shell glue.
+Pi extension that exposes **`git_commit_*`**, **`gh_pr_*`**, and **`git_review_context`** tools so the agent can gather repo context, stage safely, commit with a structured message, open GitHub pull requests, and run standalone diff review — without ad-hoc shell glue.
 
 ## Why
 
@@ -14,6 +14,7 @@ Commit and PR flows repeat the same steps: status, diff, branch, ticket hints, s
 | `git_commit_execute` | Stage a caller-provided file list and commit with a given message (after human confirmation in the skill flow) |
 | `gh_pr_context` | Branch vs default remote, existing PR if any, commits summary, diffstat, optional spec/verify snippets, `gh auth` state |
 | `gh_pr_submit` | Push current branch and create or update a PR via the GitHub CLI |
+| `git_review_context` | Standalone review ladder (staged → unstaged → branch); writes full diff to a temp file and returns `diff_path`, `file_list`, and test hints |
 
 ## Requirements
 

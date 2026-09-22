@@ -2,7 +2,7 @@
 
 ## Fetch instructions
 
-Use `atlassian-getJiraIssue` (pi-tools), or the Atlassian MCP `getJiraIssue` tool (`mcp__atlassian__getJiraIssue`, `mcp__claude_ai_Atlassian__getJiraIssue`, or `mcp_pi-agent_atlassian-getJiraIssue` in Cursor). Pass `cloudId`: `babylonpartners.atlassian.net` and `issueIdOrKey` / `issueKey` for the work item id.
+Use `atlassian-getJiraIssue` (pi-integrations), or the Atlassian MCP `getJiraIssue` tool (`mcp__atlassian__getJiraIssue`, `mcp__claude_ai_Atlassian__getJiraIssue`, or `mcp_pi-agent_atlassian-getJiraIssue` in Cursor). Pass `cloudId`: `babylonpartners.atlassian.net` and `issueIdOrKey` / `issueKey` for the work item id.
 
 ### Fields to capture
 

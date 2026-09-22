@@ -63,7 +63,7 @@
       "./packages/pi-worktree/src/index.ts",
       "./packages/pi-thrift/src/index.ts",
       "./packages/pi-git-tools/src/index.ts",
-      "./packages/pi-tools/src/index.ts",
+      "./packages/pi-integrations/src/index.ts",
       "./packages/pi-accord/src/index.ts"
     ],
     "skills": [
