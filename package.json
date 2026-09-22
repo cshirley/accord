@@ -16,6 +16,7 @@
     "install:assets:force": "bun packages/pi-accord/scripts/install-assets.ts --force",
     "install:shim": "bun packages/accord-cli/scripts/install-shim.ts",
     "install:dev": "bash scripts/install-dev.sh",
+    "install:pi-skills": "bash scripts/install-pi-skills.sh",
     "check:bundle": "bun build ./packages/pi-accord/src/index.ts --target=node --outfile=/tmp/accord-check.js --external @earendil-works/pi-ai --external @earendil-works/pi-agent-core --external @earendil-works/pi-coding-agent --external @earendil-works/pi-tui --external @clive.shirley/accord-core --external typebox",
     "check:types": "tsc --noEmit",
     "check:biome": "biome check .",
@@ -66,10 +67,14 @@
       "./packages/pi-accord/src/index.ts"
     ],
     "skills": [
+      "./packages/pi-skills/skills/ci-debug",
       "./packages/pi-skills/skills/commit",
       "./packages/pi-skills/skills/crq-notify",
       "./packages/pi-skills/skills/pr",
-      "./packages/pi-skills/skills/review"
+      "./packages/pi-skills/skills/review",
+      "./packages/pi-skills/skills/session-retro",
+      "./packages/pi-skills/skills/verify",
+      "./packages/pi-skills/skills/worktree"
     ],
     "agents": [
       "./packages/accord-assets/agents"

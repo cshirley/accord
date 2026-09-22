@@ -2,7 +2,7 @@
   "name": "@clive.shirley/pi-git",
   "version": "0.1.0",
   "private": true,
-  "description": "Pi extension: git_commit_*, gh_pr_*, git_review_context, wt_* tools, /wt command",
+  "description": "Pi extension: git_commit_*, gh_pr_*, gh_ci_context, repo_verify, git_worktree_resolve, git_review_context, wt_* tools, /wt command",
   "keywords": [
     "pi-package"
   ],

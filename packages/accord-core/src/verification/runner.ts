@@ -31,7 +31,7 @@ const execAsync = promisify(execCb);
 
 export async function runVerificationCommands(
   commands: string[],
-  opts?: { timeoutMs?: number; totalTimeoutMs?: number },
+  opts?: { timeoutMs?: number; totalTimeoutMs?: number; cwd?: string },
 ): Promise<VerificationResult[]> {
   const timeout = opts?.timeoutMs ?? 120_000;
   // Default total budget: 5 × per-command timeout. With six commands at 120s
@@ -58,7 +58,7 @@ export async function runVerificationCommands(
     try {
       const { stdout, stderr } = await execAsync(cmd, {
         timeout,
-        cwd: process.cwd(),
+        cwd: opts?.cwd ?? process.cwd(),
         maxBuffer: 10 * 1024 * 1024,
       });
       output = (stdout || "") + (stderr || "");

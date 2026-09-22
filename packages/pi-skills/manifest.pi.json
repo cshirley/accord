@@ -3,10 +3,24 @@
   "host": "pi",
   "package": "@clive.shirley/pi-skills",
   "assets": {
-    "skills": ["commit", "crq-notify", "pr", "review"]
+    "skills": ["ci-debug", "commit", "crq-notify", "pr", "review", "session-retro", "verify", "worktree"]
   },
   "requires": {
-    "pi_extensions": ["subagent"],
-    "tools": ["subagent"]
+    "pi_extensions": ["@clive.shirley/pi-git", "@clive.shirley/pi-subagent"],
+    "tools": [
+      "git_commit_context",
+      "git_commit_execute",
+      "gh_pr_context",
+      "gh_pr_submit",
+      "gh_ci_context",
+      "repo_harness_context",
+      "repo_verify",
+      "git_worktree_resolve",
+      "git_review_context",
+      "git_review_tasks",
+      "subagent"
+    ],
+    "optional_pi_extensions": ["@clive.shirley/pi-integrations"],
+    "optional_tools_note": "crq-notify needs Atlassian/Slack/GitHub integration tools from pi-integrations"
   }
 }

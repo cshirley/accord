@@ -75,6 +75,19 @@ if (!manifest.requires?.tools?.includes("subagent")) {
   fail("manifest.pi must declare the subagent tool dependency");
 }
 
+if (!manifest.requires?.pi_extensions?.includes("@clive.shirley/pi-git")) {
+  fail("manifest.pi must declare @clive.shirley/pi-git extension dependency");
+}
+
+const reviewAgentsDir = join(repoRoot, "packages", "accord-assets", "agents", "accord");
+for (const agent of ["review-code", "review-security", "review-test"]) {
+  const agentPath = join(reviewAgentsDir, `${agent}.md`);
+  if (!existsSync(agentPath)) fail(`missing review agent for standalone install: ${agentPath}`);
+}
+
+const installScript = join(pkgRoot, "scripts", "install-review-agents.ts");
+if (!existsSync(installScript)) fail(`missing ${installScript}`);
+
 if (failures.length > 0) {
   console.error(failures.join("\n"));
   process.exit(1);

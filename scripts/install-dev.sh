@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Full ACCORD dev setup. For skills + pi-git only (no /dev harness), use:
+#   bash scripts/install-pi-skills.sh
+#
 # Register this repo with Pi (`pi install`) so `package.json` → `pi` loads the
 # bundled extension modules (pi-subagent, pi-git, …) plus the ACCORD harness,
 # then link bundled agents/providers (`bun run install:assets`; skills load via pi.skills), and install

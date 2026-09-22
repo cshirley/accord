@@ -1,11 +1,11 @@
 ---
 name: review
-description: Standalone code review on the current git diff — reuses review-code, review-security, and review-test outside the ACCORD implement pipeline. No spec, plan, or work item required. For quick fixes, ad-hoc changes, or pre-commit sanity checks in any repo.
+description: Standalone code review on the current git diff via review-code, review-security, and review-test. No /dev harness, spec, plan, or work item. For quick fixes, ad-hoc changes, or pre-commit checks in any repo.
 ---
 
 # Review
 
-General-purpose diff review. Reuses the same `review-*` agents as the ACCORD harness, but **outside** the `/dev` workflow — no work item, no spec, no plan, no orchestrator. Point it at whatever is on disk and get a merged findings report.
+General-purpose diff review using `review-*` subagents. No `/dev` workflow — point at local changes and get a merged findings report.
 
 **Contract:** Behaviour matches `@clive.shirley/accord-core/review/standalone.js` (`prepareStandaloneReviewContext`, `buildStandaloneReviewTasks`, `synthesizeStandaloneReviewReport`). When changing this skill, update that module (and `accord review`) so Pi and CLI stay aligned.
 
@@ -33,15 +33,14 @@ Standalone review uses **`pi-git`** for diff + task briefs and **`pi-subagent`**
 - **Pi TUI:** call those names from the agent tool list.
 - **Cursor + pi package:** bridged names are often `mcp_pi_git_review_context`, `mcp_pi_git_review_tasks`, `mcp_pi_subagent` (or similar). Names are not truncated.
 - **Do not** paste the full diff into subagent briefs; reviewers read `details.diff_path` from `git_review_context`.
-- **Do not** search MCP/bash to “find” these tools. If missing, ask the user to `pi install` this repo and confirm `pi-git` and `pi-subagent` are under `pi.extensions` in root `package.json`.
+- **Do not** search MCP/bash to “find” these tools. If missing, ask the user to run `bash scripts/install-pi-skills.sh` from the accord monorepo (or `pi install` **pi-git** + **pi-subagent** + **pi-skills**).
 
 ## When to use
 
-| Use `/review` (this skill) | Use `/dev resume` (ACCORD harness) |
+| Use `/review` | Use full ACCORD `/dev` (optional separate install) |
 | --- | --- |
-| Ad-hoc or pre-commit review of local changes | Implementing a specced task through the full pipeline |
-| No `docs/dev/<ID>/` artifacts | Spec, plan, and task files drive drift checks |
-| Infer intent from the diff alone | AC coverage, plan steps, and guidance are enforced |
+| Ad-hoc or pre-commit review of local changes | Specced implement pipeline with work items |
+| Infer intent from the diff alone | Spec, plan, AC, and orchestrator enforcement |
 
 ## Step 1 — Gather review context
 
@@ -88,7 +87,7 @@ Then call **`subagent` once** with `{ tasks: details.tasks }` from that tool. Do
 
 Briefs are standalone (no spec/plan). Reviewers read `diff_path` on disk — never paste the diff into the task string.
 
-Agents resolve by name (`review-code`, `review-security`, `review-test`) under `~/.config/pi/agent/agents/accord/` (e.g. `bun run install:assets` for ACCORD review agents).
+Agents resolve by name (`review-code`, `review-security`, `review-test`) under `~/.config/pi/agent/agents/accord/`. Install without the harness: `bun packages/pi-skills/scripts/install-review-agents.ts --force` (or `bash scripts/install-pi-skills.sh`).
 
 ## Step 3 — Synthesise
 
