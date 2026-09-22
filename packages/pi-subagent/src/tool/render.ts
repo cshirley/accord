@@ -3,7 +3,11 @@ import { getMarkdownTheme, type ToolDefinition } from "@earendil-works/pi-coding
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import type { AgentScope } from "../agents.js";
 import { type DisplayItem, formatToolCall, getDisplayItems } from "../progress/index.js";
-import { getFinalOutput } from "../spawn/output.js";
+import {
+  hasHarvestedSubagentText,
+  resolveSubagentResultText,
+  resolveSubagentSummaryPreview,
+} from "../spawn/output.js";
 import { COLLAPSED_ITEM_COUNT } from "./constants.js";
 import type { SubagentParams, SubagentParams as SubagentParamsInput } from "./params.js";
 import type { SingleResult, SubagentDetails } from "./types.js";
@@ -101,7 +105,7 @@ export function renderSubagentResult(
     const isError = r.exitCode !== 0 || r.stopReason === "error" || r.stopReason === "aborted";
     const icon = isError ? theme.fg("error", "✗") : theme.fg("success", "✓");
     const displayItems = getDisplayItems(r.messages);
-    const finalOutput = getFinalOutput(r.messages);
+    const finalOutput = resolveSubagentResultText(r);
 
     if (expanded) {
       const container = new Container();
@@ -145,8 +149,10 @@ export function renderSubagentResult(
     let text = `${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${theme.fg("muted", ` (${r.agentSource})`)}`;
     if (isError && r.stopReason) text += ` ${theme.fg("error", `[${r.stopReason}]`)}`;
     if (isError && r.errorMessage) text += `\n${theme.fg("error", `Error: ${r.errorMessage}`)}`;
-    else if (displayItems.length === 0) text += `\n${theme.fg("muted", "(no output)")}`;
-    else {
+    else if (displayItems.length === 0) {
+      const preview = resolveSubagentSummaryPreview(r);
+      text += `\n${theme.fg(hasHarvestedSubagentText(r) ? "toolOutput" : "muted", preview)}`;
+    } else {
       text += `\n${renderDisplayItems(displayItems, COLLAPSED_ITEM_COUNT)}`;
       if (displayItems.length > COLLAPSED_ITEM_COUNT)
         text += `\n${theme.fg("muted", "(Ctrl+O to expand)")}`;
@@ -190,7 +196,7 @@ export function renderSubagentResult(
       for (const r of details.results) {
         const rIcon = r.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
         const displayItems = getDisplayItems(r.messages);
-        const finalOutput = getFinalOutput(r.messages);
+        const finalOutput = resolveSubagentResultText(r);
 
         container.addChild(new Spacer(1));
         container.addChild(
@@ -241,8 +247,10 @@ export function renderSubagentResult(
       const rIcon = r.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
       const displayItems = getDisplayItems(r.messages);
       text += `\n\n${theme.fg("muted", `─── Step ${r.step}: `)}${theme.fg("accent", r.agent)} ${rIcon}`;
-      if (displayItems.length === 0) text += `\n${theme.fg("muted", "(no output)")}`;
-      else text += `\n${renderDisplayItems(displayItems, 5)}`;
+      if (displayItems.length === 0) {
+        const preview = resolveSubagentSummaryPreview(r);
+        text += `\n${theme.fg(hasHarvestedSubagentText(r) ? "toolOutput" : "muted", preview)}`;
+      } else text += `\n${renderDisplayItems(displayItems, 5)}`;
     }
     const usageStr = formatUsageStats(aggregateUsage(details.results));
     if (usageStr) text += `\n\n${theme.fg("dim", `Total: ${usageStr}`)}`;
@@ -277,7 +285,7 @@ export function renderSubagentResult(
       for (const r of details.results) {
         const rIcon = r.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
         const displayItems = getDisplayItems(r.messages);
-        const finalOutput = getFinalOutput(r.messages);
+        const finalOutput = resolveSubagentResultText(r);
 
         container.addChild(new Spacer(1));
         container.addChild(
@@ -325,9 +333,13 @@ export function renderSubagentResult(
             : theme.fg("error", "✗");
       const displayItems = getDisplayItems(r.messages);
       text += `\n\n${theme.fg("muted", "─── ")}${theme.fg("accent", r.agent)} ${rIcon}`;
-      if (displayItems.length === 0)
-        text += `\n${theme.fg("muted", r.exitCode === -1 ? "(running...)" : "(no output)")}`;
-      else text += `\n${renderDisplayItems(displayItems, 5)}`;
+      if (displayItems.length === 0) {
+        if (r.exitCode === -1) text += `\n${theme.fg("muted", "(running...)")}`;
+        else {
+          const preview = resolveSubagentSummaryPreview(r);
+          text += `\n${theme.fg(hasHarvestedSubagentText(r) ? "toolOutput" : "muted", preview)}`;
+        }
+      } else text += `\n${renderDisplayItems(displayItems, 5)}`;
     }
     if (!isRunning) {
       const usageStr = formatUsageStats(aggregateUsage(details.results));

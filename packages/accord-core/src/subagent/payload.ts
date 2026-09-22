@@ -112,23 +112,32 @@ export function applySubagentSpawnPayload(
   devConfig: DevHarnessConfig | null,
 ): void {
   const entries = collectSubagentEntries(input);
+  const parallelMode = Array.isArray(input.tasks) && input.tasks.length > 0;
+  const chainMode = Array.isArray(input.chain) && input.chain.length > 0;
+  const multiEntryMode = parallelMode || chainMode;
 
   for (const entry of entries) {
     const agentName = entry.agent ?? "";
     if (!agentName) continue;
 
     const payload = buildSubagentSpawnPayload(agentName, entry.task ?? "", devConfig);
-    if (payload.agentFile) {
-      if (!input.agentFile) input.agentFile = payload.agentFile;
+    if (payload.agentFile && !entry.agentFile && !input.agentFile) {
       entry.agentFile = payload.agentFile;
+      // Top-level agentFile applies to single/chain only — parallel tasks need per-entry paths.
+      if (!parallelMode && !input.agentFile) {
+        input.agentFile = payload.agentFile;
+      }
     }
     if (payload.systemAppend) {
       const existing = typeof input.systemAppend === "string" ? input.systemAppend : "";
       const merged = existing ? `${existing}\n\n${payload.systemAppend}` : payload.systemAppend;
       input.systemAppend = merged;
     }
-    if (payload.response && !input.response) {
-      input.response = payload.response;
+    if (payload.response && !entry.response && !input.response) {
+      entry.response = payload.response;
+      if (!multiEntryMode && !input.response) {
+        input.response = payload.response;
+      }
     }
   }
 }

@@ -8,7 +8,7 @@ import {
   runSubagentSpawnPreflightCheck,
 } from "../queries/subagent-preflight-shared.js";
 import type { HarnessHost } from "../types/host.js";
-import { firstSubagentAgentName } from "./entries.js";
+import { collectSubagentEntries, firstSubagentAgentName } from "./entries.js";
 import { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
 import { runPipelineArtifactPreflightOnSubagentCall } from "./preflight/pipeline-artifacts.js";
 import { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
@@ -60,12 +60,19 @@ export async function runSubagentToolPreflight(
   }
 
   const agent = firstSubagentAgentName(input);
-  if (agent && agentRequiresSpawnPreflight(agent)) {
-    const credential = runSubagentSpawnPreflightCheck(agent);
+  const agentsToCheck = new Set<string>();
+  if (agent) agentsToCheck.add(agent);
+  for (const entry of collectSubagentEntries(input)) {
+    if (entry.agent) agentsToCheck.add(entry.agent);
+  }
+
+  for (const agentName of agentsToCheck) {
+    if (!agentRequiresSpawnPreflight(agentName)) continue;
+    const credential = runSubagentSpawnPreflightCheck(agentName);
     if (!credential.ok) {
       return {
         blockReason: [
-          `Subagent preflight failed for ${agent}:`,
+          `Subagent preflight failed for ${agentName}:`,
           ...credential.blocks.map((b) => `- ${b}`),
           "",
           "Run dev_subagent_preflight before retrying.",

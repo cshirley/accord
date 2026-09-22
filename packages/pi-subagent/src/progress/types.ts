@@ -30,3 +30,5 @@ export const TEXT_DELTA_PULSE_MS = 2500;
 export const THINKING_DELTA_PULSE_MS = 2000;
 export const MAX_RECENT_TOOLS = 8;
 export const TEXT_PREVIEW_MAX = 120;
+/** Max retained streamed assistant text for harvest / chain `{previous}` substitution. */
+export const HARVEST_STREAM_MAX = 512 * 1024;

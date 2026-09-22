@@ -1,6 +1,7 @@
 import type { AgentConfig } from "../agents.js";
 import { runSubagent } from "../spawn/index.js";
 import type { SpawnSubagentParams, SpawnSubagentResult } from "../spawn/types.js";
+import { SubagentRunError } from "../spawn/types.js";
 import type { OnUpdateCallback, SingleResult, SubagentDetails } from "./types.js";
 
 export type RunSingleAgentOptions = Partial<
@@ -19,6 +20,15 @@ export type RunSingleAgentOptions = Partial<
   timeoutMs?: number;
 };
 
+export function subagentRunErrorToSingle(error: SubagentRunError): SingleResult {
+  const failed = error.result;
+  return spawnResultToSingle({
+    ...failed,
+    stderr: failed.stderr || error.message,
+    errorMessage: failed.errorMessage ?? error.message,
+  });
+}
+
 export function spawnResultToSingle(result: SpawnSubagentResult): SingleResult {
   return {
     agent: result.agent,
@@ -33,6 +43,7 @@ export function spawnResultToSingle(result: SpawnSubagentResult): SingleResult {
     errorMessage: result.errorMessage,
     step: result.step,
     liveActivity: result.liveActivity,
+    output: result.output,
   };
 }
 

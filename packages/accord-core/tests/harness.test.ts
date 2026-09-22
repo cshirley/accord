@@ -338,6 +338,119 @@ describe("harness verify preflight", () => {
     expect(r.blockReason).toMatch(/Spec not found/);
   });
 
+  test("chain phase-code then phase-verify runs verify preflight on the verify step", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    const input: Record<string, unknown> = {
+      chain: [
+        { agent: "phase-code", task: "work_item_id: CHN-1\nimplement" },
+        {
+          agent: "phase-verify-acceptance",
+          task: "work_item_id: CHN-1\nverify",
+        },
+      ],
+    };
+    const blocked = await runVerifyPreflightOnSubagentCall(input, sampleConfig());
+    expect(blocked.blockReason).toMatch(/Spec not found/);
+
+    const recommendation = recommendIntentMode("fix @src/x.ts typo");
+    devBootstrap("CHN-1", "Chain verify", "quick_fix", undefined, {
+      intent_mode: recommendation.intent_mode,
+      intent_confidence: recommendation.confidence,
+      escalation_ceiling: recommendation.escalation_ceiling,
+      target_paths: recommendation.target_paths,
+      out_of_scope: recommendation.out_of_scope,
+    });
+    const cfg = sampleConfig({ verification_commands: ["true"] });
+    const qf = devQuickFixBrief("CHN-1", cfg);
+    if (!qf.ok) throw new Error(qf.error);
+
+    const okInput: Record<string, unknown> = {
+      chain: [
+        { agent: "phase-code", task: "work_item_id: CHN-1\nimplement" },
+        {
+          agent: "phase-verify-acceptance",
+          task: "work_item_id: CHN-1\nverify",
+        },
+      ],
+    };
+    const ok = await runVerifyPreflightOnSubagentCall(okInput, cfg);
+    expect(ok.blockReason).toBeUndefined();
+    const chain = okInput.chain as { task?: string }[];
+    expect(String(chain[1]?.task)).toContain("Verification Preflight");
+    expect(String(chain[0]?.task)).not.toContain("Verification Preflight");
+  });
+
+  test("chain with two phase-verify steps appends preflight to every verify entry", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    const recommendation = recommendIntentMode("fix @src/x.ts typo");
+    devBootstrap("CHN-2", "Dual verify", "quick_fix", undefined, {
+      intent_mode: recommendation.intent_mode,
+      intent_confidence: recommendation.confidence,
+      escalation_ceiling: recommendation.escalation_ceiling,
+      target_paths: recommendation.target_paths,
+      out_of_scope: recommendation.out_of_scope,
+    });
+    const cfg = sampleConfig({ verification_commands: ["true"] });
+    const qf = devQuickFixBrief("CHN-2", cfg);
+    if (!qf.ok) throw new Error(qf.error);
+
+    const input: Record<string, unknown> = {
+      chain: [
+        { agent: "phase-code", task: "work_item_id: CHN-2\nimplement" },
+        {
+          agent: "phase-verify-acceptance",
+          task: "work_item_id: CHN-2\nverify acceptance",
+        },
+        {
+          agent: "phase-verify-infra",
+          task: "work_item_id: CHN-2\nverify infra",
+        },
+      ],
+    };
+    const ok = await runVerifyPreflightOnSubagentCall(input, cfg);
+    expect(ok.blockReason).toBeUndefined();
+    const chain = input.chain as { task?: string }[];
+    expect(String(chain[1]?.task)).toContain("Verification Preflight");
+    expect(String(chain[2]?.task)).toContain("Verification Preflight");
+    expect(String(chain[0]?.task)).not.toContain("Verification Preflight");
+  });
+
+  test("parallel tasks with phase-verify agents append preflight to each verify task", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    const recommendation = recommendIntentMode("fix @src/x.ts typo");
+    devBootstrap("TSK-VFY-1", "Parallel verify", "quick_fix", undefined, {
+      intent_mode: recommendation.intent_mode,
+      intent_confidence: recommendation.confidence,
+      escalation_ceiling: recommendation.escalation_ceiling,
+      target_paths: recommendation.target_paths,
+      out_of_scope: recommendation.out_of_scope,
+    });
+    const cfg = sampleConfig({ verification_commands: ["true"] });
+    const qf = devQuickFixBrief("TSK-VFY-1", cfg);
+    if (!qf.ok) throw new Error(qf.error);
+
+    const input: Record<string, unknown> = {
+      tasks: [
+        {
+          agent: "phase-verify-acceptance",
+          task: "work_item_id: TSK-VFY-1\nverify acceptance",
+        },
+        {
+          agent: "phase-verify-infra",
+          task: "work_item_id: TSK-VFY-1\nverify infra",
+        },
+      ],
+    };
+    const ok = await runVerifyPreflightOnSubagentCall(input, cfg);
+    expect(ok.blockReason).toBeUndefined();
+    const tasks = input.tasks as { task?: string }[];
+    expect(String(tasks[0]?.task)).toContain("Verification Preflight");
+    expect(String(tasks[1]?.task)).toContain("Verification Preflight");
+  });
+
   test("appends verification preflight when spec/plan exist and commands succeed", async () => {
     const project = tempProject();
     process.chdir(project);
@@ -998,6 +1111,84 @@ describe("harness pipeline artifact preflight", () => {
     const r = await runPipelineArtifactPreflightOnSubagentCall({
       agent: "phase-spec",
       task: "work_item_id: GATE-2",
+    });
+    expect(r.blockReason).toBeUndefined();
+  });
+
+  test("chain phase-spec then phase-plan gates every pipeline step at tool-start", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    mkdirSync(join(project, "docs", "dev", "GATE-3"), { recursive: true });
+    writeFileSync(join(project, "docs", "dev", "GATE-3", "brief.md"), "# Problem Brief\n\nBody.\n");
+    devBootstrap("GATE-3", "Chain gate", "implement", "standard");
+
+    const { runPipelineArtifactPreflightOnSubagentCall } = await import(
+      "@clive.shirley/accord-core/subagent/preflight/pipeline-artifacts.js"
+    );
+    const r = await runPipelineArtifactPreflightOnSubagentCall({
+      chain: [
+        { agent: "phase-spec", task: "work_item_id: GATE-3\nwrite spec" },
+        { agent: "phase-plan", task: "work_item_id: GATE-3\nwrite plan" },
+      ],
+    });
+    expect(r.blockReason).toMatch(/Spec required before plan/);
+  });
+
+  test("chain blocks phase-spec first step when brief missing", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    devBootstrap("GATE-4", "Chain no brief", "implement", "standard");
+
+    const { runPipelineArtifactPreflightOnSubagentCall } = await import(
+      "@clive.shirley/accord-core/subagent/preflight/pipeline-artifacts.js"
+    );
+    const r = await runPipelineArtifactPreflightOnSubagentCall({
+      chain: [
+        { agent: "phase-spec", task: "work_item_id: GATE-4\nwrite spec" },
+        { agent: "phase-plan", task: "work_item_id: GATE-4\nwrite plan" },
+      ],
+    });
+    expect(r.blockReason).toMatch(/Brief required before spec/);
+  });
+
+  test("chain phase-spec then phase-plan succeeds when brief and spec exist", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    mkdirSync(join(project, ".tasks"), { recursive: true });
+    mkdirSync(join(project, "docs", "dev", "GATE-5"), { recursive: true });
+    writeFileSync(join(project, "docs", "dev", "GATE-5", "brief.md"), "# Problem Brief\n\nBody.\n");
+    writeFileSync(
+      join(project, "docs", "dev", "GATE-5", "spec.json"),
+      `${JSON.stringify(
+        {
+          schema_version: "1.0",
+          work_item_id: "GATE-5",
+          title: "Gate chain ok",
+          date: "2026-05-27",
+          problem_statement: "Problem",
+          proposed_solution: "Solution",
+          acceptance_criteria: [
+            { id: "AC-1", requirement: "MUST", type: "constraint", criterion: "Works" },
+          ],
+          scope: { in: ["src"], out: [] },
+          verification: { commands: ["bun test"], test_cases: [] },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    devBootstrap("GATE-5", "Chain ok", "implement", "standard");
+
+    const { runPipelineArtifactPreflightOnSubagentCall } = await import(
+      "@clive.shirley/accord-core/subagent/preflight/pipeline-artifacts.js"
+    );
+    const r = await runPipelineArtifactPreflightOnSubagentCall({
+      chain: [
+        { agent: "phase-spec", task: "work_item_id: GATE-5\nwrite spec" },
+        { agent: "phase-plan", task: "work_item_id: GATE-5\nwrite plan" },
+      ],
     });
     expect(r.blockReason).toBeUndefined();
   });

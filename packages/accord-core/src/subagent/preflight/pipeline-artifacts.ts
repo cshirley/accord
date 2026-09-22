@@ -15,7 +15,7 @@ import {
 } from "../../work-items/artifact-discovery.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import type { WorkItem } from "../../work-items/types.js";
-import { firstSubagentAgentName, getPrimarySubagentEntry } from "../entries.js";
+import { collectSubagentEntries, type SubagentEntry } from "../entries.js";
 
 export type ArtifactGateResult = { ok: true; path: string } | { ok: false; reason: string };
 
@@ -98,28 +98,43 @@ export function checkSpecPresentForPlanning(
   return { ok: true, path: specPath };
 }
 
-function workItemIdFromSubagentInput(input: Record<string, unknown>): string | null {
-  const entry = getPrimarySubagentEntry(input);
+function workItemIdFromEntry(
+  entry: SubagentEntry,
+  input: Record<string, unknown>,
+): string | null {
   const task =
-    typeof entry?.task === "string" ? entry.task : typeof input.task === "string" ? input.task : "";
+    typeof entry.task === "string" ? entry.task : typeof input.task === "string" ? input.task : "";
   return extractWorkItemId(task, { mustExist: true });
+}
+
+/** Entries whose artifact gates apply at tool-start (chain: every step). */
+function entriesForPipelineArtifactPreflight(input: Record<string, unknown>): SubagentEntry[] {
+  const chain = input.chain as SubagentEntry[] | undefined;
+  if (Array.isArray(chain) && chain.length > 0) {
+    return chain;
+  }
+  if (input.agent) return [input as SubagentEntry];
+  const tasks = input.tasks as SubagentEntry[] | undefined;
+  if (Array.isArray(tasks) && tasks.length > 0) return tasks;
+  return collectSubagentEntries(input);
 }
 
 export async function runPipelineArtifactPreflightOnSubagentCall(
   input: Record<string, unknown>,
 ): Promise<{ blockReason?: string }> {
-  const agent = firstSubagentAgentName(input);
-  const workItemId = workItemIdFromSubagentInput(input);
-  if (!workItemId) return {};
+  for (const entry of entriesForPipelineArtifactPreflight(input)) {
+    const workItemId = workItemIdFromEntry(entry, input);
+    if (!workItemId) continue;
 
-  if (agent === "phase-spec") {
-    const check = checkBriefPresentForSpeccing(workItemId);
-    if (!check.ok) return { blockReason: check.reason };
-  }
+    if (entry.agent === "phase-spec") {
+      const check = checkBriefPresentForSpeccing(workItemId);
+      if (!check.ok) return { blockReason: check.reason };
+    }
 
-  if (agent === "phase-plan") {
-    const check = checkSpecPresentForPlanning(workItemId);
-    if (!check.ok) return { blockReason: check.reason };
+    if (entry.agent === "phase-plan") {
+      const check = checkSpecPresentForPlanning(workItemId);
+      if (!check.ok) return { blockReason: check.reason };
+    }
   }
 
   return {};

@@ -11,7 +11,7 @@ import {
   loadAllProviders,
 } from "../../integrations/provider-deps.js";
 import type { HarnessHost } from "../../types/host.js";
-import { firstSubagentAgentName, getPrimarySubagentEntry } from "../entries.js";
+import { collectSubagentEntries } from "../entries.js";
 
 export async function runGatherPreflightOnSubagentCall(
   input: Record<string, unknown>,
@@ -19,7 +19,10 @@ export async function runGatherPreflightOnSubagentCall(
   availableToolNames: Set<string>,
   host: HarnessHost,
 ): Promise<{ blockReason?: string }> {
-  if (firstSubagentAgentName(input) !== "phase-gather") return {};
+  const gatherEntries = collectSubagentEntries(input).filter(
+    (entry) => entry.agent === "phase-gather",
+  );
+  if (gatherEntries.length === 0) return {};
 
   const globalCfg = loadGlobalConfig();
   const providers = loadAllProviders([
@@ -62,9 +65,10 @@ export async function runGatherPreflightOnSubagentCall(
     host.notify?.("info", "Gather preflight: all configured sources available");
   }
 
-  const entry = getPrimarySubagentEntry(input);
-  if (entry && typeof entry.task === "string") {
-    entry.task += report;
+  for (const entry of gatherEntries) {
+    if (typeof entry.task === "string") {
+      entry.task += report;
+    }
   }
 
   return {};

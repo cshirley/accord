@@ -2,10 +2,13 @@
  * Shared parsing of Pi `subagent` tool payloads (agent / chain / tasks).
  */
 
+import type { SubagentResponseContract } from "../types/subagent-spawn.js";
+
 export type SubagentEntry = {
   agent?: string;
   task?: string;
   agentFile?: string;
+  response?: SubagentResponseContract;
 };
 
 export function collectSubagentEntries(input: Record<string, unknown>): SubagentEntry[] {

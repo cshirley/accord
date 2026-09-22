@@ -1,18 +1,6 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import { type Static, Type } from "typebox";
 
-const TaskItem = Type.Object({
-  agent: Type.String({ description: "Name of the agent to invoke" }),
-  task: Type.String({ description: "Task to delegate to the agent" }),
-  cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
-});
-
-const ChainItem = Type.Object({
-  agent: Type.String({ description: "Name of the agent to invoke" }),
-  task: Type.String({ description: "Task with optional {previous} placeholder for prior output" }),
-  cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
-});
-
 const AgentScopeSchema = StringEnum(["user", "project", "both"] as const, {
   description:
     'Which agent directories to use. Default: "user". Use "both" to include project-local agents.',
@@ -43,6 +31,26 @@ const ResponseContractSchema = Type.Union([
     instruction: Type.Optional(Type.String()),
   }),
 ]);
+
+const TaskItem = Type.Object({
+  agent: Type.String({ description: "Name of the agent to invoke" }),
+  task: Type.String({ description: "Task to delegate to the agent" }),
+  cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
+  agentFile: Type.Optional(
+    Type.String({ description: "Absolute path to agent markdown for this task" }),
+  ),
+  response: Type.Optional(ResponseContractSchema),
+});
+
+const ChainItem = Type.Object({
+  agent: Type.String({ description: "Name of the agent to invoke" }),
+  task: Type.String({ description: "Task with optional {previous} placeholder for prior output" }),
+  cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
+  agentFile: Type.Optional(
+    Type.String({ description: "Absolute path to agent markdown for this step" }),
+  ),
+  response: Type.Optional(ResponseContractSchema),
+});
 
 export const SubagentParamsSchema = Type.Object({
   agentFile: Type.Optional(

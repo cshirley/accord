@@ -6,13 +6,22 @@ import {
   discoverAgents,
   type ThinkingLevel,
 } from "../agents.js";
-import { getFinalOutput } from "../spawn/output.js";
+import {
+  resolveSubagentChainPreviousOutput,
+  resolveSubagentResultText,
+  resolveSubagentSummaryPreview,
+} from "../spawn/output.js";
 import type { SubagentResponseContract } from "../spawn/types.js";
 import { SubagentRunError } from "../spawn/types.js";
+import { resolveTrustedAgentFile } from "./agent-file.js";
 import { mapWithConcurrencyLimit } from "./concurrency.js";
 import { MAX_CONCURRENCY, MAX_PARALLEL_TASKS } from "./constants.js";
 import type { SubagentParams, SubagentParams as SubagentParamsInput } from "./params.js";
-import { type RunSingleAgentOptions, runSingleAgent } from "./run-single.js";
+import {
+  type RunSingleAgentOptions,
+  runSingleAgent,
+  subagentRunErrorToSingle,
+} from "./run-single.js";
 import type { OnUpdateCallback, SingleResult, SubagentDetails } from "./types.js";
 
 type SubagentToolDefinition = ToolDefinition<typeof SubagentParams, SubagentDetails>;
@@ -21,6 +30,30 @@ type ExecuteContext = Parameters<NonNullable<SubagentToolDefinition["execute"]>>
 
 type ExecuteResult = Awaited<ReturnType<NonNullable<SubagentToolDefinition["execute"]>>>;
 
+function entryAgentFile(entry: { agentFile?: string }): string | undefined {
+  return typeof entry.agentFile === "string" ? entry.agentFile : undefined;
+}
+
+function trustedAgentFileForEntry(
+  agentName: string,
+  agents: AgentConfig[],
+  entry: { agentFile?: string },
+  topLevelAgentFile?: string,
+): string | undefined {
+  const explicit = entryAgentFile(entry) ?? topLevelAgentFile;
+  return resolveTrustedAgentFile(agentName, agents, explicit);
+}
+
+function entryResponse(
+  entry: { response?: unknown },
+  fallback: SubagentResponseContract | undefined,
+): SubagentResponseContract | undefined {
+  if (entry.response && typeof entry.response === "object") {
+    return entry.response as SubagentResponseContract;
+  }
+  return fallback;
+}
+
 function buildRunOptions(
   params: SubagentParamsInput,
   agentScope: AgentScope,
@@ -28,15 +61,16 @@ function buildRunOptions(
     agentFile?: string;
     model?: string;
     thinking?: ThinkingLevel;
+    response?: SubagentResponseContract;
   } = {},
 ): RunSingleAgentOptions {
   return {
-    agentFile: overrides.agentFile ?? params.agentFile,
+    agentFile: overrides.agentFile,
     agentScope,
     model: overrides.model ?? params.model,
     thinking: (overrides.thinking ?? params.thinking) as ThinkingLevel | undefined,
     systemAppend: params.systemAppend,
-    response: params.response as SubagentResponseContract | undefined,
+    response: overrides.response ?? (params.response as SubagentResponseContract | undefined),
     timeoutMs: params.timeoutMs,
   };
 }
@@ -137,13 +171,17 @@ export async function executeSubagentTool(
           signal,
           chainUpdate,
           makeDetails("chain"),
-          buildRunOptions(params, agentScope),
+          buildRunOptions(params, agentScope, {
+            agentFile: trustedAgentFileForEntry(step.agent, agents, step, params.agentFile),
+            response: entryResponse(step, params.response as SubagentResponseContract | undefined),
+          }),
         );
       } catch (error) {
         if (error instanceof SubagentRunError) {
+          const failed = subagentRunErrorToSingle(error);
           return {
             content: [{ type: "text", text: error.message }],
-            details: makeDetails("chain")(results),
+            details: makeDetails("chain")([...results, failed]),
             isError: true,
           } as ExecuteResult;
         }
@@ -155,7 +193,10 @@ export async function executeSubagentTool(
         result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted";
       if (isError) {
         const errorMsg =
-          result.errorMessage || result.stderr || getFinalOutput(result.messages) || "(no output)";
+          result.errorMessage ||
+          result.stderr ||
+          resolveSubagentResultText(result) ||
+          "(no output)";
         return {
           content: [
             {
@@ -167,13 +208,13 @@ export async function executeSubagentTool(
           isError: true,
         } as ExecuteResult;
       }
-      previousOutput = getFinalOutput(result.messages);
+      previousOutput = resolveSubagentChainPreviousOutput(result);
     }
     return {
       content: [
         {
           type: "text",
-          text: getFinalOutput(results[results.length - 1].messages) || "(no output)",
+          text: resolveSubagentResultText(results[results.length - 1]) || "(no output)",
         },
       ],
       details: makeDetails("chain")(results),
@@ -251,22 +292,14 @@ export async function executeSubagentTool(
               }
             },
             makeDetails("parallel"),
-            buildRunOptions(params, agentScope),
+            buildRunOptions(params, agentScope, {
+              agentFile: trustedAgentFileForEntry(t.agent, agents, t, params.agentFile),
+              response: entryResponse(t, params.response as SubagentResponseContract | undefined),
+            }),
           );
         } catch (error) {
           if (error instanceof SubagentRunError) {
-            result = {
-              agent: t.agent,
-              agentSource: "unknown",
-              task: t.task,
-              exitCode: error.result.exitCode,
-              messages: error.result.messages,
-              stderr: error.result.stderr || error.message,
-              usage: error.result.usage,
-              model: error.result.model,
-              stopReason: error.result.stopReason,
-              errorMessage: error.message,
-            };
+            result = subagentRunErrorToSingle(error);
           } else {
             throw error;
           }
@@ -279,9 +312,8 @@ export async function executeSubagentTool(
 
     const successCount = results.filter((r) => r.exitCode === 0).length;
     const summaries = results.map((r) => {
-      const output = getFinalOutput(r.messages);
-      const preview = output.slice(0, 100) + (output.length > 100 ? "..." : "");
-      return `[${r.agent}] ${r.exitCode === 0 ? "completed" : "failed"}: ${preview || "(no output)"}`;
+      const preview = resolveSubagentSummaryPreview(r);
+      return `[${r.agent}] ${r.exitCode === 0 ? "completed" : "failed"}: ${preview}`;
     });
     return {
       content: [
@@ -308,27 +340,15 @@ export async function executeSubagentTool(
         signal,
         onUpdate,
         makeDetails("single"),
-        buildRunOptions(params, agentScope),
+        buildRunOptions(params, agentScope, {
+          agentFile: resolveTrustedAgentFile(agentName, agents, params.agentFile),
+        }),
       );
     } catch (error) {
       if (error instanceof SubagentRunError) {
-        const failed = error.result;
         return {
           content: [{ type: "text", text: error.message }],
-          details: makeDetails("single")([
-            {
-              agent: failed.agent,
-              agentSource: failed.agentSource,
-              task: failed.task,
-              exitCode: failed.exitCode,
-              messages: failed.messages,
-              stderr: failed.stderr || error.message,
-              usage: failed.usage,
-              model: failed.model,
-              stopReason: failed.stopReason,
-              errorMessage: failed.errorMessage ?? error.message,
-            },
-          ]),
+          details: makeDetails("single")([subagentRunErrorToSingle(error)]),
           isError: true,
         } as ExecuteResult;
       }
@@ -338,7 +358,7 @@ export async function executeSubagentTool(
       result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted";
     if (isError) {
       const errorMsg =
-        result.errorMessage || result.stderr || getFinalOutput(result.messages) || "(no output)";
+        result.errorMessage || result.stderr || resolveSubagentResultText(result) || "(no output)";
       return {
         content: [{ type: "text", text: `Agent ${result.stopReason || "failed"}: ${errorMsg}` }],
         details: makeDetails("single")([result]),
@@ -346,7 +366,7 @@ export async function executeSubagentTool(
       } as ExecuteResult;
     }
     return {
-      content: [{ type: "text", text: getFinalOutput(result.messages) || "(no output)" }],
+      content: [{ type: "text", text: resolveSubagentResultText(result) || "(no output)" }],
       details: makeDetails("single")([result]),
     };
   }

@@ -26,6 +26,8 @@ export interface SingleResult {
   errorMessage?: string;
   step?: number;
   liveActivity?: SubagentLiveActivity;
+  /** Resolved harvest text from the child process (includes streaming fallback). */
+  output?: string;
 }
 
 export interface SubagentDetails {
