@@ -1,8 +1,7 @@
 /**
- * Git worktree primitives — pure async functions wrapping git commands.
+ * Worktree git primitives — pure async functions wrapping git commands.
  *
- * Every function takes an `exec` callback so callers wire in pi.exec()
- * and tests can substitute a stub. No pi imports here.
+ * Every function takes an `exec` callback (pi.exec in production). No pi imports.
  */
 
 import * as fs from "node:fs";

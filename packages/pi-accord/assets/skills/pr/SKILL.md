@@ -9,7 +9,7 @@ Push current branch and open or update a pull request.
 
 ## Invocation
 
-PR flow uses **Pi tools from `pi-git-tools`**, not shell `git push`/`gh pr` and not `accord-mcp` (`dev_*` only).
+PR flow uses **Pi tools from `pi-git`**, not shell `git push`/`gh pr` and not `accord-mcp` (`dev_*` only).
 
 | Step | Tool name (exact) |
 |------|-------------------|
@@ -19,7 +19,7 @@ PR flow uses **Pi tools from `pi-git-tools`**, not shell `git push`/`gh pr` and 
 - **Pi TUI:** call those names from the agent tool list.
 - **Cursor + pi package:** same names, often bridged as `mcp_pi_gh_pr_context` / `mcp_pi_gh_pr_submit`. Names are not truncated.
 - **Do not** run `git push` / `gh pr create` in bash, and do not search MCP/bash to “find” these tools.
-- If they are missing, ask the user to `pi install` this repo and confirm `pi-git-tools` is listed under `pi.extensions` in root `package.json`.
+- If they are missing, ask the user to `pi install` this repo and confirm `pi-git` is listed under `pi.extensions` in root `package.json`.
 
 ## Process
 

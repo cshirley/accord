@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Register this repo with Pi (`pi install`) so `package.json` → `pi` loads the
-# bundled extension modules (pi-subagent, pi-worktree, …) plus the ACCORD harness,
+# bundled extension modules (pi-subagent, pi-git, …) plus the ACCORD harness,
 # then link bundled skills/agents/providers (`bun run install:assets`), and install
 # a `~/.local/bin/accord` shim for headless CLI use from any directory.
 #

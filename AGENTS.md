@@ -4,7 +4,7 @@ This directory is the `@clive.shirley/accord` monorepo (Bun workspaces). The Pi 
 
 ## Extension Surface
 
-This npm package registers **multiple Pi extensions** (see root `package.json` → `pi.extensions`): `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-integrations`, then the ACCORD harness in `packages/pi-accord`. Install this package once with the Pi CLI (`pi install <path-to-this-repo>`); you do not need separate copies under `~/.pi/agent/extensions/` for those tools.
+This npm package registers **multiple Pi extensions** (see root `package.json` → `pi.extensions`): `pi-subagent`, `pi-thrift`, `pi-git`, `pi-integrations`, then the ACCORD harness in `packages/pi-accord`. Install this package once with the Pi CLI (`pi install <path-to-this-repo>`); you do not need separate copies under `~/.pi/agent/extensions/` for those tools.
 
 - `packages/pi-accord/src/index.ts` is the harness entry point and delegates to `packages/pi-accord/src/extension.ts`.
 - `packages/pi-accord/src/extension.ts` registers the `/dev` command, autocomplete, tools, hooks, and status bar integration.
@@ -17,7 +17,7 @@ This npm package registers **multiple Pi extensions** (see root `package.json` �
 This extension is one part of the larger pi.dev harness. The package bundles its Pi prompt assets under `packages/pi-accord/assets/`, and local installed copies may also exist under `~/.config/pi/agent/` for development:
 
 - Workflow orchestration lives in `packages/accord-core/src/orchestration/`. Pi delegates workflow subcommands to `@clive.shirley/accord-cli`; headless: `bun run accord`. Companion skills: `commit`, `pr`, `review`.
-- **Git commit, PR, standalone review:** use Pi tools from `packages/pi-git-tools` — `git_commit_*`, `gh_pr_*`, `git_review_context` (see `packages/pi-git-tools/README.md`). Do not use bash for staging/commits/PR create when those tools are available. `accord-mcp` exposes harness `dev_*` tools only, not git helpers. In Cursor, bridged names are often `mcp_pi_git_commit_*` / `mcp_pi_gh_pr_*`; call tools by full name, do not discover via shell.
+- **Git commit, PR, standalone review:** use Pi tools from `packages/pi-git` — `git_commit_*`, `gh_pr_*`, `git_review_context` (see `packages/pi-git/README.md`). Do not use bash for staging/commits/PR create when those tools are available. `accord-mcp` exposes harness `dev_*` tools only, not git helpers. In Cursor, bridged names are often `mcp_pi_git_commit_*` / `mcp_pi_gh_pr_*`; call tools by full name, do not discover via shell.
 - Host-neutral prompt assets live in `packages/accord-assets/` (agents, providers, lang-profiles). Pi-only skills and CI templates remain under `packages/pi-accord/assets/`.
 - The **`subagent` tool** lives in `packages/pi-subagent/` (registered via root `package.json` → `pi.extensions`, not by reading `packages/pi-subagent/README.md`). To delegate work, **call the `subagent` tool** (`agent` + `task`); do not open the README for execution. The core orchestrator delegates each phase or review step through it so every phase runs in an isolated Pi process.
 - Agent definition files are bundled at `packages/accord-assets/agents/accord/*.md`, covering all `phase-*` and `review-*` agents. The `accord/` namespace is path-derived: subagent's discovery walker tags each file with `namespace = "accord"`, which lets `subagent.json` apply per-skill profile overrides without any frontmatter change.
@@ -44,7 +44,7 @@ Do not treat this package as a standalone workflow engine. The extension supplie
 
 ## Project Layout
 
-- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`accord-ci`** (GitHub Actions autopipeline), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-worktree`, `pi-thrift`, `pi-git-tools`, `pi-integrations`.
+- `packages/` — Bun workspaces: **`accord-core`** (host-neutral), **`accord-cli`** (`accord` bin), **`accord-mcp`** (stdio MCP), **`accord-ci`** (GitHub Actions autopipeline), **`pi-accord`** (Pi extension + assets), `pi-subagent`, `pi-thrift`, `pi-git`, `pi-integrations`.
 - `packages/accord-core/` — orchestration, work items, artifacts, briefing, verification, schemas, `dev_*` tools, standalone review.
 - `packages/accord-cli/` — CLI, harness registry, commands.
 - `packages/pi-accord/src/` — Pi extension: `/dev`, hooks, `cli-client`, spawn UI.

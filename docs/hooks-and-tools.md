@@ -66,7 +66,7 @@ Display-only markers appended via `appendEntry` (not in LLM context):
 |--------------|----------|
 | `dev-harness-run` | Run tag, run_id, work item ids, auto-provisioned flag |
 | `thrift-output-level` | Current output compression level |
-| `pi-worktree` | Branch/path summary |
+| `worktree-state` | Branch/path summary (`pi-git`) |
 
 Orchestrator subagent spawns still use `registerMessageRenderer` for live progress rows.
 

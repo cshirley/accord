@@ -87,7 +87,7 @@ Pi 0.80.4+: display-only session entries (`CustomEntry`) render in interactive m
 |--------------------|----------------|
 | `dev-harness-run` | tag, run_id, work item ids, auto-provisioned flag |
 | `thrift-output-level` | current output compression level |
-| `pi-worktree` state | branch/path summary (if applicable) |
+| `worktree-state` | branch/path summary (if applicable) |
 
 **Files:** `packages/pi-accord/src/hook-state.ts` (+ small renderer module), `packages/pi-thrift/packages/pi-accord/src/index.ts`, `packages/pi-worktree/packages/pi-accord/src/index.ts`
 

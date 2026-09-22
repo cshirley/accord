@@ -292,7 +292,7 @@ type AgentHarnessId = "exec" | "pi" | string;
 ### 5b — Optional companion packages
 
 - Document minimal install: `accord-cli` + `accord-core` + `accord-assets`.
-- Full Pi: `pi install` + optional `pi-subagent`, `pi-worktree`, etc.
+- Full Pi: `pi install` + optional `pi-subagent`, `pi-git`, etc.
 
 ### Acceptance criteria
 

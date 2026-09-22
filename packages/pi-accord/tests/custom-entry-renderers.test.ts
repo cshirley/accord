@@ -9,7 +9,7 @@ import {
   registerWorktreeStateEntryRenderer,
   renderWorktreeStateEntry,
   WORKTREE_STATE_ENTRY_TYPE,
-} from "../../pi-worktree/src/entry-render.js";
+} from "../../pi-git/src/worktree/entry-render.js";
 import {
   HARNESS_RUN_ENTRY_TYPE,
   registerHarnessRunEntryRenderer,

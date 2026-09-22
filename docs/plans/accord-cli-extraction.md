@@ -15,9 +15,9 @@ packages/
   pi-accord/            # Pi extension (src/, assets) — npm: @clive.shirley/pi-accord
   accord-mcp/           # Stdio MCP server — npm: @clive.shirley/accord-mcp
   pi-subagent/          # Pi subagent backend (one AgentHarness implementation)
-  pi-git-tools/         # Optional Pi companion
+  pi-git/         # Optional Pi companion
   pi-integrations/      # Optional Pi companion (Jira / Slack / Google)
-  pi-worktree/          # Optional Pi companion
+  pi-git/               # commit/PR/review + worktrees (wt_*, /wt)
   pi-thrift/            # Optional Pi companion
 ```
 

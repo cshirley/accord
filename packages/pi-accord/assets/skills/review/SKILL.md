@@ -16,7 +16,7 @@ General-purpose diff review. Reuses the same `review-*` agents as the ACCORD har
 
 ## Invocation
 
-Standalone review uses **`pi-git-tools`** for the diff ladder and **`pi-subagent`** for reviewers — not shell `git diff` and not `accord-mcp` (`dev_*` only).
+Standalone review uses **`pi-git`** for the diff ladder and **`pi-subagent`** for reviewers — not shell `git diff` and not `accord-mcp` (`dev_*` only).
 
 | Step | Tool name (exact) |
 |------|-------------------|
@@ -26,7 +26,7 @@ Standalone review uses **`pi-git-tools`** for the diff ladder and **`pi-subagent
 - **Pi TUI:** call those names from the agent tool list.
 - **Cursor + pi package:** `git_review_context` is often bridged as `mcp_pi_git_review_context`; `subagent` may appear as `mcp_pi_subagent` or similar. Names are not truncated.
 - **Do not** paste the full diff into subagent briefs; reviewers read `details.diff_path` from `git_review_context`.
-- **Do not** search MCP/bash to “find” these tools. If missing, ask the user to `pi install` this repo and confirm `pi-git-tools` and `pi-subagent` are under `pi.extensions` in root `package.json`.
+- **Do not** search MCP/bash to “find” these tools. If missing, ask the user to `pi install` this repo and confirm `pi-git` and `pi-subagent` are under `pi.extensions` in root `package.json`.
 
 ## When to use
 

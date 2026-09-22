@@ -58,11 +58,10 @@ packages/                      Bun workspaces — Pi extensions bundled with pi-
   pi-subagent/
     src/                       subagent tool + agent discovery
     tests/
-  pi-worktree/src/             wt_* tools, /wt command
+  pi-git/src/                  framework.ts, defs/, lib/, worktree/ — git_commit_*, gh_pr_*, wt_* tools, /wt
   pi-thrift/
     src/                       /thrift (alias /tp) input + output token pruning
     tests/
-  pi-git-tools/src/            git_commit_*, gh_pr_* tools
   pi-integrations/src/         Jira / Slack / Google Workspace integrations
   accord-ci/                   GitHub Actions autopipeline scripts + contract tests
 

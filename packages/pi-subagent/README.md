@@ -42,7 +42,7 @@ Exactly **one** mode per call:
 - **Project** (`"project"`): repo-local definitions (e.g. `.pi/agents`).
 - **Both** (`"both"`): union of user + project; project agents can trigger a UI confirm when `confirmProjectAgents` is true (default).
 
-Per-task **`cwd`** runs the child `pi` process with that working directory — use this with [worktree](../pi-worktree/README.md) paths for parallel branches.
+Per-task **`cwd`** runs the child `pi` process with that working directory — use this with [worktree](../pi-git/README.md#worktrees) paths for parallel branches.
 
 ## Configuration
 
