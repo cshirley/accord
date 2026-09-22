@@ -1,6 +1,6 @@
 # Packaged ACCORD assets
 
-Host-neutral prompt assets ship from **`packages/accord-assets/`**; Pi-only companion skills and CI templates stay under **`packages/pi-accord/assets/`**.
+Host-neutral prompt assets ship from **`packages/accord-assets/`**. Standalone Pi skills ship from **`packages/pi-skills/`**. Pi-only CI templates stay under **`packages/pi-accord/assets/`**.
 
 ```mermaid
 flowchart TB
@@ -10,12 +10,12 @@ flowchart TB
   A --> PR["providers/"]
   PR --> TR["trackers/(name).md + .json"]
   PR --> EN["enrichments/(name).md + .json"]
-  P["pi-accord/assets/"] --> SK["skills/"]
-  SK --> SA["commit, pr, review — SKILL.md"]
-  P --> CI["ci/ — subagent.json, thrift.json"]
+  S["pi-skills/"] --> SK["skills/"]
+  SK --> SA["commit, pr, review, crq-notify — SKILL.md"]
+  P["pi-accord/assets/"] --> CI["ci/ — subagent.json, thrift.json"]
 ```
 
-Root `package.json` advertises agents via `pi.agents` → `packages/accord-assets/agents` and skills via `pi.skills` → `packages/pi-accord/assets/skills/*`. Workflow routing lives in `packages/accord-core/src/orchestration/` (Pi and `accord` CLI).
+Root `package.json` advertises agents via `pi.agents` → `packages/accord-assets/agents` and skills via `pi.skills` → `packages/pi-skills/skills/*`. Workflow routing lives in `packages/accord-core/src/orchestration/` (Pi and `accord` CLI).
 
 ## Installer
 
@@ -23,9 +23,11 @@ Root `package.json` advertises agents via `pi.agents` → `packages/accord-asset
 bun run install:assets
 ```
 
-Links **accord-assets** (agents, providers, default.md) and **pi-accord skills** into `~/.config/pi/agent`. Refuses to replace locally modified files unless `--force`. Writes `.accord-assets.json` with combined manifest checksum.
+Links **accord-assets** (agents, providers, `default.md`) into `~/.config/pi/agent`. Refuses to replace locally modified files unless `--force`. Writes `.accord-assets.json` with manifest checksum.
 
-Override roots: `ACCORD_ASSETS_DIR`, `ACCORD_PI_PKG_DIR` (see `packages/accord-core/src/config/paths.ts`).
+Skills are **not** symlinked by this command — Pi loads them from `pi.skills` when you `pi install` the monorepo (or `pi install packages/pi-skills`).
+
+Override roots: `ACCORD_ASSETS_DIR` (see `packages/accord-core/src/config/paths.ts`).
 
 ## Validation
 
@@ -36,7 +38,7 @@ bun run validate:assets
 Runs:
 
 1. `packages/accord-assets/scripts/validate-assets.ts` — agents ↔ registry ↔ schemas ↔ provider sidecars
-2. `packages/pi-accord/scripts/validate-pi-skills.ts` — skills ↔ `package.json` `pi.skills`
+2. `packages/pi-skills/scripts/validate-pi-skills.ts` — skills ↔ `package.json` `pi.skills`
 
 ## Agent registry
 

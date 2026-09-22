@@ -57,7 +57,6 @@ describe("installPiAssets", () => {
     // Top-level symlinks created (the targets themselves; not asserting
     // through-link reads which break under macOS /var → /private/var
     // canonicalisation when readlink returns a relative path).
-    expect(readlinkSync(join(target, "skills", "commit"))).toContain("assets/skills/commit");
     expect(readlinkSync(join(target, "agents", "accord"))).toContain("accord-assets/agents/accord");
     expect(readlinkSync(join(target, "providers"))).toContain("accord-assets/providers");
     expect(existsSync(result.metadataPath)).toBe(true);
@@ -80,7 +79,6 @@ describe("installPiAssets", () => {
     const target = tempPiAgent();
     const result = installPiAssets({ target, dryRun: true });
     expect(result.linked.length).toBeGreaterThan(0);
-    expect(existsSync(join(target, "skills", "commit"))).toBe(false);
     expect(existsSync(join(target, "agents", "accord"))).toBe(false);
     expect(existsSync(join(target, "providers"))).toBe(false);
     expect(existsSync(result.metadataPath)).toBe(false);
@@ -125,29 +123,26 @@ describe("installPiAssets", () => {
 
   test("relinks stale symlinks without --force when asset_root moved", () => {
     const target = tempPiAgent();
-    const skillsDir = join(target, "skills");
-    mkdirSync(skillsDir, { recursive: true });
-    // Simulate a pre-refactor install pointing at the old repo-root assets/ path.
-    symlinkSync("/tmp/old-accord/assets/skills/commit", join(skillsDir, "commit"), "dir");
+    const agentsDir = join(target, "agents");
+    mkdirSync(agentsDir, { recursive: true });
+    symlinkSync("/tmp/old-accord/agents/accord", join(agentsDir, "accord"), "dir");
 
     const result = installPiAssets({ target });
     expect(result.conflicts).toEqual([]);
-    expect(result.linked).toContain(join(target, "skills", "commit"));
-    expect(readlinkSync(join(target, "skills", "commit"))).toContain(
-      "packages/pi-accord/assets/skills/commit",
+    expect(result.linked).toContain(join(target, "agents", "accord"));
+    expect(readlinkSync(join(target, "agents", "accord"))).toContain(
+      "accord-assets/agents/accord",
     );
   });
 
   test("reports conflicts when a target exists with different content and force is false", () => {
     const target = tempPiAgent();
-    // Pre-create skills/commit as a regular file (not a symlink) so the installer flags it
-    const skillsDir = join(target, "skills");
-    mkdirSync(skillsDir, { recursive: true });
-    writeFileSync(join(skillsDir, "commit"), "user content", "utf8");
+    const agentsDir = join(target, "agents");
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(join(agentsDir, "default.md"), "user content", "utf8");
 
     const result = installPiAssets({ target });
     expect(result.conflicts.length).toBeGreaterThan(0);
-    // Metadata is not written when there are conflicts
     expect(existsSync(result.metadataPath)).toBe(false);
   });
 });
@@ -233,7 +228,6 @@ describe("maybeAutoInstallAssets", () => {
     const meta = JSON.parse(readFileSync(metaPath, "utf8"));
     meta.version = "0.0.0-stale";
     writeFileSync(metaPath, JSON.stringify(meta));
-    rmSync(join(target, "skills", "commit"));
     rmSync(join(target, "agents", "accord"));
     rmSync(join(target, "providers"));
 
@@ -379,8 +373,8 @@ describe("maybeAutoInstallAssets", () => {
 
   test("conflicts → warns with --force hint, status conflicts", () => {
     const target = tempPiAgent();
-    mkdirSync(join(target, "skills"), { recursive: true });
-    writeFileSync(join(target, "skills", "commit"), "user content", "utf8");
+    mkdirSync(join(target, "agents"), { recursive: true });
+    writeFileSync(join(target, "agents", "default.md"), "user content", "utf8");
 
     const { host, events } = captureNotifies();
     const r = maybeAutoInstallAssets(host, { target, env: {} });
@@ -416,13 +410,13 @@ describe("maybeAutoInstallAssets", () => {
     expect(e2).toEqual([]);
   });
 
-  test("installed metadata symlink survives across two bootstraps and resolves to the package assets dir", () => {
+  test("installed agent symlink survives across two bootstraps and resolves to accord-assets", () => {
     const target = tempPiAgent();
     maybeAutoInstallAssets({ notify: () => {} }, { target, env: {} });
 
-    const skillSymlink = join(target, "skills", "commit");
-    const linkTarget = readlinkSync(skillSymlink);
-    expect(linkTarget).toContain("assets/skills/commit");
+    const agentSymlink = join(target, "agents", "accord");
+    const linkTarget = readlinkSync(agentSymlink);
+    expect(linkTarget).toContain("accord-assets/agents/accord");
   });
 
   test("first install via the bootstrap also seeds accord.json", () => {

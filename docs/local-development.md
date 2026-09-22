@@ -115,7 +115,7 @@ If pi loads but `/dev` is missing, check:
 
 - TypeScript edits under `src/` or `packages/` take effect on the next pi session restart (Pi loads extension modules from the registered checkout, so there's no rebuild step).
 - Prompt edits under `packages/accord-assets/agents/` and `packages/accord-assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
-- Skill edits under `packages/pi-accord/assets/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation.
+- Skill edits under `packages/pi-skills/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation (via `pi.skills`, not `install:assets`).
 - Schema edits require running `node packages/accord-core/schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
 
 Run `npm run check` before any structural change you intend to keep — the suite covers tests, schemas, asset/manifest consistency, type-check, bundle, and a runtime smoke.

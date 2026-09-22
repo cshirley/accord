@@ -11,7 +11,7 @@
   "scripts": {
     "test": "bun test",
     "validate:schemas": "node packages/accord-core/schemas/examples/validate-examples.mjs",
-    "validate:assets": "bun packages/accord-assets/scripts/validate-assets.ts && bun packages/pi-accord/scripts/validate-pi-skills.ts",
+    "validate:assets": "bun packages/accord-assets/scripts/validate-assets.ts && bun packages/pi-skills/scripts/validate-pi-skills.ts",
     "install:assets": "bun packages/pi-accord/scripts/install-assets.ts",
     "install:assets:force": "bun packages/pi-accord/scripts/install-assets.ts --force",
     "install:shim": "bun packages/accord-cli/scripts/install-shim.ts",
@@ -66,10 +66,10 @@
       "./packages/pi-accord/src/index.ts"
     ],
     "skills": [
-      "./packages/pi-accord/assets/skills/commit",
-      "./packages/pi-accord/assets/skills/crq-notify",
-      "./packages/pi-accord/assets/skills/pr",
-      "./packages/pi-accord/assets/skills/review"
+      "./packages/pi-skills/skills/commit",
+      "./packages/pi-skills/skills/crq-notify",
+      "./packages/pi-skills/skills/pr",
+      "./packages/pi-skills/skills/review"
     ],
     "agents": [
       "./packages/accord-assets/agents"

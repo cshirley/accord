@@ -119,7 +119,7 @@ flowchart TB
 | Core         | `packages/accord-core/src/`           | Host-neutral logic (config, artifacts, queries, briefing, telemetry, verification) |
 | Schemas      | `packages/accord-core/schemas/`            | Source of truth for every artifact and every agent return packet                |
 
-Every phase and review agent is a fresh subagent process — a separate Pi conversation with its own context window. The core orchestrator reads work item JSON on disk and structured return packets from each spawn; the main Pi session does not accumulate phase-agent context. Companion skills (`commit`, `pr`, `review`) ship under `packages/pi-accord/assets/skills/` for post-implementation workflows.
+Every phase and review agent is a fresh subagent process — a separate Pi conversation with its own context window. The core orchestrator reads work item JSON on disk and structured return packets from each spawn; the main Pi session does not accumulate phase-agent context. Companion skills (`commit`, `pr`, `review`) ship in `packages/pi-skills/` for post-implementation workflows.
 
 ---
 

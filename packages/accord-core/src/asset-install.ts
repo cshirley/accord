@@ -1,13 +1,14 @@
 /**
  * Pi asset installer — pure file-system logic for symlinking the
- * bundled host-neutral assets (`accord-assets`) and Pi-only skills
- * (`pi-accord/assets/skills`) into a Pi config directory. Idempotent:
- * correct symlinks are left untouched, locally modified destinations are
- * preserved unless `force: true`.
+ * bundled host-neutral assets (`accord-assets`) into a Pi config directory.
+ * Idempotent: correct symlinks are left untouched, locally modified destinations
+ * are preserved unless `force: true`.
  *
- * This module is host-neutral and has no dependency on Pi APIs. The
- * CLI wrapper lives in `packages/pi-accord/scripts/install-assets.ts`;
- * the runtime auto-install bootstrap lives in `harness/asset-bootstrap.ts`.
+ * Standalone Pi skills (`packages/pi-skills`) are **not** installed here;
+ * Pi loads them from `package.json` → `pi.skills` when you `pi install` the repo.
+ *
+ * CLI wrapper: `packages/pi-accord/scripts/install-assets.ts`;
+ * runtime auto-install: `harness/asset-bootstrap.ts`.
  */
 
 import { createHash } from "node:crypto";
@@ -26,13 +27,7 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { type SeedGlobalConfigStatus, seedGlobalConfigFile } from "./config/global.js";
-import {
-  ASSETS_DIR,
-  ASSETS_MANIFEST_PATH,
-  PI_MANIFEST_PATH,
-  PI_PKG_DIR,
-  PI_SKILLS_DIR,
-} from "./config/paths.js";
+import { ASSETS_DIR, ASSETS_MANIFEST_PATH } from "./config/paths.js";
 
 type AssetsManifest = {
   package: string;
@@ -45,18 +40,10 @@ type AssetsManifest = {
   };
 };
 
-type PiManifest = {
-  package: string;
-  assets: {
-    skills: string[];
-  };
-};
-
 type LinkKind = "file" | "dir";
 
 export interface InstallRoots {
   assetsRoot: string;
-  skillsRoot: string;
 }
 
 export interface InstallOptions extends Partial<InstallRoots> {
@@ -67,10 +54,11 @@ export interface InstallOptions extends Partial<InstallRoots> {
   /** When true, compute the plan without writing anything. */
   dryRun?: boolean;
   /**
-   * @deprecated Use {@link InstallRoots.assetsRoot}. When set alone, skills
-   * default to sibling `pi-accord` under the monorepo.
+   * @deprecated Use {@link InstallRoots.assetsRoot}.
    */
   packageRoot?: string;
+  /** @deprecated Skills are no longer installed via install:assets. */
+  skillsRoot?: string;
 }
 
 export interface InstallResult {
@@ -99,10 +87,8 @@ export interface AccordAssetsMetadata {
   installed_at: string;
   install_mode: "symlink";
   asset_root: string;
-  skills_root: string;
   manifest_sha256: string;
   assets: {
-    skills: string[];
     agents: string[];
     providers?: AssetsManifest["assets"]["providers"];
   };
@@ -113,15 +99,13 @@ export const DEFAULT_PI_AGENT_DIR = join(homedir(), ".config", "pi", "agent");
 export function defaultInstallRoots(): InstallRoots {
   return {
     assetsRoot: ASSETS_DIR,
-    skillsRoot: PI_PKG_DIR,
   };
 }
 
 function resolveInstallRoots(opts: InstallOptions): InstallRoots {
   const defaults = defaultInstallRoots();
   const assetsRoot = opts.assetsRoot ?? opts.packageRoot ?? defaults.assetsRoot;
-  const skillsRoot = opts.skillsRoot ?? defaults.skillsRoot;
-  return { assetsRoot, skillsRoot };
+  return { assetsRoot };
 }
 
 function pathExists(path: string): boolean {
@@ -229,41 +213,22 @@ function readAssetsManifest(assetsRoot: string): AssetsManifest {
   return JSON.parse(readFileSync(manifestPath, "utf8")) as AssetsManifest;
 }
 
-function readPiManifest(skillsRoot: string): PiManifest {
-  const manifestPath = join(skillsRoot, "assets", "manifest.pi.json");
-  return JSON.parse(readFileSync(manifestPath, "utf8")) as PiManifest;
-}
-
-function combinedManifestSha256(assetsRoot: string, skillsRoot: string): string {
-  const assetsManifest = readFileSync(join(assetsRoot, "manifest.json"));
-  const piManifest = readFileSync(join(skillsRoot, "assets", "manifest.pi.json"));
-  return sha256(Buffer.concat([assetsManifest, piManifest]));
+function assetsManifestSha256(assetsRoot: string): string {
+  return sha256(readFileSync(join(assetsRoot, "manifest.json")));
 }
 
 export function installPiAssets(opts: InstallOptions = {}): InstallResult {
-  const { assetsRoot, skillsRoot } = resolveInstallRoots(opts);
+  const { assetsRoot } = resolveInstallRoots(opts);
   const target = opts.target ?? DEFAULT_PI_AGENT_DIR;
   const force = opts.force ?? false;
   const dryRun = opts.dryRun ?? false;
 
   const assetsManifest = readAssetsManifest(assetsRoot);
-  const piManifest = readPiManifest(skillsRoot);
   const assetsPackagePath = join(assetsRoot, "package.json");
   const pkg = JSON.parse(readFileSync(assetsPackagePath, "utf8")) as { version?: string };
 
   const conflicts: string[] = [];
   const linked: string[] = [];
-
-  for (const skill of piManifest.assets.skills) {
-    linkAsset(
-      join(skillsRoot, "assets", "skills", skill),
-      join(target, "skills", skill),
-      "dir",
-      { force, dryRun },
-      conflicts,
-      linked,
-    );
-  }
 
   linkAsset(
     join(assetsRoot, "agents", "accord"),
@@ -298,10 +263,8 @@ export function installPiAssets(opts: InstallOptions = {}): InstallResult {
     installed_at: new Date().toISOString(),
     install_mode: "symlink",
     asset_root: assetsRoot,
-    skills_root: join(skillsRoot, "assets", "skills"),
-    manifest_sha256: combinedManifestSha256(assetsRoot, skillsRoot),
+    manifest_sha256: assetsManifestSha256(assetsRoot),
     assets: {
-      skills: piManifest.assets.skills,
       agents: assetsManifest.assets.agents,
       providers: assetsManifest.assets.providers,
     },
@@ -343,14 +306,14 @@ export function currentAssetSignature(roots: InstallOptions | InstallRoots = {})
   version: string;
   manifest_sha256: string;
 } {
-  const { assetsRoot, skillsRoot } = resolveInstallRoots(roots);
+  const { assetsRoot } = resolveInstallRoots(roots);
   const packagePath = join(assetsRoot, "package.json");
   const pkg = JSON.parse(readFileSync(packagePath, "utf8")) as { version?: string };
   return {
     version: pkg.version ?? "unknown",
-    manifest_sha256: combinedManifestSha256(assetsRoot, skillsRoot),
+    manifest_sha256: assetsManifestSha256(assetsRoot),
   };
 }
 
-/** @internal test helper — skills bundle path */
-export { ASSETS_MANIFEST_PATH, PI_MANIFEST_PATH, PI_SKILLS_DIR };
+/** @internal test helper — accord-assets manifest path */
+export { ASSETS_MANIFEST_PATH };

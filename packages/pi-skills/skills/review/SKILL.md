@@ -88,7 +88,7 @@ Then call **`subagent` once** with `{ tasks: details.tasks }` from that tool. Do
 
 Briefs are standalone (no spec/plan). Reviewers read `diff_path` on disk — never paste the diff into the task string.
 
-Agents resolve by name (`review-code`, `review-security`, `review-test`) under `~/.config/pi/agent/agents/` (e.g. `bun run install:assets` in an ACCORD checkout).
+Agents resolve by name (`review-code`, `review-security`, `review-test`) under `~/.config/pi/agent/agents/accord/` (e.g. `bun run install:assets` for ACCORD review agents).
 
 ## Step 3 — Synthesise
 

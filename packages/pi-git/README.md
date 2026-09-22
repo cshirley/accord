@@ -73,4 +73,4 @@ flowchart TB
   wt --> wtRender["entry-render.ts — session entry renderer"]
 ```
 
-Pair commit/PR tools with bundled skills under `packages/pi-accord/assets/skills/commit` and `pr`.
+Pair commit/PR tools with standalone skills under `packages/pi-skills/skills/commit` and `pr`.

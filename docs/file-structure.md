@@ -53,7 +53,9 @@ packages/                      Bun workspaces — Pi extensions bundled with pi-
       integrations/            pi-subagent re-exports
       queries/                 Pi-backed subagent spawn preflight
     assets/                    Pi skills + CI templates (agents/providers → accord-assets)
-    scripts/                   install-assets, validate-pi-skills, runtime-smoke
+    scripts/                   install-assets, runtime-smoke
+  pi-skills/                   standalone Pi skills (commit, pr, review, crq-notify)
+    scripts/                   validate-pi-skills
     tests/                     Pi adapter tests only (hooks, CLI client, spawn UI, …)
   pi-subagent/
     src/                       subagent tool + agent discovery

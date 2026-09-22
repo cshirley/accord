@@ -18,9 +18,14 @@ export const ASSETS_DIR = path.resolve(
     path.join(CORE_DIR, "../accord-assets"),
 );
 
-/** Pi harness package root (`assets/skills/`, `assets/ci/`). */
+/** Pi harness package root (`assets/ci/`, extension entry). */
 export const PI_PKG_DIR = path.resolve(
   process.env.ACCORD_PI_PKG_DIR?.trim() || path.join(CORE_DIR, "../pi-accord"),
+);
+
+/** Standalone Pi skills package (`skills/*` SKILL.md trees). */
+export const PI_SKILLS_PKG_DIR = path.resolve(
+  process.env.ACCORD_PI_SKILLS_DIR?.trim() || path.join(CORE_DIR, "../pi-skills"),
 );
 
 /** @deprecated Prefer {@link ASSETS_DIR}. */
@@ -36,8 +41,8 @@ export const PROVIDERS_DIR = path.join(ASSETS_DIR, "providers");
 export const PROVIDERS_TRACKERS_DIR = path.join(PROVIDERS_DIR, "trackers");
 export const PROVIDERS_ENRICHMENTS_DIR = path.join(PROVIDERS_DIR, "enrichments");
 
-export const PI_SKILLS_DIR = path.join(PI_PKG_DIR, "assets", "skills");
-export const PI_MANIFEST_PATH = path.join(PI_PKG_DIR, "assets", "manifest.pi.json");
+export const PI_SKILLS_DIR = path.join(PI_SKILLS_PKG_DIR, "skills");
+export const PI_MANIFEST_PATH = path.join(PI_SKILLS_PKG_DIR, "manifest.pi.json");
 export const ASSETS_MANIFEST_PATH = path.join(ASSETS_DIR, "manifest.json");
 
 /** Host-neutral global config directory (`ACCORD_CONFIG_DIR` override). */

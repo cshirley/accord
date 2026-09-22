@@ -120,7 +120,6 @@ export interface BootstrapOptions {
   target?: string;
   /** Override install roots (mainly for tests). */
   assetsRoot?: string;
-  skillsRoot?: string;
   /** @deprecated Use {@link assetsRoot}. */
   packageRoot?: string;
   /** Override env lookup (mainly for tests). */
@@ -146,7 +145,6 @@ export function maybeAutoInstallAssets(
   try {
     current = currentAssetSignature({
       assetsRoot: opts.assetsRoot ?? opts.packageRoot,
-      skillsRoot: opts.skillsRoot,
     });
   } catch (e) {
     const msg = `ACCORD: cannot read bundled manifest (${e instanceof Error ? e.message : String(e)}). Run \`bun install\` in the extension repo.`;
@@ -201,7 +199,6 @@ export function maybeAutoInstallAssets(
     result = installPiAssets({
       target: opts.target,
       assetsRoot: opts.assetsRoot ?? opts.packageRoot,
-      skillsRoot: opts.skillsRoot,
     });
   } catch (e) {
     const msg = `ACCORD: asset install failed (${e instanceof Error ? e.message : String(e)}). Run \`bun run install:assets\` manually for details.`;

@@ -33,7 +33,6 @@
     ]
   },
   "accord": {
-    "assetManifest": "../accord-assets/manifest.json",
-    "piManifest": "./assets/manifest.pi.json"
+    "assetManifest": "../accord-assets/manifest.json"
   }
 }

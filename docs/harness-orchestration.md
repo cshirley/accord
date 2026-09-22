@@ -114,7 +114,7 @@ The executable phased plan (spikes, deliverables per phase, acceptance criteria,
 ## Success criteria
 
 - Workflow graph and transition policy live in **`packages/accord-core/src/orchestration/`**, validated by tests.
-- Bundled **`accord` orchestrator skill removed**; companion skills (`commit`, `pr`, `review`) remain under `packages/pi-accord/assets/skills/`.
+- Bundled **`accord` orchestrator skill removed**; companion skills (`commit`, `pr`, `review`) live in standalone `packages/pi-skills/`.
 - `packages/pi-accord/src/extension.ts` stays thin: **parse → core runner → map outcome to Pi UI / host calls**.
 - Cross-provider behaviour depends on **code + schemas**, not on whether the chat model recalled the playbook.
 - **`/dev retro`** keeps correlating Pi insights sessions with harness work via the `dev-harness-run` transcript marker (regression: `tests/dev-retro-harness-marker.test.ts`).

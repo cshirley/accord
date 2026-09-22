@@ -1,0 +1,22 @@
+{
+  "name": "@clive.shirley/pi-skills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone Pi skills (commit, pr, review, crq-notify) — loaded via pi.skills, not ACCORD install:assets",
+  "keywords": [
+    "pi-package"
+  ],
+  "files": [
+    "skills/",
+    "manifest.pi.json",
+    "README.md"
+  ],
+  "pi": {
+    "skills": [
+      "./skills/commit",
+      "./skills/pr",
+      "./skills/review",
+      "./skills/crq-notify"
+    ]
+  }
+}
