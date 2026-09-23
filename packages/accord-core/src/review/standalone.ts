@@ -18,12 +18,50 @@ const MAX_TEST_OUTPUT_BYTES = 64 * 1024;
 
 export const STANDALONE_REVIEW_DIFF_BASENAME = "diff.patch";
 
+export type StandaloneReviewLocalLayer = "staged" | "unstaged";
+
+/** Ladder step for orchestrators (`local` merges staged + unstaged). */
+export type StandaloneReviewNormalizedSource = "local" | "branch";
+
+/** Backward-compatible `source` for callers that branched on staged/unstaged. */
+export type StandaloneReviewLegacySource =
+  | StandaloneReviewNormalizedSource
+  | StandaloneReviewLocalLayer;
+
 export type StandaloneReviewDiff = {
   /** Full raw diff from git for the resolved ladder step. */
   raw_diff: string;
   file_list: string[];
-  source: "staged" | "unstaged" | "branch";
+  /** Ladder step: uncommitted changes vs HEAD, or branch vs origin/HEAD. */
+  normalized_source: StandaloneReviewNormalizedSource;
+  /**
+   * Legacy alias — `staged` / `unstaged` when a single local layer contributed,
+   * otherwise `local` or `branch`. Prefer {@link normalized_source} for new code.
+   */
+  source: StandaloneReviewLegacySource;
+  /** Present when {@link normalized_source} is `local`: which git diff layers contributed. */
+  local_layers?: StandaloneReviewLocalLayer[];
 };
+
+/** Migration helper for consumers that branched on pre-`local` ladder `source` values. */
+export function resolveStandaloneReviewSourceAlias(
+  normalized_source: StandaloneReviewNormalizedSource,
+  local_layers?: StandaloneReviewLocalLayer[],
+): StandaloneReviewLegacySource {
+  if (normalized_source === "branch") {
+    return "branch";
+  }
+  if (!local_layers || local_layers.length === 0) {
+    return "local";
+  }
+  if (local_layers.length === 1) {
+    return local_layers[0];
+  }
+  return "local";
+}
+
+const LABELED_STAGED_HEADER = "## ACCORD review: staged (git diff --cached)\n";
+const LABELED_UNSTAGED_HEADER = "## ACCORD review: unstaged (git diff)\n";
 
 export type StandaloneReviewPreparedContext = StandaloneReviewDiff & {
   /** Absolute path to the full diff on disk. */
@@ -90,35 +128,90 @@ export async function resolveStandaloneReviewTestCommand(
   }
 }
 
+function parseGitNameOnly(raw: string): string[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function mergeUniquePaths(...lists: string[][]): string[] {
+  return [...new Set(lists.flat())];
+}
+
+function formatLabeledLocalDiff(
+  staged: string,
+  unstaged: string,
+  local_layers: StandaloneReviewLocalLayer[],
+): string {
+  const parts: string[] = [];
+  if (local_layers.includes("staged") && staged.trim()) {
+    parts.push(`${LABELED_STAGED_HEADER}${staged.trimEnd()}`);
+  }
+  if (local_layers.includes("unstaged") && unstaged.trim()) {
+    parts.push(`${LABELED_UNSTAGED_HEADER}${unstaged.trimEnd()}`);
+  }
+  return parts.join("\n\n");
+}
+
+/** Staged + unstaged vs HEAD; labeled layer sections when `git diff HEAD` is empty or HEAD is unborn. */
+async function collectLocalReviewDiff(
+  cwd: string,
+): Promise<{ raw_diff: string; file_list: string[]; local_layers: StandaloneReviewLocalLayer[] }> {
+  const staged = await git(["diff", "--cached"], cwd);
+  const unstaged = await git(["diff"], cwd);
+  const local_layers: StandaloneReviewLocalLayer[] = [];
+  if (staged.trim()) {
+    local_layers.push("staged");
+  }
+  if (unstaged.trim()) {
+    local_layers.push("unstaged");
+  }
+  const layerFiles = mergeUniquePaths(
+    parseGitNameOnly(await git(["diff", "--cached", "--name-only"], cwd)),
+    parseGitNameOnly(await git(["diff", "--name-only"], cwd)),
+  );
+
+  let hasHead = true;
+  try {
+    await git(["rev-parse", "HEAD"], cwd);
+  } catch {
+    hasHead = false;
+  }
+
+  if (hasHead) {
+    const headDiff = await git(["diff", "HEAD"], cwd);
+    const headFiles = parseGitNameOnly(await git(["diff", "--name-only", "HEAD"], cwd));
+    if (headDiff.trim() || headFiles.length > 0) {
+      return {
+        raw_diff: headDiff,
+        file_list: headFiles.length > 0 ? headFiles : layerFiles,
+        local_layers,
+      };
+    }
+  }
+
+  return {
+    raw_diff: formatLabeledLocalDiff(staged, unstaged, local_layers),
+    file_list: layerFiles,
+    local_layers,
+  };
+}
+
 export async function gatherStandaloneReviewDiff(
   cwd: string,
 ): Promise<Result<StandaloneReviewDiff>> {
   try {
-    const stagedDiff = await git(["diff", "--staged"], cwd);
-    const stagedFiles = (await git(["diff", "--staged", "--name-only"], cwd))
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const local = await collectLocalReviewDiff(cwd);
 
-    if (stagedDiff.trim() || stagedFiles.length > 0) {
+    if (local.raw_diff.trim() || local.file_list.length > 0) {
+      const normalized_source: StandaloneReviewNormalizedSource = "local";
       return ok({
-        raw_diff: stagedDiff,
-        file_list: stagedFiles,
-        source: "staged",
-      });
-    }
-
-    const unstagedDiff = await git(["diff"], cwd);
-    const unstagedFiles = (await git(["diff", "--name-only"], cwd))
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (unstagedDiff.trim() || unstagedFiles.length > 0) {
-      return ok({
-        raw_diff: unstagedDiff,
-        file_list: unstagedFiles,
-        source: "unstaged",
+        raw_diff: local.raw_diff,
+        file_list: local.file_list,
+        normalized_source,
+        source: resolveStandaloneReviewSourceAlias(normalized_source, local.local_layers),
+        local_layers: local.local_layers,
       });
     }
 
@@ -132,11 +225,12 @@ export async function gatherStandaloneReviewDiff(
       return ok({
         raw_diff: branchDiff,
         file_list: branchFiles,
+        normalized_source: "branch",
         source: "branch",
       });
     }
 
-    return err("No diff found (staged, unstaged, or origin/HEAD...HEAD).");
+    return err("No diff found (local changes vs HEAD, or origin/HEAD...HEAD).");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return err(`Failed to gather git diff: ${message}`);
@@ -169,15 +263,12 @@ export async function prepareStandaloneReviewContext(
   if (!gathered.ok) {
     return gathered;
   }
-  const { raw_diff, file_list, source } = gathered.value;
-  const file = await writeStandaloneReviewDiffFile(raw_diff);
+  const file = await writeStandaloneReviewDiffFile(gathered.value.raw_diff);
   return ok({
-    raw_diff,
-    file_list,
-    source,
+    ...gathered.value,
     diff_path: file.diff_path,
     temp_dir: file.temp_dir,
-    excerpt: excerptStandaloneReviewDiff(raw_diff),
+    excerpt: excerptStandaloneReviewDiff(gathered.value.raw_diff),
     cleanup: file.cleanup,
   });
 }
@@ -185,12 +276,19 @@ export async function prepareStandaloneReviewContext(
 export function buildStandaloneReviewTasks(input: {
   /** Absolute path to full git diff (always written to a temp file). */
   diff_path: string;
-  source: StandaloneReviewDiff["source"];
+  source: StandaloneReviewLegacySource;
   file_list: string[];
+  local_layers?: StandaloneReviewLocalLayer[];
   test_output?: string;
 }): StandaloneReviewTask[] {
   const fileList = input.file_list.join(", ") || "(none)";
-  const diffSection = formatStandaloneReviewDiffSection(input.diff_path, input.source);
+  const normalized_source: StandaloneReviewNormalizedSource =
+    input.source === "branch" ? "branch" : "local";
+  const diffSection = formatStandaloneReviewDiffSection(
+    input.diff_path,
+    normalized_source,
+    input.local_layers,
+  );
 
   const codeBrief = (role: string) =>
     `${role} Changed files: \`${fileList}\`. ${diffSection}`;
@@ -201,7 +299,7 @@ export function buildStandaloneReviewTasks(input: {
     {
       agent: "review-code",
       task: codeBrief(
-        "Review the following diff. There is no spec or plan — skip the Drift section entirely.",
+        "Review the following diff. There is no spec or plan — skip the Drift section entirely. Apply **Existing patterns / local consistency** from review-code (targeted grep/find; advisory unless clear duplicate).",
       ),
     },
     {
@@ -227,9 +325,25 @@ export function buildStandaloneReviewTasks(input: {
 
 function formatStandaloneReviewDiffSection(
   diffPath: string,
-  source: StandaloneReviewDiff["source"],
+  normalized_source: StandaloneReviewNormalizedSource,
+  local_layers?: StandaloneReviewLocalLayer[],
 ): string {
-  return `Read the full diff from \`${diffPath}\` (git diff output, source: ${source}). Do not rely on inline excerpts.`;
+  const layerText =
+    normalized_source === "local" && local_layers && local_layers.length > 0
+      ? `, local_layers: ${local_layers.join("+")}`
+      : "";
+  const artifactNote =
+    normalized_source === "local" && local_layers && local_layers.length > 1
+      ? " Artifact is a single `git diff HEAD` patch when non-empty; otherwise labeled staged/unstaged sections. Unstaged hunks may include secrets not meant for review — treat as sensitive."
+      : "";
+  return `Read the full diff from \`${diffPath}\` (git diff output, normalized_source: ${normalized_source}${layerText}).${artifactNote} Do not rely on inline excerpts.`;
+}
+
+/** True when both staged and unstaged layers contribute to a local review payload. */
+export function standaloneReviewIncludesUnstagedLayer(
+  local_layers?: StandaloneReviewLocalLayer[],
+): boolean {
+  return Boolean(local_layers?.includes("unstaged"));
 }
 
 export function parseStandaloneReviewAgentResult(

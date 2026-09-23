@@ -214,7 +214,7 @@ describe("standalone review helpers", () => {
 
     const tasks = buildStandaloneReviewTasks({
       diff_path: "/tmp/accord-review/diff.patch",
-      source: "staged",
+      source: "local",
       file_list: ["src/foo.test.ts"],
       test_output: "ok",
     });
@@ -223,6 +223,17 @@ describe("standalone review helpers", () => {
       "review-security",
       "review-test",
     ]);
+    const reviewTest = tasks.find((task) => task.agent === "review-test");
+    const reviewCode = tasks.find((task) => task.agent === "review-code");
+    expect(reviewTest?.task).toContain("/tmp/accord-review/diff.patch");
+    expect(reviewTest?.task).toContain("normalized_source: local");
+    expect(reviewCode?.task).toContain("Existing patterns / local consistency");
+    expect(reviewTest?.task).toContain("mode: post-impl");
+    expect(reviewTest?.task).toContain("skip Check 1");
+    expect(reviewTest?.task).toContain("Check 3/3b");
+    expect(reviewTest?.task).toContain("Check 7 (spec contract)");
+    expect(reviewTest?.task).toContain("Run Checks 1b, 2, 4, 5, and 6");
+    expect(reviewTest?.task).toContain("Test output:\nok");
   });
 
   test("synthesizes merged report", () => {

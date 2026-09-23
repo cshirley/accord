@@ -52,6 +52,15 @@ Severity:
 - `warning` — missing non-goals, unexamined failure mode, asymmetric trade-off framing
 - `suggestion` — hidden assumption worth surfacing, clarity improvement
 
+## Findings ordering
+
+`severity` is the harness priority signal — do not add a separate `priority` field.
+
+1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
+2. Within the same severity: one-way-door and spec-alignment (rejected-alternative resurrection) before framing nits; then document order (earlier sections first).
+3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `file`+`line` unless categories differ materially.
+4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+
 ## Rules
 
 - Do not rewrite the doc. Review only.

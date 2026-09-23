@@ -29,10 +29,8 @@ const runSubagentMock = mock(async (params: Record<string, unknown>) => {
   };
 });
 
-mock.module("../src/spawn/index.js", () => ({
+mock.module("../src/spawn/run.js", () => ({
   runSubagent: runSubagentMock,
-  spawnSubagent: runSubagentMock,
-  resolveSpawnAgent: () => ({}),
 }));
 
 afterAll(() => {

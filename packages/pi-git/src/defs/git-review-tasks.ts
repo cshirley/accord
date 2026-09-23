@@ -1,11 +1,12 @@
-import type { StandaloneReviewDiff } from "@clive.shirley/accord-core/review/standalone.js";
+import type { StandaloneReviewLegacySource } from "@clive.shirley/accord-core/review/standalone.js";
 import { defineTool } from "../framework.js";
 import { formatReviewTasks, runGitReviewTasks } from "../lib/review/tasks.js";
 
 type GitReviewTasksParams = {
   diff_path: string;
-  source: StandaloneReviewDiff["source"];
+  source: StandaloneReviewLegacySource | "staged" | "unstaged";
   file_list: string[];
+  local_layers?: ("staged" | "unstaged")[];
   test_output?: string;
 };
 
@@ -19,11 +20,17 @@ export default defineTool<GitReviewTasksParams>({
     diff_path: { type: "string", description: "Absolute path from git_review_context details.diff_path" },
     source: {
       type: "string",
-      description: "Diff ladder source from git_review_context (staged, unstaged, or branch)",
+      description:
+        "Diff ladder source from git_review_context (local or branch; staged/unstaged accepted as aliases for local)",
     },
     file_list: {
       type: "string[]",
       description: "Changed paths from git_review_context details.file_list",
+    },
+    local_layers: {
+      type: "string[]",
+      required: false,
+      description: "From git_review_context details.local_layers when source is local",
     },
     test_output: {
       type: "string",
@@ -33,10 +40,10 @@ export default defineTool<GitReviewTasksParams>({
   },
   progress: "Building review subagent tasks…",
   async execute(params) {
-    const source = params.source;
-    if (source !== "staged" && source !== "unstaged" && source !== "branch") {
+    const source = normalizeStandaloneReviewSource(params.source);
+    if (!source) {
       return {
-        text: `Invalid source: ${String(source)}`,
+        text: `Invalid source: ${String(params.source)}`,
         isError: true,
       };
     }
@@ -44,6 +51,7 @@ export default defineTool<GitReviewTasksParams>({
       diff_path: params.diff_path,
       source,
       file_list: params.file_list,
+      local_layers: params.local_layers,
       test_output: params.test_output,
     });
     return {
@@ -52,3 +60,17 @@ export default defineTool<GitReviewTasksParams>({
     };
   },
 });
+
+function normalizeStandaloneReviewSource(
+  source: string,
+): StandaloneReviewLegacySource | null {
+  if (
+    source === "local" ||
+    source === "branch" ||
+    source === "staged" ||
+    source === "unstaged"
+  ) {
+    return source;
+  }
+  return null;
+}

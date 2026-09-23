@@ -70,6 +70,10 @@ Key content expectations for deviation reviews:
 - **Architectural deviations**: `verdict: "issues"` with a `critical` finding. `file` points to the plan/spec. `issue` is the inconsistency. `evidence` cites specific plan/spec text vs actual diff. `recommendation` offers 3 options: amend spec, revert, or accept.
 - **Mechanical reclassification**: `verdict: "clean"` with a `suggestion` finding noting what was reclassified and that plan guidance was updated.
 
+## Findings ordering
+
+Usually one finding. When multiple: `critical` (architectural) before `suggestion` (mechanical notes). Do not add a separate `priority` field — `severity` is the harness signal.
+
 ## Rules
 
 - Be strict about classification. If you can't tell, it's architectural.

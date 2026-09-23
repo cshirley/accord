@@ -152,7 +152,7 @@ accord resume DEMO-1 --harness exec
 
 ### Review
 
-Mirrors the bundled `/review` skill: gathers git diff (staged → unstaged → `origin/HEAD...HEAD`), writes the full diff to a temp file, runs review agents **in parallel** via harness, merges findings, then deletes the temp dir.
+Shares the same diff ladder, task briefs, and report synthesis as the bundled `/review` skill (`gatherStandaloneReviewDiff`, `buildStandaloneReviewTasks`, `synthesizeStandaloneReviewReport`). **Orchestration differs:** CLI runs tests then all review agents in one parallel harness batch; Pi `/review` may overlap tests with code/security and run `review-test` in a second wave. Gathers git diff (local staged+unstaged vs `HEAD`, else `origin/HEAD...HEAD`), writes the full diff to a temp file, then deletes the temp dir when finished.
 
 ```bash
 accord review --harness pi

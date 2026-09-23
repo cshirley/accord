@@ -63,6 +63,15 @@ Severity:
 
 Reference the OWASP category (`A01`–`A10`) in `issue` so operators can triage.
 
+## Findings ordering
+
+`severity` is the harness priority signal — do not add a separate `priority` field.
+
+1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
+2. Within the same severity: exploitable authz/secrets/PCI before hardening gaps; then OWASP category order (`A01`–`A10`, then `payment`, then `supply-chain`); then ascending `file` path (and `line` within a file).
+3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `file`+`line` unless categories differ materially.
+4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+
 ## Rules
 
 - Do not propose non-security refactors. Narrow scope.

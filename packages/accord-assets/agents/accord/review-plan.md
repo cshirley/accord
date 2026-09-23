@@ -76,6 +76,15 @@ Severity:
 - `warning` — architectural concern, ⚠️ mechanical drift
 - `suggestion` — improvement
 
+## Findings ordering
+
+`severity` is the harness priority signal — do not add a separate `priority` field.
+
+1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
+2. Within the same severity: ❌ mechanical checks before architectural concerns; then ascending `ref` (`AC-*`, `task-*`) when present; then plan path order in `file`.
+3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `ref` (AC or task) unless categories differ materially.
+4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+
 ## Rules
 
 - No plan edits. Observe only.

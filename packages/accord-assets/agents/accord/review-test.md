@@ -249,6 +249,15 @@ Severity:
 - `warning` — SHOULD AC gaps; scenario misalignment; mock-only integration for integration TC; order-dependent tests; `ac_covered` drift; existing_tests baseline mismatch
 - `suggestion` — MAY AC gaps; stronger assertion possible; missing AC comment tags; untested non-MUST branch
 
+## Findings ordering
+
+`severity` is the harness priority signal — do not add a separate `priority` field.
+
+1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
+2. Within the same severity: Check 0 / false-green and MUST AC adversarial gaps before inventory and fixture nits; then ascending `ref` (`AC-*`, `TC-*`); then test `file` path (and `line` within a file).
+3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `file`+`line` unless categories differ materially.
+4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+
 ## Rules
 
 - Do not modify tests. Observe and attack only.

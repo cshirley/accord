@@ -42,6 +42,7 @@ export async function runReviewCommand(
       diff_path: review.diff_path,
       source: review.source,
       file_list: review.file_list,
+      local_layers: review.local_layers,
       test_output: testOutput,
     });
 

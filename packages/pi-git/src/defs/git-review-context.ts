@@ -5,7 +5,7 @@ export default defineTool({
   name: "git_review_context",
   label: "Git Review Context",
   description:
-    "Gather standalone review diff (staged → unstaged → origin/HEAD...HEAD), write full diff to a temp file, and return paths plus file list for parallel review agents.",
+    "Gather standalone review diff (local staged+unstaged vs HEAD, else origin/HEAD...HEAD), write full diff to a temp file, and return paths plus file list for parallel review agents.",
   promptSnippet: "Gather review diff ladder and write full diff to a temp file",
   params: {},
   progress: "Gathering review diff…",

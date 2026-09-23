@@ -50,6 +50,15 @@ Severity:
 - `warning` — likelihood mis-calibrated, convenient dismissal of a testable hypothesis
 - `suggestion` — additional alternative to consider
 
+## Findings ordering
+
+`severity` is the harness priority signal — do not add a separate `priority` field.
+
+1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
+2. Within the same severity: untestable or contradictory hypotheses before calibration nits; then ascending hypothesis `ref` (`H1`, `H2`, …).
+3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per hypothesis `ref` unless categories differ materially.
+4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+
 ## Rules
 
 - Do not run repros or touch the system. Analyse only.
