@@ -12,6 +12,8 @@ Two patterns in this environment:
 
 ## Tools
 
+- If a tool is **not active**, call `search_accord_tools` first (progressive discovery), then use the exact tool name.
+
 | Goal | Tool |
 |------|------|
 | Create pi-git worktree | `wt_create` |

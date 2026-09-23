@@ -22,6 +22,7 @@ General-purpose diff review using `review-*` subagents. No `/dev` workflow — p
 
 ## Invocation
 
+- If a tool is **not active**, call `search_accord_tools` first (progressive discovery), then use the exact tool name.
 Standalone review uses **`pi-git`** for diff + task briefs and **`pi-subagent`** for reviewers — not shell `git diff`, not `accord-mcp` (`dev_*` only), not **`accord review`**.
 
 | Step | Tool name (exact) |

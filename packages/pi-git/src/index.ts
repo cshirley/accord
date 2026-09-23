@@ -21,6 +21,7 @@ import gitWorktreeResolve from "./defs/git-worktree-resolve.js";
 import repoHarnessContext from "./defs/repo-harness-context.js";
 import repoVerify from "./defs/repo-verify.js";
 import { registerToolDefs } from "./framework.js";
+import { initGitDynamicTools } from "./dynamic-tools.js";
 import { initWorktreeSession } from "./worktree/runtime.js";
 
 export default function gitExtension(pi: ExtensionAPI) {
@@ -40,6 +41,8 @@ export default function gitExtension(pi: ExtensionAPI) {
   ];
 
   registerToolDefs(pi, toolDefs);
+
+  initGitDynamicTools(pi);
 
   console.log(`🌿 pi-git loaded: ${toolDefs.length + 7} tools, /wt command`);
 }
