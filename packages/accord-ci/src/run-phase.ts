@@ -118,6 +118,12 @@ export function resultFromBackend(backend: PhaseBackendResult): RunPhaseResult {
     };
   }
   if (orchestrationStop === "complete") {
+    if (extracted && TERMINAL_STATUSES.has(extracted)) {
+      return {
+        status: extracted as "done" | "needs_input" | "blocked" | "gaps",
+        packet: packet ?? synthesizePacket(extracted, backend.stalledReason),
+      };
+    }
     return {
       status: "done",
       packet: packet ?? synthesizePacket("done"),
