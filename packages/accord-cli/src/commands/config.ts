@@ -45,7 +45,7 @@ export async function runConfigInitCommand(options: ConfigInitOptions = {}): Pro
 
   if (!installedIds.includes(defaultHarness) && installedIds.length > 0) {
     cliNotify(
-      "warn",
+      "warning",
       `Selected harness "${defaultHarness}" is not installed. Installed: ${installedIds.join(", ")}`,
     );
   }

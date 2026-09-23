@@ -10,6 +10,7 @@ import type {
   ToolHandlerResult,
 } from "@clive.shirley/accord-core/tools/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import {
   createMcpHarnessState,
   createMcpOrchestrateToolContext,
@@ -60,7 +61,7 @@ export function registerAccordMcpTools(
       tool.name,
       {
         description: tool.description,
-        inputSchema: compileSchemaToZodShape(tool.parameters),
+        inputSchema: compileSchemaToZodShape(tool.parameters) as ZodRawShapeCompat,
       },
       async (params: Record<string, unknown>) => {
         const result = await tool.handler(params as never, ctx);

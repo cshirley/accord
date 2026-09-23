@@ -1,7 +1,7 @@
 import { defineTool } from "../framework.js";
-import { formatRepoVerify, runRepoVerify } from "../lib/harness/verify.js";
+import { formatRepoVerify, runRepoVerify, type RepoVerifyParams } from "../lib/harness/verify.js";
 
-export default defineTool({
+export default defineTool<RepoVerifyParams>({
   name: "repo_verify",
   label: "Repo Verify",
   description:

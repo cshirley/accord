@@ -74,7 +74,7 @@ export function createMcpOrchestrateToolContext(
       });
       cliCtx.devConfig = options.state.devConfig;
 
-      const harness = createHarness(harnessId, cliCtx, {
+      const harness = createHarness({ harnessId }, cliCtx, {
         autoConfirm: true,
         spawnNotifyLabel: `mcp:${command}`,
         explicitSessionHarness: true,

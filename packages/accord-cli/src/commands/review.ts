@@ -54,8 +54,6 @@ export async function runReviewCommand(
         return parseStandaloneReviewAgentResult(task.agent, {
           exitCode: spawnResult.exitCode ?? 1,
           parsedReturn: spawnResult.parsedReturn,
-          output: spawnResult.output,
-          stderr: spawnResult.stderr,
         });
       }),
     );

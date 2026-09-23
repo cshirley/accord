@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import gitReviewTasksDef from "../src/defs/git-review-tasks.ts";
-import { formatReviewContext } from "../src/lib/review/context.ts";
-import { formatReviewTasks, runGitReviewTasks } from "../src/lib/review/tasks.ts";
+import gitReviewTasksDef from "../src/defs/git-review-tasks.js";
+import { formatReviewContext } from "../src/lib/review/context.js";
+import { formatReviewTasks, runGitReviewTasks } from "../src/lib/review/tasks.js";
+import type { GitToolExecuteContext } from "../src/framework.js";
 
 describe("pi-git standalone review wrappers", () => {
   test("runGitReviewTasks passes local_layers into briefs", () => {
@@ -50,6 +51,12 @@ describe("pi-git standalone review wrappers", () => {
     if (!execute) {
       throw new Error("git_review_tasks execute missing");
     }
+    const ctx = {
+      cwd: process.cwd(),
+      signal: undefined,
+      onUpdate: undefined,
+      extension: {} as GitToolExecuteContext["extension"],
+    } satisfies GitToolExecuteContext;
     const okResult = await execute(
       {
         diff_path: "/tmp/diff.patch",
@@ -57,7 +64,7 @@ describe("pi-git standalone review wrappers", () => {
         file_list: ["x.test.ts"],
         test_output: "pass",
       },
-      { cwd: process.cwd() },
+      ctx,
     );
     expect(okResult.isError).not.toBe(true);
     expect(okResult.text).toContain("review-test");
@@ -65,10 +72,10 @@ describe("pi-git standalone review wrappers", () => {
     const bad = await execute(
       {
         diff_path: "/tmp/diff.patch",
-        source: "invalid",
+        source: "invalid" as "local",
         file_list: ["x.ts"],
       },
-      { cwd: process.cwd() },
+      ctx,
     );
     expect(bad.isError).toBe(true);
   });

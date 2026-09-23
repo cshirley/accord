@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, mock, test } from "bun:test";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { discoverAgents } from "../src/agents.js";
 import { executeSubagentTool } from "../src/tool/execute.js";
 import { renderSubagentResult } from "../src/tool/render.js";
@@ -58,11 +59,12 @@ describe("executeSubagentTool output wiring", () => {
       },
       undefined,
       undefined,
-      { cwd, hasUI: false, ui: { confirm: async () => true } },
+      { cwd, hasUI: false, ui: { confirm: async () => true } } as unknown as ExtensionCommandContext,
     );
 
-    expect(result.content[0]?.type).toBe("text");
-    expect(result.content[0]?.text).toBe("harvested-only output");
+    const first = result.content[0];
+    expect(first?.type).toBe("text");
+    expect(first?.type === "text" ? first.text : "").toBe("harvested-only output");
     expect(spawnCalls[0]?.agentFile).toBe(reviewCode?.filePath);
   });
 });
@@ -100,7 +102,7 @@ describe("renderSubagentResult harvested preview", () => {
         content: [{ type: "text", text: "Parallel: 1/1 succeeded" }],
         details,
       } as AgentToolResult<SubagentDetails>,
-      { expanded: false },
+      { expanded: false, isPartial: false },
       noopTheme,
     );
 

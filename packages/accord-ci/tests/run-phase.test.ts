@@ -145,6 +145,7 @@ describe("resultFromBackend — direct mapping", () => {
     const r = resultFromBackend({
       exitCode: 0,
       lastRun: {
+        stopReason: "complete",
         lastSpawn: { agent: "phase-spec", exitCode: 0, parsedReturn: { status: "gaps", gaps: [] } },
       },
     });

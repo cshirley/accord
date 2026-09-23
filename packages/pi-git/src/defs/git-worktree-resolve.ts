@@ -6,7 +6,9 @@ import {
   resolveWorktreeQuery,
 } from "../lib/worktree/resolve.js";
 
-export default defineTool({
+type GitWorktreeResolveParams = { query: string };
+
+export default defineTool<GitWorktreeResolveParams>({
   name: "git_worktree_resolve",
   label: "Git Worktree Resolve",
   description:

@@ -300,7 +300,7 @@ describe("refreshOrchestratorSpawnUi", () => {
         setWorkingMessage: () => {},
         setWorkingVisible: () => {},
       },
-    } as import("@earendil-works/pi-coding-agent").ExtensionCommandContext;
+    } as unknown as import("@earendil-works/pi-coding-agent").ExtensionCommandContext;
     widgets.set(ORCHESTRATOR_SPAWN_WIDGET_KEY, () => {});
     await refreshOrchestratorSpawnUi(ctx);
     expect(widgets.has(ORCHESTRATOR_SPAWN_WIDGET_KEY)).toBe(false);
