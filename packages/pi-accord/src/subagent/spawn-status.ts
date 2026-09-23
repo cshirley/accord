@@ -28,6 +28,31 @@ type ActiveOrchestratorSpawn = {
 
 const activeSpawns = new Map<string, ActiveOrchestratorSpawn>();
 
+type OrchestratorSpawnListener = () => void;
+const orchestratorSpawnListeners = new Set<OrchestratorSpawnListener>();
+
+function notifyOrchestratorSpawnChange(): void {
+  for (const listener of orchestratorSpawnListeners) {
+    listener();
+  }
+}
+
+/** Sidebar / telemetry: active harness-orchestrated spawns (not `subagent` tool calls). */
+export function listOrchestratorSpawns(): { spawnId: string; agent: string; label: string }[] {
+  return [...activeSpawns.entries()].map(([spawnId, row]) => ({
+    spawnId,
+    agent: row.agent,
+    label: row.label,
+  }));
+}
+
+export function onOrchestratorSpawnChange(listener: OrchestratorSpawnListener): () => void {
+  orchestratorSpawnListeners.add(listener);
+  return () => {
+    orchestratorSpawnListeners.delete(listener);
+  };
+}
+
 let lastSpawnWidgetTui: { requestRender: () => void } | undefined;
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 let heartbeatCtx: Pick<ExtensionCommandContext, "hasUI" | "ui"> | undefined;
@@ -252,6 +277,7 @@ export function registerOrchestratorSpawn(
     agent: info.agent,
     startedAt: Date.now(),
   });
+  notifyOrchestratorSpawnChange();
 }
 
 export function updateOrchestratorSpawn(spawnId: string, progress: SubagentProgress): void {
@@ -264,6 +290,7 @@ export function updateOrchestratorSpawn(spawnId: string, progress: SubagentProgr
 
 export function unregisterOrchestratorSpawn(spawnId: string): void {
   activeSpawns.delete(spawnId);
+  notifyOrchestratorSpawnChange();
   if (activeSpawns.size === 0) {
     stopOrchestratorSpawnHeartbeat();
   }
