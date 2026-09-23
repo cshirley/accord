@@ -18,6 +18,8 @@ import {
   type SubagentToolRenderers,
   summarizeSubagentProgress,
 } from "../integrations/pi-subagent.js";
+import type { OrchestrationSubagentSingleResult } from "./spawn-bridge.js";
+import { buildOrchestratorSubagentToolResult } from "./spawn-bridge.js";
 import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,
@@ -247,6 +249,8 @@ export type OrchestratorSubagentOnUpdate = (partial: AgentToolResult<SubagentDet
 
 export type OrchestratorSubagentChatHandle = {
   onUpdate: OrchestratorSubagentOnUpdate;
+  /** Apply terminal spawn result (exitCode/output) before {@link dispose}. */
+  finalizeWithResult: (single: OrchestrationSubagentSingleResult) => void;
   dispose: () => void;
 };
 
@@ -313,6 +317,12 @@ export function startOrchestratorSubagentChatDisplay(
     options.onUiRefresh?.();
   }
 
+  const subagentDetails = {
+    mode: "single" as const,
+    agentScope: "user" as const,
+    projectAgentsDir: null,
+  };
+
   return {
     onUpdate: (partial) => {
       const run = runs.get(toolCallId);
@@ -327,18 +337,35 @@ export function startOrchestratorSubagentChatDisplay(
       options.onUiRefresh?.();
       notifyRunUiChanged(run);
     },
+    finalizeWithResult: (single) => {
+      const run = runs.get(toolCallId);
+      if (!run || run.finalized) {
+        return;
+      }
+      run.toolResult = buildOrchestratorSubagentToolResult(
+        single,
+        subagentDetails,
+      ) as unknown as AgentToolResult<SubagentDetails>;
+      run.isError = single.exitCode !== 0;
+      run.finalized = true;
+      options.onUiRefresh?.();
+      notifyRunUiChanged(run);
+    },
     dispose: () => {
       const run = runs.get(toolCallId);
-      if (run) {
-        if (run.toolResult && run.theme && run.rootComponent) {
-          const exitCode = run.toolResult.details?.results?.[0]?.exitCode ?? 0;
-          run.isError = exitCode !== 0;
-          run.finalized = true;
-          run.rootComponent.syncFromRun(run.theme);
-          run.rootComponent.invalidate();
-        }
-        runs.delete(toolCallId);
+      if (!run) {
+        return;
       }
+      if (!run.finalized && run.toolResult) {
+        const exitCode = run.toolResult.details?.results?.[0]?.exitCode ?? 0;
+        run.isError = exitCode !== 0;
+        run.finalized = true;
+      }
+      if (run.theme && run.rootComponent) {
+        run.rootComponent.syncFromRun(run.theme);
+        run.rootComponent.invalidate();
+      }
+      // Keep run state for transcript re-renders (message renderer reads runs by toolCallId).
     },
   };
 }

@@ -56,16 +56,29 @@ export function mapSpawnResultToSingle(
   };
 }
 
+export function buildOrchestratorSubagentToolResult(
+  single: OrchestrationSubagentSingleResult,
+  details: { mode: "single"; agentScope: "user"; projectAgentsDir: null },
+): AgentToolResult<{ results: OrchestrationSubagentSingleResult[] }> {
+  return {
+    content: [{ type: "text", text: single.output || "(running...)" }],
+    details: { ...details, results: [single] },
+  };
+}
+
 export function createOrchestrationSubagentOnUpdate(
   makeDetails: (results: OrchestrationSubagentSingleResult[]) => unknown,
   onToolUpdate: (partial: AgentToolResult<unknown>) => void,
 ): (partial: SpawnSubagentUpdate) => void {
   return (partial) => {
     const single = mapSpawnResultToSingle(partial.result);
-    onToolUpdate({
-      content: [{ type: "text", text: partial.result.output || "(running...)" }],
-      details: makeDetails([single]),
-    });
+    onToolUpdate(
+      buildOrchestratorSubagentToolResult(single, {
+        mode: "single",
+        agentScope: "user",
+        projectAgentsDir: null,
+      }) as AgentToolResult<unknown>,
+    );
   };
 }
 

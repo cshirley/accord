@@ -238,9 +238,30 @@ export async function refreshOrchestratorSpawnUi(
   if (!ctx.hasUI) {
     return;
   }
+  if (activeSpawns.size === 0) {
+    clearOrchestratorSpawnWidget(ctx);
+    return;
+  }
   mountOrchestratorSpawnWidget(ctx);
   lastSpawnWidgetTui?.requestRender();
   await yieldToEventLoop();
+}
+
+/** After a spawn ends: refresh shared UI or tear down when no spawns remain. */
+export function releaseOrchestratorSpawnUi(
+  ctx: Pick<ExtensionCommandContext, "hasUI" | "ui">,
+): void {
+  if (!ctx.hasUI) {
+    return;
+  }
+  if (activeSpawns.size === 0) {
+    clearOrchestratorSpawnWidget(ctx);
+    ctx.ui.setWorkingMessage(undefined);
+    ctx.ui.setWorkingIndicator();
+    applyOrchestratorSpawnStatus(ctx);
+    return;
+  }
+  void refreshOrchestratorSpawnUi(ctx);
 }
 
 /** Repaint status/widget while subprocess is running (extension commands block the main loop). */

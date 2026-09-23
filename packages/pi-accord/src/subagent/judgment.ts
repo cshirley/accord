@@ -52,46 +52,47 @@ export async function runOrchestrationJudgment(
     return undefined;
   }
 
-  const resolved = await resolveJudgmentModel(ctx, devConfig);
-  if (!resolved) {
-    ctx.ui.notify(
-      "Orchestration judgment skipped: no model with valid credentials (set orchestration.judgment.model, subagent.json lightweight tier, or scoped models).",
-      "warning",
-    );
-    return undefined;
-  }
-
-  if (resolved.piggybackWarning) {
-    ctx.ui.notify(resolved.piggybackWarning, "warning");
-  }
-
-  const model = resolved.model;
-  const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-  if (!auth.ok) {
-    ctx.ui.notify(`Orchestration judgment skipped: ${auth.error}`, "warning");
-    return undefined;
-  }
-
-  const maxTokens = devConfig?.orchestration?.judgment?.max_tokens ?? 1536;
-  const userBody = [
-    "Harness dispatch context (do not change which agent runs — only propose supplement text):",
-    `work_item_id: ${request.workItemId}`,
-    `dispatch_agent: ${request.dispatchAgent}`,
-    "",
-    "Task preamble:",
-    truncateForJudgmentPrompt(request.baseTask),
-  ].join("\n");
-
-  const now = Date.now();
-  const messages: UserMessage[] = [{ role: "user", content: userBody, timestamp: now }];
-
   try {
+    const resolved = await resolveJudgmentModel(ctx, devConfig);
+    if (!resolved) {
+      ctx.ui.notify(
+        "Orchestration judgment skipped: no model with valid credentials (set orchestration.judgment.model, subagent.json lightweight tier, or scoped models).",
+        "warning",
+      );
+      return undefined;
+    }
+
+    if (resolved.piggybackWarning) {
+      ctx.ui.notify(resolved.piggybackWarning, "warning");
+    }
+
+    const model = resolved.model;
+    const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+    if (!auth.ok) {
+      ctx.ui.notify(`Orchestration judgment skipped: ${auth.error}`, "warning");
+      return undefined;
+    }
+
+    const maxTokens = devConfig?.orchestration?.judgment?.max_tokens ?? 1536;
+    const userBody = [
+      "Harness dispatch context (do not change which agent runs — only propose supplement text):",
+      `work_item_id: ${request.workItemId}`,
+      `dispatch_agent: ${request.dispatchAgent}`,
+      "",
+      "Task preamble:",
+      truncateForJudgmentPrompt(request.baseTask),
+    ].join("\n");
+
+    const now = Date.now();
+    const messages: UserMessage[] = [{ role: "user", content: userBody, timestamp: now }];
+
     const assistant = await completeSimple(
       model,
       { systemPrompt: JUDGMENT_SYSTEM_PROMPT, messages },
       {
         maxTokens,
         temperature: 0.1,
+        ...(resolved.thinkingLevel ? { reasoning: resolved.thinkingLevel } : {}),
         signal: ctx.signal,
         ...(auth.apiKey ? { apiKey: auth.apiKey } : {}),
         ...(auth.headers ? { headers: auth.headers } : {}),

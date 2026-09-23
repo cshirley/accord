@@ -35,6 +35,7 @@ export {
   ORCHESTRATOR_SPAWN_STATUS_KEY,
   ORCHESTRATOR_SPAWN_WIDGET_KEY,
   refreshOrchestratorSpawnUi,
+  releaseOrchestratorSpawnUi,
   registerOrchestratorSpawn,
   startOrchestratorSpawnHeartbeat,
   stopOrchestratorSpawnHeartbeat,

@@ -30,12 +30,11 @@ import {
   runOrchestrationSubagent,
 } from "./spawn-bridge.js";
 import {
-  clearOrchestratorSpawnWidget,
   mountOrchestratorSpawnWidget,
   refreshOrchestratorSpawnUi,
   registerOrchestratorSpawn,
+  releaseOrchestratorSpawnUi,
   startOrchestratorSpawnHeartbeat,
-  stopOrchestratorSpawnHeartbeat,
   unregisterOrchestratorSpawn,
   updateOrchestratorSpawn,
 } from "./spawn-status.js";
@@ -107,7 +106,7 @@ export function createResumeOrchestrationRuntimeHost(
         },
       });
 
-      let singleResult: OrchestrationSubagentSingleResult;
+      let singleResult: OrchestrationSubagentSingleResult | undefined;
       const subagentDetails = {
         mode: "single" as const,
         agentScope: "user" as const,
@@ -143,15 +142,18 @@ export function createResumeOrchestrationRuntimeHost(
           return { exitCode: 1 };
         }
       } finally {
-        chatUi.dispose();
+        if (singleResult) {
+          chatUi.finalizeWithResult(singleResult);
+        }
         unregisterOrchestratorSpawn(spawnStatusId);
         if (ctx.hasUI) {
-          stopOrchestratorSpawnHeartbeat();
-          clearOrchestratorSpawnWidget(ctx);
-          ctx.ui.setWorkingMessage(undefined);
-          ctx.ui.setWorkingIndicator();
-          void refreshOrchestratorSpawnUi(ctx);
+          releaseOrchestratorSpawnUi(ctx);
         }
+        chatUi.dispose();
+      }
+
+      if (!singleResult) {
+        return { exitCode: 1 };
       }
 
       const details = { ...subagentDetails, results: [singleResult] };
