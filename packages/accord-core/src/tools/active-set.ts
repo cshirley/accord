@@ -6,6 +6,7 @@
  */
 
 import { ACCORD_TOOLS } from "./registry.js";
+import { isProgressiveToolsEnabled } from "./progressive-discovery.js";
 
 /** Always-active harness tools (Pi sessions). */
 export const ACCORD_CORE_TOOLS: readonly string[] = [
@@ -107,13 +108,7 @@ const COARSE_PHASE_TO_BUNDLES: Record<string, AccordToolBundle[]> = {
 
 /** Default on after Phase 2 bake-in; set `ACCORD_DYNAMIC_TOOLS=0` to disable. */
 export function isDynamicToolsEnabled(): boolean {
-  const raw = process.env.ACCORD_DYNAMIC_TOOLS?.trim();
-  if (!raw) return true;
-  const lower = raw.toLowerCase();
-  if (raw === "0" || lower === "false" || lower === "no" || lower === "off") {
-    return false;
-  }
-  return true;
+  return isProgressiveToolsEnabled("ACCORD_DYNAMIC_TOOLS");
 }
 
 export function isManagedAccordTool(toolName: string): boolean {

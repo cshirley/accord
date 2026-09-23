@@ -78,3 +78,7 @@ flowchart TB
 ```
 
 Pair commit/PR tools with standalone skills under `packages/pi-skills/skills/commit` and `pr`.
+
+## Progressive tools
+
+By default, git/gh/wt tools stay inactive until `search_accord_tools` loads them (or a direct tool call auto-activates the bundle). Set `PI_PROGRESSIVE_TOOLS=0` or `PI_GIT_DYNAMIC_TOOLS=0` for the full surface.
