@@ -1,82 +1,131 @@
 ---
 name: crq-notify
-description: Fetch a Jira CRQ (change request) release ticket, resolve every linked change to its PR (number, labels, author) and Slack handle, and post a formatted release summary to a Slack channel or DM. Use when the user wants to announce, notify, or share a release/change request on Slack.
+description: >
+  Fetch a Jira CRQ (change request), resolve each linked change to its GitHub PR
+  and Slack handle, and post a formatted release summary to Slack. Use when the
+  user provides a CRQ key (e.g. CRQ-5326) or Jira URL and wants to announce,
+  notify, or share a release/change request on Slack (#channel, DM, or thread).
 disable-model-invocation: true
 ---
 
-# CRQ Notify
+# CRQ notify
 
-Posts a release summary for a CRQ: a header line plus one line per linked change.
-The deterministic work lives in tools — **do not** re-implement Jira link extraction,
-status logic, channel resolution, or message sending in the prompt. The skill
-orchestrates: it stitches the Jira changes to their GitHub PRs and Slack handles,
-applies the emoji rules, and sends.
+This file in `@clive.shirley/pi-skills` is the source of truth at
+`packages/pi-skills/skills/crq-notify/SKILL.md`.
 
-Tools used:
-- `atlassian-getCrqLinkedIssues` — CRQ → header (`status`, `owner`, `rollbackPlan`, `summary`, `jiraUrl`) + linked changes (key, summary, status, `statusDone`, assignee + email) + derived `service`/`repo` (`emed-labs/<service>`)
-- GitHub PR tools (e.g. `github_search_issues`, `github_get_pull_request`) — per ticket: PR number, title, labels, author
-- `slack-lookupUser` — resolve a PR author to a Slack display name/handle
-- `slack-sendMessage` — post to a channel/user/email; supports `threadTs` for replies
-- `atlassian-getJiraIssueFields` — (optional) pull change-window/risk fields if a metadata block is also wanted
+Deterministic work lives in **pi-integrations** tools — do not re-implement Jira
+link extraction, status logic, channel resolution, or Slack delivery in ad hoc
+HTTP or shell. This skill sequences tools, applies the emoji and mention rules
+below, and sends one message per CRQ.
 
-## Inputs
+This skill may:
 
-- **CRQ key** (required) — e.g. `CRQ-5326`
-- **target** (required) — `#channel`, channel ID, `@display-name`, or email
-- **thread ts** (optional) — reply in an existing thread
+- read a CRQ and its linked changes via `atlassian-getCrqLinkedIssues`;
+- search GitHub for PRs in the CRQ's repo and read PR metadata (number, title,
+  labels, URL);
+- resolve Jira assignees to Slack users via `slack-lookupUser`;
+- post the assembled mrkdwn via `slack-sendMessage` (optionally as a thread
+  reply);
+- optionally read extra Jira fields via `atlassian-getJiraIssueFields` when the
+  user also wants change-window or risk metadata in the message.
+
+This skill must not:
+
+- transition the CRQ or linked tickets;
+- approve a CRQ or change Jira in any form;
+- match PRs outside the CRQ's `repo` (ticket keys can exist in multiple repos);
+- map Slack handles from GitHub PR authors (search APIs do not expose reliable
+  email/name for that path);
+- run raw Jira field-ID guessing or duplicate logic already implemented in
+  `atlassian-getCrqLinkedIssues`.
+
+Requires **pi-integrations** (install via
+`bash scripts/install-pi-skills.sh --integrations` from the accord monorepo).
+
+## Invocation
+
+| Step | Tool |
+| ---- | ---- |
+| CRQ header + linked changes | `atlassian-getCrqLinkedIssues` |
+| PR number, title, labels, URL | GitHub PR tools (e.g. `github_search_issues`, `github_get_pull_request`) |
+| Assignee → Slack user ID | `slack-lookupUser` |
+| Deliver message | `slack-sendMessage` |
+| Optional extra CRQ fields | `atlassian-getJiraIssueFields` |
+
+Run independent GitHub and Slack lookups in parallel where the host allows.
+
+## Required inputs
+
+| Input | Required | Notes |
+| ----- | -------- | ----- |
+| **CRQ key** | yes | e.g. `CRQ-5326` |
+| **target** | yes | `#channel`, channel ID, `@display-name`, or email |
+| **thread ts** | no | Reply inside an existing thread |
 
 If either required input is missing, ask once, then proceed.
 
-## Step 1 — Get the linked changes (code does this)
+Default channel policy: use the user-supplied **target**. Do not invent a
+channel when the user already named one. When **target** was inferred from
+context, show the assembled message and resolved destination for a quick confirm
+before `slack-sendMessage`.
 
-Call `atlassian-getCrqLinkedIssues` with the CRQ key. You get back the CRQ header
-(`key`, `summary`, `status`, `owner`, `rollbackPlan`, `service`, `repo`, `jiraUrl`)
-and `issues[]` where each issue has `key`, `summary`, `status`, `statusDone`,
-`issueType`, `assignee`, `assigneeEmail`. The tool gathers changes from both Jira
-issue links **and** the rich-text "changes" field (service-release CRQs keep their
-ticket list there as smart-link cards rather than as issue links), so you don't need
-to dig into the description yourself.
+For multiple CRQs in one user message, loop the full flow once per key.
 
-- If `issues` is empty, the CRQ has no linked changes — post only the header line
-  (Step 4) and tell the user there were no linked tickets.
-- `repo` is the GitHub repo to search for PRs (`emed-labs/<service>`).
+## Build the change list
 
-## Step 2 — Resolve each change's PR (GitHub)
+Call `atlassian-getCrqLinkedIssues` with the CRQ key. The tool returns the CRQ
+header (`key`, `summary`, `status`, `owner`, `rollbackPlan`, `service`, `repo`,
+`jiraUrl`) and `issues[]` (`key`, `summary`, `status`, `statusDone`, `issueType`,
+`assignee`, `assigneeEmail`).
 
-For every issue in `issues`, find its PR **in the CRQ's `repo`** by searching for the
-ticket key in the PR title, e.g.:
+It collects changes from Jira issue links **and** the rich-text "changes" field
+(smart-link cards and git-log blocks on service-release CRQs). Do not parse the
+CRQ description manually.
 
-```
+- If `issues` is empty, post only the header block (see **Message format**) and
+  tell the user there were no linked tickets.
+- `repo` is the only GitHub repo to search (`emed-labs/<service>`).
+
+## Resolve pull requests
+
+For every issue in `issues`, find its PR **in the CRQ's `repo`**:
+
+```text
 github_search_issues  q: "repo:<repo> <KEY> in:title type:pr"
 ```
 
-From the matching PR (if several, take the most recently merged) capture:
-- `number` and `html_url` → `(#<number>)` link
-- `title` → the change description (strip a leading `[<KEY>] ` so it isn't doubled)
-- `labels[].name` → check for `release: no-verification-needed`
+From the matching PR (if several, prefer the most recently merged), capture:
 
-If no PR is found in the repo, keep the change but omit `(#PR)` and resolve the
+- `number` and `html_url` for `(#<number>)`;
+- `title` as the change description (strip a leading `[<KEY>] ` to avoid doubling);
+- `labels[].name` — note `release: no-verification-needed` and
+  `release: requires-verification` when present.
+
+If no PR is found, keep the change line but omit `(#PR)` and derive release-ready
 emoji from `statusDone` alone.
 
-## Step 3 — Resolve the author's Slack handle
+## Resolve Slack mentions
 
-Resolve from the change's **Jira assignee** (from Step 1) via `slack-lookupUser`:
+Resolve from the change's **Jira assignee** (Step 1 output), not the GitHub PR
+author, via `slack-lookupUser`:
 
-1. Try the assignee **display name** (e.g. `Victor Mora`) — reliable on any token.
-2. If that misses, try the assignee **email** (`assigneeEmail`) — only works when the
-   Slack token has `users:read.email`.
+1. Try assignee **display name** (works on any token).
+2. If that misses, try **assigneeEmail** (needs `users:read.email` on the Slack
+   token).
 
-Capture the resolved **user ID** (e.g. `U06JSU66GUE`) and the display name. Step 4
-decides whether to render a real mention (which pings) or plain text. If no Slack
-user matches, you only have the display name. (Don't use the GitHub PR author login —
-the GitHub search API exposes neither name nor email, so it can't be mapped to Slack
-reliably.)
+Keep the resolved **user ID** (e.g. `U06JSU66GUE`) and display name for
+**Message format**. If no Slack user matches, you only have the display name.
 
-## Step 4 — Build the message (exact format)
+## Message format
 
-Start with the CRQ header block (omit `*Rollback plan*` if `rollbackPlan` is empty):
+Use Slack mrkdwn. Link tickets and PRs as
+`[<jiraBase>/browse/<KEY>|<KEY>]` and `(<prUrl|#number>)`.
 
-```
+### CRQ header
+
+Omit `*Rollback plan*` when `rollbackPlan` is empty.
+
+```text
 *:rotating_light: Change Request — <KEY>*  (<status>)
 *Summary:* <summary>
 *Owner:* <owner>
@@ -85,61 +134,71 @@ Start with the CRQ header block (omit `*Rollback plan*` if `rollbackPlan` is emp
 <rollbackPlan>
 ```
 
-Then a blank line and the change list, beginning with:
+### Change inventory
 
-```
+After a blank line, start the list with:
+
+```text
 Preparing <CRQ summary> <jiraUrl>
 ```
 
-Then one line per change, in the order returned:
+Then one line per change, in tool order:
 
-```
+```text
 [<KEY>] <description> (#<PR-number>) by <author> <emoji><suffix>
 ```
 
-**Author rendering — ping only when there's something to action.** Compute
-`needsAttention = (NOT statusDone) OR (PR has label "release: requires-verification")`:
+**Release-ready emoji**
 
-- `needsAttention` → real Slack mention `<@USER_ID>` (renders as a clickable,
-  notifying `@name`). These are changes still in flight or that require post-release
-  verification — the author should be pinged.
-- otherwise → plain text `@<display name>` (no ping). These are done/ready *and*
-  need no verification, so there's nothing for the author to do.
-- If no Slack user matched at all, use plain text `@<display name>` regardless.
+- `:white_check_mark:` when the change is release-ready.
+- `:loading-but-better:` otherwise.
 
-- Make `[<KEY>]` link to the ticket and `(#<PR-number>)` link to the PR using Slack
-  mrkdwn: `[<{jiraBase}/browse/{KEY}|{KEY}>]` and `(<{prUrl}|#{number}>)`.
-- **emoji** — `:white_check_mark:` if the change is release-ready, else `:loading-but-better:`.
-  Release-ready = `statusDone` is true (ticket Done / Ready for Release) **OR** the PR
-  has the `release: no-verification-needed` label.
-- **suffix** — if the PR has the `release: no-verification-needed` label, append
-  ` -- release: no-verification-needed` after the emoji. Otherwise no suffix.
+Release-ready when `statusDone` is true (Done / Ready for Release) **or** the PR
+has label `release: no-verification-needed`.
 
-Example output:
+**Suffix**
 
+When the PR has `release: no-verification-needed`, append
+` -- release: no-verification-needed` after the emoji. Otherwise no suffix.
+
+**Author rendering — ping only when there is something to action**
+
+```text
+needsAttention = (NOT statusDone) OR (PR has label "release: requires-verification")
 ```
-Preparing platform-integrations - 2026-06-15_002 https://babylonpartners.atlassian.net/browse/CRQ-5326
+
+| Condition | Render |
+| --------- | ------ |
+| `needsAttention` and Slack user ID known | `<@USER_ID>` (notifying mention) |
+| otherwise | plain `@<display name>` (no ping) |
+| no Slack user matched | plain `@<display name>` regardless |
+
+Ping when the change is still in flight or requires post-release verification.
+Do not ping when the change is done/ready and needs no verification.
+
+Example:
+
+```text
+Preparing `platform-integrations` - 2026-06-15_002 https://babylonpartners.atlassian.net/browse/CRQ-5326
 [STEP-11542] Select most recent completed encounter for AI-opted proctor session (#3134) by <@U06JSU66GUE> :white_check_mark:
 [STEP-11450] Review follow-up: renames, singleton, log cleanup (#3124) by <@U05ALCV31LL> :white_check_mark: -- release: no-verification-needed
 [STEP-11618] Enable ENABLE_MEDICATION_CONFIRMATION_FLOW (#3131) by @Victor Mora :white_check_mark: -- release: no-verification-needed
 ```
 
-(STEP-11542 is Done but requires verification → pinged; STEP-11450 is still In Review
-→ pinged; STEP-11618 is Done and needs no verification → plain text, no ping.)
+(STEP-11542: Done but requires verification → ping; STEP-11450: In Review →
+ping; STEP-11618: Done, no verification → plain text.)
 
-## Step 5 — Post to Slack
+## Post to Slack
 
-Show the assembled message and the resolved `target` to the user for a quick confirm
-when the target was inferred. Then call `slack-sendMessage` with
-`{ target, text, threadTs? }`. Report the returned permalink.
+Call `slack-sendMessage` with `{ target, text, threadTs? }`. Report the returned
+permalink.
 
-If the send fails (not a member of a private channel, or no Slack user matched),
-surface the tool's error verbatim and suggest the fix (invite the token, use a
-channel ID, or pass an email/user ID).
+If the send fails (private channel membership, unresolved user, etc.), surface
+the tool error verbatim and suggest the fix (invite the app, use channel ID, or
+pass email/user ID).
 
-## Rules
+## Completion
 
-- Tools do the work; the skill sequences them. No raw HTTP, no field-ID guessing,
-  no re-implementing status/emoji logic outside the rules above.
-- Match PRs **within the CRQ's repo only** — a ticket key can have PRs in several repos.
-- One CRQ per run. For multiple, loop the steps per key.
+Return the post permalink and stop. Do not emit evidence verdicts (`✅` / `☁️` /
+`⚠️` / `⏳`) or re-evaluate the thread — that is **crq-release-prep**, not this
+skill.
