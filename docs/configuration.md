@@ -121,7 +121,7 @@ Use an **Anthropic-direct** profile in `subagent.json` (e.g. `anthropic-direct`)
 }
 ```
 
-Preset: `CLAUDE_CODE_EXEC_HARNESS` from `@clive.shirley/accord-cli`. Override binary: `ACCORD_CLAUDE_CODE_BIN`. Permissions: `ACCORD_CLAUDE_SKIP_PERMISSIONS=1` (default) adds `--dangerously-skip-permissions`.
+Preset: `CLAUDE_CODE_EXEC_HARNESS` from `@clive.shirley/accord-cli`. Override binary: `ACCORD_CLAUDE_CODE_BIN`. Permissions: set `ACCORD_CLAUDE_SKIP_PERMISSIONS=1` (or `true`/`yes`) to add `--dangerously-skip-permissions`; off by default locally. Autopipeline sets this in `run-accord-phase` for headless CI only.
 
 ### Cursor Agent CLI preset
 

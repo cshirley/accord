@@ -110,6 +110,20 @@ export function resultFromBackend(backend: PhaseBackendResult): RunPhaseResult {
     };
   }
 
+  const orchestrationStop = backend.lastRun?.stopReason;
+  if (orchestrationStop === "blocked") {
+    return {
+      status: "blocked",
+      packet: packet ?? synthesizePacket("blocked", backend.stalledReason),
+    };
+  }
+  if (orchestrationStop === "complete") {
+    return {
+      status: "done",
+      packet: packet ?? synthesizePacket("done"),
+    };
+  }
+
   // Non-zero exit trumps any return packet (legacy pi subprocess semantics).
   if (backend.exitCode !== 0) {
     return {

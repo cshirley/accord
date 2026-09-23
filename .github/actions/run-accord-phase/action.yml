@@ -39,6 +39,8 @@ runs:
       working-directory: .accord-ci
       env:
         ACCORD_CI_HARNESS: ${{ inputs.harness }}
+        # Headless CI only — explicit opt-in to Claude permission bypass (see docs/configuration.md).
+        ACCORD_CLAUDE_SKIP_PERMISSIONS: "1"
       run: |
         EXTRA_ARGS=()
         if [ -n "${{ inputs.task_id }}" ]; then

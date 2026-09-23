@@ -124,4 +124,37 @@ describe("claude code exec spawn (mock)", () => {
     expect(log).toMatch(/tools=Read/);
     expect(result.stdout).toContain('"status":"done"');
   });
+
+  test("adds --dangerously-skip-permissions only when ACCORD_CLAUDE_SKIP_PERMISSIONS is set", async () => {
+    const mockDir = fs.mkdtempSync(path.join(os.tmpdir(), "accord-claude-skip-"));
+    const mockBin = path.join(mockDir, "mock-claude");
+    const logFile = path.join(mockDir, "args.log");
+    fs.writeFileSync(
+      mockBin,
+      [
+        "#!/usr/bin/env bash",
+        'printf "%s\\n" "$*" > "' + logFile + '"',
+        "exit 0",
+      ].join("\n"),
+      { mode: 0o755 },
+    );
+
+    const taskFile = writeExecTaskFile(process.cwd(), "phase-align", "task");
+    const prior = process.env.ACCORD_CLAUDE_SKIP_PERMISSIONS;
+    process.env.ACCORD_CLAUDE_SKIP_PERMISSIONS = "1";
+    try {
+      await runClaudeCodeExec(
+        { taskFile, agentFile: PHASE_ALIGN, cwd: process.cwd() },
+        { claudeBin: mockBin },
+      );
+      const argv = fs.readFileSync(logFile, "utf8");
+      expect(argv).toContain("--dangerously-skip-permissions");
+    } finally {
+      if (prior === undefined) {
+        delete process.env.ACCORD_CLAUDE_SKIP_PERMISSIONS;
+      } else {
+        process.env.ACCORD_CLAUDE_SKIP_PERMISSIONS = prior;
+      }
+    }
+  });
 });

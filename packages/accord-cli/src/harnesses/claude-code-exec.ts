@@ -52,8 +52,8 @@ export async function runClaudeCodeExec(
 
   const skipPermissions =
     options?.skipPermissions ??
-    !["0", "false", "no"].includes(
-      (process.env.ACCORD_CLAUDE_SKIP_PERMISSIONS ?? "1").trim().toLowerCase(),
+    ["1", "true", "yes"].includes(
+      (process.env.ACCORD_CLAUDE_SKIP_PERMISSIONS ?? "").trim().toLowerCase(),
     );
 
   const claudeBin = options?.claudeBin ?? process.env.ACCORD_CLAUDE_CODE_BIN ?? "claude";

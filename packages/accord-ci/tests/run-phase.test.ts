@@ -122,6 +122,24 @@ describe("runPhase — truncated/stuck stream synthesis", () => {
   });
 });
 
+describe("resultFromBackend — orchestration stop without spawn", () => {
+  test("stopReason blocked with non-zero exit → blocked (not stuck)", () => {
+    const r = resultFromBackend({
+      exitCode: 1,
+      lastRun: { stopReason: "blocked" },
+    });
+    expect(r.status).toBe("blocked");
+  });
+
+  test("stopReason complete without packet → done", () => {
+    const r = resultFromBackend({
+      exitCode: 0,
+      lastRun: { stopReason: "complete" },
+    });
+    expect(r.status).toBe("done");
+  });
+});
+
 describe("resultFromBackend — direct mapping", () => {
   test("prefers parsedReturn status over exit code", () => {
     const r = resultFromBackend({

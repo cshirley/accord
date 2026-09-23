@@ -178,6 +178,7 @@ jobs:
         with:
           phase: spec
           ticket: ${{ inputs.ticket }}
+          harness: ${{ inputs.harness }}
 
       - name: phase-plan (in_review path)
         id: phase_plan
@@ -186,6 +187,7 @@ jobs:
         with:
           phase: plan
           ticket: ${{ inputs.ticket }}
+          harness: ${{ inputs.harness }}
 
       - name: phase-code
         id: phase_code
@@ -194,6 +196,7 @@ jobs:
         with:
           phase: code
           ticket: ${{ inputs.ticket }}
+          harness: ${{ inputs.harness }}
 
       - name: phase-verify
         id: phase_verify
@@ -202,6 +205,7 @@ jobs:
         with:
           phase: verify
           ticket: ${{ inputs.ticket }}
+          harness: ${{ inputs.harness }}
 
       - name: Cost-cap pre-check between phases (AC-7)
         id: cost_cap
