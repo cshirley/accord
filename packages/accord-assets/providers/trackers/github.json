@@ -1,0 +1,10 @@
+{
+  "$schema": "../../../../accord-core/schemas/provider-schema.json",
+  "name": "github",
+  "kind": "tracker",
+  "label": "GitHub Issues",
+  "mcpTools": ["mcp__github__get_issue"],
+  "cliFallback": "gh",
+  "envFallback": null,
+  "promptFile": "github.md"
+}

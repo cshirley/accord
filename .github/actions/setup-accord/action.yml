@@ -1,0 +1,125 @@
+# AC-12 + AC-13: accord-cli + exec harness installer + cache surface.
+#
+# Caches: node_modules, bun caches, ~/.config/accord, ~/.config/pi/agent (model profiles).
+# The cache key is pinned literally — `packages/accord-ci/tests/setup-accord-cache.test.ts`
+# enforces every string verbatim per the AC-12 contract.
+#
+# Defence-in-depth (AC-13): auth/session artifacts under ~/.config/pi/agent are excluded
+# from the cache path list.
+#
+# Runtime seed: copies CI-tuned `subagent.json` from `packages/accord-cli/ci/` into
+# `~/.config/pi/agent/` (used by exec harness model resolution). Cache wins via `cp -n`.
+
+name: Setup ACCORD
+description: Install accord-cli + exec harness with cache-friendly layout (AC-12 / AC-13).
+
+inputs:
+  accord_ref:
+    description: Tag/branch of the accord monorepo to check out into `.accord-ci/`.
+    required: false
+    default: v1
+  harness:
+    description: Default agent harness backend id written to ~/.config/accord/accord.json (claude, cursor, pi).
+    required: false
+    default: claude
+  subagent_profile:
+    description: |
+      Profile name to mark as activeProfile inside ~/.config/pi/agent/subagent.json.
+      Applied after the seed copy step (or to whatever consumer config is in the cache),
+      via jq. Defaults to the only profile shipped in the bundled CI template.
+    required: false
+    default: anthropic-direct
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout accord into .accord-ci/
+      uses: actions/checkout@v4
+      with:
+        repository: cshirley/accord
+        ref: ${{ inputs.accord_ref }}
+        path: .accord-ci
+
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Scrub stale auth.json before cache save (AC-13)
+      if: ${{ always() }}
+      shell: bash
+      run: rm -f ~/.config/pi/agent/auth.json
+
+    - name: Cache accord install (AC-12 + AC-13)
+      uses: actions/cache@v4
+      with:
+        key: accord-${{ runner.os }}-${{ inputs.harness }}-${{ inputs.accord_ref }}-${{ hashFiles('.accord-ci/bun.lock', '.accord-ci/packages/accord-assets/manifest.json') }}
+        restore-keys: |
+          accord-${{ runner.os }}-${{ inputs.harness }}-${{ inputs.accord_ref }}-
+          accord-${{ runner.os }}-${{ inputs.harness }}-
+        path: |
+          ~/.npm
+          ~/.bun/install/cache
+          ~/.config/accord
+          ~/.config/pi/agent
+          .accord-ci/node_modules
+          !~/.config/pi/agent/auth.json
+          !~/.config/pi/agent/sessions/**
+
+    - name: bun install (in .accord-ci/)
+      shell: bash
+      working-directory: .accord-ci
+      run: bun install --frozen-lockfile
+
+    - name: Install Claude Code CLI (default exec harness)
+      if: ${{ inputs.harness == 'claude' }}
+      shell: bash
+      run: npm i -g @anthropic-ai/claude-code@latest
+
+    - name: Write ~/.config/accord/accord.json
+      shell: bash
+      working-directory: .accord-ci
+      env:
+        ACCORD_CI_HARNESS: ${{ inputs.harness }}
+      run: |
+        set -euo pipefail
+        bun packages/accord-cli/src/main.ts config init --write --yes --force --harness "${ACCORD_CI_HARNESS}"
+
+    - name: Seed runtime configs for exec model profiles
+      shell: bash
+      env:
+        SUBAGENT_PROFILE: ${{ inputs.subagent_profile }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$HOME/.config/pi"
+        if [ ! -e "$HOME/.pi" ]; then
+          ln -s "$HOME/.config/pi" "$HOME/.pi"
+        fi
+        mkdir -p "$HOME/.config/pi/agent"
+
+        SUBAGENT_DST="$HOME/.config/pi/agent/subagent.json"
+        cp -n .accord-ci/packages/accord-cli/ci/subagent.json "$SUBAGENT_DST" || true
+
+        if [ -f "$SUBAGENT_DST" ]; then
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "::error::jq is required to apply subagent_profile but was not found on the runner."
+            exit 1
+          fi
+          if ! jq -e --arg p "$SUBAGENT_PROFILE" '.profiles[$p]' "$SUBAGENT_DST" >/dev/null; then
+            echo "::error::subagent_profile '$SUBAGENT_PROFILE' is not defined in $SUBAGENT_DST. Available profiles:"
+            jq -r '.profiles | keys[]' "$SUBAGENT_DST" || true
+            exit 1
+          fi
+          tmp="$(mktemp)"
+          jq --arg p "$SUBAGENT_PROFILE" '.activeProfile = $p' "$SUBAGENT_DST" > "$tmp"
+          mv "$tmp" "$SUBAGENT_DST"
+          echo "Set activeProfile to '$SUBAGENT_PROFILE' in $SUBAGENT_DST"
+        fi
+
+        echo "::group::Seeded agent config dir"
+        ls -la "$HOME/.config/pi/agent/"
+        echo "::endgroup::"
+
+    - name: Export accord shim to PATH
+      shell: bash
+      run: echo "$GITHUB_WORKSPACE/.accord-ci/node_modules/.bin" >> "$GITHUB_PATH"

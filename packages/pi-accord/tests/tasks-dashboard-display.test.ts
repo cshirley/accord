@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { classifyDevQueryLine } from "../src/adapters/pi/dev-formatted-display.js";
-import { classifyTasksDashboardLine } from "../src/adapters/pi/tasks-dashboard-display.js";
+import { classifyDevQueryLine } from "../src/dev-formatted-display.js";
+import { classifyTasksDashboardLine } from "../src/tasks-dashboard-display.js";
 
 describe("classifyTasksDashboardLine", () => {
   test("classifies dashboard sections and rows", () => {

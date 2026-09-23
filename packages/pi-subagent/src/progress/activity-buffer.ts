@@ -5,8 +5,8 @@ import {
   MAX_STATUS_ACTIVITY_LINES,
   MAX_TOOL_ACTIVITY_LINES,
   type SubagentLiveActivity,
+  HARVEST_STREAM_MAX,
   TEXT_DELTA_PULSE_MS,
-  TEXT_PREVIEW_MAX,
   THINKING_DELTA_PULSE_MS,
 } from "./types.js";
 
@@ -31,8 +31,8 @@ export class SubagentActivityBuffer {
   onTextDelta(delta: string): void {
     if (!delta) return;
     this.streamingText += delta;
-    if (this.streamingText.length > TEXT_PREVIEW_MAX * 2) {
-      this.streamingText = this.streamingText.slice(-TEXT_PREVIEW_MAX * 2);
+    if (this.streamingText.length > HARVEST_STREAM_MAX) {
+      this.streamingText = this.streamingText.slice(-HARVEST_STREAM_MAX);
     }
     const now = Date.now();
     if (now - this.lastTextPulseAt < TEXT_DELTA_PULSE_MS) {

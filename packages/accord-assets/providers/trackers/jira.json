@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../../accord-core/schemas/provider-schema.json",
+  "name": "jira",
+  "kind": "tracker",
+  "label": "Jira",
+  "mcpTools": [
+    "mcp__atlassian__getJiraIssue",
+    "mcp__claude_ai_Atlassian__getJiraIssue",
+    "atlassian-getJiraIssue"
+  ],
+  "cliFallback": null,
+  "envFallback": null,
+  "promptFile": "jira.md"
+}

@@ -24,7 +24,7 @@ Prefer explicit fields over name discovery:
 | `onEvent` | Callback for structured lifecycle events (`resolving`, `progress`, `tool_*`, `completed`, `failed`, …) |
 | `signal` | Caller `AbortSignal` (combined with `timeoutMs`) |
 
-ACCORD orchestration UI (status widgets, in-chat spawn rows) lives in `src/adapters/pi/` and calls `runSubagent()` from `api.ts` — not in this package.
+ACCORD orchestration UI (status widgets, in-chat spawn rows) lives in `src/` and calls `runSubagent()` from `api.ts` — not in this package.
 
 ## Modes
 
@@ -42,7 +42,7 @@ Exactly **one** mode per call:
 - **Project** (`"project"`): repo-local definitions (e.g. `.pi/agents`).
 - **Both** (`"both"`): union of user + project; project agents can trigger a UI confirm when `confirmProjectAgents` is true (default).
 
-Per-task **`cwd`** runs the child `pi` process with that working directory — use this with [worktree](../pi-worktree/README.md) paths for parallel branches.
+Per-task **`cwd`** runs the child `pi` process with that working directory — use this with [worktree](../pi-git/README.md#worktrees) paths for parallel branches.
 
 ## Configuration
 
@@ -54,7 +54,7 @@ Parallel fan-out is capped (max tasks and concurrency are enforced in code) so a
 
 ## Installation
 
-Bundled with **`@clive.shirley/pi-accord`** via root `package.json` → `pi.extensions` (this entry is registered **before** the ACCORD harness so orchestration skills can call `subagent` reliably).
+Bundled with the **`@clive.shirley/accord`** monorepo via root `package.json` → `pi.extensions` (this entry is registered **before** the ACCORD harness so orchestration skills can call `subagent` reliably).
 
 To smoke-test the extension file alone:
 
@@ -73,4 +73,4 @@ See [`src/README.md`](src/README.md) for the module layout.
 - **`src/progress/`** — streaming activity buffers and progress summaries.
 - **`src/events/`** — parse JSON lines from the child process.
 
-Orchestration UI (status widgets, in-chat rows) lives in the parent package under `src/adapters/pi/`, not here.
+Orchestration UI (status widgets, in-chat rows) lives in the parent package under `src/`, not here.

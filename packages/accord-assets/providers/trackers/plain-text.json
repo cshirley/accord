@@ -1,0 +1,10 @@
+{
+  "$schema": "../../../../accord-core/schemas/provider-schema.json",
+  "name": "plain-text",
+  "kind": "tracker",
+  "label": "Plain text (no fetch needed)",
+  "mcpTools": [],
+  "cliFallback": null,
+  "envFallback": null,
+  "promptFile": "plain-text.md"
+}

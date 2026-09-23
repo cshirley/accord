@@ -1,0 +1,26 @@
+{
+  "name": "@clive.shirley/pi-skills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone Pi skills — no ACCORD harness. Pair with pi-git (+ pi-subagent for review). Install: bash scripts/install-pi-skills.sh",
+  "keywords": [
+    "pi-package"
+  ],
+  "files": [
+    "skills/",
+    "manifest.pi.json",
+    "README.md"
+  ],
+  "pi": {
+    "skills": [
+      "./skills/ci-debug",
+      "./skills/commit",
+      "./skills/pr",
+      "./skills/review",
+      "./skills/crq-notify",
+      "./skills/session-retro",
+      "./skills/verify",
+      "./skills/worktree"
+    ]
+  }
+}

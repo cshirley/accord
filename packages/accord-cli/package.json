@@ -1,0 +1,23 @@
+{
+  "name": "@clive.shirley/accord-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone ACCORD orchestrator CLI — harness-agnostic delivery loop",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "bin": {
+    "accord": "./src/main.ts"
+  },
+  "scripts": {
+    "start": "bun src/main.ts",
+    "install:shim": "bun scripts/install-shim.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@clive.shirley/accord-assets": "workspace:*",
+    "@clive.shirley/accord-core": "workspace:*"
+  }
+}

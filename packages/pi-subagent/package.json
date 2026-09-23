@@ -7,9 +7,17 @@
     "pi-package"
   ],
   "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api.ts",
+    "./*": "./src/*"
+  },
   "files": [
     "src/"
   ],
+  "dependencies": {
+    "@clive.shirley/accord-core": "workspace:*"
+  },
   "peerDependencies": {
     "@earendil-works/pi-agent-core": "^0.83.0",
     "@earendil-works/pi-ai": "^0.83.0",

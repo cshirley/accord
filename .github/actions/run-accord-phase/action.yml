@@ -1,9 +1,9 @@
-# Thin composite invoking `bun run packages/pi-accord-ci/src/run-phase.ts` so the main
-# workflow keeps its conditional branching readable. The script handles all
-# JSON-event parsing + cost-cap pre-check + terminal-action dispatch.
+# Thin composite invoking `bun run packages/accord-ci/src/run-phase.ts` so the main
+# workflow keeps its conditional branching readable. The script delegates to
+# `accord-cli` (exec harness) and writes `status` to GITHUB_OUTPUT.
 
 name: Run ACCORD phase
-description: Invoke `pi -p --mode json /dev <phase> <ticket>` and dispatch the terminal action.
+description: Invoke `accord <phase> <ticket> --harness exec` and emit the terminal phase status.
 
 inputs:
   phase:
@@ -20,6 +20,10 @@ inputs:
     description: Optional owner nonce (for the `code` and `verify` phases).
     required: false
     default: ""
+  harness:
+    description: accord-cli harness backend id (claude, cursor, pi).
+    required: false
+    default: claude
 
 outputs:
   status:
@@ -29,13 +33,14 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Run phase via pi-accord-ci run-phase.ts
+    - name: Run phase via accord-ci run-phase.ts
       id: runphase
       shell: bash
       working-directory: .accord-ci
       env:
-        PI_OFFLINE: "1"
-        PI_SKIP_VERSION_CHECK: "1"
+        ACCORD_CI_HARNESS: ${{ inputs.harness }}
+        # Headless CI only — explicit opt-in to Claude permission bypass (see docs/configuration.md).
+        ACCORD_CLAUDE_SKIP_PERMISSIONS: "1"
       run: |
         EXTRA_ARGS=()
         if [ -n "${{ inputs.task_id }}" ]; then
@@ -44,4 +49,4 @@ runs:
         if [ -n "${{ inputs.owner_nonce }}" ]; then
           EXTRA_ARGS+=("--owner-nonce=${{ inputs.owner_nonce }}")
         fi
-        bun run packages/pi-accord-ci/src/run-phase.ts --phase "${{ inputs.phase }}" --ticket "${{ inputs.ticket }}" "${EXTRA_ARGS[@]}"
+        bun run packages/accord-ci/src/run-phase.ts --phase "${{ inputs.phase }}" --ticket "${{ inputs.ticket }}" "${EXTRA_ARGS[@]}"

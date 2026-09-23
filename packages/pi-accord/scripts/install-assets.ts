@@ -4,7 +4,7 @@
  * bootstrap can call it directly.
  */
 
-import { DEFAULT_PI_AGENT_DIR, installPiAssets } from "../src/core/asset-install.js";
+import { DEFAULT_PI_AGENT_DIR, installPiAssets } from "@clive.shirley/accord-core/asset-install.js";
 
 type Args = {
   target: string;

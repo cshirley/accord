@@ -11,15 +11,17 @@ import {
 } from "../../pi-subagent/src/api.js";
 import {
   formatOrchestratorSpawnStatusLines,
+  ORCHESTRATOR_SPAWN_WIDGET_KEY,
+  refreshOrchestratorSpawnUi,
   registerOrchestratorSpawn,
   unregisterOrchestratorSpawn,
   updateOrchestratorSpawn,
-} from "../src/adapters/pi/subagent/spawn-status.js";
+} from "../src/subagent/spawn-status.js";
 import {
   formatOrchestratorProgressWidgetLines,
   formatOrchestratorSpawnElapsed,
   formatOrchestratorStallHint,
-} from "../src/adapters/pi/subagent/spawn-ui.js";
+} from "../src/subagent/spawn-ui.js";
 
 describe("summarizeSubagentProgress", () => {
   test("extracts tool lines and turn count", () => {
@@ -278,6 +280,30 @@ describe("formatOrchestratorStallHint", () => {
     );
     expect(hint).toContain("composing…");
     expect(hint).toContain("AC-2");
+  });
+});
+
+describe("refreshOrchestratorSpawnUi", () => {
+  test("clears widget when no active spawns", async () => {
+    const widgets = new Map<string, unknown>();
+    const ctx = {
+      hasUI: true,
+      ui: {
+        setWidget(key: string, value: unknown) {
+          if (value === undefined) {
+            widgets.delete(key);
+          } else {
+            widgets.set(key, value);
+          }
+        },
+        setStatus: () => {},
+        setWorkingMessage: () => {},
+        setWorkingVisible: () => {},
+      },
+    } as unknown as import("@earendil-works/pi-coding-agent").ExtensionCommandContext;
+    widgets.set(ORCHESTRATOR_SPAWN_WIDGET_KEY, () => {});
+    await refreshOrchestratorSpawnUi(ctx);
+    expect(widgets.has(ORCHESTRATOR_SPAWN_WIDGET_KEY)).toBe(false);
   });
 });
 

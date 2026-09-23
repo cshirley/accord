@@ -41,7 +41,7 @@ behaviour is testable without a live session.
 
 ## Installation
 
-When developing this repo, thrift is loaded via `@clive.shirley/pi-accord`
+When developing this repo, thrift is loaded via the `@clive.shirley/accord` monorepo
 (`package.json` → `pi.extensions`).
 
 To test the thrift entry file in isolation:

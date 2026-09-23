@@ -1,0 +1,22 @@
+{
+  "name": "@clive.shirley/pi-git",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi extension: git_commit_*, gh_pr_*, gh_ci_context, repo_verify, git_worktree_resolve, git_review_context, wt_* tools, /wt command",
+  "keywords": [
+    "pi-package"
+  ],
+  "main": "./src/index.ts",
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.83.0",
+    "@earendil-works/pi-tui": "^0.83.0",
+    "typebox": "^1.3.7"
+  },
+  "dependencies": {
+    "@clive.shirley/accord-core": "workspace:*"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@clive.shirley/pi-integrations",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi extension: Jira, Slack, Google Workspace tool integrations",
+  "keywords": [
+    "pi-package"
+  ],
+  "main": "./src/index.ts",
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.83.0",
+    "typebox": "^1.3.7"
+  },
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  }
+}

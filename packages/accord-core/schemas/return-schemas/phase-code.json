@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "return-schemas/phase-code.json",
+  "title": "phase-code return packet",
+  "type": "object",
+  "definitions": {
+    "task_event": {
+      "type": "object",
+      "required": ["type", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": ["usage", "escalation", "deviation", "request_review", "test_issue"]
+        },
+        "at": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "usage": {
+          "type": "object",
+          "required": ["prompt_tokens", "completion_tokens"],
+          "additionalProperties": false,
+          "properties": {
+            "prompt_tokens": { "type": "integer", "minimum": 0 },
+            "completion_tokens": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "question": { "type": "string", "minLength": 1 },
+        "context": { "type": "string" },
+        "tried": { "type": "string" },
+        "phase": { "type": "string" },
+        "description": { "type": "string" },
+        "reason": { "type": "string" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "test_file": { "type": "string", "minLength": 1 },
+        "test_name": { "type": "string" },
+        "issue": { "type": "string", "minLength": 1 },
+        "ac_id": { "type": "string" },
+        "recommendation": { "enum": ["fix_test", "clarify_spec", "acceptable"] }
+      },
+      "oneOf": [
+        {
+          "required": ["type", "at", "model", "usage"],
+          "properties": { "type": { "const": "usage" } }
+        },
+        {
+          "required": ["type", "at", "question"],
+          "properties": { "type": { "const": "escalation" } }
+        },
+        {
+          "required": ["type", "at", "description", "reason"],
+          "properties": { "type": { "const": "deviation" } }
+        },
+        {
+          "required": ["type", "at", "files"],
+          "properties": { "type": { "const": "request_review" } }
+        },
+        {
+          "required": ["type", "at", "test_file", "issue", "recommendation"],
+          "properties": { "type": { "const": "test_issue" } }
+        }
+      ]
+    }
+  },
+  "required": ["status", "files_changed", "tests_passing", "usage"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["done", "stuck", "blocked"] },
+    "files_changed": { "type": "array", "items": { "type": "string" } },
+    "tests_passing": { "type": "boolean" },
+    "ac_covered": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^AC-\\d+$" }
+    },
+    "deviations_emitted": { "type": "integer", "minimum": 0 },
+    "reviews_requested": { "type": "integer", "minimum": 0 },
+    "test_issues_emitted": { "type": "integer", "minimum": 0 },
+    "events": {
+      "type": "array",
+      "description": "Per-task events for orchestrator promotion (deviation, escalation, test_issue, request_review)",
+      "items": { "$ref": "#/definitions/task_event" }
+    },
+    "question": { "type": "string", "minLength": 1 },
+    "context": { "type": "string" },
+    "tried": { "type": "string" },
+    "usage": {
+      "type": "object",
+      "required": ["prompt_tokens", "completion_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "stuck" } },
+        "required": ["status"]
+      },
+      "then": { "required": ["question", "context"] }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "done" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": { "tests_passing": { "const": true } },
+        "required": ["ac_covered"]
+      }
+    }
+  ]
+}

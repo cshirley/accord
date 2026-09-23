@@ -16,7 +16,7 @@ Source of truth for all artifact shapes. Located in `packages/pi-accord/schemas/
 | `investigation-schema.json` | `.tasks/<ID>-investigation.json` | `work_item_id` |
 | `accord-schema.json` | `## Dev Harness` compatibility config block in AGENTS.md | `schema_version` |
 | `orchestration-judgment-packet.json` | Bounded LLM output merged into resume task text (Phase 5); no routing fields | `schema_version` |
-| `provider-schema.json` | `packages/pi-accord/assets/providers/{trackers,enrichments}/<name>.json` connectivity sidecars | `name` |
+| `provider-schema.json` | `packages/accord-assets/providers/{trackers,enrichments}/<name>.json` connectivity sidecars | `name` |
 | `model-pricing.json` | Token pricing lookup for cost tracking | — |
 
 ## Return schemas

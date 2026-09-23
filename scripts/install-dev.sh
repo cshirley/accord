@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
+# Full ACCORD dev setup. For skills + pi-git only (no /dev harness), use:
+#   bash scripts/install-pi-skills.sh
+#
 # Register this repo with Pi (`pi install`) so `package.json` → `pi` loads the
-# bundled extension modules (pi-subagent, pi-worktree, …) plus the ACCORD harness,
-# then link bundled skills/agents/providers (`bun run install:assets`).
+# bundled extension modules (pi-subagent, pi-git, …) plus the ACCORD harness,
+# then link bundled agents/providers (`bun run install:assets`; skills load via pi.skills), and install
+# a `~/.local/bin/accord` shim for headless CLI use from any directory.
 #
 # Usage:
 #   scripts/install-dev.sh
@@ -47,6 +51,12 @@ fi
 echo "Linking Pi assets (install:assets --force)..."
 if ! bun packages/pi-accord/scripts/install-assets.ts --force; then
   echo "error: install:assets failed" >&2
+  exit 1
+fi
+
+echo "Installing accord shim (~/.local/bin/accord)..."
+if ! bun packages/accord-cli/scripts/install-shim.ts --force; then
+  echo "error: install:shim failed" >&2
   exit 1
 fi
 

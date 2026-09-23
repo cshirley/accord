@@ -45,3 +45,4 @@ temp/
 
 # pi-accord
 .tasks/
+.review-diff.tmp

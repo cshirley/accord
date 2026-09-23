@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { formatHarnessToolPath } from "../src/adapters/pi/builtin-tool-renders.js";
+import { formatHarnessToolPath } from "../src/builtin-tool-renders.js";
 
 function mockTheme(): Theme {
   return {

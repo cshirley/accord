@@ -36,6 +36,10 @@ Individual steps (useful while iterating):
 | `bun run validate:assets` | Bundled asset manifest checks |
 | `bun run check:bundle` | Bundle smoke build |
 | `bun run check:runtime` | Runtime smoke script |
+| `bun test packages/accord-ci/tests` | Autopipeline contract tests (`accord-ci`) |
+| `bun run smoke:gh:autopipeline` | L4 GitHub smoke (`dry_run=true`; see [docs/ci/pre-merge-smoke.md](docs/ci/pre-merge-smoke.md)) |
+
+Changes under `packages/accord-ci/` or `.github/actions/setup-accord/` should follow the full pre-merge checklist in [docs/ci/pre-merge-smoke.md](docs/ci/pre-merge-smoke.md).
 
 Fix formatting issues with:
 
@@ -63,7 +67,7 @@ bun run check:biome:fix
 
 ## Project layout
 
-- [`src/`](src/) — core harness, `/dev` command, MCP adapter
+- [`packages/accord-core/`](packages/accord-core/) — host-neutral harness; [`packages/accord-mcp/`](packages/accord-mcp/) — stdio MCP server
 - [`packages/`](packages/) — Pi extension modules (subagent, worktree, git tools, CI, etc.)
 - [`packages/pi-accord/assets/`](assets/) — bundled skills, agents, provider sidecars
 - [`packages/pi-accord/schemas/`](schemas/) — JSON schemas for artifacts and agent return packets

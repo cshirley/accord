@@ -12,7 +12,7 @@ A working install needs **two** pieces under `~/.config/pi/agent/`:
 
 | Piece | How | Why |
 |---|---|---|
-| **This repo as a Pi package** | Add the repo root to global `settings.json` → **`packages`** via **`pi install <path>`** (see [One-time setup](#one-time-setup)). Pi reads `package.json` → **`pi`** and loads **`pi.extensions`** (six modules: `packages/pi-subagent`, `packages/pi-worktree`, `packages/pi-thrift`, `packages/pi-git-tools`, `packages/pi-tools`, then `src/index.ts` for `/dev`, `dev_*` tools, hooks) plus **`pi.skills`** / **`pi.prompts`** / **`pi.themes`** from the checkout. Same manifest-driven behaviour as the old `extensions/accord` symlink, without linking into `extensions/`. |
+| **This repo as a Pi package** | Add the repo root to global `settings.json` → **`packages`** via **`pi install <path>`** (see [One-time setup](#one-time-setup)). Pi reads `package.json` → **`pi`** and loads **`pi.extensions`** (five modules: `packages/pi-subagent`, `packages/pi-thrift`, `packages/pi-git`, `packages/pi-integrations`, then `packages/pi-accord` for `/dev`, `dev_*` tools, hooks) plus **`pi.skills`** / **`pi.prompts`** / **`pi.themes`** from the checkout. Same manifest-driven behaviour as the old `extensions/accord` symlink, without linking into `extensions/`. |
 | **`{skills,agents,providers}/...` → bundled assets** | The extension's auto-install (or `bun run install:assets`) | Agent/provider prompts and companion skills (`commit`, `pr`, `review`) the harness expects at runtime. |
 
 You register the package once with the Pi CLI (or by editing `settings.json` yourself). The asset links are created automatically on Pi startup unless you opt out (see [Auto-install](#auto-install)); run `bun run install:assets` manually if you've opted out or want to install before the first Pi launch.
@@ -58,7 +58,7 @@ The extension's bootstrap behaviour:
 | Metadata stale (version or manifest changed) | re-install | `info`: "re-linked N assets — restart pi" |
 | Metadata stale, install no-op (already correct) | reconcile metadata | none |
 | Local modifications block the install | abort install for those paths | `warning`: "N file(s) blocked — run with `--force`" |
-| Bundled `packages/pi-accord/assets/manifest.json` missing | abort with diagnostic | `warning`: "cannot read bundled manifest — run `bun install`" |
+| Bundled `packages/accord-assets/manifest.json` missing | abort with diagnostic | `warning`: "cannot read bundled manifest — run `bun install`" |
 
 ### Opting out
 
@@ -114,9 +114,9 @@ If pi loads but `/dev` is missing, check:
 ## Edit-test loop
 
 - TypeScript edits under `src/` or `packages/` take effect on the next pi session restart (Pi loads extension modules from the registered checkout, so there's no rebuild step).
-- Prompt edits under `packages/pi-accord/assets/agents/` and `packages/pi-accord/assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
-- Skill edits under `packages/pi-accord/assets/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation.
-- Schema edits require running `node packages/pi-accord/schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
+- Prompt edits under `packages/accord-assets/agents/` and `packages/accord-assets/providers/` take effect on the next subagent spawn (no Pi restart needed) once those assets are linked into your agent dir (symlinks from `install:assets`).
+- Skill edits under `packages/pi-skills/skills/{commit,pr,review}/SKILL.md` take effect on the next skill invocation (via `pi.skills`, not `install:assets`).
+- Schema edits require running `node packages/accord-core/schemas/examples/validate-examples.mjs` (or `npm run check`) before they're trusted; the harness validates writes against the latest schemas at runtime, so a malformed schema will start blocking artifact writes immediately.
 
 Run `npm run check` before any structural change you intend to keep — the suite covers tests, schemas, asset/manifest consistency, type-check, bundle, and a runtime smoke.
 
@@ -154,3 +154,22 @@ ACCORD_CWD=/path/to/your/project bun run mcp
 ```
 
 This serves the same tool surface over stdio MCP. The Pi-only event hooks (on-write schema validation, post-code verification, brief injection) don't run in this mode — wire equivalent behaviour into your client's hook system if you need it. See [`docs/hooks-and-tools.md`](hooks-and-tools.md) for the full hook list.
+
+To run orchestration spawns from MCP (not just `dev_orchestrate` plan JSON):
+
+```bash
+ACCORD_MCP_HARNESS=pi ACCORD_CWD=/path/to/your/project bun run mcp
+```
+
+## Standalone `accord` CLI (no Pi)
+
+From this checkout:
+
+```bash
+bun run accord tasks
+bun run accord init --write
+bun run accord resume DEMO-1 --harness pi -y
+bun run accord review --json
+```
+
+Full reference: [`docs/accord-cli.md`](accord-cli.md). Pi `/dev` workflow subcommands delegate to the same `accord-cli` commands in-process (or set `ACCORD_CLI_DELEGATE=subprocess`).
