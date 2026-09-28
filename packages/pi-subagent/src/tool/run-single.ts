@@ -1,7 +1,6 @@
 import type { AgentConfig } from "../agents.js";
 import { runSubagent } from "../spawn/index.js";
-import type { SpawnSubagentParams, SpawnSubagentResult } from "../spawn/types.js";
-import { SubagentRunError } from "../spawn/types.js";
+import type { SpawnSubagentParams, SpawnSubagentResult, SubagentRunError } from "../spawn/types.js";
 import type { OnUpdateCallback, SingleResult, SubagentDetails } from "./types.js";
 
 export type RunSingleAgentOptions = Partial<

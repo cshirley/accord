@@ -59,7 +59,11 @@ describe("executeSubagentTool output wiring", () => {
       },
       undefined,
       undefined,
-      { cwd, hasUI: false, ui: { confirm: async () => true } } as unknown as ExtensionCommandContext,
+      {
+        cwd,
+        hasUI: false,
+        ui: { confirm: async () => true },
+      } as unknown as ExtensionCommandContext,
     );
 
     const first = result.content[0];

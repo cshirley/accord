@@ -4,6 +4,7 @@
  */
 
 import type { DevHarnessConfig } from "../../config/types.js";
+import { createLogger } from "../../logging.js";
 import { severityGateRemediationLabel } from "../policy.js";
 import {
   decideAfterReviewTest,
@@ -13,6 +14,8 @@ import {
   writeReviewLoopCounters,
 } from "../review-feedback.js";
 import { advancePrimaryTask } from "./primary-task.js";
+
+const log = createLogger("orchestration:review-test");
 
 /**
  * @returns Markdown to append for the orchestrator (empty when this path does not apply).
@@ -33,6 +36,14 @@ export function applyReviewTestPostResult(
       wi.pattern === "quick_fix" && wi.phase === "fixing" && task.quick_fix_contract;
     const onImplement = wi.pattern === "implement" && wi.phase === "implementing";
     if ((!onQuickFix && !onImplement) || task.phase !== "review-test") {
+      // This is the retry-cap counter bump path (`review_loop` / `quick_fix_loop`) — a silent
+      // no-op here means a critical review-test finding never consumes a retry slot, so the
+      // test\u2194review loop can run indefinitely without ever tripping the cap. Log loudly rather
+      // than dropping it quietly; if this fires repeatedly for one work item, something upstream
+      // (a concurrent writer racing `task.phase`, or a pattern/phase drift) is stranding findings.
+      log.warn(
+        `guard no-op for ${workItemId}: task.phase=${String(task.phase)} wi.pattern=${wi.pattern} wi.phase=${wi.phase} onQuickFix=${String(!!onQuickFix)} onImplement=${String(onImplement)} — review-test findings NOT applied to review_loop/quick_fix_loop counters.`,
+      );
       return false;
     }
 
@@ -70,6 +81,8 @@ export function applyReviewTestPostResult(
       writeReviewLoopCounters(task, {
         ...counters,
         test_review_retries_used: used,
+        // Never reset by `/dev unblock` — this is the hard ceiling that survives it.
+        lifetime_test_review_cycles: counters.lifetime_test_review_cycles + 1,
       });
     }
 

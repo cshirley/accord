@@ -106,19 +106,18 @@ export function postSpawnReplanDecision(
 ): PostSpawnReplanDecision {
   const status = extractReturnStatus(parsedReturn);
 
-  if (agent === "phase-align") {
-    if (status === "needs_input" || status === "needs_gather" || status === "stuck") {
-      return "stop";
-    }
+  // `stuck` is uniform across every agent's return schema and always halts the auto-replan
+  // loop \u2014 there is nothing useful to replan into until the escalation (promoted to
+  // decisions[] by `applyStuckPostResult`) is answered.
+  if (status === "stuck") {
+    return "stop";
   }
 
-  if (agent === "phase-spec" || agent === "phase-plan") {
-    if (status === "needs_input" || status === "stuck") {
-      return "stop";
-    }
+  if (agent === "phase-align" && (status === "needs_input" || status === "needs_gather")) {
+    return "stop";
   }
 
-  if (agent === "phase-gather" && status === "stuck") {
+  if ((agent === "phase-spec" || agent === "phase-plan") && status === "needs_input") {
     return "stop";
   }
 

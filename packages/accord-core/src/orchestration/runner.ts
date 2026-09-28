@@ -24,6 +24,7 @@ import { planDevResumeOrchestration, resumeResolutionToNextSteps } from "./plan.
 import { resumeAllowsAutoReplanToAgent, resumeReplanPolicyFromDevConfig } from "./policy.js";
 import { reconcileCoarsePhaseUntilStable } from "./reconcile-coarse-phase.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
+import type { ResolveResumeOrchestrationOptions } from "./resolve/resume.js";
 import { resolveDevSubcommandOrchestration } from "./resolve/subcommand.js";
 import {
   extractReturnStatus,
@@ -32,7 +33,7 @@ import {
 } from "./spawn-followup.js";
 import type { NextStep, ResumeOrchestrationResolution, RunUntilStopResult } from "./types.js";
 
-export type ResumeOrchestrationStallReason = "repeat_spawn" | "needs_input";
+export type ResumeOrchestrationStallReason = "repeat_spawn" | "needs_input" | "stuck";
 
 async function applySpawnFollowUps(
   workItemId: string,
@@ -58,7 +59,10 @@ async function applySpawnFollowUps(
 }
 
 function stallReasonAfterStop(parsedReturn: unknown): ResumeOrchestrationStallReason | undefined {
-  return extractReturnStatus(parsedReturn) === "needs_input" ? "needs_input" : undefined;
+  const status = extractReturnStatus(parsedReturn);
+  if (status === "needs_input") return "needs_input";
+  if (status === "stuck") return "stuck";
+  return undefined;
 }
 
 export interface RunResumeOrchestrationWithReplansResult {
@@ -76,7 +80,7 @@ export async function runResumeOrchestrationWithReplans(
   workItemId: string,
   devConfig: DevHarnessConfig | null,
   host: OrchestrationRuntimeHost,
-  options?: { maxSequentialSpawns?: number },
+  options?: { maxSequentialSpawns?: number } & ResolveResumeOrchestrationOptions,
 ): Promise<RunResumeOrchestrationWithReplansResult> {
   const resumePolicy = resumeReplanPolicyFromDevConfig(devConfig);
   const maxSequentialSpawns = Math.max(
@@ -88,7 +92,9 @@ export async function runResumeOrchestrationWithReplans(
   let lastRun: RunUntilStopResult = { stopReason: "idle" };
 
   for (let iter = 0; iter < maxSequentialSpawns; iter++) {
-    const resolution = planDevResumeOrchestration(workItemId, devConfig);
+    const resolution = planDevResumeOrchestration(workItemId, devConfig, {
+      allowPendingDecisions: options?.allowPendingDecisions,
+    });
     if (iter === 0) {
       firstResolution = resolution;
     }
@@ -167,7 +173,9 @@ export async function runResumeOrchestrationWithReplans(
       );
     }
 
-    const nextResolution = planDevResumeOrchestration(workItemId, devConfig);
+    const nextResolution = planDevResumeOrchestration(workItemId, devConfig, {
+      allowPendingDecisions: options?.allowPendingDecisions,
+    });
     if (
       nextResolution.outcome === "spawn" &&
       !resumeAllowsAutoReplanToAgent(nextResolution.agent, devConfig)
@@ -198,7 +206,7 @@ export async function runDevSubcommandOrchestrationWithReplans(
   rawArgs: string,
   devConfig: DevHarnessConfig | null,
   host: OrchestrationRuntimeHost,
-  options?: { maxSequentialSpawns?: number },
+  options?: { maxSequentialSpawns?: number } & ResolveResumeOrchestrationOptions,
 ): Promise<RunResumeOrchestrationWithReplansResult> {
   const resumePolicy = resumeReplanPolicyFromDevConfig(devConfig);
   const maxSequentialSpawns = Math.max(
@@ -212,8 +220,12 @@ export async function runDevSubcommandOrchestrationWithReplans(
   for (let iter = 0; iter < maxSequentialSpawns; iter++) {
     const resolution =
       iter === 0
-        ? resolveDevSubcommandOrchestration(subcommand, workItemId, rawArgs, devConfig)
-        : planDevResumeOrchestration(workItemId, devConfig);
+        ? resolveDevSubcommandOrchestration(subcommand, workItemId, rawArgs, devConfig, {
+            allowPendingDecisions: options?.allowPendingDecisions,
+          })
+        : planDevResumeOrchestration(workItemId, devConfig, {
+            allowPendingDecisions: options?.allowPendingDecisions,
+          });
     if (iter === 0) {
       firstResolution = resolution;
     }
@@ -292,7 +304,9 @@ export async function runDevSubcommandOrchestrationWithReplans(
       );
     }
 
-    const nextResolution = planDevResumeOrchestration(workItemId, devConfig);
+    const nextResolution = planDevResumeOrchestration(workItemId, devConfig, {
+      allowPendingDecisions: options?.allowPendingDecisions,
+    });
     if (
       nextResolution.outcome === "spawn" &&
       !resumeAllowsAutoReplanToAgent(nextResolution.agent, devConfig)

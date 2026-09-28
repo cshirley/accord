@@ -9,6 +9,7 @@ import {
   postSpawnReplanDecision,
   runResumeOrchestrationWithReplans,
 } from "@clive.shirley/accord-core/orchestration/index.js";
+import { resetSpawnPreflightCheckForTests } from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
 
 function minimalDevConfig(): DevHarnessConfig {
   return {
@@ -30,6 +31,9 @@ beforeEach(() => {
   tempCwd = mkdtempSync(join(tmpdir(), "accord-align-followup-"));
   process.chdir(tempCwd);
   mkdirSync(join(tempCwd, ".tasks"), { recursive: true });
+  // See orchestration.test.ts: reset the process-wide preflight backend singleton so this
+  // host-neutral suite doesn't depend on a real host backend/machine credentials.
+  resetSpawnPreflightCheckForTests();
 });
 
 afterEach(() => {
@@ -89,6 +93,31 @@ describe("align gather spawn follow-up", () => {
         "phase-align",
       ),
     ).toBe("stop");
+  });
+
+  test("postSpawnReplanDecision stops on `stuck` for any agent (universal, not just align/spec/plan/gather)", () => {
+    for (const agent of [
+      "phase-verify-acceptance",
+      "phase-verify-task",
+      "phase-verify-infra",
+      "phase-explore",
+      "phase-hypothesise",
+      "phase-code",
+      "phase-test",
+      "phase-gaps",
+    ]) {
+      expect(
+        postSpawnReplanDecision(
+          {
+            status: "stuck",
+            question: "q",
+            context: "c",
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          },
+          agent,
+        ),
+      ).toBe("stop");
+    }
   });
 
   test("runResumeOrchestrationWithReplans chains align→gather→align in one resume", async () => {

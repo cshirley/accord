@@ -22,13 +22,14 @@ export {
 export { type CliContext, createCliContext, createCliContextFromHarnessState } from "./context.js";
 export { asRuntimeHost } from "./harnesses/as-runtime-host.js";
 export {
-  type AgentHarness,
-  type AgentHarnessId,
-  createHarness,
-  DEFAULT_HARNESS_ID,
-  parseHarnessId,
-} from "./harnesses/registry.js";
-export type { AgentHarnessFactoryOptions } from "./harnesses/types.js";
+  CLAUDE_CODE_EXEC_COMMAND,
+  CLAUDE_CODE_EXEC_HARNESS,
+  runClaudeCodeExec,
+} from "./harnesses/claude-code-exec.js";
+export {
+  formatClaudeCodeCliEffort,
+  formatClaudeCodeCliModel,
+} from "./harnesses/claude-code-model.js";
 export {
   buildCursorAgentPrompt,
   CURSOR_AGENT_EXEC_COMMAND,
@@ -37,11 +38,11 @@ export {
 } from "./harnesses/cursor-agent-exec.js";
 export { formatCursorAgentCliModel } from "./harnesses/cursor-agent-model.js";
 export {
-  CLAUDE_CODE_EXEC_COMMAND,
-  CLAUDE_CODE_EXEC_HARNESS,
-  runClaudeCodeExec,
-} from "./harnesses/claude-code-exec.js";
-export { formatClaudeCodeCliEffort, formatClaudeCodeCliModel } from "./harnesses/claude-code-model.js";
+  formatClaudeCodeTools,
+  inferAgentNamespace,
+  loadAgentFromSpawnFile,
+  resolveSpawnModelFromAgentFile,
+} from "./harnesses/exec-agent-shared.js";
 export {
   createPiHarness,
   PI_EXEC_COMMAND,
@@ -50,8 +51,10 @@ export {
   runPiExecSpawn,
 } from "./harnesses/pi-exec.js";
 export {
-  formatClaudeCodeTools,
-  inferAgentNamespace,
-  loadAgentFromSpawnFile,
-  resolveSpawnModelFromAgentFile,
-} from "./harnesses/exec-agent-shared.js";
+  type AgentHarness,
+  type AgentHarnessId,
+  createHarness,
+  DEFAULT_HARNESS_ID,
+  parseHarnessId,
+} from "./harnesses/registry.js";
+export type { AgentHarnessFactoryOptions } from "./harnesses/types.js";

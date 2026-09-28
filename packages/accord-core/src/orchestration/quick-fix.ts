@@ -10,7 +10,13 @@
 
 import { buildImplementSpawnTaskBrief } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/types.js";
-import { readJson, taskJsonPath, writeJson } from "../work-items/io.js";
+import {
+  readJson,
+  taskJsonPath,
+  taskLockPath,
+  withJsonFileLock,
+  writeJson,
+} from "../work-items/io.js";
 import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
 import { findingsTriggerReviewRetry } from "./policy.js";
 import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback.js";
@@ -85,7 +91,12 @@ export function decideQuickFixAfterReviewTest(
  * gated soft issues → `phase-code` without bump; gated hard issues → retry cap logic.
  */
 export function decideQuickFixAfterReviewPacket(
-  counters: { test_review_cycles_used: number },
+  counters: {
+    test_review_cycles_used: number;
+    /** Never reset by `/dev unblock`; defaults to 0 for callers that don't track it. */
+    lifetime_test_review_cycles?: number;
+    unblock_count?: number;
+  },
   packet: { verdict: ReviewTestVerdict; findings: ReadonlyArray<{ severity?: string }> },
   policy: QuickFixLoopPolicy,
 ):
@@ -95,6 +106,10 @@ export function decideQuickFixAfterReviewPacket(
     {
       test_review_retries_used: counters.test_review_cycles_used,
       code_review_retries_used: 0,
+      lifetime_test_review_cycles:
+        counters.lifetime_test_review_cycles ?? counters.test_review_cycles_used,
+      lifetime_code_review_cycles: 0,
+      unblock_count: counters.unblock_count ?? 0,
     },
     { verdict: packet.verdict, findings: [...packet.findings] },
     devConfigFromQuickFixPolicy(policy),
@@ -114,15 +129,20 @@ export function bumpQuickFixTestReviewCycle(
   taskId: number,
 ): { ok: true; test_review_cycles_used: number } | { ok: false; error: string } {
   const filePath = taskJsonPath(workItemId, taskId);
-  const raw = readJson<Record<string, unknown>>(filePath);
-  if (!raw) {
-    return { ok: false, error: `Missing task file ${filePath}` };
-  }
-  const prev = readQuickFixLoopCounters(raw);
-  const used = prev.test_review_cycles_used + 1;
-  raw.quick_fix_loop = { test_review_cycles_used: used };
-  writeJson(filePath, raw);
-  return { ok: true, test_review_cycles_used: used };
+  // Locked (on the shared `taskLockPath` key, same one `advancePrimaryTask` uses) against a
+  // concurrent `applyReviewTestPostResult` write on the same work item \u2014 otherwise this
+  // counter bump can race and get silently discarded (see `withJsonFileLock` in work-items/io.ts).
+  return withJsonFileLock(taskLockPath(workItemId), () => {
+    const raw = readJson<Record<string, unknown>>(filePath);
+    if (!raw) {
+      return { ok: false, error: `Missing task file ${filePath}` };
+    }
+    const prev = readQuickFixLoopCounters(raw);
+    const used = prev.test_review_cycles_used + 1;
+    raw.quick_fix_loop = { test_review_cycles_used: used };
+    writeJson(filePath, raw);
+    return { ok: true, test_review_cycles_used: used };
+  });
 }
 
 /**

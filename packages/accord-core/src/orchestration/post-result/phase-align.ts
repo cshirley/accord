@@ -12,6 +12,7 @@ import {
 } from "../../work-items/artifact-discovery.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { devTransition } from "../../work-items/lifecycle.js";
+import { applyInterviewNeedsInputPostResult } from "./needs-input.js";
 
 interface PhaseAlignDonePacket {
   status: "done";
@@ -28,6 +29,16 @@ function isPhaseAlignDonePacket(packet: unknown): packet is PhaseAlignDonePacket
  * @returns Markdown to append for the orchestrator (empty when this path does not apply).
  */
 export function applyPhaseAlignPostResult(workItemId: string, packet: unknown): string {
+  const needsInput = applyInterviewNeedsInputPostResult(
+    workItemId,
+    "phase-align",
+    "aligning",
+    packet,
+  );
+  if (needsInput) {
+    return needsInput;
+  }
+
   if (!isPhaseAlignDonePacket(packet)) {
     return "";
   }

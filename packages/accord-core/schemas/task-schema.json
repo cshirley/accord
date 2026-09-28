@@ -63,6 +63,42 @@
       "items": { "type": "string" },
       "description": "AC ids covered by tests (from phase-test return packet)"
     },
+    "stub_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Unimplemented declarations phase-test created so tests resolve; phase-code must replace them"
+    },
+    "review_responses": {
+      "type": "array",
+      "description": "phase-test answers to the prior review-test round (from phase-test return packet)",
+      "items": {
+        "type": "object",
+        "required": ["issue", "resolution", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "issue": { "type": "string", "minLength": 1 },
+          "ref": { "type": "string" },
+          "file": { "type": "string" },
+          "resolution": { "enum": ["fixed", "disputed"] },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What changed (fixed) or concrete evidence the finding is wrong (disputed)"
+          }
+        }
+      }
+    },
+    "test_runner_crash": {
+      "type": "object",
+      "description": "Set when phase-test / phase-verify-task test_output matched a runner-crash signature",
+      "additionalProperties": false,
+      "required": ["reason", "matched", "at"],
+      "properties": {
+        "reason": { "type": "string" },
+        "matched": { "type": "string" },
+        "at": { "type": "string" }
+      }
+    },
     "review_loop": {
       "type": "object",
       "description": "Harness-owned retry counters for critical findings on review-test / review-code",

@@ -13,7 +13,7 @@ function buildHelpText(): string {
   return `/dev — agentic harness entry point
 
 Routing (deterministic):
-  Local in extension: help, tasks, retro, tag, rehydrate, init, spec-gaps, review, gaps, deviations.
+  Local in extension: help, tasks, retro, tag, rehydrate, init, spec-gaps, review, gaps, deviations, unblock, block.
   Core orchestrator (default): resume, finish, align, spec, plan, check, amend-spec.
   gaps --tickets / deviations review spawn phase agents when orchestrator is enabled.
   Set ACCORD_CORE_ORCHESTRATOR=0 to disable programmatic spawns (not recommended; bundled accord skill removed).
@@ -49,10 +49,13 @@ Examples:
  /dev spec ACCORD-1234             resume the spec interview
  /dev plan ACCORD-1234             generate the implementation plan
  /dev resume ACCORD-1234           continue at the work item's phase
+ /dev resume ACCORD-1234 --allow-pending-decisions   bypass pending-decisions resume gate
  /dev finish ACCORD-1234           verify, summarize, and finalize after implementation
  /dev check ACCORD-1234            rerun lower-level acceptance checks
  /dev gaps ACCORD-1234             list verify gaps (add --tickets for Jira follow-ups)
  /dev deviations ACCORD-1234       list pending plan deviations (accept|revert|review)
+ /dev unblock ACCORD-1234          clear a review-loop retry-cap block after fixing findings
+ /dev block ACCORD-1234 1 stuck in adversarial test/review loop   force task 1 to blocked
 
 State lives in .tasks/ (runtime) and docs/dev/<ID>/ (committed).
 Safe to /clear between rounds — resume with /dev resume <ID>.`;

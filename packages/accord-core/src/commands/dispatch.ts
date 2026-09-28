@@ -34,6 +34,11 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
   { value: "gaps", description: "List verify gaps (--tickets spawns phase-gaps)" },
   { value: "review", description: "Decision queue" },
   { value: "deviations", description: "List/accept/revert plan deviations (review spawns agent)" },
+  { value: "unblock", description: "Clear a review-loop retry-cap block after fixing findings" },
+  {
+    value: "block",
+    description: "Force a task to blocked (manual override when the retry-cap loop hasn't tripped)",
+  },
   { value: "amend-spec", description: "Amend the spec" },
   { value: "spec-gaps", description: "Find spec gaps" },
   { value: "tasks", description: "Task dashboard" },

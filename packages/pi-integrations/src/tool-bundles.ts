@@ -28,9 +28,8 @@ export const INTEGRATIONS_TOOL_BUNDLES: Record<IntegrationsToolBundle, readonly 
   preflight: ["native_preflight_check"],
 };
 
-export const INTEGRATIONS_MANAGED_TOOL_NAMES: readonly string[] = Object.values(
-  INTEGRATIONS_TOOL_BUNDLES,
-).flat();
+export const INTEGRATIONS_MANAGED_TOOL_NAMES: readonly string[] =
+  Object.values(INTEGRATIONS_TOOL_BUNDLES).flat();
 
 const TOOL_TO_BUNDLE = new Map<string, IntegrationsToolBundle>();
 for (const [bundle, tools] of Object.entries(INTEGRATIONS_TOOL_BUNDLES) as [

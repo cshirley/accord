@@ -22,6 +22,8 @@ function row(overrides: Partial<TasksDashboardRow>): TasksDashboardRow {
     has_checkpoint: false,
     missing_artifacts: [],
     action_hint: null,
+    work_item_path: ".tasks/WI-1.json",
+    pending_questions: [],
     cost_usd: 0,
     usage_cost_usd: null,
     display_cost_usd: 0,
@@ -67,6 +69,7 @@ describe("formatTasksDashboard", () => {
           tasks_in_progress: 1,
           pending_decisions: 1,
           action_hint: "→ review",
+          pending_questions: [{ id: "q1", question: "Which auth provider?" }],
           display_cost_usd: 2.5,
         }),
         row({
@@ -96,7 +99,9 @@ describe("formatTasksDashboard", () => {
     expect(formatted).toMatch(/review/);
     expect(formatted).toMatch(/Done/);
     expect(formatted).toMatch(/D-1/);
-    expect(formatted).toMatch(/\/dev review/);
+    expect(formatted).toMatch(/Pending decisions/);
+    expect(formatted).toMatch(/A-1\s+\.tasks\/WI-1\.json/);
+    expect(formatted).toMatch(/q1 — Which auth provider\?/);
     expect(formatted).toMatch(/\$3\.50 total/);
   });
 });

@@ -29,6 +29,7 @@ Orchestrator inlines:
 - When the public surface changes: `api_contract[]` entries whose `symbol` appears in the diff or task files
 - When populated: `deployment` (e.g. `dark_deploy`, rollout or feature-flag constraints)
 - Plan fields: `guidance`, `reuse_candidates`, the full task object (id, title, covers_ac, files[], steps[])
+- `stub_files` (when present): unimplemented declarations phase-test created pre-impl. Any surviving `not implemented` body in these files is a **critical** Step drift finding; they count as in-scope for File drift.
 
 Schemas of truth: Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk.
 

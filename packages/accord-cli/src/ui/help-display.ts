@@ -2,8 +2,8 @@
  * Colored CLI help output.
  */
 
-import { TOP_LEVEL_COMMANDS } from "./command-catalog.js";
 import { accent, bold, dim, heading, muted } from "./colors.js";
+import { TOP_LEVEL_COMMANDS } from "./command-catalog.js";
 
 export function renderHelp(): string {
   const lines: string[] = [];
@@ -35,13 +35,14 @@ export function renderHelp(): string {
     ["-y, --yes", "Auto-confirm gather preflight"],
     ["--finish", "Run acceptance closeout after drive/run"],
     ["--max-rounds <n>", "Cap resume rounds"],
+    ["--allow-pending-decisions", "Bypass the pending-decisions resume gate"],
     ["-h, --help", "Show help"],
   ];
   for (const [flag, description] of options) {
     lines.push(`  ${dim(flag.padEnd(20))}  ${description}`);
   }
   lines.push("");
-  lines.push(muted("Shell completion: eval \"$(accord completion bash)\""));
+  lines.push(muted('Shell completion: eval "$(accord completion bash)"'));
   lines.push("");
   return lines.join("\n");
 }

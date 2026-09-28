@@ -48,7 +48,7 @@ export {
 function evaluateCredentials(
   provider: string,
   requestedProfile: string,
-  effectiveProfile: string,
+  _effectiveProfile: string,
   cfg: SubagentConfig,
 ): { ok: boolean; blocks: string[]; warnings: string[] } {
   const blocks: string[] = [];

@@ -2,12 +2,11 @@
  * Resolve agent/model details for Pi subprocess spawns.
  */
 
-import { loadAgentFromFile } from "./load.js";
-import { discoverAgents, resolveModelConfig } from "./config.js";
-import type { AgentConfig, ReasoningEffort, ResolvedModel, ThinkingLevel } from "./types.js";
-import { formatResponseContractAppendix } from "./response-contract.js";
 import type { SubagentResponseContract } from "../types/subagent-spawn.js";
-
+import { discoverAgents, resolveModelConfig } from "./config.js";
+import { loadAgentFromFile } from "./load.js";
+import { formatResponseContractAppendix } from "./response-contract.js";
+import type { AgentConfig, ReasoningEffort, ResolvedModel, ThinkingLevel } from "./types.js";
 
 export type SpawnSubagentParams = {
   cwd: string;

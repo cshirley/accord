@@ -141,4 +141,33 @@ describe("verify-only implement tasks", () => {
     expect(task.phase).toBe("phase-verify-task");
     expect(task.events.some((e) => e.type === "implement_verify_task_applied")).toBe(true);
   });
+
+  test("phase-verify-task post-result blocks (does not mark done) when verify_output shows a crashed runner", () => {
+    const { id, planPath } = setupProject();
+    bootstrapImplementTasksFromPlan(id, planPath);
+    writeJson(join(".tasks", `${id}.json`), {
+      ...JSON.parse(readFileSync(join(".tasks", `${id}.json`), "utf8")),
+      task_ids: [1],
+    });
+    const packet = {
+      status: "done" as const,
+      verify_output: "UnhandledPromiseRejectionWarning: Error: boom\n  at foo (bar.js:1:1)\n",
+      ac_covered: ["AC-1"],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    };
+    const out = applyPhaseVerifyTaskPostResult(id, packet);
+    expect(out).toContain("CRASH detected");
+    const task = JSON.parse(readFileSync(join(".tasks", `${id}-task-1.json`), "utf8")) as {
+      status: string;
+      phase: string;
+      test_runner_crash?: { reason: string };
+      events: Array<{ type: string }>;
+    };
+    // Must NOT be marked done on a crashed run \u2014 no RED/review cycle downstream would ever
+    // catch this otherwise, since verify-only tasks complete in one gate pass.
+    expect(task.status).toBe("blocked");
+    expect(task.phase).toBe("phase-verify-task");
+    expect(task.test_runner_crash?.reason).toContain("unhandled promise rejection");
+    expect(task.events.some((e) => e.type === "implement_verify_task_crash_detected")).toBe(true);
+  });
 });

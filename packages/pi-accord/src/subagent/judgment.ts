@@ -8,7 +8,12 @@ import {
   isOrchestrationJudgmentConfigured,
   ORCHESTRATION_JUDGMENT_SCHEMA_VERSION,
 } from "@clive.shirley/accord-core/orchestration/judgment.js";
-import type { AssistantMessage, TextContent, ThinkingLevel, UserMessage } from "@earendil-works/pi-ai";
+import type {
+  AssistantMessage,
+  TextContent,
+  ThinkingLevel,
+  UserMessage,
+} from "@earendil-works/pi-ai";
 import { completeSimple } from "@earendil-works/pi-ai/compat";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { resolveJudgmentModel } from "./resolve-judgment-model.js";
@@ -92,9 +97,7 @@ export async function runOrchestrationJudgment(
       {
         maxTokens,
         temperature: 0.1,
-        ...(resolved.thinkingLevel
-          ? { reasoning: resolved.thinkingLevel as ThinkingLevel }
-          : {}),
+        ...(resolved.thinkingLevel ? { reasoning: resolved.thinkingLevel as ThinkingLevel } : {}),
         signal: ctx.signal,
         ...(auth.apiKey ? { apiKey: auth.apiKey } : {}),
         ...(auth.headers ? { headers: auth.headers } : {}),

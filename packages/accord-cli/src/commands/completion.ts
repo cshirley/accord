@@ -1,4 +1,4 @@
-import { renderCompletionScript, type CompletionShell } from "../ui/completion.js";
+import { type CompletionShell, renderCompletionScript } from "../ui/completion.js";
 
 export function runCompletionCommand(shell: string): number {
   const normalized = shell.trim().toLowerCase();

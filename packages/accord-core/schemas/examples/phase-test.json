@@ -15,5 +15,31 @@
     "context": "Task 2, test step. AC-3 criterion: 'rate limiting is enforced on refresh endpoint'.",
     "tried": "Checked spec constraints, brief's Security & Data section, and resolved_questions — rate limit specifics not defined anywhere.",
     "usage": { "prompt_tokens": 5000, "completion_tokens": 1200 }
+  },
+  {
+    "status": "done",
+    "test_files": ["src/billing/__tests__/proration.test.ts"],
+    "stub_files": ["src/billing/proration.ts"],
+    "red_confirmed": true,
+    "test_output": "FAIL src/billing/__tests__/proration.test.ts\n  AC-2 prorates mid-cycle upgrade\n    Error: not implemented: prorateUpgrade\n  AC-4 rejects negative seat delta\n    Expected: 'seat delta must be >= 0'\n    Received: 'not implemented: prorateUpgrade'",
+    "ac_covered": ["AC-2", "AC-4"],
+    "review_responses": [
+      {
+        "issue": "Check 0: import-only RED \u2014 unresolved `../proration`.",
+        "ref": "AC-2",
+        "file": "src/billing/__tests__/proration.test.ts",
+        "resolution": "fixed",
+        "note": "Added not-implemented stub src/billing/proration.ts exporting prorateUpgrade(plan, seats, at); suite now loads and fails on the stub error."
+      },
+      {
+        "issue": "AC-4 asserts toThrow() without message \u2014 generic Error passes.",
+        "ref": "AC-4",
+        "file": "src/billing/__tests__/proration.test.ts",
+        "resolution": "fixed",
+        "note": "Now asserts toThrow('seat delta must be >= 0')."
+      }
+    ],
+    "deviations_emitted": 0,
+    "usage": { "prompt_tokens": 7000, "completion_tokens": 1500 }
   }
 ]

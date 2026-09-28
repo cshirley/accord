@@ -108,7 +108,10 @@ function isValidConfig(parsed: unknown): parsed is SubagentConfig {
     if (!profile || typeof profile !== "object") return false;
     if (typeof profile.provider !== "string") return false;
     if ((profile.thinkingMode as string) === "embedded") profile.thinkingMode = "flag";
-    if (!profile.thinkingMode || !["flag", "reasoning_effort", "none"].includes(profile.thinkingMode))
+    if (
+      !profile.thinkingMode ||
+      !["flag", "reasoning_effort", "none"].includes(profile.thinkingMode)
+    )
       return false;
     if (!profile.tiers || typeof profile.tiers !== "object") {
       console.error(`[subagent] profile "${name}" missing tiers`);

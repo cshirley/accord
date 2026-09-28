@@ -6,6 +6,7 @@ import { loadGlobalConfig, mergeContextSources } from "../../config/global.js";
 import type { DevHarnessConfig } from "../../config/index.js";
 import { devCheckpointRead } from "../../work-items/checkpoint.js";
 import { enrichmentsDirRelForWorkItem, loadWorkItem } from "../../work-items/io.js";
+import { buildAnsweredMapForInterview } from "../post-result/needs-input.js";
 import { buildResumeTaskBrief } from "./resume.js";
 
 export interface AlignGatherHint {
@@ -85,9 +86,13 @@ export function buildAlignSpawnTask(input: {
   }
 
   if (cp) {
-    const answeredMap: Record<string, string> = {};
+    // Real resolved answer text from decisions[] (falls back to "" only for checkpoint-tracked
+    // ids the engineer hasn't answered via decisions[] yet).
+    const answeredMap = buildAnsweredMapForInterview(input.workItemId);
     for (const id of cp.answered ?? []) {
-      answeredMap[id] = "";
+      if (!(id in answeredMap)) {
+        answeredMap[id] = "";
+      }
     }
     lines.push(
       "",

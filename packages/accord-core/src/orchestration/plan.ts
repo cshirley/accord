@@ -11,14 +11,18 @@ import type { DevHarnessConfig } from "../config/index.js";
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
 import { resolveFinishOrchestration } from "./resolve/finish.js";
-import { resolveResumeOrchestration } from "./resolve/resume.js";
+import {
+  type ResolveResumeOrchestrationOptions,
+  resolveResumeOrchestration,
+} from "./resolve/resume.js";
 import type { NextStep, ResumeOrchestrationResolution } from "./types.js";
 
 export function planDevResumeOrchestration(
   workItemId: string,
   devConfig: DevHarnessConfig | null,
+  options?: ResolveResumeOrchestrationOptions,
 ): ResumeOrchestrationResolution {
-  return resolveResumeOrchestration(workItemId, devConfig);
+  return resolveResumeOrchestration(workItemId, devConfig, options);
 }
 
 export function planDevFinishOrchestration(
@@ -98,7 +102,7 @@ export interface DevOrchestrateHostHints {
 
 export interface DevOrchestrateExecutionResult {
   exit_code: number;
-  stalled_reason?: "repeat_spawn" | "needs_input";
+  stalled_reason?: "repeat_spawn" | "needs_input" | "stuck";
   closeout_ok?: boolean;
   workflow_cost_formatted?: string;
 }

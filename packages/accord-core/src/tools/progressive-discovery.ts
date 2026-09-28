@@ -61,7 +61,10 @@ export function scoreToolCatalog(
   query: string,
   limit: number,
 ): string[] {
-  const terms = query.toLowerCase().split(/[^a-z0-9_+-]+/).filter(Boolean);
+  const terms = query
+    .toLowerCase()
+    .split(/[^a-z0-9_+-]+/)
+    .filter(Boolean);
   if (terms.length === 0) return [];
 
   const scored: ScoredToolMatch[] = [];

@@ -30,6 +30,7 @@ import {
   validateOrchestrationGraph,
 } from "@clive.shirley/accord-core/orchestration/index.js";
 import type { OrchestrationGraphDefinition } from "@clive.shirley/accord-core/orchestration/types.js";
+import { resetSpawnPreflightCheckForTests } from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
 
 function minimalDevConfig(): DevHarnessConfig {
   return {
@@ -51,6 +52,12 @@ beforeEach(() => {
   tempCwd = mkdtempSync(join(tmpdir(), "accord-orch-"));
   process.chdir(tempCwd);
   mkdirSync(join(tempCwd, ".tasks"), { recursive: true });
+  // accord-core's preflight dispatch is a process-wide singleton (see subagent-preflight-shared.ts).
+  // When this suite runs alongside pi-accord's tests in the same bun process, pi-accord's real
+  // backend can end up registered here too, making these host-neutral orchestration tests
+  // depend on the local machine's actual credentials/subagent.json. Reset to the deterministic
+  // permissive default for hermetic, host-agnostic assertions.
+  resetSpawnPreflightCheckForTests();
 });
 
 afterEach(() => {
@@ -713,6 +720,72 @@ describe("quick-fix orchestration", () => {
     expect(task.events.some((e) => e.type === "implement_phase_test_applied")).toBe(true);
   });
 
+  test("applyPhaseTestPostResult blocks (does not advance) when test_output shows a crashed runner despite red_confirmed:true", () => {
+    writeWorkItem("QAP-CRASH", {
+      schema_version: "1.0",
+      id: "QAP-CRASH",
+      title: "crash",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "implementing",
+      task_ids: [1],
+      spec: "docs/dev/QAP-CRASH/spec.json",
+      plan: "docs/dev/QAP-CRASH/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    mkdirSync(join(tempCwd, "docs", "dev", "QAP-CRASH"), { recursive: true });
+    writeFileSync(join("docs", "dev", "QAP-CRASH", "spec.json"), "{}\n", "utf8");
+    writeFileSync(join("docs", "dev", "QAP-CRASH", "plan.json"), "{}\n", "utf8");
+    writeFileSync(
+      join(".tasks", "QAP-CRASH-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "QAP-CRASH",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "phase-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        test_files: [],
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+    const note = applyPhaseTestPostResult("QAP-CRASH", {
+      status: "done",
+      test_files: ["src/servers.unit.test.ts"],
+      red_confirmed: true,
+      test_output:
+        "node:internal/process/promises:394\n" +
+        "    triggerUncaughtException(err, true /* fromPromise */);\n" +
+        "Error: listen EADDRINUSE: address already in use :::3052\n" +
+        "Node.js v24.21.0\n",
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    expect(note).toContain("CRASH detected");
+    expect(note).toContain("blocked");
+    const task = JSON.parse(readFileSync(join(".tasks", "QAP-CRASH-task-1.json"), "utf8")) as {
+      phase: string;
+      status: string;
+      red_confirmed?: boolean;
+      test_runner_crash?: { reason: string };
+      events: Array<{ type?: string }>;
+    };
+    // Must NOT advance to review-test on a crashed run, and must not trust the self-reported
+    // red_confirmed:true.
+    expect(task.phase).toBe("phase-test");
+    expect(task.status).toBe("blocked");
+    expect(task.red_confirmed).toBe(false);
+    expect(task.test_runner_crash?.reason).toContain("uncaught exception");
+    expect(task.events.some((e) => e.type === "implement_phase_test_crash_detected")).toBe(true);
+  });
+
   test("resolveResumeOrchestration uses pre-impl brief when resuming review-test on quick_fix", () => {
     mkdirSync(join(tempCwd, "docs", "dev", "QF-RT"), { recursive: true });
     writeFileSync(
@@ -875,6 +948,138 @@ describe("quick-fix orchestration", () => {
       expect(r.task).toContain("## review-test — implement (pre-impl)");
       expect(r.task).toContain("src/impl.test.ts");
       expect(r.task).toContain("verify error paths");
+    }
+  });
+
+  test("resolveResumeOrchestration blocks review-test resume when a decision is pending", () => {
+    mkdirSync(join(tempCwd, "docs", "dev", "IMP-PD"), { recursive: true });
+    writeFileSync(
+      join("docs", "dev", "IMP-PD", "spec.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        acceptance_criteria: [
+          { id: "AC-1", requirement: "MUST", type: "scenario", scenario: "finish" },
+        ],
+        verification: {
+          commands: ["bun test"],
+          test_cases: [{ id: "TC-1", covers: "AC-1", scenario: "finish", tier: "unit" }],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join("docs", "dev", "IMP-PD", "plan.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        tasks: [
+          {
+            id: 1,
+            title: "impl task",
+            covers_ac: ["AC-1"],
+            challenge: false,
+            files: [],
+            steps: [],
+          },
+        ],
+        guidance: [],
+      })}\n`,
+      "utf8",
+    );
+    writeWorkItem("IMP-PD", {
+      schema_version: "1.0",
+      id: "IMP-PD",
+      title: "impl",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "implementing",
+      task_ids: [1],
+      spec: "docs/dev/IMP-PD/spec.json",
+      plan: "docs/dev/IMP-PD/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [
+        {
+          id: "q_guidance_1",
+          source: "plan",
+          status: "pending",
+          question: "Which retry strategy?",
+          asked_at: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeFileSync(
+      join(".tasks", "IMP-PD-task-1.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        work_item_id: "IMP-PD",
+        task_id: 1,
+        owner_nonce: "abcdef",
+        phase: "review-test",
+        status: "pending",
+        pre_impl_gates: "pending",
+        test_files: ["src/impl.test.ts"],
+        events: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const blocked = resolveResumeOrchestration("IMP-PD", minimalDevConfig());
+    expect(blocked.outcome).toBe("blocked");
+    if (blocked.outcome === "blocked") {
+      const text = blocked.messages.map((m) => m.text).join("\n");
+      expect(text).toContain("Resume blocked");
+      expect(text).toContain("q_guidance_1");
+      expect(text).toContain("review-test");
+      expect(text).toContain("--allow-pending-decisions");
+    }
+
+    const allowed = resolveResumeOrchestration("IMP-PD", minimalDevConfig(), {
+      allowPendingDecisions: true,
+    });
+    expect(allowed.outcome).toBe("spawn");
+    if (allowed.outcome === "spawn") {
+      expect(allowed.agent).toBe("review-test");
+    }
+  });
+
+  test("resolveResumeOrchestration does not gate phase-spec/phase-plan on their own pending decisions", () => {
+    writeWorkItem("WI-1", {
+      schema_version: "1.0",
+      id: "WI-1",
+      title: "t",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "speccing",
+      task_ids: [],
+      brief: "docs/dev/WI-1/brief.md",
+      spec: null,
+      plan: null,
+      verify: null,
+      decisions: [
+        {
+          id: "q1",
+          source: "spec",
+          status: "pending",
+          question: "q?",
+          asked_at: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      deviations: [],
+      cost_usd: 0,
+    });
+    mkdirSync(join(tempCwd, "docs", "dev", "WI-1"), { recursive: true });
+    writeFileSync(join("docs", "dev", "WI-1", "brief.md"), "# Brief\n");
+
+    const r = resolveResumeOrchestration("WI-1", minimalDevConfig());
+    expect(r.outcome).toBe("spawn");
+    if (r.outcome === "spawn") {
+      expect(r.agent).toBe("phase-spec");
     }
   });
 
@@ -1676,10 +1881,12 @@ describe("review retry policy", () => {
     expect(reviewRetryPolicyForAgent(cfg, "quick_fix", "review-test")).toEqual({
       severityGate: "block",
       maxRetries: 7,
+      maxLifetimeRetries: 14,
     });
     expect(reviewRetryPolicyForAgent(cfg, "quick_fix", "review-code")).toEqual({
       severityGate: "warn",
       maxRetries: 9,
+      maxLifetimeRetries: 18,
     });
   });
 
@@ -1690,7 +1897,13 @@ describe("review retry policy", () => {
     };
     expect(
       decideAfterReviewTest(
-        { test_review_retries_used: 0, code_review_retries_used: 0 },
+        {
+          test_review_retries_used: 0,
+          code_review_retries_used: 0,
+          lifetime_test_review_cycles: 0,
+          lifetime_code_review_cycles: 0,
+          unblock_count: 0,
+        },
         {
           verdict: "issues",
           findings: [{ severity: "warning", issue: "weak assertion" }],
@@ -1708,7 +1921,13 @@ describe("review retry policy", () => {
     };
     expect(
       decideAfterReviewTest(
-        { test_review_retries_used: 0, code_review_retries_used: 0 },
+        {
+          test_review_retries_used: 0,
+          code_review_retries_used: 0,
+          lifetime_test_review_cycles: 0,
+          lifetime_code_review_cycles: 0,
+          unblock_count: 0,
+        },
         {
           verdict: "issues",
           findings: [{ severity: "warning", issue: "nit" }],
@@ -1717,5 +1936,51 @@ describe("review retry policy", () => {
         "implement",
       ),
     ).toMatchObject({ nextPhase: "phase-code", bumpTestRetry: false });
+  });
+
+  test("decideAfterReviewTest: lifetime cap blocks even when the resettable counter is fresh (post-unblock)", () => {
+    const cfg: DevHarnessConfig = {
+      ...minimalDevConfig(),
+      orchestration: { review_loop: { max_critical_retries: 3 } },
+    };
+    // Simulates state right after `/dev unblock`: resettable counter back to 0, but the
+    // lifetime counter (which unblock never touches) already at the default ceiling
+    // (maxRetries * (max_unblocks_per_task=1 + 1) = 6).
+    const decision = decideAfterReviewTest(
+      {
+        test_review_retries_used: 0,
+        code_review_retries_used: 0,
+        lifetime_test_review_cycles: 6,
+        lifetime_code_review_cycles: 0,
+        unblock_count: 1,
+      },
+      { verdict: "issues", findings: [{ severity: "critical", issue: "still broken" }] },
+      cfg,
+      "implement",
+    );
+    expect(decision).toMatchObject({ blocked: true });
+    if (!("blocked" in decision)) return;
+    expect(decision.reason).toContain("LIFETIME");
+    expect(decision.reason).toContain("/dev unblock");
+  });
+
+  test("decideAfterReviewTest: resettable counter under cap but lifetime cap not yet reached still retries and bumps both counters", () => {
+    const cfg: DevHarnessConfig = {
+      ...minimalDevConfig(),
+      orchestration: { review_loop: { max_critical_retries: 3 } },
+    };
+    const decision = decideAfterReviewTest(
+      {
+        test_review_retries_used: 0,
+        code_review_retries_used: 0,
+        lifetime_test_review_cycles: 5,
+        lifetime_code_review_cycles: 0,
+        unblock_count: 1,
+      },
+      { verdict: "issues", findings: [{ severity: "critical", issue: "still broken" }] },
+      cfg,
+      "implement",
+    );
+    expect(decision).toMatchObject({ nextPhase: "phase-test", bumpTestRetry: true });
   });
 });

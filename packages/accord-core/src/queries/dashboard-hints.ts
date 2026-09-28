@@ -120,7 +120,7 @@ export function resolveDashboardActionHint(
   if (wi.completed_at) return null;
 
   if (attention.pending_decisions > 0 || attention.pending_deviations > 0) {
-    return "→ review";
+    return "→ see decisions below";
   }
   if (isFinishReady(workItemId, wi)) {
     return "→ finish";

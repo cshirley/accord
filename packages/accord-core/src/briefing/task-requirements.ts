@@ -78,6 +78,10 @@ export interface TaskRequirementsSlice {
   red_confirmed?: boolean;
   test_output?: string;
   ac_covered?: string[];
+  /** Unimplemented declarations phase-test created so tests load (phase-code replaces them). */
+  stub_files?: string[];
+  /** phase-test's per-finding answers to the prior review-test round. */
+  review_responses?: unknown[];
   security_topology?: unknown;
 }
 
@@ -214,6 +218,16 @@ export function sliceTaskRequirements(
             (id): id is string => typeof id === "string",
           ),
         }
+      : {}),
+    ...(Array.isArray(taskFile?.stub_files)
+      ? {
+          stub_files: (taskFile.stub_files as unknown[]).filter(
+            (f): f is string => typeof f === "string",
+          ),
+        }
+      : {}),
+    ...(Array.isArray(taskFile?.review_responses) && taskFile.review_responses.length > 0
+      ? { review_responses: taskFile.review_responses as unknown[] }
       : {}),
     ...(spec.security_topology !== undefined ? { security_topology: spec.security_topology } : {}),
   });
@@ -393,9 +407,21 @@ function agentPayloadForSpawn(
   }
 
   if (agent === "phase-test") {
+    // Retry rounds: hand back what the previous round produced so phase-test edits it in place
+    // instead of rewriting from scratch (and re-introducing the same gaps).
+    const isRetry = slice.test_files.length > 0;
     return {
       ...base,
       test_cases: slice.test_cases,
+      ...(isRetry
+        ? {
+            prior_round: {
+              test_files: slice.test_files,
+              stub_files: slice.stub_files ?? [],
+              ...(slice.test_output ? { test_output: slice.test_output } : {}),
+            },
+          }
+        : {}),
     };
   }
 
@@ -403,6 +429,7 @@ function agentPayloadForSpawn(
     return {
       ...base,
       test_files: slice.test_files,
+      ...(slice.stub_files?.length ? { stub_files: slice.stub_files } : {}),
       ...(slice.red_confirmed ? { red_confirmed: true } : {}),
     };
   }
@@ -421,6 +448,10 @@ function agentPayloadForSpawn(
       task: slice.task,
       guidance: slice.guidance,
       ...(slice.ac_covered?.length ? { ac_covered: slice.ac_covered } : {}),
+      ...(slice.stub_files?.length ? { stub_files: slice.stub_files } : {}),
+      ...(slice.review_responses?.length
+        ? { phase_test_review_responses: slice.review_responses }
+        : {}),
       ...(slice.red_confirmed ? { red_confirmed: true } : {}),
       ...(slice.quick_fix_contract !== undefined
         ? { quick_fix_contract: slice.quick_fix_contract }
@@ -440,6 +471,7 @@ function agentPayloadForSpawn(
     return {
       ...base,
       test_files: slice.test_files,
+      ...(slice.stub_files?.length ? { stub_files: slice.stub_files } : {}),
     };
   }
 

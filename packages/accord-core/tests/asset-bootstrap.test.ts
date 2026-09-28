@@ -130,9 +130,7 @@ describe("installPiAssets", () => {
     const result = installPiAssets({ target });
     expect(result.conflicts).toEqual([]);
     expect(result.linked).toContain(join(target, "agents", "accord"));
-    expect(readlinkSync(join(target, "agents", "accord"))).toContain(
-      "accord-assets/agents/accord",
-    );
+    expect(readlinkSync(join(target, "agents", "accord"))).toContain("accord-assets/agents/accord");
   });
 
   test("reports conflicts when a target exists with different content and force is false", () => {

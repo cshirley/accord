@@ -4,7 +4,7 @@
   "title": "Review agent return packet",
   "type": "object",
   "required": ["verdict", "findings"],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "verdict": { "enum": ["clean", "issues"] },
     "analysis": {
@@ -17,7 +17,7 @@
       "items": {
         "type": "object",
         "required": ["severity", "issue"],
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
           "severity": { "enum": ["critical", "warning", "suggestion"] },
           "file": { "type": "string" },

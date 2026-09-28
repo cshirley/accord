@@ -14,8 +14,6 @@ import {
   isDevArtifact,
   isSecretFile,
   readArtifacts,
-  validateCommitMessage,
-  withTempFile,
 } from "../git.js";
 
 type CommitTypePrefix = (typeof COMMIT_TYPE_PREFIXES)[number];
@@ -163,19 +161,19 @@ export async function runGitCommitContext(
     details: { progress: 10 },
   });
 
-      // Parallel: metadata + smart diff assembly
+  // Parallel: metadata + smart diff assembly
   const [statusRaw, diffStat, logOutput, branchRaw, smartDiff] = await Promise.all([
-        git(["status", "--porcelain"], root, signal),
-        git(["diff", "--stat", "HEAD"], root, signal).catch(() =>
-          Promise.all([
-            git(["diff", "--stat"], root, signal),
-            git(["diff", "--staged", "--stat"], root, signal),
-          ]).then(([a, b]) => [a, b].filter(Boolean).join("\n")),
-        ),
-        git(["log", "--oneline", "-5"], root, signal).catch(() => ""),
-        git(["branch", "--show-current"], root, signal),
-        assembleSmartDiff(root, signal),
-      ]);
+    git(["status", "--porcelain"], root, signal),
+    git(["diff", "--stat", "HEAD"], root, signal).catch(() =>
+      Promise.all([
+        git(["diff", "--stat"], root, signal),
+        git(["diff", "--staged", "--stat"], root, signal),
+      ]).then(([a, b]) => [a, b].filter(Boolean).join("\n")),
+    ),
+    git(["log", "--oneline", "-5"], root, signal).catch(() => ""),
+    git(["branch", "--show-current"], root, signal),
+    assembleSmartDiff(root, signal),
+  ]);
 
   const branch = branchRaw.trim();
   const ticket = extractTicket(branch);
@@ -220,4 +218,3 @@ export async function runGitCommitContext(
     excludedFiles: secretFiles,
   };
 }
-

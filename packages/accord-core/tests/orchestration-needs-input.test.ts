@@ -7,6 +7,8 @@ import { applyInterviewNeedsInputPostResult } from "@clive.shirley/accord-core/o
 import { applyPhaseSpecPostResult } from "@clive.shirley/accord-core/orchestration/post-result/phase-spec.js";
 import { buildInterviewResumeTaskIfApplicable } from "@clive.shirley/accord-core/orchestration/resolve/interview-task.js";
 import { postSpawnReplanDecision } from "@clive.shirley/accord-core/orchestration/spawn-followup.js";
+import { processSubagentToolResult } from "@clive.shirley/accord-core/subagent/result/process.js";
+import { loadPricing } from "@clive.shirley/accord-core/telemetry/usage.js";
 
 let tempCwd: string;
 let originalCwd: string;
@@ -178,5 +180,70 @@ describe("phase-spec needs_input handoff", () => {
     expect(task).toContain("from checkpoint");
     expect(task).toContain('"q1": "answered value"');
     expect(task).toContain("pending question ids: q2");
+  });
+
+  test("processSubagentToolResult still promotes needs_input questions when packet fails schema validation", async () => {
+    writeWorkItem("PLAN-1", {
+      schema_version: "1.0",
+      id: "PLAN-1",
+      title: "Plan interview",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "planning",
+      brief: "docs/dev/PLAN-1/brief.md",
+      spec: "docs/dev/PLAN-1/spec.md",
+      plan: null,
+      verify: null,
+      task_ids: [],
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+
+    // Deliberately malformed elsewhere (usage.prompt_tokens is a string, and no host-measured
+    // result.usage to backfill from) so `validateReturn` genuinely fails \u2014 the questions must
+    // still land in decisions[]/checkpoint.
+    const badButNeedsInputPacket = {
+      status: "needs_input",
+      draft: {},
+      questions: [{ id: "q1", stage: "engineer_guidance", text: "Which auth provider?" }],
+      usage: { prompt_tokens: "oops", completion_tokens: 5 },
+    };
+
+    const out = await processSubagentToolResult({
+      details: {
+        results: [
+          {
+            agent: "phase-plan",
+            task: "PLAN-1",
+            model: "test-model",
+            exitCode: 0,
+            messages: [
+              {
+                role: "assistant",
+                content: [
+                  {
+                    type: "text",
+                    text: `\`\`\`json\n${JSON.stringify(badButNeedsInputPacket, null, 2)}\n\`\`\``,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      state: { devConfig: null, costCache: new Map(), sessionCost: 0, activeWorkItem: null },
+      pricing: loadPricing(),
+    });
+
+    expect(out).toContain("Return packet validation failed");
+    expect(out).toContain("needs your input");
+
+    const wi = JSON.parse(readFileSync(join(".tasks", "PLAN-1.json"), "utf8"));
+    expect(wi.decisions).toHaveLength(1);
+    expect(wi.decisions[0]).toMatchObject({ id: "q1", status: "pending", source: "plan" });
+    expect(existsSync(join(".tasks", "PLAN-1-checkpoint.json"))).toBe(true);
   });
 });

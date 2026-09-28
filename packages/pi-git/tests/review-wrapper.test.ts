@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import gitReviewTasksDef from "../src/defs/git-review-tasks.js";
+import type { GitToolExecuteContext } from "../src/framework.js";
 import { formatReviewContext } from "../src/lib/review/context.js";
 import { formatReviewTasks, runGitReviewTasks } from "../src/lib/review/tasks.js";
-import type { GitToolExecuteContext } from "../src/framework.js";
 
 describe("pi-git standalone review wrappers", () => {
   test("runGitReviewTasks passes local_layers into briefs", () => {

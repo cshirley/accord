@@ -2,8 +2,8 @@
  * Interactive numbered selection for work items and actions.
  */
 
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 import type { TasksDashboardRow } from "@clive.shirley/accord-core/queries/dashboard.js";
 import { accent, bold, dim, muted } from "./colors.js";
 import { WORK_ITEM_ACTIONS } from "./command-catalog.js";
@@ -26,10 +26,7 @@ export async function promptLine(question: string): Promise<string> {
 export function formatWorkItemChoice(row: TasksDashboardRow, index: number): string {
   const status = row.completed_at ? dim("done") : accent(row.phase);
   const title = row.title ? dim(` · ${row.title}`) : "";
-  const tasks =
-    row.tasks_total > 0
-      ? dim(` · ${row.tasks_done}/${row.tasks_total} tasks`)
-      : "";
+  const tasks = row.tasks_total > 0 ? dim(` · ${row.tasks_done}/${row.tasks_total} tasks`) : "";
   return `  ${dim(String(index + 1).padStart(2))}  ${bold(row.id)}  ${status}${tasks}${title}`;
 }
 

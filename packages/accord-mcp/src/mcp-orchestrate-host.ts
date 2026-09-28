@@ -93,7 +93,7 @@ export function createMcpOrchestrateToolContext(
 
 function toExecutionResult(result: {
   exitCode: number;
-  stalledReason?: "repeat_spawn" | "needs_input";
+  stalledReason?: "repeat_spawn" | "needs_input" | "stuck";
   closeoutOk?: boolean;
   workflowCostFormatted?: string;
 }): DevOrchestrateExecutionResult {

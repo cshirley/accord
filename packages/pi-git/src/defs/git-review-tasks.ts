@@ -17,7 +17,10 @@ export default defineTool<GitReviewTasksParams>({
     "Build parallel subagent briefs for standalone review (review-code, review-security, optional review-test) from git_review_context paths. Do not use accord review CLI.",
   promptSnippet: "Build subagent tasks[] for standalone review agents",
   params: {
-    diff_path: { type: "string", description: "Absolute path from git_review_context details.diff_path" },
+    diff_path: {
+      type: "string",
+      description: "Absolute path from git_review_context details.diff_path",
+    },
     source: {
       type: "string",
       description:
@@ -35,7 +38,8 @@ export default defineTool<GitReviewTasksParams>({
     test_output: {
       type: "string",
       required: false,
-      description: "Captured test stdout/stderr (last 64 KiB) when has_test_files; omit if tests not run",
+      description:
+        "Captured test stdout/stderr (last 64 KiB) when has_test_files; omit if tests not run",
     },
   },
   progress: "Building review subagent tasks…",
@@ -61,15 +65,8 @@ export default defineTool<GitReviewTasksParams>({
   },
 });
 
-function normalizeStandaloneReviewSource(
-  source: string,
-): StandaloneReviewLegacySource | null {
-  if (
-    source === "local" ||
-    source === "branch" ||
-    source === "staged" ||
-    source === "unstaged"
-  ) {
+function normalizeStandaloneReviewSource(source: string): StandaloneReviewLegacySource | null {
+  if (source === "local" || source === "branch" || source === "staged" || source === "unstaged") {
     return source;
   }
   return null;

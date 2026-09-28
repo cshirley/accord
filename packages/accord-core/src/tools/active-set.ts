@@ -5,8 +5,8 @@
  * names are active in the system prompt. MCP / stdio keeps every tool active.
  */
 
-import { ACCORD_TOOLS } from "./registry.js";
 import { isProgressiveToolsEnabled } from "./progressive-discovery.js";
+import { ACCORD_TOOLS } from "./registry.js";
 
 /** Always-active harness tools (Pi sessions). */
 export const ACCORD_CORE_TOOLS: readonly string[] = [

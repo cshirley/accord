@@ -98,10 +98,7 @@ export function checkSpecPresentForPlanning(
   return { ok: true, path: specPath };
 }
 
-function workItemIdFromEntry(
-  entry: SubagentEntry,
-  input: Record<string, unknown>,
-): string | null {
+function workItemIdFromEntry(entry: SubagentEntry, input: Record<string, unknown>): string | null {
   const task =
     typeof entry.task === "string" ? entry.task : typeof input.task === "string" ? input.task : "";
   return extractWorkItemId(task, { mustExist: true });

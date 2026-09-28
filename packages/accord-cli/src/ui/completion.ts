@@ -2,8 +2,8 @@
  * Shell completion script generators.
  */
 
-import { allCommandNames, WORK_ITEM_ACTIONS } from "./command-catalog.js";
 import { WORKFLOW_SUBCOMMANDS } from "../commands/workflow.js";
+import { allCommandNames, WORK_ITEM_ACTIONS } from "./command-catalog.js";
 
 export type CompletionShell = "bash" | "zsh";
 

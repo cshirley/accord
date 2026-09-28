@@ -26,13 +26,24 @@ export function isNeedsInputPacket(packet: unknown): boolean {
   return asRecord(packet)?.status === "needs_input";
 }
 
+/**
+ * `phase-spec`/`phase-plan` self-report `questions[]` (`id`/`text`/`topic|stage`).
+ * `phase-align` has no `questions[]` \u2014 its reflective loop instead emits `reflections[]`
+ * (`id`/`text`/`type`, where `type` is `reflection|probe|assumption`) for the user to react to.
+ * Both shapes are close enough (id + text + optional label) to promote identically.
+ */
 export function parseInterviewQuestions(packet: unknown): InterviewQuestion[] {
-  const questions = asRecord(packet)?.questions;
-  if (!Array.isArray(questions)) {
+  const record = asRecord(packet);
+  const source = Array.isArray(record?.questions)
+    ? record.questions
+    : Array.isArray(record?.reflections)
+      ? record.reflections
+      : undefined;
+  if (!source) {
     return [];
   }
   const parsed: InterviewQuestion[] = [];
-  for (const raw of questions) {
+  for (const raw of source) {
     const q = asRecord(raw);
     const id = typeof q?.id === "string" ? q.id.trim() : "";
     const text = typeof q?.text === "string" ? q.text.trim() : "";
@@ -41,7 +52,8 @@ export function parseInterviewQuestions(packet: unknown): InterviewQuestion[] {
     }
     const topic = typeof q?.topic === "string" ? q.topic.trim() : "";
     const stage = typeof q?.stage === "string" ? q.stage.trim() : "";
-    parsed.push({ id, text, label: topic || stage || undefined });
+    const type = typeof q?.type === "string" ? q.type.trim() : "";
+    parsed.push({ id, text, label: topic || stage || type || undefined });
   }
   return parsed;
 }
@@ -102,7 +114,13 @@ export function promoteInterviewQuestionsToDecisions(
   }
 
   const source: Decision["source"] =
-    agent === "phase-plan" ? "plan" : agent === "phase-spec" ? "spec" : "escalation";
+    agent === "phase-plan"
+      ? "plan"
+      : agent === "phase-spec"
+        ? "spec"
+        : agent === "phase-align"
+          ? "align"
+          : "escalation";
 
   const existingIds = new Set((wi.decisions ?? []).map((d) => d.id));
   let added = 0;
@@ -148,7 +166,14 @@ export function persistInterviewCheckpoint(
   }
 
   const record = asRecord(packet);
-  const draft = record?.draft ?? {};
+  // phase-spec/phase-plan self-report a `draft` object directly; phase-align has no `draft`
+  // field \u2014 its evolving state is `brief`/`markers`/`convergence`, so pack those into `draft`
+  // (the checkpoint schema only constrains `draft` to be *an* object, not its inner shape).
+  const draft =
+    record?.draft ??
+    (record?.brief || record?.markers || record?.convergence
+      ? { brief: record?.brief, markers: record?.markers, convergence: record?.convergence }
+      : {});
   const questions = parseInterviewQuestions(packet);
   const pendingIds = questions.map((q) => q.id);
 
@@ -180,6 +205,7 @@ export function formatNeedsInputHandoff(input: {
   checkpointPath: string;
   decisionsAdded: number;
 }): string {
+  const wiPath = workItemJsonPath(input.workItemId);
   const lines = [
     "",
     `⏸ **${input.agent} needs your input** (${input.coarsePhase}).`,
@@ -187,7 +213,7 @@ export function formatNeedsInputHandoff(input: {
     `Checkpoint written: \`${input.checkpointPath}\``,
     ...(input.decisionsAdded > 0
       ? [
-          `Promoted ${String(input.decisionsAdded)} question(s) to the decision queue — answer via chat or \`/dev review ${input.workItemId}\`.`,
+          `Promoted ${String(input.decisionsAdded)} question(s) to the decision queue in \`${wiPath}\` (\`decisions[]\`) — that file is the source of truth for answers.`,
         ]
       : []),
     "",
@@ -201,10 +227,14 @@ export function formatNeedsInputHandoff(input: {
 
   lines.push(
     "",
-    "Reply with answers keyed by question id, then run:",
-    `- \`/dev resume ${input.workItemId}\` — continues the interview with your answers`,
+    "In Pi: reply in chat or run `/dev review " +
+      input.workItemId +
+      "`, then `/dev resume " +
+      input.workItemId +
+      "`.",
+    `Headless: edit the matching entry in \`${wiPath}\` \`decisions[]\` — set \`"status": "resolved"\` and add \`"answer": "..."\` for each id above — then run \`accord resume ${input.workItemId}\`.`,
     "",
-    "The orchestrator should call `dev_checkpoint` with updated `answered` ids (and resolve matching decisions) before resume when answers are captured in-session.",
+    "The checkpoint's `answered`/`pending` lists are a derived cache re-synced from `decisions[]` on the agent's next turn; editing `decisions[]` is sufficient.",
   );
 
   return lines.join("\n");

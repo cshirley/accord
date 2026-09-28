@@ -101,6 +101,9 @@
     "packages/pi-integrations": {
       "name": "@clive.shirley/pi-integrations",
       "version": "0.1.0",
+      "dependencies": {
+        "@clive.shirley/accord-core": "workspace:*",
+      },
       "peerDependencies": {
         "@earendil-works/pi-coding-agent": "^0.83.0",
         "typebox": "^1.3.7",

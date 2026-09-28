@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { parseCli } from "../src/cli.js";
 import { matchCommands, matchWorkItems } from "../src/ui/command-catalog.js";
 import { renderCompletionScript } from "../src/ui/completion.js";
 import { renderHelp } from "../src/ui/help-display.js";
 import { classifyTasksDashboardLine } from "../src/ui/tasks-display.js";
-import { parseCli } from "../src/cli.js";
 
 describe("accord-cli UI", () => {
   test("renderHelp includes completion hint", () => {

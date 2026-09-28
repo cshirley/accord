@@ -154,7 +154,7 @@ function formatFooter(input: DashboardFormatInput): string[] {
 
   const hints: string[] = [];
   if (total_pending > 0 || total_pending_deviations > 0) {
-    hints.push("/dev review");
+    hints.push('see "Pending decisions" below to resolve');
   }
   if (finish_ready_count > 0) {
     hints.push("/dev finish <ID>");
@@ -162,6 +162,45 @@ function formatFooter(input: DashboardFormatInput): string[] {
   hints.push("/dev resume <ID>");
   if (hints.length > 0) {
     lines.push(`${INDENT}${hints.join(" · ")}`);
+  }
+
+  return lines;
+}
+
+/**
+ * Detail block for rows with unresolved `decisions[]`/`deviations[]`, naming the exact
+ * file to edit (the work item JSON \u2014 source of truth) and the fields to add/change.
+ */
+export function formatDecisionHelp(rows: TasksDashboardRow[]): string[] {
+  const active = rows.filter((r) => !r.completed_at);
+  const withDecisions = active.filter((r) => r.pending_questions.length > 0);
+  const withDeviations = active.filter(
+    (r) => r.pending_deviations > 0 && r.pending_questions.length === 0,
+  );
+  if (withDecisions.length === 0 && withDeviations.length === 0) return [];
+
+  const lines: string[] = ["", "Pending decisions"];
+
+  if (withDecisions.length > 0) {
+    lines.push(
+      `${INDENT}Edit the file below, find each \`id\` in \`decisions[]\`, set \`"status": "resolved"\`, and add \`"answer": "..."\` (free text).`,
+    );
+    for (const row of withDecisions) {
+      lines.push("", `${INDENT}${row.id}  ${row.work_item_path}`);
+      for (const q of row.pending_questions) {
+        lines.push(`${INDENT}${INDENT}${q.id} \u2014 ${q.question}`);
+      }
+    }
+  }
+
+  if (withDeviations.length > 0) {
+    lines.push(
+      "",
+      `${INDENT}Pending deviations \u2014 in the same file's \`deviations[]\`, set \`"resolution"\` to \`"accepted"\`, \`"mechanical"\`, or \`"blocking"\`, and add \`"resolved_at"\`:`,
+    );
+    for (const row of withDeviations) {
+      lines.push(`${INDENT}${INDENT}${row.id}  ${row.work_item_path}`);
+    }
   }
 
   return lines;
@@ -196,5 +235,6 @@ export function formatTasksDashboard(input: DashboardFormatInput): string {
   }
 
   lines.push(...formatFooter(input));
+  lines.push(...formatDecisionHelp(rows));
   return lines.join("\n");
 }

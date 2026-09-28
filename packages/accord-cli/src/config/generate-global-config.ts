@@ -7,7 +7,7 @@ import type {
   DevHarnessGlobalConfig,
   HarnessTierMap,
 } from "@clive.shirley/accord-core/config/types.js";
-import { detectInstalledHarnesses, type DetectedHarness } from "./detect-harnesses.js";
+import { type DetectedHarness, detectInstalledHarnesses } from "./detect-harnesses.js";
 
 export type GenerateGlobalConfigOptions = {
   /** Default backend id (pi, claude, cursor). */

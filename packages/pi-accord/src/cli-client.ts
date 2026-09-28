@@ -99,16 +99,22 @@ export async function delegateResumeViaAccordCli(
   ctx: ExtensionCommandContext,
   state: HookState,
   workItemId: string,
-  options: { spawnNotifyLabel?: string },
+  options: { spawnNotifyLabel?: string; allowPendingDecisions?: boolean },
 ): Promise<ResumeCommandResult> {
   if (resolvePiCliDelegateMode() === "subprocess") {
-    const exitCode = await runAccordCliSubprocess("resume", workItemId, { harness: "pi" });
+    const extraArgs = options.allowPendingDecisions ? ["--allow-pending-decisions"] : [];
+    const exitCode = await runAccordCliSubprocess("resume", workItemId, {
+      harness: "pi",
+      extraArgs,
+    });
     return { exitCode };
   }
 
   const cliCtx = createPiCliContext(ctx, state);
   const harness = createPiCliHarness(pi, ctx, state, options);
-  return runResumeCommand(cliCtx, harness, workItemId);
+  return runResumeCommand(cliCtx, harness, workItemId, {
+    allowPendingDecisions: options.allowPendingDecisions,
+  });
 }
 
 export async function delegateFinishViaAccordCli(

@@ -3,7 +3,16 @@
   "host": "pi",
   "package": "@clive.shirley/pi-skills",
   "assets": {
-    "skills": ["ci-debug", "commit", "crq-notify", "pr", "review", "session-retro", "verify", "worktree"]
+    "skills": [
+      "ci-debug",
+      "commit",
+      "crq-notify",
+      "pr",
+      "review",
+      "session-retro",
+      "verify",
+      "worktree"
+    ]
   },
   "requires": {
     "pi_extensions": ["@clive.shirley/pi-git", "@clive.shirley/pi-subagent"],

@@ -12,6 +12,7 @@ import {
 } from "../../queries/subagent-preflight-shared.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { ensureWorkItemHydrated } from "../../work-items/rehydrate.js";
+import { pendingDecisionsGateMessage } from "../pending-decisions-gate.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
 import { reconcileCoarsePhaseWithMessages } from "../reconcile-coarse-phase.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
@@ -55,9 +56,15 @@ export function buildResumeTaskBrief(input: {
   return lines.join("\n");
 }
 
+export interface ResolveResumeOrchestrationOptions {
+  /** Bypass the pending-decisions gate before spawning an implement-pipeline agent. */
+  allowPendingDecisions?: boolean;
+}
+
 export function resolveResumeOrchestration(
   workItemId: string,
   devConfig: DevHarnessConfig | null,
+  options?: ResolveResumeOrchestrationOptions,
 ): ResumeOrchestrationResolution {
   const messages: OrchestrationMessage[] = [];
 
@@ -139,6 +146,13 @@ export function resolveResumeOrchestration(
         },
       ],
     };
+  }
+
+  if (wi) {
+    const gate = pendingDecisionsGateMessage(wi, agent, options?.allowPendingDecisions);
+    if (gate) {
+      return { outcome: "blocked", messages: [...messages, gate] };
+    }
   }
 
   if (agentRequiresConfig(agent) && !devConfig) {

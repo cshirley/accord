@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { getFinalOutput, getFinalOutputFromMessages, type PiMessage } from "../src/agents/output.js";
+import {
+  getFinalOutput,
+  getFinalOutputFromMessages,
+  type PiMessage,
+} from "../src/agents/output.js";
 
 describe("getFinalOutputFromMessages", () => {
   test("uses last text block within the final assistant message", () => {

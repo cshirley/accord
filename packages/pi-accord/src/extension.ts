@@ -24,12 +24,14 @@ import {
 import { loadDevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import { maybeAutoInstallAssets } from "@clive.shirley/accord-core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "@clive.shirley/accord-core/logging.js";
+import { devBlock } from "@clive.shirley/accord-core/queries/block-task.js";
 import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
 import { devDeviations } from "@clive.shirley/accord-core/queries/deviations.js";
 import { devGaps, gapsArgsWantTickets } from "@clive.shirley/accord-core/queries/gaps.js";
 import { devRetro } from "@clive.shirley/accord-core/queries/retro.js";
 import { devReviewQueue } from "@clive.shirley/accord-core/queries/review-queue.js";
 import { devSpecGaps } from "@clive.shirley/accord-core/queries/spec-gaps.js";
+import { devUnblock } from "@clive.shirley/accord-core/queries/unblock-task.js";
 import {
   clearHarnessRunTag,
   describeHarnessRunMeta,
@@ -38,7 +40,6 @@ import {
 import { devRehydrateWorkItem } from "@clive.shirley/accord-core/work-items/rehydrate.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
-import { getSubagentToolRenderers } from "./integrations/pi-subagent.js";
 import { registerHarnessBuiltinToolRenders } from "./builtin-tool-renders.js";
 import { getDevArgumentCompletions, wrapDevAutocomplete } from "./command/autocomplete.js";
 import { registerHarnessRunEntryRenderer } from "./custom-entry-renderers.js";
@@ -50,6 +51,7 @@ import {
 import { activateForDevSubcommand } from "./dynamic-tools.js";
 import { tryFinishViaCoreOrchestrator } from "./finish-orchestration.js";
 import { type HookState, syncHarnessRunSessionEntry } from "./hook-state.js";
+import { getSubagentToolRenderers } from "./integrations/pi-subagent.js";
 import { registerPiHarnessHookListeners } from "./pi-hook-listeners.js";
 import { isPlanModeActive, planModeBlockMessage } from "./plan-mode.js";
 import { registerOrchestratorSubagentChatRenderer } from "./subagent/chat-display.js";
@@ -283,6 +285,26 @@ export default function (pi: ExtensionAPI) {
           ctx.ui.notify(ORCHESTRATOR_DISABLED_MESSAGE, "warning");
         }
       }
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "unblock") {
+      const result = devUnblock(route.args);
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "unblock", result.value.formatted);
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "block") {
+      const result = devBlock(route.args);
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "block", result.value.formatted);
       return;
     }
 

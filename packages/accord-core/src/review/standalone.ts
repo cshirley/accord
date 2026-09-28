@@ -290,8 +290,7 @@ export function buildStandaloneReviewTasks(input: {
     input.local_layers,
   );
 
-  const codeBrief = (role: string) =>
-    `${role} Changed files: \`${fileList}\`. ${diffSection}`;
+  const codeBrief = (role: string) => `${role} Changed files: \`${fileList}\`. ${diffSection}`;
 
   const testOutput = input.test_output?.trim() || "(not run)";
 

@@ -3,7 +3,7 @@
  */
 
 import type { OrchestrationNotifyLevel } from "@clive.shirley/accord-core/orchestration/host.js";
-import { bold, dim, error, muted, warn } from "./ui/colors.js";
+import { bold, dim, error, warn } from "./ui/colors.js";
 
 function formatNotifyLine(level: OrchestrationNotifyLevel, line: string): string {
   const tag =

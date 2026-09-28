@@ -2,10 +2,7 @@
  * ACCORD orchestration UI helpers for programmatic subagent spawns.
  */
 
-import {
-  looksLikeToolActivityLine,
-  type SubagentProgress,
-} from "../integrations/pi-subagent.js";
+import { looksLikeToolActivityLine, type SubagentProgress } from "../integrations/pi-subagent.js";
 
 /** Heartbeat interval while orchestration spawns run (status line + widget repaint). */
 export const ORCHESTRATOR_SPAWN_HEARTBEAT_MS = 500;

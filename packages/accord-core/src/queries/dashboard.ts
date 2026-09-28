@@ -5,6 +5,7 @@
 import * as path from "node:path";
 import { devCheckpointRead } from "../work-items/checkpoint.js";
 import { listWorkItemFileRefs, readJson, taskJsonPath } from "../work-items/io.js";
+import { workItemJsonPath } from "../work-items/tasks-dir.js";
 import type { Deviation, TaskFile, WorkItem } from "../work-items/types.js";
 import { formatTasksDashboard } from "./dashboard-format.js";
 import {
@@ -31,6 +32,10 @@ export interface TasksDashboardRow {
   has_checkpoint: boolean;
   missing_artifacts: string[];
   action_hint: string | null;
+  /** Path (relative to cwd when possible) to the work item JSON \u2014 source of truth for `decisions[]`/`deviations[]`. */
+  work_item_path: string;
+  /** Unresolved `decisions[]` entries (id + question), for surfacing exactly what to edit. */
+  pending_questions: { id: string; question: string }[];
   cost_usd: number;
   usage_cost_usd: number | null;
   display_cost_usd: number;
@@ -125,8 +130,13 @@ export function devTasks(): TasksDashboardResult {
     }
 
     const pendingDeviations = countPendingDeviations(wi.deviations);
-    const pendingDecisions = (wi.decisions || []).filter((d) => d.status === "pending").length;
+    const pendingDecisionEntries = (wi.decisions || []).filter((d) => d.status === "pending");
+    const pendingDecisions = pendingDecisionEntries.length;
     const missingArtifacts = missingArtifactsForWorkItem(wi);
+    const absWiPath = workItemJsonPath(wi.id);
+    const workItemPath = path.isAbsolute(absWiPath)
+      ? path.relative(process.cwd(), absWiPath) || absWiPath
+      : absWiPath;
     const actionHint = resolveDashboardActionHint(wi.id, wi, {
       pending_decisions: pendingDecisions,
       pending_deviations: pendingDeviations,
@@ -154,6 +164,8 @@ export function devTasks(): TasksDashboardResult {
       has_checkpoint: !!devCheckpointRead(wi.id),
       missing_artifacts: missingArtifacts,
       action_hint: actionHint,
+      work_item_path: workItemPath,
+      pending_questions: pendingDecisionEntries.map((d) => ({ id: d.id, question: d.question })),
       cost_usd: storedCost,
       usage_cost_usd: usageCost,
       display_cost_usd: displayCost,

@@ -56,6 +56,7 @@ export function dim(text: string): string {
 }
 
 export function stripAnsi(text: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ESC is the ANSI sequence prefix we strip.
   return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 

@@ -84,9 +84,7 @@ export type SubagentSummarySource = HarvestableSubagentResult & {
 
 function isFailedSubagentRun(result: SubagentSummarySource): boolean {
   return (
-    (result.exitCode ?? 0) !== 0 ||
-    result.stopReason === "error" ||
-    result.stopReason === "aborted"
+    (result.exitCode ?? 0) !== 0 || result.stopReason === "error" || result.stopReason === "aborted"
   );
 }
 

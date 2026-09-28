@@ -3,10 +3,7 @@ import * as path from "node:path";
 import { loadAgentFromFile, resolveModelConfig } from "../src/agents/index.js";
 
 const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
-const PHASE_ALIGN = path.join(
-  REPO_ROOT,
-  "packages/accord-assets/agents/accord/phase-align.md",
-);
+const PHASE_ALIGN = path.join(REPO_ROOT, "packages/accord-assets/agents/accord/phase-align.md");
 
 describe("loadAgentFromFile", () => {
   test("loads agent markdown with nested tools frontmatter", () => {
@@ -23,7 +20,9 @@ describe("loadAgentFromFile", () => {
 describe("parseSubagentReturnJson", () => {
   test("extracts the last json fenced block", async () => {
     const { parseSubagentReturnJson } = await import("../src/agents/response-contract.js");
-    const parsed = parseSubagentReturnJson('text\n```json\n{"a":1}\n```\nmore\n```json\n{"b":2}\n```');
+    const parsed = parseSubagentReturnJson(
+      'text\n```json\n{"a":1}\n```\nmore\n```json\n{"b":2}\n```',
+    );
     expect(parsed).toEqual({ b: 2 });
   });
 });

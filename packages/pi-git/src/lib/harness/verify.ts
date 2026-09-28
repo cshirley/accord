@@ -49,7 +49,9 @@ export async function runRepoVerify(
   if (!commands || commands.length === 0) {
     const config = loadDevHarnessConfig(targetCwd);
     if (!config) {
-      throw new Error("No Dev Harness config — pass commands explicitly or add ## Dev Harness to AGENTS.md");
+      throw new Error(
+        "No Dev Harness config — pass commands explicitly or add ## Dev Harness to AGENTS.md",
+      );
     }
     commands = config.verification_commands;
   }

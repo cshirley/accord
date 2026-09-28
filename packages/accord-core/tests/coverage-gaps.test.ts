@@ -202,7 +202,10 @@ describe("devTasks dashboard", () => {
     expect(r.formatted).toMatch(/1\/3·1b·1↑/);
     expect(r.formatted).toMatch(/ID\s+PAT/);
     expect(first.phase).toBe("aligning");
-    expect(r.formatted).toMatch(/\/dev review/);
+    expect(first.pending_questions).toEqual([{ id: "d1", question: "q?" }]);
+    expect(first.work_item_path).toMatch(/DASH-1\.json$/);
+    expect(r.formatted).toMatch(/Pending decisions/);
+    expect(r.formatted).toMatch(/d1 \u2014 q\?/);
   });
 });
 

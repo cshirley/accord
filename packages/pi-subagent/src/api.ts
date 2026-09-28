@@ -8,10 +8,10 @@ export {
   type AgentConfig,
   type AgentScope,
   discoverAgents,
+  type ResolvedModel,
   resolveAgentFile,
   resolveModelConfig,
   resolveRequestedProfileName,
-  type ResolvedModel,
   type ThinkingLevel,
 } from "./agents.js";
 export type { SubagentLiveActivity, SubagentProgress } from "./progress/index.js";
