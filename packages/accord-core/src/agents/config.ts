@@ -5,7 +5,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { resolvePiAgentDir } from "../config/paths.js";
-import { CURSOR_PROVIDER, hasCursorCredentials } from "./credentials.js";
+import { CURSOR_PROVIDER, hasAnthropicCredentials, hasCursorCredentials } from "./credentials.js";
 import { loadAgentFromFile } from "./load.js";
 import type {
   AgentConfig,
@@ -16,7 +16,12 @@ import type {
   SubagentConfig,
 } from "./types.js";
 
-export { CURSOR_PROVIDER, hasCursorCredentials, readStoredCredential } from "./credentials.js";
+export {
+  CURSOR_PROVIDER,
+  hasAnthropicCredentials,
+  hasCursorCredentials,
+  readStoredCredential,
+} from "./credentials.js";
 
 const DEFAULT_TIER: ModelTier = "workhorse";
 
@@ -52,9 +57,10 @@ export function findCursorProfileName(cfg: SubagentConfig): string | null {
 export function resolveProfileForCredentials(
   cfg: SubagentConfig,
   requestedProfileName: string,
+  options?: { strict?: boolean },
 ): string {
   const profile = cfg.profiles[requestedProfileName];
-  if (profile?.provider !== "anthropic" || process.env.ANTHROPIC_API_KEY) {
+  if (profile?.provider !== "anthropic" || hasAnthropicCredentials()) {
     return requestedProfileName;
   }
 
@@ -63,11 +69,29 @@ export function resolveProfileForCredentials(
     return requestedProfileName;
   }
 
+  if (options?.strict) {
+    // At the actual spawn boundary, don't silently swap providers: a quiet
+    // anthropic\u2192cursor substitution here produces confusing downstream failures
+    // (e.g. "Model not found" for a cursor model id the caller never asked for, or
+    // a tier that only exists in the anthropic profile but not the cursor one). Fail
+    // loudly so the missing credential is fixed at the source instead of silently
+    // masked by an unrelated, possibly-mismatched provider.
+    throw new Error(
+      `[subagent] profile "${requestedProfileName}" uses provider "anthropic" but no Anthropic credentials ` +
+        `were found (ANTHROPIC_API_KEY unset and no stored Pi OAuth/session credential). ` +
+        `Refusing to silently spawn with "${cursorProfile}" (${cfg.profiles[cursorProfile].provider}) \u2014 ` +
+        `its tiers/models are not guaranteed to match. Log in to Pi's Anthropic account, set ` +
+        `ANTHROPIC_API_KEY, or explicitly set activeProfile/reviewProfile/skills.*.profile to ` +
+        `"${cursorProfile}" in subagent.json if you intend to use it.`,
+    );
+  }
+
   if (!_credentialFallbackWarned) {
     console.error(
-      `[subagent] profile "${requestedProfileName}" uses provider "anthropic" but ANTHROPIC_API_KEY is unset; ` +
+      `[subagent] profile "${requestedProfileName}" uses provider "anthropic" but no Anthropic credentials ` +
+        `were found (ANTHROPIC_API_KEY unset and no stored Pi OAuth/session credential); ` +
         `using "${cursorProfile}" (${cfg.profiles[cursorProfile].provider}). ` +
-        `Set ANTHROPIC_API_KEY or change activeProfile in subagent.json.`,
+        `Log in to Pi's Anthropic account, set ANTHROPIC_API_KEY, or change activeProfile in subagent.json.`,
     );
     _credentialFallbackWarned = true;
   }
@@ -182,6 +206,7 @@ export function resolveRequestedProfileName(agent: AgentConfig, cfg: SubagentCon
 export function resolveModelConfig(
   agent: AgentConfig,
   config?: SubagentConfig,
+  options?: { strict?: boolean },
 ): ResolvedModel | null {
   const cfg = config ?? loadSubagentConfig();
   const defaultProfile = cfg.profiles[cfg.defaultProfile];
@@ -193,6 +218,7 @@ export function resolveModelConfig(
   const requestedProfileName = resolveProfileForCredentials(
     cfg,
     resolveRequestedProfileName(agent, cfg),
+    options,
   );
   let targetProfile = cfg.profiles[requestedProfileName];
 

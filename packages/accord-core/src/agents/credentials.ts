@@ -36,3 +36,17 @@ export function hasCursorCredentials(): boolean {
   if (process.env.CURSOR_API_KEY || process.env.CURSOR_ACCESS_TOKEN) return true;
   return readStoredCredential(CURSOR_PROVIDER);
 }
+
+/** Provider name for Anthropic-backed profiles. */
+export const ANTHROPIC_PROVIDER = "anthropic";
+
+/**
+ * True when Anthropic is usable: a raw `ANTHROPIC_API_KEY`, or Pi's own stored OAuth/session
+ * credential (`~/.config/pi/agent/auth.json` \u2192 "anthropic"). Pi-hosted subscription users
+ * authenticate via OAuth and never set `ANTHROPIC_API_KEY`, so checking the env var alone is a
+ * false negative for them.
+ */
+export function hasAnthropicCredentials(): boolean {
+  if (process.env.ANTHROPIC_API_KEY) return true;
+  return readStoredCredential(ANTHROPIC_PROVIDER);
+}

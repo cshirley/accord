@@ -63,7 +63,14 @@ export function resolveSpawnModel(
   if (overrides.model) {
     const slash = overrides.model.indexOf("/");
     const isQualified = slash > 0;
-    const base = resolveModelConfig(agent);
+    // An explicit override already pins the model; don't let an unrelated credential
+    // mismatch on the agent's own tier config block it (fall back to null quietly here).
+    let base: ResolvedModel | null = null;
+    try {
+      base = resolveModelConfig(agent);
+    } catch {
+      base = null;
+    }
     const provider = isQualified
       ? overrides.model.slice(0, slash)
       : (base?.provider ?? "anthropic");

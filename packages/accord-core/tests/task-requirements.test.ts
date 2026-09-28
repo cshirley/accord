@@ -12,6 +12,7 @@ import {
 } from "@clive.shirley/accord-core/briefing/task-requirements.js";
 import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import { resolveResumeOrchestration } from "@clive.shirley/accord-core/orchestration/resolve/resume.js";
+import { resetSpawnPreflightCheckForTests } from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
 
 function minimalDevConfig(): DevHarnessConfig {
   return {
@@ -38,6 +39,9 @@ describe("task-requirements", () => {
     tempCwd = mkdtempSync(join(tmpdir(), "accord-task-req-"));
     process.chdir(tempCwd);
     mkdirSync(".tasks", { recursive: true });
+    // See orchestration.test.ts: reset the process-wide preflight backend singleton so this
+    // host-neutral suite doesn't depend on a real host backend/machine credentials.
+    resetSpawnPreflightCheckForTests();
   });
 
   afterEach(() => {

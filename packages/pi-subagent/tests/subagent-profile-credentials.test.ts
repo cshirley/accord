@@ -113,6 +113,13 @@ describe("resolveProfileForCredentials", () => {
     expect(resolveProfileForCredentials(TEST_CFG, "anthropic-direct")).toBe("cursor-claude");
   });
 
+  test("strict mode throws instead of falling back to cursor-claude", () => {
+    process.env.CURSOR_API_KEY = "test-cursor";
+    expect(() =>
+      resolveProfileForCredentials(TEST_CFG, "anthropic-direct", { strict: true }),
+    ).toThrow(/no Anthropic credentials were found/);
+  });
+
   test("keeps anthropic profile when neither credential is available", () => {
     expect(resolveProfileForCredentials(TEST_CFG, "anthropic-direct")).toBe("anthropic-direct");
   });
@@ -120,6 +127,13 @@ describe("resolveProfileForCredentials", () => {
   test("falls back to a cursor profile under any name", () => {
     process.env.CURSOR_API_KEY = "test-cursor";
     expect(resolveProfileForCredentials(ALT_NAME_CFG, "anthropic-direct")).toBe("cursor-anthropic");
+  });
+
+  test("strict mode throws for a cursor profile under any name", () => {
+    process.env.CURSOR_API_KEY = "test-cursor";
+    expect(() =>
+      resolveProfileForCredentials(ALT_NAME_CFG, "anthropic-direct", { strict: true }),
+    ).toThrow(/cursor-anthropic/);
   });
 
   test("accepts a stored OAuth credential with no env var set", () => {
@@ -157,5 +171,19 @@ describe("resolveModelConfig credential fallback", () => {
     const resolved = resolveModelConfig(TEST_AGENT, ALT_NAME_CFG);
     expect(resolved?.provider).toBe("cursor");
     expect(resolved?.model).toBe("composer-2.5");
+  });
+
+  test("strict mode throws instead of silently switching to the cursor provider", () => {
+    process.env.CURSOR_API_KEY = "test-cursor";
+    expect(() => resolveModelConfig(TEST_AGENT, TEST_CFG, { strict: true })).toThrow(
+      /no Anthropic credentials were found/,
+    );
+  });
+
+  test("strict mode throws instead of silently resolving a stored-credential cursor profile", () => {
+    writeStoredCredentials("cursor");
+    expect(() => resolveModelConfig(TEST_AGENT, ALT_NAME_CFG, { strict: true })).toThrow(
+      /no Anthropic credentials were found/,
+    );
   });
 });
