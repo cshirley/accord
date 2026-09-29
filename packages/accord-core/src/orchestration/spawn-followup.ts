@@ -3,8 +3,11 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
-import { loadWorkItem } from "../work-items/io.js";
+import { loadWorkItem, mutateJson, now, workItemJsonPath } from "../work-items/io.js";
+import type { WorkItem } from "../work-items/types.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
+import { maxGatherAttemptsFromDevConfig } from "./policy.js";
+import { applyStuckPostResult } from "./post-result/stuck.js";
 import {
   type AlignGatherHint,
   buildAlignSpawnTask,
@@ -124,6 +127,53 @@ export function postSpawnReplanDecision(
   return "replan";
 }
 
+/** True when the work item has used its persisted phase-gather budget. */
+export function gatherCapReached(workItemId: string, devConfig: DevHarnessConfig | null): boolean {
+  const used = loadWorkItem(workItemId)?.gather_attempts ?? 0;
+  return used >= maxGatherAttemptsFromDevConfig(devConfig);
+}
+
+function bumpGatherAttempts(workItemId: string): void {
+  mutateJson<WorkItem>(workItemJsonPath(workItemId), (wi) => {
+    if (!wi) return undefined;
+    wi.gather_attempts = (wi.gather_attempts ?? 0) + 1;
+    wi.updated = now();
+    return wi;
+  });
+}
+
+/**
+ * When phase-align still returns `needs_gather` after the gather budget is spent, escalate to a
+ * human via `decisions[]` (same path as a `stuck` packet) and reset the counter so the answer
+ * buys a fresh budget. Returns `true` when an escalation was raised — the caller must stop with
+ * `stalledReason: "stuck"` instead of returning success (which `accord drive` would loop on).
+ */
+export function escalateGatherCapIfExhausted(
+  workItemId: string,
+  devConfig: DevHarnessConfig | null,
+  lastSpawn: { agent: string; parsedReturn?: unknown } | undefined,
+): boolean {
+  if (lastSpawn?.agent !== "phase-align") return false;
+  if (extractReturnStatus(lastSpawn.parsedReturn) !== "needs_gather") return false;
+  if (!gatherCapReached(workItemId, devConfig)) return false;
+
+  const max = maxGatherAttemptsFromDevConfig(devConfig);
+  const hint = parseGatherHint(lastSpawn.parsedReturn);
+  applyStuckPostResult(workItemId, "phase-align", {
+    status: "stuck",
+    question: `phase-align still needs more context after ${String(max)} phase-gather attempt(s). What additional context, source, or decision should alignment use?`,
+    context:
+      hint?.reason ?? "phase-align returned needs_gather again after the gather budget was spent.",
+    tried: `${String(max)} phase-gather spawn(s)${hint?.ticket_id ? ` for ${hint.ticket_id}` : ""}`,
+  });
+  mutateJson<WorkItem>(workItemJsonPath(workItemId), (wi) => {
+    if (!wi) return undefined;
+    wi.gather_attempts = 0;
+    return wi;
+  });
+  return true;
+}
+
 export interface RunSpawnFollowUpChainInput {
   workItemId: string;
   host: OrchestrationRuntimeHost;
@@ -168,6 +218,14 @@ export async function runSpawnFollowUpChain(
 
     if (!plan) {
       break;
+    }
+
+    if (plan.agent === "phase-gather") {
+      // Persisted budget: an align↔gather cycle must stop across resumes / drive rounds too.
+      if (gatherCapReached(input.workItemId, input.devConfig)) {
+        break;
+      }
+      bumpGatherAttempts(input.workItemId);
     }
 
     const r = await input.host.spawnSubagent({ agent: plan.agent, task: plan.task });

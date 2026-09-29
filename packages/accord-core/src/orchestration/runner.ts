@@ -27,6 +27,7 @@ import { resolveFinishOrchestration } from "./resolve/finish.js";
 import type { ResolveResumeOrchestrationOptions } from "./resolve/resume.js";
 import { resolveDevSubcommandOrchestration } from "./resolve/subcommand.js";
 import {
+  escalateGatherCapIfExhausted,
   extractReturnStatus,
   postSpawnReplanDecision,
   runSpawnFollowUpChain,
@@ -152,6 +153,19 @@ export async function runResumeOrchestrationWithReplans(
     }
 
     lastRun = await applySpawnFollowUps(workItemId, devConfig, host, lastRun);
+
+    if (escalateGatherCapIfExhausted(workItemId, devConfig, lastRun.lastSpawn)) {
+      host.notify(
+        "warning",
+        `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`,
+      );
+      return {
+        firstResolution: firstResolution ?? resolution,
+        lastRun,
+        iterations: iter + 1,
+        stalledReason: "stuck",
+      };
+    }
 
     if (
       lastRun.lastSpawn &&
@@ -283,6 +297,19 @@ export async function runDevSubcommandOrchestrationWithReplans(
     }
 
     lastRun = await applySpawnFollowUps(workItemId, devConfig, host, lastRun);
+
+    if (escalateGatherCapIfExhausted(workItemId, devConfig, lastRun.lastSpawn)) {
+      host.notify(
+        "warning",
+        `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`,
+      );
+      return {
+        firstResolution: firstResolution ?? resolution,
+        lastRun,
+        iterations: iter + 1,
+        stalledReason: "stuck",
+      };
+    }
 
     if (
       lastRun.lastSpawn &&

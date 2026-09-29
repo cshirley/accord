@@ -57,6 +57,8 @@ export interface WorkItem {
   decisions: Decision[];
   deviations: Deviation[];
   cost_usd: number;
+  /** phase-gather spawns since the last human escalation (see `maxGatherAttemptsFromDevConfig`). */
+  gather_attempts?: number;
   [key: string]: unknown;
 }
 

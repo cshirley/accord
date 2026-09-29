@@ -130,6 +130,11 @@
     },
     "cost_usd": { "type": "number", "minimum": 0 },
     "timeout_minutes": { "type": "integer", "minimum": 1 },
-    "quick_fix_scope": { "type": "array", "items": { "type": "string" } }
+    "quick_fix_scope": { "type": "array", "items": { "type": "string" } },
+    "gather_attempts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "phase-gather spawns since the last human escalation; capped by orchestration.max_gather_attempts (default 3)"
+    }
   }
 }

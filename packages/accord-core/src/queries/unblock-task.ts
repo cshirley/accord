@@ -49,6 +49,8 @@ interface ReviewLoopShape {
   lifetime_test_review_cycles?: number;
   lifetime_code_review_cycles?: number;
   unblock_count?: number;
+  rgr_respawns_used?: number;
+  lifetime_rgr_respawns?: number;
 }
 
 function reviewLoopCounters(task: TaskFile): ReviewLoopShape | undefined {
@@ -119,6 +121,9 @@ function unblockOne(
       lifetime_test_review_cycles: lifetimeCycles.test ?? 0,
       lifetime_code_review_cycles: lifetimeCycles.code ?? 0,
       unblock_count: unblockCount,
+      rgr_respawns_used: 0,
+      // Lifetime RGR count survives unblock, like the review lifetime counters above.
+      lifetime_rgr_respawns: priorCounters?.lifetime_rgr_respawns ?? 0,
     };
     if (task.quick_fix_loop && typeof task.quick_fix_loop === "object") {
       task.quick_fix_loop = { test_review_cycles_used: 0 };

@@ -113,6 +113,31 @@
           "type": "integer",
           "minimum": 0,
           "description": "Critical review-code findings that respawned phase-code"
+        },
+        "lifetime_test_review_cycles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime review-test retry cycles (never reset by /dev unblock)"
+        },
+        "lifetime_code_review_cycles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime review-code retry cycles (never reset by /dev unblock)"
+        },
+        "unblock_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Times /dev unblock reset this task's counters"
+        },
+        "rgr_respawns_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "phase-code → phase-test RGR respawns (test_issue / test files touched)"
+        },
+        "lifetime_rgr_respawns": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime RGR respawns (never reset by /dev unblock)"
         }
       }
     },

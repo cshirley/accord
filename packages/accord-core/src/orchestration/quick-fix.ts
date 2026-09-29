@@ -110,6 +110,8 @@ export function decideQuickFixAfterReviewPacket(
         counters.lifetime_test_review_cycles ?? counters.test_review_cycles_used,
       lifetime_code_review_cycles: 0,
       unblock_count: counters.unblock_count ?? 0,
+      rgr_respawns_used: 0,
+      lifetime_rgr_respawns: 0,
     },
     { verdict: packet.verdict, findings: [...packet.findings] },
     devConfigFromQuickFixPolicy(policy),

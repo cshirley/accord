@@ -56,6 +56,10 @@ export interface ReviewLoopCounters {
   lifetime_code_review_cycles: number;
   /** Times `/dev unblock` has reset this task's retry counters, ever. Never decremented. */
   unblock_count: number;
+  /** phase-code → phase-test RGR respawns (test_issue / test files touched). Reset by unblock. */
+  rgr_respawns_used: number;
+  /** Lifetime RGR respawns — never reset by `/dev unblock`. */
+  lifetime_rgr_respawns: number;
 }
 
 export function isReviewReturnPacket(packet: unknown): packet is ReviewReturnPacket {
@@ -94,6 +98,8 @@ export function readReviewLoopCounters(task: Record<string, unknown>): ReviewLoo
         lifetime_test_review_cycles?: unknown;
         lifetime_code_review_cycles?: unknown;
         unblock_count?: unknown;
+        rgr_respawns_used?: unknown;
+        lifetime_rgr_respawns?: unknown;
       }
     | undefined;
   const legacy = task.quick_fix_loop as { test_review_cycles_used?: unknown } | undefined;
@@ -109,6 +115,8 @@ export function readReviewLoopCounters(task: Record<string, unknown>): ReviewLoo
     lifetime_test_review_cycles: nonNegativeInt(loop?.lifetime_test_review_cycles),
     lifetime_code_review_cycles: nonNegativeInt(loop?.lifetime_code_review_cycles),
     unblock_count: nonNegativeInt(loop?.unblock_count),
+    rgr_respawns_used: nonNegativeInt(loop?.rgr_respawns_used),
+    lifetime_rgr_respawns: nonNegativeInt(loop?.lifetime_rgr_respawns),
   };
 }
 
@@ -122,6 +130,8 @@ export function writeReviewLoopCounters(
     lifetime_test_review_cycles: counters.lifetime_test_review_cycles,
     lifetime_code_review_cycles: counters.lifetime_code_review_cycles,
     unblock_count: counters.unblock_count,
+    rgr_respawns_used: counters.rgr_respawns_used,
+    lifetime_rgr_respawns: counters.lifetime_rgr_respawns,
   };
   task.quick_fix_loop = { test_review_cycles_used: counters.test_review_retries_used };
 }

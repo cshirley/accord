@@ -20,6 +20,7 @@ import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../typ
 import { buildAlignResumeTaskOrGeneric } from "./align-task.js";
 import { buildInterviewResumeTaskOrGeneric } from "./interview-task.js";
 import {
+  describeBlockedPrimaryTasks,
   describeImplementingResumeBlocked,
   resolveImplementingResumeAgentId,
   resolvePrimaryTaskResumeAgentId,
@@ -123,6 +124,17 @@ export function resolveResumeOrchestration(
 
   const pattern = stateAfterReconcile.pattern;
   const phase = stateAfterReconcile.phase;
+
+  // A blocked task (retry/RGR cap, crash, manual block) halts the whole work item — never
+  // silently skip past it to later tasks or into finish.
+  const blockedTasks = describeBlockedPrimaryTasks(workItemId);
+  if (blockedTasks) {
+    return {
+      outcome: "blocked",
+      messages: [...messages, { level: "warning", text: blockedTasks }],
+    };
+  }
+
   const agent =
     resolveResumeAgentId(phase, pattern) ??
     (phase === "implementing" && pattern === "implement"

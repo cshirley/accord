@@ -81,6 +81,8 @@ describe("unblockTask", () => {
       lifetime_test_review_cycles: 0,
       lifetime_code_review_cycles: 0,
       unblock_count: 1,
+      rgr_respawns_used: 0,
+      lifetime_rgr_respawns: 0,
     });
     expect(task.quick_fix_loop).toEqual({ test_review_cycles_used: 0 });
     // last_review_feedback / events are left in place as history, not scrubbed.
@@ -196,6 +198,8 @@ describe("unblockTask", () => {
       lifetime_test_review_cycles: 3,
       lifetime_code_review_cycles: 0,
       unblock_count: 1,
+      rgr_respawns_used: 0,
+      lifetime_rgr_respawns: 0,
     });
   });
 
