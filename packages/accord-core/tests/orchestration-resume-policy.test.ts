@@ -11,6 +11,7 @@ import {
   resumeReplanPolicyFromDevConfig,
   runResumeOrchestrationWithReplans,
 } from "@clive.shirley/accord-core/orchestration/index.js";
+import { writeTaskFixture } from "./helpers/task-fixture.js";
 
 function minimalDevConfig(overrides?: DevHarnessConfig["orchestration"]): DevHarnessConfig {
   return {
@@ -126,22 +127,15 @@ describe("runResumeOrchestrationWithReplans auto-chains phase-code when configur
       cost_usd: 0,
     });
     const taskPath = join(".tasks", "ACCORD-AUTO-task-1.json");
-    writeFileSync(
-      taskPath,
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "ACCORD-AUTO",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "complete",
-        test_files: ["src/a.test.ts"],
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "ACCORD-AUTO",
+      taskId: 1,
+      phase: "review-test",
+      status: "pending",
+      preImplGates: "complete",
+      testFiles: ["src/a.test.ts"],
+      coversAc: ["AC-1"],
+    });
 
     const agents: string[] = [];
     const host = {
@@ -149,8 +143,10 @@ describe("runResumeOrchestrationWithReplans auto-chains phase-code when configur
       spawnSubagent: async (input: { agent: string }) => {
         agents.push(input.agent);
         if (input.agent === "review-test") {
-          const raw = JSON.parse(readFileSync(taskPath, "utf8")) as Record<string, unknown>;
-          raw.phase = "phase-code";
+          const raw = JSON.parse(readFileSync(taskPath, "utf8")) as {
+            control: { phase: string };
+          };
+          raw.control.phase = "phase-code";
           writeFileSync(taskPath, `${JSON.stringify(raw)}\n`, "utf8");
         }
         return { exitCode: 0 };

@@ -461,11 +461,11 @@ describe("quick_fix pattern contracts", () => {
     expect(brief.value.brief).toContain("### Quick Fix Contract");
 
     const taskFile = JSON.parse(readFileSync(join(project, ".tasks", "FIX-1-task-1.json"), "utf8"));
-    expect(taskFile.phase).toBe("phase-test");
-    expect(taskFile.pre_impl_gates).toBe("pending");
-    expect(taskFile.quick_fix_contract.plan.expected_finish).toBe("Fix login typo");
-    expect(taskFile.quick_fix_contract.test.strategy).toBe("no_test");
-    expect(taskFile.quick_fix_contract.test.reason).toContain("Mechanical");
+    expect(taskFile.control.phase).toBe("phase-test");
+    expect(taskFile.control.pre_impl_gates).toBe("pending");
+    expect(taskFile.control.quick_fix_contract.plan.expected_finish).toBe("Fix login typo");
+    expect(taskFile.control.quick_fix_contract.test.strategy).toBe("no_test");
+    expect(taskFile.control.quick_fix_contract.test.reason).toContain("Mechanical");
 
     const wi = JSON.parse(readFileSync(join(project, ".tasks", "FIX-1.json"), "utf8"));
     expect(wi.spec).toBe(join("docs", "dev", "FIX-1", "spec.json"));

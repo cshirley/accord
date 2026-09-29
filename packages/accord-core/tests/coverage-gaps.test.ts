@@ -47,9 +47,9 @@ import {
   devCheckpointRead,
   devCheckpointWrite,
 } from "@clive.shirley/accord-core/work-items/checkpoint.js";
-import { writeJson } from "@clive.shirley/accord-core/work-items/io.js";
 import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
 import type { Checkpoint } from "@clive.shirley/accord-core/work-items/types.js";
+import { capBlock, writeTaskFixture } from "./helpers/task-fixture.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -169,9 +169,20 @@ describe("devTasks dashboard", () => {
     wi.updated = "2099-01-02T00:00:00.000Z";
     writeFileSync(wiPath, `${JSON.stringify(wi, null, 2)}\n`);
 
-    writeJson(join(".tasks", "DASH-1-task-1.json"), { status: "done" });
-    writeJson(join(".tasks", "DASH-1-task-2.json"), { status: "blocked" });
-    writeJson(join(".tasks", "DASH-1-task-3.json"), { status: "in_progress" });
+    writeTaskFixture({
+      workItemId: "DASH-1",
+      taskId: 1,
+      status: "done",
+      phase: "phase-code",
+      preImplGates: "complete",
+    });
+    writeTaskFixture({
+      workItemId: "DASH-1",
+      taskId: 2,
+      status: "blocked",
+      blocked: capBlock("T"),
+    });
+    writeTaskFixture({ workItemId: "DASH-1", taskId: 3, status: "in_progress" });
 
     devBootstrap("DASH-2", "t2", "quick_fix");
     const wi2 = JSON.parse(readFileSync(join(".tasks", "DASH-2.json"), "utf8"));

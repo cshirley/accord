@@ -4,7 +4,8 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { devWorkItemStatus } from "@clive.shirley/accord-core/queries/work-item-status.js";
 import { TASKS_DIR, writeJson } from "@clive.shirley/accord-core/work-items/io.js";
-import type { TaskFile, WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
+import type { WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
+import { writeTaskFixture } from "./helpers/task-fixture.js";
 
 const WI_ID = "WISTAT-1";
 const wiPath = path.join(TASKS_DIR, `${WI_ID}.json`);
@@ -67,17 +68,13 @@ describe("devWorkItemStatus", () => {
       "utf8",
     );
 
-    const task: TaskFile = {
-      schema_version: "1.0",
-      work_item_id: WI_ID,
-      task_id: 1,
-      owner_nonce: "abc123",
+    writeTaskFixture({
+      workItemId: WI_ID,
+      taskId: 1,
       phase: "phase-code",
       status: "done",
-      pre_impl_gates: "complete",
-      events: [],
-    };
-    writeJson(taskPath, task);
+      preImplGates: "complete",
+    });
 
     const result = devWorkItemStatus(WI_ID, null);
     expect(result.ok).toBe(true);

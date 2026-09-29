@@ -16,6 +16,7 @@ export const ACCORD_CORE_TOOLS: readonly string[] = [
   "dev_resume_state",
   "dev_work_item_status",
   "dev_tasks",
+  "dev_trace",
   "subagent",
 ];
 
@@ -38,6 +39,7 @@ export const ACCORD_TOOL_BUNDLES: Record<AccordToolBundle, readonly string[]> = 
     "dev_verify_summary",
     "dev_promote_events",
     "dev_decision_packet",
+    "dev_unblock",
     "dev_subagent_preflight",
   ],
   init: ["dev_init_detect", "dev_init_write"],

@@ -22,7 +22,9 @@ export { runDriveCommand, runRunCommand } from "./run.js";
 export { runSpecGapsCommand } from "./spec-gaps.js";
 export { runSubcommandCommand, type SubcommandCommandResult } from "./subcommand.js";
 export { runTagCommand } from "./tag.js";
+export { runTaskReseedCommand } from "./task-reseed.js";
 export { runTasksCommand } from "./tasks.js";
+export { runTraceCommand } from "./trace.js";
 export { runUnblockCommand } from "./unblock.js";
 export {
   isWorkflowSubcommand,

@@ -3,20 +3,15 @@
  * automated test↔review retry-cap loop (`packages/accord-core/src/orchestration/policy.ts`)
  * hasn't tripped yet but a human needs to step in without hand-editing task JSON.
  * `resolveReadOnlyResumeAgent` refuses to resume a task with `status === "blocked"` (by
- * design — a human should look at `last_review_feedback` before continuing), so this is the
+ * design — a human should look at the task file `summary` before continuing), so this is the
  * manual override that pairs with `/dev unblock` (`unblock-task.ts`).
  */
 
 import { parseKnownDevSubcommandArgs } from "../commands/dispatch.js";
+import { allocateRef, appendLog } from "../tasks/model.js";
+import { loadTaskV2, writeTaskV2 } from "../tasks/store.js";
 import { err, ok, type Result } from "../types/result.js";
-import {
-  loadTaskFile,
-  loadWorkItem,
-  taskLockPath,
-  withJsonFileLock,
-  writeJson,
-} from "../work-items/io.js";
-import { taskJsonPath } from "../work-items/tasks-dir.js";
+import { loadWorkItem, taskLockPath, withJsonFileLock } from "../work-items/io.js";
 
 export interface BlockedTaskSummary {
   task_id: number;
@@ -37,35 +32,24 @@ export interface BlockResult {
  */
 function blockOne(workItemId: string, taskId: number, reason: string): Result<BlockedTaskSummary> {
   return withJsonFileLock(taskLockPath(workItemId), () => {
-    const task = loadTaskFile(workItemId, String(taskId));
+    const task = loadTaskV2(workItemId, String(taskId));
     if (!task) {
       return err(`Task ${String(taskId)} not found on ${workItemId}.`);
     }
-    if (task.status === "blocked") {
+    if (task.control.status === "blocked") {
       return err(`Task ${String(taskId)} on ${workItemId} is already blocked.`);
     }
-    if (task.status === "done") {
+    if (task.control.status === "done") {
       return err(`Task ${String(taskId)} on ${workItemId} is already done — nothing to block.`);
     }
 
-    const wasStatus = task.status;
+    const wasStatus = task.control.status;
     const at = new Date().toISOString();
-    task.status = "blocked";
-    // Reuse the existing `escalation` event shape (question/context) rather than inventing a
-    // new event type — `task-schema.json` enforces a closed `events[].type` enum, and this is
-    // semantically the same thing: a question for a human, recorded for audit.
-    const events = Array.isArray(task.events) ? [...task.events] : [];
-    task.events = [
-      ...events,
-      {
-        type: "escalation",
-        at,
-        question: "Manually blocked via /dev block",
-        context: reason,
-      },
-    ];
-
-    writeJson(taskJsonPath(workItemId, taskId), task);
+    const ref = allocateRef(task, "block");
+    appendLog(task, { ref, at, result: "blocked", note: reason, actor: "human" });
+    task.control.status = "blocked";
+    task.control.blocked = { kind: "manual", reason, ref };
+    writeTaskV2(task, at);
 
     return ok({ task_id: taskId, was_status: wasStatus, reason });
   });

@@ -1,12 +1,34 @@
 [
   {
     "status": "done",
-    "files_changed": ["src/services/auth.ts", "src/middleware/auth.ts", "src/routes/auth.ts"],
+    "changes": [
+      {
+        "file": "src/services/auth.ts",
+        "action": "modify",
+        "kind": "code",
+        "ac_ids": ["AC-1", "AC-2"]
+      },
+      {
+        "file": "src/middleware/auth.ts",
+        "action": "modify",
+        "kind": "code",
+        "ac_ids": ["AC-1", "AC-2"]
+      },
+      {
+        "file": "src/routes/auth.ts",
+        "action": "modify",
+        "kind": "code",
+        "ac_ids": ["AC-1", "AC-2"]
+      }
+    ],
     "tests_passing": true,
     "ac_covered": ["AC-1", "AC-2"],
     "deviations_emitted": 0,
     "reviews_requested": 0,
-    "usage": { "prompt_tokens": 8123, "completion_tokens": 2145 }
+    "usage": {
+      "prompt_tokens": 8123,
+      "completion_tokens": 2145
+    }
   },
   {
     "status": "stuck",
@@ -15,6 +37,9 @@
     "question": "Tests expect AuthService.refresh() to return a tuple [accessToken, refreshToken], but the existing interface returns a single token string. Changing the interface would break 12 other call sites.",
     "context": "Task 2, impl step 3. Test at src/auth/__tests__/auth.test.ts:42.",
     "tried": "Wrapper function that adapts the return type, but the test imports AuthService directly and asserts on the tuple shape.",
-    "usage": { "prompt_tokens": 8123, "completion_tokens": 2145 }
+    "usage": {
+      "prompt_tokens": 8123,
+      "completion_tokens": 2145
+    }
   }
 ]

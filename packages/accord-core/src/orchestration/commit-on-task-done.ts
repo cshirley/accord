@@ -11,7 +11,10 @@ import {
   gitRoot,
   isSecretFile,
 } from "../git/helpers.js";
-import { loadTaskFile, loadWorkItem, readJson, taskJsonPath, writeJson } from "../work-items/io.js";
+import { allocateRef, appendLog, changedFiles, refActor } from "../tasks/model.js";
+import { loadTaskV2, mutateTaskV2 } from "../tasks/store.js";
+import type { TaskFileV2 } from "../tasks/types.js";
+import { loadWorkItem, readJson } from "../work-items/io.js";
 import { commitOnTaskDoneFromDevConfig } from "./policy.js";
 
 export interface CommitOnTaskDoneResult {
@@ -23,12 +26,8 @@ export interface CommitOnTaskDoneResult {
   message?: string;
 }
 
-function taskHasHarnessCommit(task: Record<string, unknown>): boolean {
-  const events = task.events;
-  if (!Array.isArray(events)) return false;
-  return events.some(
-    (e) => e && typeof e === "object" && (e as { type?: string }).type === "harness_task_commit",
-  );
+function taskHasHarnessCommit(task: TaskFileV2): boolean {
+  return task.log.some((entry) => refActor(entry.ref) === "commit");
 }
 
 function loadPlanTask(
@@ -95,11 +94,11 @@ export async function tryCommitOnTaskDone(
     return { ok: true, skipped: true, reason: "commit.on_task_done explicitly disabled" };
   }
 
-  const task = loadTaskFile(workItemId, String(taskId));
+  const task = loadTaskV2(workItemId, String(taskId));
   if (!task) {
     return { ok: true, skipped: true, reason: "task file missing" };
   }
-  if (task.status !== "done") {
+  if (task.control.status !== "done") {
     return { ok: true, skipped: true, reason: "task not done" };
   }
   if (taskHasHarnessCommit(task)) {
@@ -108,9 +107,7 @@ export async function tryCommitOnTaskDone(
 
   const wi = loadWorkItem(workItemId);
   const planTask = loadPlanTask(workItemId, wi?.plan ?? null, taskId);
-  const testFiles = Array.isArray(task.test_files)
-    ? (task.test_files as unknown[]).filter((f): f is string => typeof f === "string")
-    : [];
+  const testFiles = [...new Set([...task.control.test_files, ...changedFiles(task)])];
   const candidates = candidatePathsForTask(workItemId, planTask?.files ?? [], testFiles);
 
   let root: string;
@@ -137,25 +134,21 @@ export async function tryCommitOnTaskDone(
   const message = buildCommitMessage(workItemId, taskId, planTask?.title ?? "implementation");
   try {
     const { hash } = await commitWithMessage(root, files, message, signal);
-    const taskPath = taskJsonPath(workItemId, String(taskId));
-    const fresh = readJson<Record<string, unknown>>(taskPath);
-    if (fresh) {
-      const events = Array.isArray(fresh.events) ? [...(fresh.events as unknown[])] : [];
-      fresh.events = [
-        ...events,
-        {
-          at: new Date().toISOString(),
-          type: "harness_task_commit",
-          hash,
-          files,
-          message,
-        },
-      ];
-      writeJson(taskPath, fresh);
-    }
+    mutateTaskV2(workItemId, taskId, (fresh, at) => {
+      appendLog(fresh, {
+        ref: allocateRef(fresh, "commit"),
+        at,
+        result: "committed",
+        note: `${hash} ${message.split("\n")[0] ?? ""} (${String(files.length)} file(s))`,
+      });
+      return true;
+    });
     return { ok: true, hash, files, message };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, reason: msg };
   }
 }
+
+/** Agents whose post-result can mark a task `done` (commit hook trigger). */
+export const TASK_DONE_AGENTS: ReadonlySet<string> = new Set(["review-code", "phase-verify-task"]);

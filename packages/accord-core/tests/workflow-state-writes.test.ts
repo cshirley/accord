@@ -1,15 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 import { validateHarnessArtifactWriteIfApplicable } from "../src/harness/artifact-write.js";
 import {
-  applyTaskEventsFromPacket,
   classifyWorkflowStatePath,
   isOrchestratorOwnedWorkflowStatePath,
   validateWorkflowStateWrite,
 } from "../src/harness/index.js";
-import { workItemJsonPath, writeJson } from "../src/work-items/io.js";
 
 describe("workflow state paths", () => {
   test("classifies orchestrator-owned paths", () => {
@@ -44,71 +39,12 @@ describe("workflow state write guard", () => {
   });
 });
 
-describe("applyTaskEventsFromPacket", () => {
-  let tempRoot = "";
-
-  afterEach(() => {
-    if (tempRoot) fs.rmSync(tempRoot, { recursive: true, force: true });
-    tempRoot = "";
-  });
-
-  test("merges events from return packet onto primary task file", () => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "accord-wi-"));
-    const tasksDir = path.join(tempRoot, ".tasks");
-    fs.mkdirSync(tasksDir, { recursive: true });
-    const previousCwd = process.cwd();
-    process.chdir(tempRoot);
-
-    try {
-      writeJson(workItemJsonPath("DEMO-1"), {
-        schema_version: "1.0",
-        id: "DEMO-1",
-        title: "Test",
-        created: "2026-01-01T00:00:00Z",
-        updated: "2026-01-01T00:00:00Z",
-        pattern: "implement",
-        phase: "implementing",
-        spec: null,
-        plan: null,
-        verify: null,
-        brief: null,
-        task_ids: [1],
-        decisions: [],
-        deviations: [],
-        cost_usd: 0,
-      });
-      writeJson(path.join(tasksDir, "DEMO-1-task-1.json"), {
-        schema_version: "1.0",
-        work_item_id: "DEMO-1",
-        task_id: 1,
-        owner_nonce: "abc123",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        events: [],
-      });
-
-      const applied = applyTaskEventsFromPacket("DEMO-1", {
-        events: [
-          {
-            type: "deviation",
-            at: "2026-01-01T00:00:00Z",
-            description: "renamed helper",
-            reason: "clarity",
-          },
-        ],
-      });
-      expect(applied).toBe(true);
-
-      const task = JSON.parse(
-        fs.readFileSync(path.join(tasksDir, "DEMO-1-task-1.json"), "utf8"),
-      ) as { events: unknown[] };
-      expect(task.events).toHaveLength(1);
-    } finally {
-      process.chdir(previousCwd);
-    }
-  });
-});
+// `applyTaskEventsFromPacket` (a standalone "merge events onto the primary task file"
+// API) was removed with the v1 task file. Agent-reported events are now attached to the
+// agent's own `log[]` entry as part of `record*` in `tasks/record.ts` (see
+// `packetEvents`/`pushAgentLog`), invoked through the post-result handlers — there is no
+// longer a separate apply-events step to unit test in isolation. Coverage: the T1
+// phase-test `events[]` → `log[0].events` assertion in `task-trace-v2.test.ts`.
 
 describe("artifact write hook integration", () => {
   test("validateHarnessArtifactWriteIfApplicable blocks workflow state writes", async () => {

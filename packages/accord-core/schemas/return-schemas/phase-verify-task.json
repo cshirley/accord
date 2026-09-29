@@ -7,7 +7,40 @@
   "required": ["status", "usage"],
   "additionalProperties": false,
   "properties": {
-    "status": { "enum": ["done", "stuck"] },
+    "status": {
+      "enum": ["done", "stuck"]
+    },
+    "evidence": {
+      "type": "array",
+      "description": "One entry per covered AC. A fail raises a gating finding and loops to phase-code.",
+      "items": {
+        "type": "object",
+        "required": ["ac_id", "result", "tests"],
+        "additionalProperties": false,
+        "properties": {
+          "ac_id": {
+            "type": "string"
+          },
+          "result": {
+            "enum": ["pass", "fail"]
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Test names / commands that prove (or failed) the AC."
+          },
+          "command": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "description": "Failure excerpt (fail only)."
+          }
+        }
+      }
+    },
     "verify_output": {
       "type": "string",
       "maxLength": 65536,
@@ -15,8 +48,10 @@
     },
     "ac_covered": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "AC ids exercised by the verification gate"
+      "items": {
+        "type": "string"
+      },
+      "description": "AC ids exercised by the verification gate Deprecated — use evidence[]."
     },
     "question": {
       "type": "string",
@@ -36,18 +71,30 @@
       "required": ["prompt_tokens", "completion_tokens"],
       "additionalProperties": false,
       "properties": {
-        "prompt_tokens": { "type": "integer", "minimum": 0 },
-        "completion_tokens": { "type": "integer", "minimum": 0 }
+        "prompt_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     }
   },
   "allOf": [
     {
       "if": {
-        "properties": { "status": { "const": "stuck" } },
+        "properties": {
+          "status": {
+            "const": "stuck"
+          }
+        },
         "required": ["status"]
       },
-      "then": { "required": ["question", "context"] }
+      "then": {
+        "required": ["question", "context"]
+      }
     }
   ]
 }

@@ -6,6 +6,15 @@
 import type { DevHarnessConfig } from "../config/index.js";
 import { resolveActivePrimaryTaskId } from "../orchestration/post-result/primary-task.js";
 import type { PlanTaskStep } from "../plan/task-pipeline-profile.js";
+import { TEST_KINDS } from "../tasks/model.js";
+import { requirementMap } from "../tasks/render.js";
+import {
+  legacyTaskFileMessage,
+  loadTaskResult,
+  loadTaskV2,
+  readLastTestOutput,
+} from "../tasks/store.js";
+import type { TaskFileV2 } from "../tasks/types.js";
 import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, readJson, taskJsonPath } from "../work-items/io.js";
 import {
@@ -80,8 +89,8 @@ export interface TaskRequirementsSlice {
   ac_covered?: string[];
   /** Unimplemented declarations phase-test created so tests load (phase-code replaces them). */
   stub_files?: string[];
-  /** phase-test's per-finding answers to the prior review-test round. */
-  review_responses?: unknown[];
+  /** Requirement → changes map from the v2 task file (reviewers infer `ac_id` from it). */
+  requirement_map?: Array<Record<string, unknown>>;
   security_topology?: unknown;
 }
 
@@ -135,8 +144,10 @@ export function sliceTaskRequirements(
   const testCases = filterTestCasesForAcIds(spec, coveredAcIds);
 
   const taskFilePath = taskJsonPath(workItemId, String(taskId));
-  let taskFile = readJson<Record<string, unknown>>(taskFilePath);
-  const rawNonce = taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
+  const loaded = loadTaskResult(workItemId, taskId);
+  if (loaded.kind === "legacy") return err(legacyTaskFileMessage(workItemId, taskId));
+  let taskFile: TaskFileV2 | null = loaded.kind === "ok" ? loaded.task : null;
+  const rawNonce = taskFile?.control.owner_nonce ?? "";
   const { ownerNonce, minted } = resolveOwnerNonce(rawNonce);
 
   const syncAgent = options?.syncBeforeSpawn?.dispatchAgent;
@@ -149,15 +160,21 @@ export function sliceTaskRequirements(
       minted,
       dispatchAgent: syncAgent,
       planTaskSteps: planSteps,
-      taskFile,
+      taskFile: taskFile as unknown as Record<string, unknown> | null,
     });
     if (!synced.ok) return synced;
-    taskFile = readJson<Record<string, unknown>>(taskFilePath);
+    taskFile = loadTaskV2(workItemId, taskId);
   }
 
-  const testFiles = (Array.isArray(taskFile?.test_files) ? taskFile.test_files : []).filter(
-    (f): f is string => typeof f === "string",
-  );
+  const testFiles = taskFile?.control.test_files ?? [];
+  const testOutput = taskFile ? readLastTestOutput(taskFile) : "";
+  const acCovered = taskFile
+    ? taskFile.requirements
+        .filter(
+          (req) => req.id !== "_task" && req.changes.some((change) => TEST_KINDS.has(change.kind)),
+        )
+        .map((req) => req.id)
+    : [];
 
   const scope = spec.scope as Record<string, unknown> | undefined;
   const verification = spec.verification as Record<string, unknown> | undefined;
@@ -205,30 +222,14 @@ export function sliceTaskRequirements(
     verification_commands: verCmds,
     ...(verifySteps.length ? { verify_steps: verifySteps } : {}),
     ...(intent_contract ? { intent_contract } : {}),
-    ...(taskFile?.quick_fix_contract !== undefined
-      ? { quick_fix_contract: taskFile.quick_fix_contract }
+    ...(taskFile?.control.quick_fix_contract !== undefined
+      ? { quick_fix_contract: taskFile.control.quick_fix_contract }
       : {}),
-    ...(taskFile?.red_confirmed === true ? { red_confirmed: true } : {}),
-    ...(typeof taskFile?.test_output === "string" && taskFile.test_output.length > 0
-      ? { test_output: taskFile.test_output }
-      : {}),
-    ...(Array.isArray(taskFile?.ac_covered)
-      ? {
-          ac_covered: (taskFile.ac_covered as unknown[]).filter(
-            (id): id is string => typeof id === "string",
-          ),
-        }
-      : {}),
-    ...(Array.isArray(taskFile?.stub_files)
-      ? {
-          stub_files: (taskFile.stub_files as unknown[]).filter(
-            (f): f is string => typeof f === "string",
-          ),
-        }
-      : {}),
-    ...(Array.isArray(taskFile?.review_responses) && taskFile.review_responses.length > 0
-      ? { review_responses: taskFile.review_responses as unknown[] }
-      : {}),
+    ...(taskFile?.control.last_test_run?.confirmed === true ? { red_confirmed: true } : {}),
+    ...(testOutput ? { test_output: testOutput } : {}),
+    ...(acCovered.length ? { ac_covered: acCovered } : {}),
+    ...(taskFile?.control.stub_files.length ? { stub_files: taskFile.control.stub_files } : {}),
+    ...(taskFile ? { requirement_map: requirementMap(taskFile) } : {}),
     ...(spec.security_topology !== undefined ? { security_topology: spec.security_topology } : {}),
   });
 }
@@ -395,6 +396,7 @@ function agentPayloadForSpawn(
     ...(slice.quick_fix_contract !== undefined
       ? { quick_fix_contract: slice.quick_fix_contract }
       : {}),
+    ...(slice.requirement_map ? { requirement_map: slice.requirement_map } : {}),
   };
 
   if (agent === "phase-verify-task") {
@@ -402,6 +404,8 @@ function agentPayloadForSpawn(
       ...base,
       covered_acs: slice.covered_acs,
       verification_commands: slice.verification_commands,
+      test_cases: slice.test_cases,
+      test_files: slice.test_files,
       verify_steps: slice.verify_steps ?? [],
     };
   }
@@ -449,9 +453,7 @@ function agentPayloadForSpawn(
       guidance: slice.guidance,
       ...(slice.ac_covered?.length ? { ac_covered: slice.ac_covered } : {}),
       ...(slice.stub_files?.length ? { stub_files: slice.stub_files } : {}),
-      ...(slice.review_responses?.length
-        ? { phase_test_review_responses: slice.review_responses }
-        : {}),
+      ...(slice.requirement_map ? { requirement_map: slice.requirement_map } : {}),
       ...(slice.red_confirmed ? { red_confirmed: true } : {}),
       ...(slice.quick_fix_contract !== undefined
         ? { quick_fix_contract: slice.quick_fix_contract }
@@ -489,7 +491,7 @@ export function formatImplementSpawnTaskBrief(input: {
 }): string {
   const pipelineLabel = input.pattern === "quick_fix" ? "quick fix" : "implement";
   const agentLabels: Record<string, string> = {
-    "phase-verify-task": "phase-verify-task (verify-only gate)",
+    "phase-verify-task": "phase-verify-task (per-AC verification gate)",
     "phase-test": "phase-test",
     "phase-code": "phase-code",
     "review-test": `review-test — ${pipelineLabel} (pre-impl)`,

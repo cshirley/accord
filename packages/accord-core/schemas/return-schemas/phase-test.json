@@ -7,56 +7,119 @@
   "definitions": {
     "task_event": {
       "type": "object",
-      "required": ["type", "at"],
+      "required": ["type"],
       "additionalProperties": false,
       "properties": {
         "type": {
           "enum": ["usage", "escalation", "deviation", "request_review", "test_issue"]
         },
-        "at": { "type": "string", "minLength": 1 },
-        "model": { "type": "string", "minLength": 1 },
+        "at": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Ignored — the harness timestamps the log entry."
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
         "usage": {
           "type": "object",
           "required": ["prompt_tokens", "completion_tokens"],
           "additionalProperties": false,
           "properties": {
-            "prompt_tokens": { "type": "integer", "minimum": 0 },
-            "completion_tokens": { "type": "integer", "minimum": 0 }
+            "prompt_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completion_tokens": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
-        "question": { "type": "string", "minLength": 1 },
-        "context": { "type": "string" },
-        "tried": { "type": "string" },
-        "phase": { "type": "string" },
-        "description": { "type": "string" },
-        "reason": { "type": "string" },
-        "files": { "type": "array", "items": { "type": "string" } },
-        "test_file": { "type": "string", "minLength": 1 },
-        "test_name": { "type": "string" },
-        "issue": { "type": "string", "minLength": 1 },
-        "ac_id": { "type": "string" },
-        "recommendation": { "enum": ["fix_test", "clarify_spec", "acceptable"] }
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context": {
+          "type": "string"
+        },
+        "tried": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "test_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_name": {
+          "type": "string"
+        },
+        "issue": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ac_id": {
+          "type": "string"
+        },
+        "recommendation": {
+          "enum": ["fix_test", "clarify_spec", "acceptable"]
+        }
       },
       "oneOf": [
         {
           "required": ["type", "at", "model", "usage"],
-          "properties": { "type": { "const": "usage" } }
+          "properties": {
+            "type": {
+              "const": "usage"
+            }
+          }
         },
         {
           "required": ["type", "at", "question"],
-          "properties": { "type": { "const": "escalation" } }
+          "properties": {
+            "type": {
+              "const": "escalation"
+            }
+          }
         },
         {
           "required": ["type", "at", "description", "reason"],
-          "properties": { "type": { "const": "deviation" } }
+          "properties": {
+            "type": {
+              "const": "deviation"
+            }
+          }
         },
         {
           "required": ["type", "at", "files"],
-          "properties": { "type": { "const": "request_review" } }
+          "properties": {
+            "type": {
+              "const": "request_review"
+            }
+          }
         },
         {
           "required": ["type", "at", "test_file", "issue", "recommendation"],
-          "properties": { "type": { "const": "test_issue" } }
+          "properties": {
+            "type": {
+              "const": "test_issue"
+            }
+          }
         }
       ]
     }
@@ -64,11 +127,56 @@
   "required": ["status", "usage"],
   "additionalProperties": false,
   "properties": {
-    "status": { "enum": ["done", "stuck"] },
+    "status": {
+      "enum": ["done", "stuck"]
+    },
+    "changes": {
+      "type": "array",
+      "description": "Every file touched this run with the ACs it serves (implement pipeline). Replaces test_files/stub_files/ac_covered, which the harness still accepts.",
+      "items": {
+        "type": "object",
+        "required": ["file", "ac_ids"],
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "enum": ["add", "modify", "delete"]
+          },
+          "kind": {
+            "enum": ["test", "stub", "fixture", "config", "code", "dep"]
+          },
+          "ac_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Acceptance criteria this file change serves (AC-n). Empty only for cross-cutting changes."
+          },
+          "tc_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Test names added/changed in this file (test changes)."
+          }
+        }
+      }
+    },
     "test_files": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Test files written (implement pipeline)"
+      "items": {
+        "type": "string"
+      },
+      "description": "Test files written (implement pipeline) Deprecated — report via changes[]."
     },
     "red_confirmed": {
       "type": "boolean",
@@ -81,30 +189,49 @@
     },
     "ac_covered": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "AC ids covered by the written tests (implement pipeline)"
+      "items": {
+        "type": "string"
+      },
+      "description": "AC ids covered by the written tests (implement pipeline) Deprecated — report via changes[]."
     },
     "stub_files": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Unimplemented declarations (body only throws 'not implemented') created so tests load the system under test (implement pipeline). phase-code replaces them."
+      "items": {
+        "type": "string"
+      },
+      "description": "Unimplemented declarations (body only throws 'not implemented') created so tests load the system under test (implement pipeline). phase-code replaces them. Deprecated — report via changes[]."
     },
     "review_responses": {
       "type": "array",
-      "description": "Retry rounds only: one entry per prior review-test finding and how this round resolved it. review-test re-checks every entry.",
+      "description": "Retry rounds only: one entry per owed finding in the harness ledger (by finding_id).",
       "items": {
         "type": "object",
-        "required": ["issue", "resolution", "note"],
+        "required": ["resolution", "note"],
         "additionalProperties": false,
         "properties": {
-          "issue": { "type": "string", "minLength": 1 },
-          "ref": { "type": "string" },
-          "file": { "type": "string" },
-          "resolution": { "enum": ["fixed", "disputed"] },
+          "finding_id": {
+            "type": "string",
+            "pattern": "^F-\\d+$",
+            "description": "ID from the harness findings ledger in the brief. Required on retry rounds."
+          },
+          "issue": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Deprecated — use finding_id."
+          },
+          "ref": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "resolution": {
+            "enum": ["fixed", "disputed", "wont_fix"]
+          },
           "note": {
             "type": "string",
             "minLength": 1,
-            "description": "What changed (fixed) or concrete evidence the finding is wrong (disputed)"
+            "description": "What changed (fixed), concrete evidence the finding is wrong (disputed), or why it should not be fixed (wont_fix — gates until a reviewer or human accepts)."
           }
         }
       }
@@ -117,7 +244,9 @@
     "events": {
       "type": "array",
       "description": "Per-task events for orchestrator promotion (deviation, escalation, test_issue, request_review)",
-      "items": { "$ref": "#/definitions/task_event" }
+      "items": {
+        "$ref": "#/definitions/task_event"
+      }
     },
     "hypothesis_id": {
       "type": "string",
@@ -155,18 +284,30 @@
       "required": ["prompt_tokens", "completion_tokens"],
       "additionalProperties": false,
       "properties": {
-        "prompt_tokens": { "type": "integer", "minimum": 0 },
-        "completion_tokens": { "type": "integer", "minimum": 0 }
+        "prompt_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     }
   },
   "allOf": [
     {
       "if": {
-        "properties": { "status": { "const": "stuck" } },
+        "properties": {
+          "status": {
+            "const": "stuck"
+          }
+        },
         "required": ["status"]
       },
-      "then": { "required": ["question", "context"] }
+      "then": {
+        "required": ["question", "context"]
+      }
     }
   ]
 }

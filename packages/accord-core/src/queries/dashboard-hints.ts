@@ -8,6 +8,7 @@ import * as path from "node:path";
 import { getAgentMeta } from "../agents/registry.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../orchestration/phase-coarse-routing.js";
 import { resolveActivePrimaryTaskId } from "../orchestration/post-result/primary-task.js";
+import { loadTaskV2 } from "../tasks/store.js";
 import { isResumablePipelineTaskPhase } from "../types/phases.js";
 import {
   type ArtifactKind,
@@ -15,7 +16,6 @@ import {
   artifactPathForWorkItem,
   preferredDevArtifactRelPath,
 } from "../work-items/artifact-discovery.js";
-import { loadTaskFile } from "../work-items/io.js";
 import type { WorkItem } from "../work-items/types.js";
 import { buildWorkflowCostReport } from "./workflow-cost.js";
 
@@ -73,12 +73,12 @@ export function isFinishReady(workItemId: string, wi: WorkItem): boolean {
   const ids = wi.task_ids ?? [];
   if (ids.length === 0) return false;
   // Blocked tasks halt the work item (retry/RGR caps) — they are not finish-ready.
-  return ids.every((taskId) => loadTaskFile(workItemId, String(taskId))?.status === "done");
+  return ids.every((taskId) => loadTaskV2(workItemId, String(taskId))?.control.status === "done");
 }
 
 function hasBlockedTask(workItemId: string, wi: WorkItem): boolean {
   return (wi.task_ids ?? []).some(
-    (taskId) => loadTaskFile(workItemId, String(taskId))?.status === "blocked",
+    (taskId) => loadTaskV2(workItemId, String(taskId))?.control.status === "blocked",
   );
 }
 
@@ -101,16 +101,16 @@ export function resolveReadOnlyResumeAgent(workItemId: string, wi: WorkItem): st
   if (primaryTaskId === null) {
     return null;
   }
-  const task = loadTaskFile(workItemId, String(primaryTaskId));
-  if (!task || task.status === "blocked" || task.status === "done") {
+  const task = loadTaskV2(workItemId, String(primaryTaskId));
+  if (!task || task.control.status === "blocked" || task.control.status === "done") {
     return null;
   }
 
-  let phase = task.phase;
-  if (phase === "phase-code" && task.pre_impl_gates !== "complete") {
+  let phase: string = task.control.phase;
+  if (phase === "phase-code" && task.control.pre_impl_gates !== "complete") {
     phase = "review-test";
   }
-  if (typeof phase === "string" && isResumablePipelineTaskPhase(phase) && getAgentMeta(phase)) {
+  if (isResumablePipelineTaskPhase(phase) && getAgentMeta(phase)) {
     return phase;
   }
   return null;

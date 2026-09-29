@@ -10,11 +10,13 @@ import {
   agentRequiresSpawnPreflight,
   runSubagentSpawnPreflightCheck,
 } from "../../queries/subagent-preflight-shared.js";
+import { findLegacyTaskFile, legacyTaskFileMessage } from "../../tasks/store.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { ensureWorkItemHydrated } from "../../work-items/rehydrate.js";
 import { pendingDecisionsGateMessage } from "../pending-decisions-gate.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
 import { reconcileCoarsePhaseWithMessages } from "../reconcile-coarse-phase.js";
+import { recoverReturnedInFlight } from "../recover-task-packet.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
 import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../types.js";
 import { buildAlignResumeTaskOrGeneric } from "./align-task.js";
@@ -124,6 +126,24 @@ export function resolveResumeOrchestration(
 
   const pattern = stateAfterReconcile.pattern;
   const phase = stateAfterReconcile.phase;
+
+  if (wi && (phase === "implementing" || phase === "fixing")) {
+    const legacyTaskId = findLegacyTaskFile(wi);
+    if (legacyTaskId !== null) {
+      return {
+        outcome: "blocked",
+        messages: [
+          ...messages,
+          { level: "warning", text: legacyTaskFileMessage(workItemId, legacyTaskId) },
+        ],
+      };
+    }
+    // Crash between "return saved" and "post-result applied": re-apply from the sidecar.
+    const recovered = recoverReturnedInFlight(workItemId, devConfig);
+    if (recovered) {
+      messages.push({ level: "info", text: recovered.trim() });
+    }
+  }
 
   // A blocked task (retry/RGR cap, crash, manual block) halts the whole work item — never
   // silently skip past it to later tasks or into finish.

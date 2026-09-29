@@ -22,7 +22,9 @@ import {
   runRunCommand,
   runSpecGapsCommand,
   runTagCommand,
+  runTaskReseedCommand,
   runTasksCommand,
+  runTraceCommand,
   runUnblockCommand,
   runWorkflowCommand,
 } from "./commands/index.js";
@@ -76,6 +78,22 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
   }
 
   const ctx = createCliContext(cwd, { autoConfirm: parsed.options.yes });
+
+  if (parsed.kind === "unblock") {
+    return runUnblockCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "trace") {
+    return runTraceCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "task-reseed") {
+    return runTaskReseedCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "block") {
+    return runBlockCommand(parsed.workItemId, parsed.rawArgs, { json: parsed.options.json });
+  }
 
   if (parsed.kind === "rehydrate") {
     return runRehydrateCommand(parsed.workItemId, { json: parsed.options.json });
@@ -147,14 +165,6 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
     return runDeviationsCommand(ctx, harness, parsed.workItemId, parsed.rawArgs, {
       json: parsed.options.json,
     });
-  }
-
-  if (parsed.kind === "unblock") {
-    return runUnblockCommand(parsed.workItemId, parsed.rawArgs, { json: parsed.options.json });
-  }
-
-  if (parsed.kind === "block") {
-    return runBlockCommand(parsed.workItemId, parsed.rawArgs, { json: parsed.options.json });
   }
 
   if (parsed.kind === "workflow") {

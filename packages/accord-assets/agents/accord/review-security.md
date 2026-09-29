@@ -28,6 +28,10 @@ Orchestrator inlines:
 - Spec `constraints` (security-relevant: auth model, rate limits, TLS, audit).
 - Spec `security_topology` when available (secret tiers, registry auth, required env vars).
 - Plan `task` object (for context on what the change claims to do).
+- `requirement_map` (harness pipeline): requirements (`AC-n`) with the files changed for each — set `ac_id` on findings when the file maps to one.
+- `## Prior security findings to recheck (advisory)` (retry rounds): your earlier findings by **`F-nnn` id**. Return `rechecks[]` `{finding_id, outcome: verified|reraised|dispute_upheld|wont_fix_accepted, note}` for each.
+
+In the harness pipeline your findings are **advisory**: they are recorded under their requirement and phase-code must answer them, but they never block the loop. Severity still matters — critical security findings still open at hand-off are surfaced to the human.
 
 ## Review dimensions
 

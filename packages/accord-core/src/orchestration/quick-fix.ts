@@ -1,31 +1,18 @@
 /**
- * Quick-fix orchestration — task-file loop counters and severity-gate policy.
+ * Quick-fix orchestration helpers — severity-gate predicate and the pre-impl review-test brief.
  *
- * Post-result side-effects (mutating the primary task file) live in
- * `post-result/{phase-test,review-test}.ts`; resume routing for the
- * `fixing`/`implementing` coarse phases lives in `resolve/primary-task.ts`.
- * This module is the pure-decision core: counters, severity gates, and the
- * policy-aware "what should we do next?" predicates.
+ * Loop counters and decisions live on the v2 task file (`src/tasks/decide.ts`); post-result
+ * side-effects live in `post-result/*.ts`.
  */
 
 import { buildImplementSpawnTaskBrief } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/types.js";
-import {
-  readJson,
-  taskJsonPath,
-  taskLockPath,
-  withJsonFileLock,
-  writeJson,
-} from "../work-items/io.js";
-import type { PolicySeverityGate, QuickFixLoopPolicy } from "./policy.js";
+import type { PolicySeverityGate } from "./policy.js";
 import { findingsTriggerReviewRetry } from "./policy.js";
-import { decideAfterReviewTest, readReviewLoopCounters } from "./review-feedback.js";
 
 export { RESUMABLE_PIPELINE_TASK_PHASES } from "../types/phases.js";
 export { findingsTriggerReviewRetry, maxFindingSeverityRank } from "./policy.js";
 export type { ReviewTestVerdict } from "./review-feedback.js";
-
-import type { ReviewTestVerdict } from "./review-feedback.js";
 
 /**
  * When `review-test` verdict is `issues`, only findings at or above `severityGate`
@@ -36,115 +23,6 @@ export function reviewIssuesConsumeQuickFixRetrySlot(
   gate: PolicySeverityGate,
 ): boolean {
   return findingsTriggerReviewRetry(findings, gate);
-}
-
-function devConfigFromQuickFixPolicy(policy: QuickFixLoopPolicy): DevHarnessConfig {
-  return {
-    schema_version: "1.0",
-    language: "unknown",
-    test: { command: "true" },
-    type_check: null,
-    lint: null,
-    format: null,
-    verification_commands: [],
-    orchestration: {
-      quick_fix_loop: {
-        max_test_review_loops: policy.maxTestReviewLoops,
-        severity_gate: policy.severityGate,
-      },
-    },
-  };
-}
-
-export function readQuickFixLoopCounters(task: Record<string, unknown>): {
-  test_review_cycles_used: number;
-} {
-  const counters = readReviewLoopCounters(task);
-  return { test_review_cycles_used: counters.test_review_retries_used };
-}
-
-/**
- * After `review-test` completes with verdict `issues` that already passed the severity gate,
- * decide whether to retry `phase-test`, proceed to `phase-code`, or block on the loop cap.
- */
-export function decideQuickFixAfterReviewTest(
-  counters: { test_review_cycles_used: number },
-  verdict: ReviewTestVerdict,
-  policy: QuickFixLoopPolicy,
-):
-  | { nextAgent: "phase-test" | "phase-code"; bumpCycle: boolean }
-  | { blocked: true; reason: string } {
-  if (verdict === "clean") {
-    return { nextAgent: "phase-code", bumpCycle: false };
-  }
-  if (counters.test_review_cycles_used >= policy.maxTestReviewLoops) {
-    return {
-      blocked: true,
-      reason: `Quick-fix test/review loop cap reached (${String(policy.maxTestReviewLoops)} cycles). Delegate to accord skill or raise the cap in policy.`,
-    };
-  }
-  return { nextAgent: "phase-test", bumpCycle: true };
-}
-
-/**
- * Full branch from a validated `review.json` packet: clean → `phase-code`;
- * gated soft issues → `phase-code` without bump; gated hard issues → retry cap logic.
- */
-export function decideQuickFixAfterReviewPacket(
-  counters: {
-    test_review_cycles_used: number;
-    /** Never reset by `/dev unblock`; defaults to 0 for callers that don't track it. */
-    lifetime_test_review_cycles?: number;
-    unblock_count?: number;
-  },
-  packet: { verdict: ReviewTestVerdict; findings: ReadonlyArray<{ severity?: string }> },
-  policy: QuickFixLoopPolicy,
-):
-  | { nextAgent: "phase-test" | "phase-code"; bumpCycle: boolean }
-  | { blocked: true; reason: string } {
-  const decision = decideAfterReviewTest(
-    {
-      test_review_retries_used: counters.test_review_cycles_used,
-      code_review_retries_used: 0,
-      lifetime_test_review_cycles:
-        counters.lifetime_test_review_cycles ?? counters.test_review_cycles_used,
-      lifetime_code_review_cycles: 0,
-      unblock_count: counters.unblock_count ?? 0,
-      rgr_respawns_used: 0,
-      lifetime_rgr_respawns: 0,
-    },
-    { verdict: packet.verdict, findings: [...packet.findings] },
-    devConfigFromQuickFixPolicy(policy),
-    "quick_fix",
-  );
-  if ("blocked" in decision) {
-    return { blocked: true, reason: decision.reason };
-  }
-  return {
-    nextAgent: decision.nextPhase,
-    bumpCycle: decision.bumpTestRetry,
-  };
-}
-
-export function bumpQuickFixTestReviewCycle(
-  workItemId: string,
-  taskId: number,
-): { ok: true; test_review_cycles_used: number } | { ok: false; error: string } {
-  const filePath = taskJsonPath(workItemId, taskId);
-  // Locked (on the shared `taskLockPath` key, same one `advancePrimaryTask` uses) against a
-  // concurrent `applyReviewTestPostResult` write on the same work item \u2014 otherwise this
-  // counter bump can race and get silently discarded (see `withJsonFileLock` in work-items/io.ts).
-  return withJsonFileLock(taskLockPath(workItemId), () => {
-    const raw = readJson<Record<string, unknown>>(filePath);
-    if (!raw) {
-      return { ok: false, error: `Missing task file ${filePath}` };
-    }
-    const prev = readQuickFixLoopCounters(raw);
-    const used = prev.test_review_cycles_used + 1;
-    raw.quick_fix_loop = { test_review_cycles_used: used };
-    writeJson(filePath, raw);
-    return { ok: true, test_review_cycles_used: used };
-  });
 }
 
 /**

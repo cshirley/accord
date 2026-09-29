@@ -15,6 +15,9 @@ sources:
   - id: config-doc
     resource: /docs/configuration.md
     title: Project configuration
+  - id: decide
+    resource: /packages/accord-core/src/tasks/decide.ts
+    title: Loop decisions from the findings ledger
 ---
 
 All keys live under `orchestration` in the Dev Harness block (project) or global
@@ -31,14 +34,24 @@ All keys live under `orchestration` in the Dev Harness block (project) or global
 | `max_rgr_respawns` | `3` | `phase-code` → `phase-test` respawns (test_issue / touched tests) before block |
 | `review_test`, `review_code` | — | Per-loop overrides (`severity_gate`, `max_retries`, `max_lifetime_retries`) |
 
-Findings persist on the task file as `last_review_feedback`.
+Findings persist under `requirements[].findings` on the task file ([Per-task file](/references/task-file.md)); counters are `control.retries.*`.
 
 # quick_fix_loop
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `max_test_review_loops` | `5` | test↔review retries (`quick_fix_loop.test_review_cycles_used`) before task `blocked` |
+| `max_test_review_loops` | `5` | test↔review retries (`control.retries.test_review`) before task `blocked` |
 | `severity_gate` | `"warn"` | Same semantics as above |
+
+# verify_loop
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `enabled` | `true` | Run **phase-verify-task** after a clean review-code; `false` = review-code clean marks the task done |
+| `max_retries` | `3` | Verify-fail → phase-code bounces (each a full code round) before the task blocks for a human |
+| `max_lifetime_retries` | retries × (unblocks + 1) | Never reset by unblock |
+
+review-security findings are always advisory (recorded, briefed, never gate).
 
 # resume
 
@@ -51,7 +64,7 @@ Findings persist on the task file as `last_review_feedback`.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `on_task_done` | `true` | After `review-code` marks task done, stage task-scoped paths (`plan.tasks[].files`, `test_files`, `docs/dev/<ID>/`) ∩ `git status` and commit; records `harness_task_commit` event |
+| `on_task_done` | `true` | When a task reaches `done` (verify pass, or review-code with the verify loop disabled), stage task-scoped paths (`plan.tasks[].files`, changed files, `docs/dev/<ID>/`) ∩ `git status` and commit; logs a `<round>/commit` entry |
 
 # Other
 

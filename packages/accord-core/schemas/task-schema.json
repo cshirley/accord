@@ -1,301 +1,379 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "task-schema.json",
-  "title": "Per-task runtime state",
+  "title": "Per-task file v2 — requirement-centric trace + loop control",
+  "description": "Read order = priority: header → summary (snapshot, recomputed on every write) → control (loop state for recovery) → requirements (AC → changes → findings → history → verification) → log. Orchestrator-owned; agents read it, never write it. See docs/plans/task-trace-ledger-plan.md.",
   "type": "object",
   "required": [
     "schema_version",
-    "work_item_id",
-    "task_id",
-    "owner_nonce",
-    "phase",
-    "status",
-    "pre_impl_gates",
-    "events"
+    "work_item",
+    "task",
+    "title",
+    "plan",
+    "spec",
+    "summary",
+    "control",
+    "requirements",
+    "log"
   ],
   "additionalProperties": false,
-  "properties": {
-    "schema_version": { "const": "1.0" },
-    "work_item_id": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" },
-    "task_id": { "type": "integer", "minimum": 1 },
-    "owner_nonce": { "type": "string", "pattern": "^[0-9a-f]{6}$" },
-    "phase": {
+  "definitions": {
+    "ref": {
+      "type": "string",
+      "pattern": "^[TCV]\\d+/[a-z-]+(\\.\\d+)?$",
+      "description": "Log ref `<round>/<actor>`: round T<n> (test loop), C<n> (code loop), V<n> (verify); actor is an agent id or decision/harness/unblock/block/commit."
+    },
+    "severity": { "enum": ["critical", "warning", "suggestion"] },
+    "findingState": {
       "enum": [
-        "phase-test",
-        "review-test",
-        "phase-code",
-        "review-security",
-        "review-code",
-        "phase-verify-code",
-        "phase-verify-task",
-        "phase-verify-acceptance"
-      ],
-      "description": "Per-task pipeline position. `review-test` runs pre-impl only (after phase-test, before phase-code). `review-security` runs before review-code on security-sensitive paths. `review-code` is mandatory after phase-code. `phase-code` must not modify tests — violations respawn phase-test."
+        "open",
+        "addressed",
+        "disputed",
+        "wont_fix_proposed",
+        "verified",
+        "reraised",
+        "dispute_upheld",
+        "wont_fix_accepted",
+        "waived",
+        "superseded"
+      ]
     },
-    "status": { "enum": ["pending", "in_progress", "done", "blocked"] },
-    "pre_impl_gates": { "enum": ["pending", "complete"] },
-    "test_files": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "Test files written by phase-test"
+    "retryCounter": {
+      "type": "object",
+      "required": ["used", "lifetime"],
+      "additionalProperties": false,
+      "properties": {
+        "used": { "type": "integer", "minimum": 0 },
+        "lifetime": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Never reset by unblock."
+        }
+      }
     },
-    "post_impl_files_changed": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "Deprecated — phase-code must not change tests. If set by legacy runs, harness ignores for routing."
+    "summaryItem": {
+      "type": "object",
+      "required": ["finding", "ac", "severity", "state", "issue"],
+      "additionalProperties": false,
+      "properties": {
+        "finding": { "type": "string" },
+        "ac": { "type": "string" },
+        "severity": { "$ref": "#/definitions/severity" },
+        "state": { "$ref": "#/definitions/findingState" },
+        "issue": { "type": "string" }
+      }
     },
-    "red_confirmed": {
-      "type": "boolean",
-      "description": "Whether tests fail as expected before implementation (not used for phase-verify-task)"
+    "change": {
+      "type": "object",
+      "required": ["file", "action", "kind", "by"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "action": { "enum": ["add", "modify", "delete"] },
+        "kind": { "enum": ["test", "stub", "fixture", "config", "code", "dep"] },
+        "by": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/ref" },
+          "description": "Runs that touched this file for this requirement, oldest first."
+        },
+        "tests": { "type": "array", "items": { "type": "string" } },
+        "inferred": {
+          "type": "boolean",
+          "description": "Harness attributed the change (agent did not report changes[])."
+        }
+      }
     },
-    "verify_output": {
-      "type": "string",
-      "maxLength": 65536,
-      "description": "Truncated verification gate output (phase-verify-task)"
+    "historyEntry": {
+      "type": "object",
+      "required": ["by", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "by": { "$ref": "#/definitions/ref" },
+        "outcome": {
+          "enum": [
+            "fixed",
+            "disputed",
+            "wont_fix",
+            "verified",
+            "reraised",
+            "dispute_upheld",
+            "wont_fix_accepted",
+            "waived",
+            "note"
+          ]
+        },
+        "note": { "type": "string" },
+        "severity": { "$ref": "#/definitions/severity" },
+        "actor": { "const": "human" }
+      }
     },
-    "test_output": {
-      "type": "string",
-      "maxLength": 65536,
-      "description": "Truncated stdout/stderr from phase-test RED run for review-test Check 0/6"
+    "finding": {
+      "type": "object",
+      "required": ["id", "state", "severity", "loop", "issue", "raised", "history"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^F-\\d+$" },
+        "state": { "$ref": "#/definitions/findingState" },
+        "severity": { "$ref": "#/definitions/severity" },
+        "loop": {
+          "enum": ["T", "C", "V"],
+          "description": "Loop that owns resolution (T: phase-test/review-test; C: phase-code/raiser; V: phase-code/phase-verify-task)."
+        },
+        "advisory": {
+          "type": "boolean",
+          "description": "Below the gate or raised by review-security: shown, never blocks."
+        },
+        "tc": { "type": "string" },
+        "also_affects": { "type": "array", "items": { "type": "string" } },
+        "issue": { "type": "string", "minLength": 1 },
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "detail": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "category": { "type": "string" },
+            "evidence": { "type": "string" },
+            "recommendation": { "type": "string" }
+          }
+        },
+        "raised": { "$ref": "#/definitions/ref" },
+        "history": { "type": "array", "items": { "$ref": "#/definitions/historyEntry" } }
+      }
     },
-    "ac_covered": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "AC ids covered by tests (from phase-test return packet)"
-    },
-    "stub_files": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "Unimplemented declarations phase-test created so tests resolve; phase-code must replace them"
-    },
-    "review_responses": {
-      "type": "array",
-      "description": "phase-test answers to the prior review-test round (from phase-test return packet)",
-      "items": {
-        "type": "object",
-        "required": ["issue", "resolution", "note"],
-        "additionalProperties": false,
-        "properties": {
-          "issue": { "type": "string", "minLength": 1 },
-          "ref": { "type": "string" },
-          "file": { "type": "string" },
-          "resolution": { "enum": ["fixed", "disputed"] },
-          "note": {
-            "type": "string",
-            "minLength": 1,
-            "description": "What changed (fixed) or concrete evidence the finding is wrong (disputed)"
+    "requirement": {
+      "type": "object",
+      "required": ["id", "text", "test_cases", "status", "changes", "findings", "verification"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^(AC-\\d+|QF|_task)$" },
+        "requirement": { "type": "string" },
+        "text": { "type": "string" },
+        "test_cases": { "type": "array", "items": { "type": "string" } },
+        "status": {
+          "enum": ["pending", "covered", "open", "implemented", "satisfied", "waived", "n/a"]
+        },
+        "changes": { "type": "array", "items": { "$ref": "#/definitions/change" } },
+        "findings": { "type": "array", "items": { "$ref": "#/definitions/finding" } },
+        "verification": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["by", "result", "tests"],
+              "additionalProperties": false,
+              "properties": {
+                "by": { "$ref": "#/definitions/ref" },
+                "result": { "enum": ["pass", "fail"] },
+                "tests": { "type": "array", "items": { "type": "string" } },
+                "command": { "type": "string" }
+              }
+            }
+          ]
+        },
+        "waived": {
+          "type": "object",
+          "required": ["by", "reason"],
+          "additionalProperties": false,
+          "properties": {
+            "by": { "$ref": "#/definitions/ref" },
+            "reason": { "type": "string" }
           }
         }
       }
     },
-    "test_runner_crash": {
+    "logEntry": {
       "type": "object",
-      "description": "Set when phase-test / phase-verify-task test_output matched a runner-crash signature",
-      "additionalProperties": false,
-      "required": ["reason", "matched", "at"],
-      "properties": {
-        "reason": { "type": "string" },
-        "matched": { "type": "string" },
-        "at": { "type": "string" }
-      }
-    },
-    "review_loop": {
-      "type": "object",
-      "description": "Harness-owned retry counters for critical findings on review-test / review-code",
+      "required": ["ref", "at", "result", "note"],
       "additionalProperties": false,
       "properties": {
-        "test_review_retries_used": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Critical review-test findings that respawned phase-test"
-        },
-        "code_review_retries_used": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Critical review-code findings that respawned phase-code"
-        },
-        "lifetime_test_review_cycles": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Lifetime review-test retry cycles (never reset by /dev unblock)"
-        },
-        "lifetime_code_review_cycles": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Lifetime review-code retry cycles (never reset by /dev unblock)"
-        },
-        "unblock_count": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Times /dev unblock reset this task's counters"
-        },
-        "rgr_respawns_used": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "phase-code → phase-test RGR respawns (test_issue / test files touched)"
-        },
-        "lifetime_rgr_respawns": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Lifetime RGR respawns (never reset by /dev unblock)"
-        }
-      }
-    },
-    "agent_returns": {
-      "type": "array",
-      "description": "Audit log of validated subagent return packets (newest last). Includes full packet and any prose analysis.",
-      "items": {
-        "type": "object",
-        "required": ["agent", "at", "packet"],
-        "additionalProperties": false,
-        "properties": {
-          "agent": { "type": "string", "minLength": 1 },
-          "at": { "type": "string", "format": "date-time" },
-          "task_phase": { "type": "string" },
-          "analysis": { "type": "string", "minLength": 1 },
-          "packet": { "type": "object" }
-        }
-      }
-    },
-    "last_review_feedback": {
-      "type": "object",
-      "description": "Latest adversarial review (review-test / review-code) for orchestrator retries and resume briefs",
-      "additionalProperties": false,
-      "required": ["agent", "verdict", "findings", "at", "packet"],
-      "properties": {
-        "agent": { "enum": ["review-test", "review-code", "review-security"] },
-        "verdict": { "enum": ["clean", "issues"] },
-        "at": { "type": "string", "format": "date-time" },
-        "analysis": { "type": "string", "minLength": 1 },
-        "packet": { "type": "object" },
-        "findings": {
+        "ref": { "$ref": "#/definitions/ref" },
+        "at": { "type": "string" },
+        "result": { "type": "string" },
+        "note": { "type": "string" },
+        "actor": { "const": "human" },
+        "next_phase": { "type": "string" },
+        "events": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["severity", "issue"],
-            "additionalProperties": false,
+            "required": ["type"],
             "properties": {
-              "severity": { "enum": ["critical", "warning", "suggestion"] },
-              "issue": { "type": "string", "minLength": 1 },
-              "file": { "type": "string" },
-              "line": { "type": "integer", "minimum": 1 },
-              "evidence": { "type": "string" },
-              "recommendation": { "type": "string" },
-              "category": { "type": "string" },
-              "ref": { "type": "string" }
+              "type": {
+                "enum": ["escalation", "deviation", "request_review", "test_issue", "usage"]
+              }
             }
           }
-        }
+        },
+        "warnings": { "type": "array", "items": { "type": "string" } }
       }
-    },
-    "quick_fix_loop": {
+    }
+  },
+  "properties": {
+    "schema_version": { "const": "2.0" },
+    "work_item": { "type": "string", "pattern": "^[A-Z]+([_-][A-Z]+)*[_-]\\d+$" },
+    "task": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string" },
+    "plan": { "type": ["string", "null"] },
+    "spec": { "type": ["string", "null"] },
+    "summary": {
       "type": "object",
-      "description": "Legacy alias — mirrored from review_loop.test_review_retries_used for quick-fix",
+      "required": ["headline", "updated", "requirements", "next", "blockers", "advisories"],
       "additionalProperties": false,
-      "required": ["test_review_cycles_used"],
+      "description": "Snapshot recomputed by the harness on every write — never hand-edit.",
       "properties": {
-        "test_review_cycles_used": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "How many post-review-test retries toward phase-test have been consumed"
-        }
-      }
-    },
-    "quick_fix_contract": {
-      "type": "object",
-      "required": ["plan", "test"],
-      "additionalProperties": false,
-      "properties": {
-        "plan": {
+        "headline": { "type": "string" },
+        "updated": { "type": "string" },
+        "requirements": {
           "type": "object",
-          "required": ["summary", "target_paths", "out_of_scope", "expected_finish"],
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "next": {
+          "type": "object",
+          "required": ["who", "why", "do"],
           "additionalProperties": false,
           "properties": {
-            "summary": { "type": "string", "minLength": 1 },
-            "target_paths": { "type": "array", "items": { "type": "string" } },
-            "out_of_scope": { "type": "array", "items": { "type": "string" } },
-            "expected_finish": { "type": "string", "minLength": 1 }
+            "who": { "enum": ["agent", "human", "harness", "none"] },
+            "why": { "type": "string" },
+            "do": { "type": "array", "items": { "type": "string" } }
           }
         },
-        "test": {
-          "type": "object",
-          "required": ["strategy", "red_required"],
-          "additionalProperties": false,
-          "properties": {
-            "strategy": { "enum": ["existing_tests", "new_red_test", "no_test"] },
-            "command": { "type": "string", "minLength": 1 },
-            "red_required": { "type": "boolean" },
-            "reason": { "type": "string", "minLength": 1 }
-          }
-        }
+        "blockers": { "type": "array", "items": { "$ref": "#/definitions/summaryItem" } },
+        "advisories": { "type": "array", "items": { "$ref": "#/definitions/summaryItem" } }
       }
     },
-    "events": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["type", "at"],
-        "properties": {
-          "type": {
-            "enum": ["usage", "escalation", "deviation", "request_review", "test_issue"]
-          },
-          "at": { "type": "string" }
+    "control": {
+      "type": "object",
+      "required": [
+        "owner_nonce",
+        "phase",
+        "status",
+        "pre_impl_gates",
+        "round",
+        "in_flight",
+        "retries",
+        "blocked",
+        "test_files",
+        "stub_files",
+        "last_test_run"
+      ],
+      "additionalProperties": false,
+      "description": "Loop state the harness needs to resume after a crash, lost packet, or fresh session.",
+      "properties": {
+        "owner_nonce": { "type": "string", "pattern": "^[0-9a-f]{6}$" },
+        "phase": {
+          "enum": [
+            "phase-test",
+            "review-test",
+            "phase-code",
+            "review-security",
+            "review-code",
+            "phase-verify-task"
+          ]
         },
-        "oneOf": [
-          {
-            "required": ["model", "usage"],
-            "properties": {
-              "type": { "const": "usage" },
-              "model": { "type": "string" },
-              "usage": {
-                "type": "object",
-                "required": ["prompt_tokens", "completion_tokens"],
-                "additionalProperties": false,
-                "properties": {
-                  "prompt_tokens": { "type": "integer", "minimum": 0 },
-                  "completion_tokens": { "type": "integer", "minimum": 0 }
+        "status": { "enum": ["pending", "in_progress", "blocked", "done"] },
+        "pre_impl_gates": { "enum": ["pending", "complete"] },
+        "round": { "type": "string", "pattern": "^[TCV]\\d+$" },
+        "in_flight": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["ref", "agent", "stage", "at"],
+              "additionalProperties": false,
+              "properties": {
+                "ref": { "$ref": "#/definitions/ref" },
+                "agent": { "type": "string" },
+                "stage": { "enum": ["spawned", "returned"] },
+                "at": { "type": "string" }
+              }
+            }
+          ]
+        },
+        "retries": {
+          "type": "object",
+          "required": ["test_review", "code_review", "rgr", "verify", "unblocks"],
+          "additionalProperties": false,
+          "properties": {
+            "test_review": { "$ref": "#/definitions/retryCounter" },
+            "code_review": { "$ref": "#/definitions/retryCounter" },
+            "rgr": { "$ref": "#/definitions/retryCounter" },
+            "verify": { "$ref": "#/definitions/retryCounter" },
+            "unblocks": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "blocked": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["kind", "reason", "ref"],
+              "additionalProperties": false,
+              "properties": {
+                "kind": { "enum": ["cap", "crash", "manual", "stuck"] },
+                "reason": { "type": "string" },
+                "ref": { "$ref": "#/definitions/ref" },
+                "loop": { "enum": ["T", "C", "V", "rgr"] },
+                "lifetime": { "type": "boolean" },
+                "fingerprint": { "type": "string" }
+              }
+            }
+          ]
+        },
+        "test_files": { "type": "array", "items": { "type": "string" } },
+        "stub_files": { "type": "array", "items": { "type": "string" } },
+        "last_test_run": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["ref"],
+              "additionalProperties": false,
+              "properties": {
+                "ref": { "$ref": "#/definitions/ref" },
+                "red": { "enum": ["behaviour", "import_only", "crash", "unknown"] },
+                "confirmed": { "type": "boolean" },
+                "output": {
+                  "type": "string",
+                  "description": "Sidecar file name under .tasks/<ID>-task-<N>/"
                 }
               }
             }
-          },
-          {
-            "required": ["question", "context"],
-            "properties": {
-              "type": { "const": "escalation" },
-              "question": { "type": "string" },
-              "context": { "type": "string" },
-              "tried": { "type": "string" }
-            }
-          },
-          {
-            "required": ["description", "reason"],
-            "properties": {
-              "type": { "const": "deviation" },
-              "description": { "type": "string" },
-              "reason": { "type": "string" }
-            }
-          },
-          {
-            "required": ["reason", "files"],
-            "properties": {
-              "type": { "const": "request_review" },
-              "reason": { "type": "string" },
-              "files": { "type": "array", "items": { "type": "string" } }
-            }
-          },
-          {
-            "required": ["test_file", "issue", "recommendation"],
-            "properties": {
-              "type": { "const": "test_issue" },
-              "test_file": { "type": "string" },
-              "test_name": { "type": "string" },
-              "issue": { "type": "string" },
-              "ac_id": { "type": "string" },
-              "recommendation": { "enum": ["fix_test", "clarify_spec", "acceptable"] }
+          ]
+        },
+        "quick_fix_contract": {
+          "type": "object",
+          "required": ["plan", "test"],
+          "additionalProperties": false,
+          "properties": {
+            "plan": {
+              "type": "object",
+              "required": ["summary", "target_paths", "out_of_scope", "expected_finish"],
+              "additionalProperties": false,
+              "properties": {
+                "summary": { "type": "string", "minLength": 1 },
+                "target_paths": { "type": "array", "items": { "type": "string" } },
+                "out_of_scope": { "type": "array", "items": { "type": "string" } },
+                "expected_finish": { "type": "string", "minLength": 1 }
+              }
+            },
+            "test": {
+              "type": "object",
+              "required": ["strategy", "red_required"],
+              "additionalProperties": false,
+              "properties": {
+                "strategy": { "enum": ["existing_tests", "new_red_test", "no_test"] },
+                "command": { "type": "string", "minLength": 1 },
+                "red_required": { "type": "boolean" },
+                "reason": { "type": "string", "minLength": 1 }
+              }
             }
           }
-        ]
+        }
       }
-    }
+    },
+    "requirements": { "type": "array", "items": { "$ref": "#/definitions/requirement" } },
+    "log": { "type": "array", "items": { "$ref": "#/definitions/logEntry" } }
   }
 }

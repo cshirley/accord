@@ -36,7 +36,10 @@ Requires AGENTS.md with a `## Dev Harness` block (`accord init --write` creates 
 | `finish <ID>` | Closeout + verify-acceptance spawn |
 | `align\|spec\|plan\|check <ID>` | Forced workflow phase |
 | `plan resume\|finish <ID> [--json]` | Orchestration **preview** only (same JSON as `dev_orchestrate`) |
-| `block <ID> <task_id> <reason>` / `unblock <ID> [task_id]` | Force-block / clear retry-cap block |
+| `block <ID> <task_id> <reason>` | Force-block a task |
+| `unblock <ID> [--task n] [--note\|--fixed\|--accept\|--waive F-n\|AC-n "reason"]… [--force "reason"]` | Decide blockers and unblock; interactive per-blocker walk in a TTY when no flags |
+| `trace <ID> [--task n] [--open]` | Per-task trace (`--json` for the raw v2 files) |
+| `task reseed <ID> [--task n] [--from test\|code]` | Replace v1/broken task files with fresh v2 files seeded from the plan |
 | `gaps`, `spec-gaps`, `deviations`, `rehydrate`, `retro`, `tag` | Same as `/dev` equivalents |
 | `init [--json] [--write [--target local\|root\|root_replace\|link_only]]` | Stack detect + AGENTS.md write |
 | `config init [--write] [--force] [--harness <id>] [-y]` | Generate `~/.config/accord/accord.json` |

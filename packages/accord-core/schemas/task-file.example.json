@@ -1,0 +1,443 @@
+{
+  "schema_version": "2.0",
+  "work_item": "TRACE-1",
+  "task": 1,
+  "title": "login + proration",
+  "plan": "docs/dev/TRACE-1/plan.json#/tasks/0",
+  "spec": "docs/dev/TRACE-1/spec.json",
+  "summary": {
+    "headline": "DONE: 2/2 requirements satisfied. 2 advisory open.",
+    "updated": "2026-09-29T13:01:42.977Z",
+    "requirements": {
+      "satisfied": 2
+    },
+    "next": {
+      "who": "none",
+      "why": "Task complete",
+      "do": []
+    },
+    "blockers": [],
+    "advisories": [
+      {
+        "finding": "F-003",
+        "ac": "AC-1",
+        "severity": "critical",
+        "state": "wont_fix_proposed",
+        "issue": "A01 session not rotated"
+      },
+      {
+        "finding": "F-002",
+        "ac": "AC-2",
+        "severity": "warning",
+        "state": "open",
+        "issue": "TC-2 fixture shares state"
+      }
+    ]
+  },
+  "control": {
+    "owner_nonce": "abcdef",
+    "phase": "phase-verify-task",
+    "status": "done",
+    "pre_impl_gates": "complete",
+    "round": "V2",
+    "in_flight": null,
+    "retries": {
+      "test_review": {
+        "used": 1,
+        "lifetime": 1
+      },
+      "code_review": {
+        "used": 1,
+        "lifetime": 1
+      },
+      "rgr": {
+        "used": 1,
+        "lifetime": 1
+      },
+      "verify": {
+        "used": 1,
+        "lifetime": 1
+      },
+      "unblocks": 0
+    },
+    "blocked": null,
+    "test_files": ["tests/a.test.ts"],
+    "stub_files": ["src/a.ts"],
+    "last_test_run": {
+      "ref": "T3/phase-test",
+      "confirmed": true,
+      "output": "T3-phase-test.output.txt",
+      "red": "behaviour"
+    }
+  },
+  "requirements": [
+    {
+      "id": "AC-1",
+      "text": "Then login succeeds",
+      "test_cases": ["TC-1"],
+      "status": "satisfied",
+      "changes": [
+        {
+          "file": "tests/a.test.ts",
+          "action": "add",
+          "kind": "test",
+          "by": ["T1/phase-test", "T2/phase-test"]
+        },
+        {
+          "file": "src/auth/session.ts",
+          "action": "add",
+          "kind": "code",
+          "by": ["C1/phase-code"]
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-001",
+          "state": "verified",
+          "severity": "critical",
+          "loop": "T",
+          "issue": "AC-1 negative path untested",
+          "file": "tests/a.test.ts",
+          "raised": "T1/review-test",
+          "history": [
+            {
+              "by": "T2/phase-test",
+              "outcome": "fixed",
+              "note": "added negative path"
+            },
+            {
+              "by": "T2/review-test",
+              "outcome": "verified",
+              "note": "not re-raised"
+            }
+          ]
+        },
+        {
+          "id": "F-003",
+          "state": "wont_fix_proposed",
+          "severity": "critical",
+          "loop": "C",
+          "advisory": true,
+          "issue": "A01 session not rotated",
+          "file": "src/auth/session.ts",
+          "detail": {
+            "category": "A01"
+          },
+          "raised": "C1/review-security",
+          "history": [
+            {
+              "by": "C2/phase-code",
+              "outcome": "wont_fix",
+              "note": "rotation handled by gateway"
+            }
+          ]
+        }
+      ],
+      "verification": {
+        "by": "V2/phase-verify-task",
+        "result": "pass",
+        "tests": ["login works"]
+      },
+      "requirement": "MUST"
+    },
+    {
+      "id": "AC-2",
+      "text": "Then totals prorate",
+      "test_cases": ["TC-2"],
+      "status": "satisfied",
+      "changes": [
+        {
+          "file": "tests/a.test.ts",
+          "action": "add",
+          "kind": "test",
+          "by": ["T1/phase-test", "T3/phase-test"]
+        },
+        {
+          "file": "src/a.ts",
+          "action": "add",
+          "kind": "stub",
+          "by": ["T1/phase-test"]
+        },
+        {
+          "file": "src/a.ts",
+          "action": "modify",
+          "kind": "code",
+          "by": ["C1/phase-code", "C2/phase-code", "C3/phase-code", "C4/phase-code"]
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-002",
+          "state": "open",
+          "severity": "warning",
+          "loop": "T",
+          "advisory": true,
+          "tc": "TC-2",
+          "issue": "TC-2 fixture shares state",
+          "raised": "T1/review-test",
+          "history": []
+        },
+        {
+          "id": "F-004",
+          "state": "verified",
+          "severity": "critical",
+          "loop": "C",
+          "issue": "proration rounds down",
+          "file": "src/a.ts",
+          "raised": "C1/review-code",
+          "history": [
+            {
+              "by": "C2/phase-code",
+              "outcome": "fixed",
+              "note": "round half-up"
+            },
+            {
+              "by": "C3/review-code",
+              "outcome": "verified"
+            }
+          ]
+        },
+        {
+          "id": "F-005",
+          "state": "verified",
+          "severity": "critical",
+          "loop": "T",
+          "issue": "AC-2 test expects 10.00 but spec says 10.01",
+          "file": "tests/a.test.ts",
+          "detail": {
+            "category": "test_issue",
+            "recommendation": "fix_test"
+          },
+          "raised": "C2/phase-code",
+          "history": [
+            {
+              "by": "T3/phase-test",
+              "outcome": "fixed",
+              "note": "expects 10.01"
+            },
+            {
+              "by": "T3/review-test",
+              "outcome": "verified",
+              "note": "not re-raised"
+            }
+          ]
+        },
+        {
+          "id": "F-006",
+          "state": "verified",
+          "severity": "critical",
+          "loop": "V",
+          "issue": "Verification failed for AC-2: prorates",
+          "detail": {
+            "category": "verification",
+            "evidence": "Expected 10.01",
+            "recommendation": "Fix production code so the listed tests pass; do not edit tests."
+          },
+          "raised": "V1/phase-verify-task",
+          "history": [
+            {
+              "by": "C4/phase-code",
+              "outcome": "fixed",
+              "note": "fixed rounding"
+            },
+            {
+              "by": "V2/phase-verify-task",
+              "outcome": "verified"
+            }
+          ]
+        }
+      ],
+      "verification": {
+        "by": "V2/phase-verify-task",
+        "result": "pass",
+        "tests": ["prorates"]
+      },
+      "requirement": "MUST"
+    },
+    {
+      "id": "_task",
+      "text": "Changes/findings not attributable to one AC",
+      "test_cases": [],
+      "status": "n/a",
+      "changes": [],
+      "findings": [],
+      "verification": null
+    }
+  ],
+  "log": [
+    {
+      "ref": "T1/phase-test",
+      "at": "2026-09-29T13:01:42.956Z",
+      "result": "done",
+      "note": "1 test file(s); red_confirmed=true",
+      "events": [
+        {
+          "type": "deviation",
+          "description": "reused file",
+          "reason": "x"
+        }
+      ]
+    },
+    {
+      "ref": "T1/review-test",
+      "at": "2026-09-29T13:01:42.959Z",
+      "result": "issues",
+      "note": "2 new, 0 re-raised, 0 rechecked"
+    },
+    {
+      "ref": "T1/decision",
+      "at": "2026-09-29T13:01:42.959Z",
+      "result": "retry",
+      "note": "1 gating (F-001) → phase-test (test_review 1/3)",
+      "next_phase": "phase-test"
+    },
+    {
+      "ref": "T2/phase-test",
+      "at": "2026-09-29T13:01:42.961Z",
+      "result": "done",
+      "note": "1 test file(s); red_confirmed=true"
+    },
+    {
+      "ref": "T2/review-test",
+      "at": "2026-09-29T13:01:42.962Z",
+      "result": "clean",
+      "note": "0 new, 0 re-raised, 1 rechecked"
+    },
+    {
+      "ref": "T2/decision",
+      "at": "2026-09-29T13:01:42.962Z",
+      "result": "advance",
+      "note": "No gating test findings → phase-code",
+      "next_phase": "phase-code"
+    },
+    {
+      "ref": "C1/phase-code",
+      "at": "2026-09-29T13:01:42.963Z",
+      "result": "done",
+      "note": "2 file(s) changed; tests_passing=true"
+    },
+    {
+      "ref": "C1/review-security",
+      "at": "2026-09-29T13:01:42.965Z",
+      "result": "issues",
+      "note": "1 new, 0 re-raised, 0 rechecked"
+    },
+    {
+      "ref": "C1/review-code",
+      "at": "2026-09-29T13:01:42.966Z",
+      "result": "issues",
+      "note": "1 new, 0 re-raised, 0 rechecked"
+    },
+    {
+      "ref": "C1/decision",
+      "at": "2026-09-29T13:01:42.966Z",
+      "result": "retry",
+      "note": "1 gating (F-004) → phase-code (code_review 1/3)",
+      "next_phase": "phase-code"
+    },
+    {
+      "ref": "C2/phase-code",
+      "at": "2026-09-29T13:01:42.968Z",
+      "result": "done",
+      "note": "1 file(s) changed; tests_passing=true",
+      "events": [
+        {
+          "type": "test_issue",
+          "test_file": "tests/a.test.ts",
+          "issue": "AC-2 test expects 10.00 but spec says 10.01",
+          "ac_id": "AC-2",
+          "recommendation": "fix_test"
+        }
+      ]
+    },
+    {
+      "ref": "C2/decision",
+      "at": "2026-09-29T13:01:42.968Z",
+      "result": "retry",
+      "note": "RGR: test issues F-005 → phase-test (rgr 1/3)",
+      "next_phase": "phase-test"
+    },
+    {
+      "ref": "T3/phase-test",
+      "at": "2026-09-29T13:01:42.969Z",
+      "result": "done",
+      "note": "1 test file(s); red_confirmed=true"
+    },
+    {
+      "ref": "T3/review-test",
+      "at": "2026-09-29T13:01:42.970Z",
+      "result": "clean",
+      "note": "0 new, 0 re-raised, 1 rechecked"
+    },
+    {
+      "ref": "T3/decision",
+      "at": "2026-09-29T13:01:42.970Z",
+      "result": "advance",
+      "note": "No gating test findings → phase-code",
+      "next_phase": "phase-code"
+    },
+    {
+      "ref": "C3/phase-code",
+      "at": "2026-09-29T13:01:42.971Z",
+      "result": "done",
+      "note": "1 file(s) changed; tests_passing=true"
+    },
+    {
+      "ref": "C3/review-code",
+      "at": "2026-09-29T13:01:42.972Z",
+      "result": "clean",
+      "note": "0 new, 0 re-raised, 1 rechecked"
+    },
+    {
+      "ref": "C3/decision",
+      "at": "2026-09-29T13:01:42.972Z",
+      "result": "advance",
+      "note": "No gating code findings → phase-verify-task",
+      "next_phase": "phase-verify-task"
+    },
+    {
+      "ref": "V1/phase-verify-task",
+      "at": "2026-09-29T13:01:42.973Z",
+      "result": "fail",
+      "note": "1 AC(s) pass, 1 fail"
+    },
+    {
+      "ref": "V1/decision",
+      "at": "2026-09-29T13:01:42.973Z",
+      "result": "retry",
+      "note": "Verification failed for AC-2 (F-006) → phase-code (verify 1/3)",
+      "next_phase": "phase-code"
+    },
+    {
+      "ref": "C4/phase-code",
+      "at": "2026-09-29T13:01:42.975Z",
+      "result": "done",
+      "note": "1 file(s) changed; tests_passing=true"
+    },
+    {
+      "ref": "C4/review-code",
+      "at": "2026-09-29T13:01:42.976Z",
+      "result": "clean",
+      "note": "0 new, 0 re-raised, 0 rechecked"
+    },
+    {
+      "ref": "C4/decision",
+      "at": "2026-09-29T13:01:42.976Z",
+      "result": "advance",
+      "note": "No gating code findings → phase-verify-task",
+      "next_phase": "phase-verify-task"
+    },
+    {
+      "ref": "V2/phase-verify-task",
+      "at": "2026-09-29T13:01:42.977Z",
+      "result": "done",
+      "note": "2 AC(s) pass, 0 fail"
+    },
+    {
+      "ref": "V2/decision",
+      "at": "2026-09-29T13:01:42.977Z",
+      "result": "done",
+      "note": "All ACs verified (AC-1, AC-2)"
+    }
+  ]
+}

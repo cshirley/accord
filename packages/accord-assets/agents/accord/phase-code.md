@@ -21,8 +21,8 @@ The orchestrator's brief supplies:
 
 - **`work_item_id`** — e.g. `ACCORD-1234`.
 - **`task`** — the full task object from the plan: `{id, title, covers_ac, challenge, files[], steps[], depends_on?}`.
-- **`owner_nonce`** — 6-char hex token. The per-task file was created by `phase-test`; verify the nonce matches before writing.
-- **`task_file_path`** — `.tasks/<work_item_id>-task-<id>.json`. You share this file with `phase-test`.
+- **`owner_nonce`** — 6-char hex token. Verify it matches `control.owner_nonce` on the per-task file before writing any code.
+- **`task_file_path`** — `.tasks/<work_item_id>-task-<id>.json`. **Read-only.** `summary` says where the task stands; `control` holds `test_files` / `stub_files`; `requirements[]` lists each AC with its changes and findings.
 - **`brief_path`** — optional path to `docs/dev/<ID>/brief.md`. The grounding document from `phase-align`. Read it when you need to understand the *why* behind a requirement — especially when the spec AC is ambiguous or when choosing between equally valid implementation approaches.
 - **`covered_acs`** — the `acceptance_criteria` entries from the spec that this task covers. Treat these as the definition of done.
 - **Spec constraints** — `constraints`, `resolved_questions`, `scope.in`, `scope.out`, `rejected_alternatives`. Honour them silently; surface violations only if a step forces you into conflict.
@@ -30,7 +30,8 @@ The orchestrator's brief supplies:
 - **`verification_commands`** — the spec's `verification.commands` array, or the project verification commands for quick_fix work. Run for the final verify step.
 - **`quick_fix_direct`** — optional boolean. When true, the work item used auto-generated spec/plan stubs instead of full `phase-spec` / `phase-plan` agents. **Does not skip the test phase.** RGR still applies: `phase-test` writes tests and confirms RED; `review-test` runs pre-impl; only then may `phase-code` run.
 - **`quick_fix_contract`** — for quick fixes, read this from the per-task file. It contains a mini plan and a test strategy: `existing_tests`, `new_red_test`, or `no_test`.
-- **`## Prior review feedback (harness)`** — appended to the brief only on a retry, when `review-code` (or `review-security`) reported findings against production code you (or a prior round) wrote for this task. Contains the reviewer's `verdict`, `analysis`, full `findings[]` (each with `severity`, `file`, `line`, `evidence`, `recommendation`), and the raw return packet. **When this section is present, it is the primary reason you were respawned** — see Step 1a below.
+- **`requirement_map`** — this task's requirements (`AC-n`) with the files already changed for each.
+- **`## Open code / verification findings (harness ledger)`** — appended on a retry: findings from `review-code`, `review-security` (advisory) and `phase-verify-task` (failed ACs), grouped by requirement. Each has a stable **`F-nnn` id** and its **history** (earlier fixes, disputes, re-raises, human notes from `accord unblock`). **When this section is present, it is the primary reason you were respawned** — see Step 1a below.
 
 - **`stub_files`** — optional. Unimplemented declarations `phase-test` created so the tests could load the system under test (bodies only throw `not implemented`). These are yours to replace — see Step 3.
 
@@ -46,24 +47,26 @@ The orchestrator's brief supplies:
 
 ## Step 1 — Read the per-task file and verify ownership
 
-Read `task_file_path` for context. Verify `owner_nonce` matches. If not, **abort immediately** — return `status: "stuck"` with `question: "owner_nonce mismatch"`.
+Read `task_file_path` for context. Verify `control.owner_nonce` matches. If not, **abort immediately** — return `status: "stuck"` with `question: "owner_nonce mismatch"`.
 
-For standard implement and quick_fix tasks, the file should have `status: "done"` (from `phase-test`), `test_files: [...]`, and `pre_impl_gates: "complete"` (set after pre-impl `review-test`).
+For standard implement and quick_fix tasks, `control` should have `test_files: [...]` and `pre_impl_gates: "complete"` (set after pre-impl `review-test`).
 
-For `quick_fix_direct: true`, the same gates apply: `pre_impl_gates: "complete"`, matching `owner_nonce`, `test_files` populated by `phase-test`, and `quick_fix_contract`. For `new_red_test`, `red_confirmed: true` must be set by `phase-test` before you run.
+For `quick_fix_direct: true`, the same gates apply: `control.pre_impl_gates: "complete"`, matching `owner_nonce`, `control.test_files` populated by `phase-test`, and `control.quick_fix_contract`. For `new_red_test`, `control.last_test_run.confirmed: true` must be set before you run.
 
 ## Step 1a — Address prior review feedback (retry only)
 
-If the brief contains a `## Prior review feedback (harness)` section, this is a retry after `review-code`/`review-security` found issues with the previous implementation round — not a fresh task. Before touching anything:
+If the brief contains a `## Open code / verification findings (harness ledger)` section, this is a retry after `review-code`, `review-security`, or `phase-verify-task` found issues — not a fresh task. Before touching anything:
 
-1. Read every finding's `evidence` and `recommendation`. Each one describes a concrete correctness, security, or drift defect in the *existing* production code.
-2. Fix the specific file(s) named in `finding.file`/`finding.line` per the `recommendation` — do not rewrite unrelated code, and do not just re-run the same approach that produced the finding.
-3. Findings below the retry policy's `severity_gate` (see the retry policy line in that section) are advisory — address them if cheap, but they don't block progress.
-4. Only after addressing every finding at or above the gate, continue to Step 2 for any remaining/new work.
+1. Read every finding's `evidence`, `recommendation`, and **history** — do not repeat a fix the reviewer already re-raised. Human `note` entries are guidance; follow them.
+2. Fix the specific file(s) named in the finding per the `recommendation` — do not rewrite unrelated code, and do not just re-run the same approach that produced the finding.
+3. Verification findings (`category: verification`) name failing tests for an AC: make them pass **without editing tests**.
+4. Findings tagged `advisory` (below the gate, or from review-security) never block — address them if cheap, but still answer them.
+5. Record one `review_responses[]` entry per finding **by `finding_id`**: `fixed` (what changed), `disputed` (concrete evidence), or `wont_fix` (reason — keeps blocking until the reviewer or a human accepts).
+6. Only after addressing every non-advisory finding, continue to Step 2 for any remaining/new work.
 
 ## Step 2 — Read the tests
 
-Read every file listed in `test_files` from the per-task file. Understand:
+Read every file listed in `control.test_files` on the per-task file. Understand:
 
 - What observable behaviour each test asserts (the contract).
 - What imports/modules the tests expect to exist.
@@ -94,12 +97,12 @@ After all `impl` steps are done:
 
 ## Step 5 — Events
 
-Record events in your return packet `events[]` array (orchestrator merges them onto the per-task file):
+Record events in your return packet `events[]` array (the orchestrator stores them on this run's log entry and timestamps them):
 
-- **`deviation`** — non-blocking autonomous change: renamed a parameter, added a helper not in the plan. Fields: `type`, `at` (ISO-8601-UTC), `description`, `reason`.
-- **`test_issue`** — a test appears incorrect or misaligned with the spec AC. Continue implementing (satisfy the test if possible), but flag the issue. Fields: `type`, `at`, `test_file`, `test_name`, `issue`, `ac_id`, `recommendation` (fix_test | clarify_spec | acceptable). NOT a blocker.
-- **`escalation`** — you are blocked. Emit the event, then return `status: "stuck"`. Fields: `type`, `at`, `question`, `context`, `tried`.
-- **`request_review`** — unexpected complexity the plan didn't flag. Continue executing — the orchestrator spawns a review agent. Fields: `type`, `at`, `reason`, `files[]`. NOT a blocker.
+- **`deviation`** — non-blocking autonomous change: renamed a parameter, added a helper not in the plan. Fields: `type`, `description`, `reason`, optional `ac_id`.
+- **`test_issue`** — a test appears incorrect or misaligned with the spec AC. Continue implementing (satisfy the test if possible), but flag the issue. Fields: `type`, `test_file`, `test_name`, `issue`, `ac_id`, `recommendation` (fix_test | clarify_spec | acceptable). NOT a blocker for you — but it becomes a test-loop finding: `phase-test` → `review-test` re-run before code review (RGR).
+- **`escalation`** — you are blocked. Emit the event, then return `status: "stuck"`. Fields: `type`, `question`, `context`, `tried`.
+- **`request_review`** — unexpected complexity the plan didn't flag. Continue executing — the orchestrator spawns a review agent. Fields: `type`, `reason`, `files[]`. NOT a blocker.
 
 ## Step 6 — Return packet
 
@@ -108,13 +111,14 @@ Do **not** mutate the per-task JSON file. The orchestrator updates workflow stat
 Emit exactly one fenced ```json block as the **last** thing in your response. Matches the injected `return: phase-code` schema. See the injected examples for realistic payloads showing `done` and `stuck` statuses.
 
 Key content expectations:
-- **`files_changed`** — actual paths modified during implementation, not planned paths.
+- **`changes`** — **every** production file you created/modified/deleted: `{file, action: add|modify|delete, kind: code|config|dep, ac_ids: ["AC-n"]}`. `ac_ids` ties each change to the requirement it implements — reviewers use it to attribute findings. Never list test files.
+- **`review_responses`** — retry rounds: one `{finding_id, resolution, note}` per finding in the harness ledger (advisory security findings included).
 - **`tests_passing`** — result of running the verification commands after implementation.
 - **`ac_covered`** — which ACs from the task are now satisfied by passing tests.
 ```
 
 Rules for the packet:
-- `files_changed` lists **production files only**. Never include test paths — the harness will respawn `phase-test` if you do.
+- `changes` (or deprecated `files_changed`) lists **production files only**. A test path becomes a test-loop finding and the harness respawns `phase-test`.
 - `tests_passing` is true only if every relevant test ran green.
 - `ac_covered` mirrors `task.covers_ac` only when `status: "done"`; for `quick_fix_direct`, return an empty array.
 - `test_issues_emitted` counts the `test_issue` events — the orchestrator uses this to decide whether to respawn `phase-test`.

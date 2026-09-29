@@ -23,6 +23,7 @@ const ROUTING: Readonly<Record<string, DevSubcommandOwner>> = {
   gaps: "extension_local",
   deviations: "extension_local",
   unblock: "extension_local",
+  trace: "extension_local",
   block: "extension_local",
   resume: "core_orchestrator",
   finish: "core_orchestrator",

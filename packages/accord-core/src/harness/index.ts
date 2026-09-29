@@ -85,10 +85,7 @@ export {
   type ApplyWorkflowStateInput,
   applyWorkflowStateFromValidatedReturn,
 } from "./workflow-state-apply.js";
-export {
-  applyTaskEventsFromPacket,
-  extractTaskEventsFromPacket,
-} from "./workflow-state-events.js";
+export { extractTaskEventsFromPacket } from "./workflow-state-events.js";
 export {
   classifyWorkflowStatePath,
   isOrchestratorOwnedWorkflowStatePath,

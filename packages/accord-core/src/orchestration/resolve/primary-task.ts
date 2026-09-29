@@ -11,6 +11,7 @@
  */
 
 import { getAgentMeta } from "../../agents/registry.js";
+import { loadTaskV2 } from "../../tasks/store.js";
 import { isResumablePipelineTaskPhase } from "../../types/phases.js";
 import {
   artifactFileName,
@@ -20,7 +21,7 @@ import {
   resolveArtifactPath,
   resolveDevArtifactPathForId,
 } from "../../work-items/artifact-discovery.js";
-import { loadTaskFile, loadWorkItem } from "../../work-items/io.js";
+import { loadWorkItem } from "../../work-items/io.js";
 import type { WorkItemPattern } from "../../work-items/types.js";
 import { resolveActivePrimaryTaskId } from "../post-result/primary-task.js";
 
@@ -50,17 +51,12 @@ export function describeBlockedPrimaryTasks(workItemId: string): string | null {
   const sorted = [...(wi.task_ids ?? [])].sort((a, b) => a - b);
   const blocked: string[] = [];
   for (const taskId of sorted.length > 0 ? sorted : [1]) {
-    const task = loadTaskFile(workItemId, String(taskId));
-    if (task?.status !== "blocked") continue;
-    const events = Array.isArray(task.events) ? task.events : [];
-    const last = [...events]
-      .reverse()
-      .find((e) => typeof (e as { reason?: unknown }).reason === "string") as
-      | { reason?: string }
-      | undefined;
-    const phase = typeof task.phase === "string" ? task.phase : "?";
+    const task = loadTaskV2(workItemId, String(taskId));
+    if (task?.control.status !== "blocked") continue;
+    const reason = task.control.blocked?.reason ?? task.summary.next.why;
+    const blockers = task.summary.blockers.map((b) => b.finding);
     blocked.push(
-      `- task ${String(taskId)} (phase \`${phase}\`)${last?.reason ? `: ${last.reason}` : ""}`,
+      `- task ${String(taskId)} (phase \`${task.control.phase}\`, round ${task.control.round})${reason ? `: ${reason}` : ""}${blockers.length ? ` — blockers ${blockers.join(", ")}` : ""}`,
     );
   }
   if (blocked.length === 0) return null;
@@ -70,7 +66,7 @@ export function describeBlockedPrimaryTasks(workItemId: string): string | null {
     "",
     ...blocked,
     "",
-    `Inspect \`last_review_feedback\` / events on the per-task JSON under \`.tasks/\`, fix the underlying issue, then \`/dev unblock ${workItemId}\` (or \`accord unblock ${workItemId}\`) and resume.`,
+    `Read the task file \`summary\` (or \`accord trace ${workItemId}\`), decide each blocker, then \`accord unblock ${workItemId} --task <n> [--note|--fixed|--accept|--waive F-n "reason"]\` and resume.`,
   ].join("\n");
 }
 
@@ -97,17 +93,17 @@ export function resolvePrimaryTaskResumeAgentId(workItemId: string): string | nu
   if (primaryTaskId === null) {
     return null;
   }
-  const task = loadTaskFile(workItemId, String(primaryTaskId));
-  if (!task || task.status === "blocked" || task.status === "done") {
+  const task = loadTaskV2(workItemId, String(primaryTaskId));
+  if (!task || task.control.status === "blocked" || task.control.status === "done") {
     return null;
   }
-  let phase = task.phase;
-  if (typeof phase !== "string" || !isResumablePipelineTaskPhase(phase)) {
+  let phase: string = task.control.phase;
+  if (!isResumablePipelineTaskPhase(phase)) {
     return null;
   }
 
   // Mandatory pre-impl review: never spawn phase-code until review-test has completed.
-  if (phase === "phase-code" && task.pre_impl_gates !== "complete") {
+  if (phase === "phase-code" && task.control.pre_impl_gates !== "complete") {
     phase = "review-test";
   }
 
@@ -191,7 +187,7 @@ export function describeImplementingResumeBlocked(workItemId: string): string | 
   }
 
   const allDone = sorted.every(
-    (taskId) => loadTaskFile(workItemId, String(taskId))?.status === "done",
+    (taskId) => loadTaskV2(workItemId, String(taskId))?.control.status === "done",
   );
   if (allDone) {
     return [
@@ -202,8 +198,8 @@ export function describeImplementingResumeBlocked(workItemId: string): string | 
 
   const activeId = resolveActivePrimaryTaskId(wi);
   if (activeId !== null) {
-    const task = loadTaskFile(workItemId, String(activeId));
-    const phase = typeof task?.phase === "string" ? task.phase : "unknown";
+    const task = loadTaskV2(workItemId, String(activeId));
+    const phase = task?.control.phase ?? "unknown";
     return [
       `Work item ${workItemId} is in **implementing** but task ${String(activeId)} phase \`${phase}\` is not resumable via /dev resume.`,
       "Update the task file phase or spawn the next pipeline agent from the accord skill.",

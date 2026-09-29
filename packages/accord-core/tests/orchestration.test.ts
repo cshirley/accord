@@ -9,10 +9,6 @@ import {
   applyPhaseTestPostResult,
   applyReviewTestPostResult,
   buildDevOrchestratePayload,
-  bumpQuickFixTestReviewCycle,
-  decideAfterReviewTest,
-  decideQuickFixAfterReviewPacket,
-  decideQuickFixAfterReviewTest,
   defaultQuickFixLoopPolicy,
   parseLeadingWorkItemId,
   quickFixLoopPolicyFromDevConfig,
@@ -31,6 +27,8 @@ import {
 } from "@clive.shirley/accord-core/orchestration/index.js";
 import type { OrchestrationGraphDefinition } from "@clive.shirley/accord-core/orchestration/types.js";
 import { resetSpawnPreflightCheckForTests } from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
+import type { TaskFileV2 } from "@clive.shirley/accord-core/tasks/types.js";
+import { readTaskFixture, writeTaskFixture } from "./helpers/task-fixture.js";
 
 function minimalDevConfig(): DevHarnessConfig {
   return {
@@ -67,6 +65,10 @@ afterEach(() => {
 
 function writeWorkItem(id: string, body: Record<string, unknown>) {
   writeFileSync(join(".tasks", `${id}.json`), `${JSON.stringify(body, null, 2)}\n`, "utf8");
+}
+
+function readTaskRaw(workItemId: string, taskId = 1): TaskFileV2 {
+  return readTaskFixture(workItemId, taskId);
 }
 
 describe("orchestration graph", () => {
@@ -315,20 +317,14 @@ describe("resume orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "IMP-RES-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IMP-RES-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-code",
-        status: "pending",
-        pre_impl_gates: "complete",
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "IMP-RES-1",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-code",
+      preImplGates: "complete",
+      coversAc: ["AC-1"],
+    });
     const blocked = resolveResumeOrchestration("IMP-RES-1", null);
     expect(blocked.outcome).toBe("blocked");
     const spawned = resolveResumeOrchestration("IMP-RES-1", minimalDevConfig());
@@ -389,32 +385,17 @@ describe("resume orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    const taskPath = join(".tasks", "ACCORD-990-task-1.json");
-    writeFileSync(
-      taskPath,
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "ACCORD-990",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: [],
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "ACCORD-990",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      preImplGates: "pending",
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
+      },
+    });
 
     let spawnCount = 0;
     const host = {
@@ -424,10 +405,14 @@ describe("resume orchestration", () => {
         // first spawn (phase-test) transitions task to review-test
         if (spawnCount === 1) {
           expect(input.agent).toBe("phase-test");
-          const raw = JSON.parse(readFileSync(taskPath, "utf8")) as Record<string, unknown>;
-          raw.phase = "review-test";
-          raw.test_files = ["pkg/x.test.ts"];
-          writeFileSync(taskPath, `${JSON.stringify(raw)}\n`, "utf8");
+          const task = readTaskRaw("ACCORD-990", 1);
+          task.control.phase = "review-test";
+          task.control.test_files = ["pkg/x.test.ts"];
+          writeFileSync(
+            join(".tasks", "ACCORD-990-task-1.json"),
+            `${JSON.stringify(task)}\n`,
+            "utf8",
+          );
         } else {
           expect(input.agent).toBe("review-test");
         }
@@ -491,23 +476,14 @@ describe("resume orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    const taskPath = join(".tasks", "ACCORD-991-task-1.json");
-    writeFileSync(
-      taskPath,
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "ACCORD-991",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "complete",
-        test_files: ["pkg/x.test.ts"],
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "ACCORD-991",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "complete",
+      testFiles: ["pkg/x.test.ts"],
+    });
 
     let spawnCount = 0;
     const notices: string[] = [];
@@ -518,9 +494,13 @@ describe("resume orchestration", () => {
       spawnSubagent: async (input: { agent: string }) => {
         spawnCount += 1;
         expect(input.agent).toBe("review-test");
-        const raw = JSON.parse(readFileSync(taskPath, "utf8")) as Record<string, unknown>;
-        raw.phase = "phase-code";
-        writeFileSync(taskPath, `${JSON.stringify(raw)}\n`, "utf8");
+        const task = readTaskRaw("ACCORD-991", 1);
+        task.control.phase = "phase-code";
+        writeFileSync(
+          join(".tasks", "ACCORD-991-task-1.json"),
+          `${JSON.stringify(task)}\n`,
+          "utf8",
+        );
         return { exitCode: 0 };
       },
     };
@@ -534,56 +514,13 @@ describe("resume orchestration", () => {
 });
 
 describe("quick-fix orchestration", () => {
-  test("decideQuickFixAfterReviewTest: clean → phase-code", () => {
-    const policy = defaultQuickFixLoopPolicy();
-    expect(decideQuickFixAfterReviewTest({ test_review_cycles_used: 2 }, "clean", policy)).toEqual({
-      nextAgent: "phase-code",
-      bumpCycle: false,
-    });
-  });
-
-  test("decideQuickFixAfterReviewTest: issues under cap → phase-test + bump", () => {
-    const policy = defaultQuickFixLoopPolicy();
-    expect(decideQuickFixAfterReviewTest({ test_review_cycles_used: 0 }, "issues", policy)).toEqual(
-      {
-        nextAgent: "phase-test",
-        bumpCycle: true,
-      },
-    );
-  });
-
-  test("decideQuickFixAfterReviewTest: issues at cap → blocked", () => {
-    const policy = defaultQuickFixLoopPolicy();
-    const result = decideQuickFixAfterReviewTest(
-      { test_review_cycles_used: policy.maxTestReviewLoops },
-      "issues",
-      policy,
-    );
-    expect("blocked" in result && result.blocked).toBe(true);
-    if ("blocked" in result && result.blocked) {
-      expect(result.reason).toContain("cap reached");
-    }
-  });
-
-  test("bumpQuickFixTestReviewCycle increments task file counter", () => {
-    writeFileSync(
-      join(".tasks", "ACCORD-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "ACCORD-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 1 },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
-    const bumped = bumpQuickFixTestReviewCycle("ACCORD-1", 1);
-    expect(bumped).toEqual({ ok: true, test_review_cycles_used: 2 });
-  });
+  // NOTE: decideQuickFixAfterReviewTest / decideQuickFixAfterReviewPacket / bumpQuickFixTestReviewCycle
+  // were removed — the quick_fix test-review loop now goes through the shared v2 loop machinery
+  // (`decideLoop` / `capForKey` in `src/tasks/decide.ts`, exercised end-to-end below via
+  // `applyReviewTestPostResult`, and fully in `tests/task-trace-v2.test.ts`). Direct unit tests of
+  // the removed policy functions are gone; the severity-gate / cap behaviour they covered is
+  // asserted through the real post-result handlers instead (see tests below and
+  // `quickFixLoopPolicyFromDevConfig` / `reviewRetryPolicyForAgent`, which are unchanged).
 
   test("applyPhaseTestPostResult advances new_red_test task to review-test", () => {
     writeWorkItem("QAP-PT", {
@@ -625,31 +562,17 @@ describe("quick-fix orchestration", () => {
       })}\n`,
       "utf8",
     );
-    writeFileSync(
-      join(".tasks", "QAP-PT-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QAP-PT",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: [],
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QAP-PT",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      preImplGates: "pending",
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
+      },
+    });
     const note = applyPhaseTestPostResult("QAP-PT", {
       status: "done",
       test_files: ["src/foo.test.ts"],
@@ -657,12 +580,9 @@ describe("quick-fix orchestration", () => {
       usage: { prompt_tokens: 1, completion_tokens: 1 },
     });
     expect(note).toContain("review-test");
-    const task = JSON.parse(readFileSync(join(".tasks", "QAP-PT-task-1.json"), "utf8")) as {
-      phase: string;
-      test_files: string[];
-    };
-    expect(task.phase).toBe("review-test");
-    expect(task.test_files).toEqual(["src/foo.test.ts"]);
+    const task = readTaskRaw("QAP-PT");
+    expect(task.control.phase).toBe("review-test");
+    expect(task.control.test_files).toEqual(["src/foo.test.ts"]);
   });
 
   test("applyPhaseTestPostResult advances implement implementing task to review-test", () => {
@@ -687,21 +607,14 @@ describe("quick-fix orchestration", () => {
     mkdirSync(join(tempCwd, "docs", "dev", "QAP-IMP"), { recursive: true });
     writeFileSync(join("docs", "dev", "QAP-IMP", "spec.json"), "{}\n", "utf8");
     writeFileSync(join("docs", "dev", "QAP-IMP", "plan.json"), "{}\n", "utf8");
-    writeFileSync(
-      join(".tasks", "QAP-IMP-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QAP-IMP",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: [],
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QAP-IMP",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      preImplGates: "pending",
+      coversAc: ["AC-1"],
+    });
     const note = applyPhaseTestPostResult("QAP-IMP", {
       status: "done",
       test_files: ["src/imp.test.ts"],
@@ -710,14 +623,9 @@ describe("quick-fix orchestration", () => {
     });
     expect(note).toContain("Implement (phase-test)");
     expect(note).toContain("review-test");
-    const task = JSON.parse(readFileSync(join(".tasks", "QAP-IMP-task-1.json"), "utf8")) as {
-      phase: string;
-      test_files: string[];
-      events: Array<{ type?: string }>;
-    };
-    expect(task.phase).toBe("review-test");
-    expect(task.test_files).toEqual(["src/imp.test.ts"]);
-    expect(task.events.some((e) => e.type === "implement_phase_test_applied")).toBe(true);
+    const task = readTaskRaw("QAP-IMP");
+    expect(task.control.phase).toBe("review-test");
+    expect(task.control.test_files).toEqual(["src/imp.test.ts"]);
   });
 
   test("applyPhaseTestPostResult blocks (does not advance) when test_output shows a crashed runner despite red_confirmed:true", () => {
@@ -742,21 +650,14 @@ describe("quick-fix orchestration", () => {
     mkdirSync(join(tempCwd, "docs", "dev", "QAP-CRASH"), { recursive: true });
     writeFileSync(join("docs", "dev", "QAP-CRASH", "spec.json"), "{}\n", "utf8");
     writeFileSync(join("docs", "dev", "QAP-CRASH", "plan.json"), "{}\n", "utf8");
-    writeFileSync(
-      join(".tasks", "QAP-CRASH-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QAP-CRASH",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: [],
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QAP-CRASH",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      preImplGates: "pending",
+      coversAc: ["AC-1"],
+    });
     const note = applyPhaseTestPostResult("QAP-CRASH", {
       status: "done",
       test_files: ["src/servers.unit.test.ts"],
@@ -770,20 +671,20 @@ describe("quick-fix orchestration", () => {
     });
     expect(note).toContain("CRASH detected");
     expect(note).toContain("blocked");
-    const task = JSON.parse(readFileSync(join(".tasks", "QAP-CRASH-task-1.json"), "utf8")) as {
-      phase: string;
-      status: string;
-      red_confirmed?: boolean;
-      test_runner_crash?: { reason: string };
-      events: Array<{ type?: string }>;
-    };
     // Must NOT advance to review-test on a crashed run, and must not trust the self-reported
-    // red_confirmed:true.
-    expect(task.phase).toBe("phase-test");
-    expect(task.status).toBe("blocked");
-    expect(task.red_confirmed).toBe(false);
-    expect(task.test_runner_crash?.reason).toContain("uncaught exception");
-    expect(task.events.some((e) => e.type === "implement_phase_test_crash_detected")).toBe(true);
+    // red_confirmed:true (v2: recorded as `control.blocked = {kind: "crash", ...}`, not a
+    // top-level `test_runner_crash` field / `red_confirmed` field).
+    const task = readTaskRaw("QAP-CRASH");
+    expect(task.control.phase).toBe("phase-test");
+    expect(task.control.status).toBe("blocked");
+    expect(task.control.last_test_run?.confirmed).toBe(false);
+    expect(task.control.blocked?.kind).toBe("crash");
+    expect(task.control.blocked?.reason).toContain("uncaught exception");
+    expect(
+      task.log.some(
+        (entry) => entry.result === "blocked" && entry.note.includes("uncaught exception"),
+      ),
+    ).toBe(true);
   });
 
   test("resolveResumeOrchestration uses pre-impl brief when resuming review-test on quick_fix", () => {
@@ -837,31 +738,18 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "QF-RT-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QF-RT",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: ["src/qf.test.ts"],
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QF-RT",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      testFiles: ["src/qf.test.ts"],
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
+      },
+    });
     const r = resolveResumeOrchestration("QF-RT", minimalDevConfig());
     expect(r.outcome).toBe("spawn");
     if (r.outcome === "spawn") {
@@ -925,21 +813,15 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "IMP-RT-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IMP-RT",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: ["src/impl.test.ts"],
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "IMP-RT",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      testFiles: ["src/impl.test.ts"],
+      coversAc: ["AC-1"],
+    });
     const r = resolveResumeOrchestration("IMP-RT", minimalDevConfig());
     expect(r.outcome).toBe("spawn");
     if (r.outcome === "spawn") {
@@ -1011,21 +893,15 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "IMP-PD-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IMP-PD",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: ["src/impl.test.ts"],
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "IMP-PD",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      testFiles: ["src/impl.test.ts"],
+      coversAc: ["AC-1"],
+    });
 
     const blocked = resolveResumeOrchestration("IMP-PD", minimalDevConfig());
     expect(blocked.outcome).toBe("blocked");
@@ -1101,30 +977,17 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "ACCORD-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "ACCORD-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "ACCORD-1",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      preImplGates: "pending",
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
+      },
+    });
     const blocked = resolveResumeOrchestration("ACCORD-1", null);
     expect(blocked.outcome).toBe("blocked");
     const spawned = resolveResumeOrchestration("ACCORD-1", minimalDevConfig());
@@ -1132,39 +995,6 @@ describe("quick-fix orchestration", () => {
     if (spawned.outcome === "spawn") {
       expect(spawned.agent).toBe("phase-test");
     }
-  });
-
-  test("decideQuickFixAfterReviewPacket: suggestion-only issues skip retry slot under warn gate", () => {
-    const policy = defaultQuickFixLoopPolicy();
-    expect(
-      decideQuickFixAfterReviewPacket(
-        { test_review_cycles_used: 0 },
-        { verdict: "issues", findings: [{ severity: "suggestion" }] },
-        policy,
-      ),
-    ).toEqual({ nextAgent: "phase-code", bumpCycle: false });
-  });
-
-  test("decideQuickFixAfterReviewPacket: critical issues request phase-test under warn gate", () => {
-    const policy = defaultQuickFixLoopPolicy();
-    expect(
-      decideQuickFixAfterReviewPacket(
-        { test_review_cycles_used: 0 },
-        { verdict: "issues", findings: [{ severity: "critical" }] },
-        policy,
-      ),
-    ).toEqual({ nextAgent: "phase-test", bumpCycle: true });
-  });
-
-  test("decideQuickFixAfterReviewPacket: block gate ignores non-critical findings", () => {
-    const policy = { ...defaultQuickFixLoopPolicy(), severityGate: "block" as const };
-    expect(
-      decideQuickFixAfterReviewPacket(
-        { test_review_cycles_used: 0 },
-        { verdict: "issues", findings: [{ severity: "warning" }] },
-        policy,
-      ),
-    ).toEqual({ nextAgent: "phase-code", bumpCycle: false });
   });
 
   test("quickFixLoopPolicyFromDevConfig reads orchestration.quick_fix_loop", () => {
@@ -1197,35 +1027,17 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "QAP-0-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QAP-0",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: {
-            strategy: "existing_tests",
-            red_required: false,
-            command: "bun test",
-            reason: "r",
-          },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QAP-0",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "existing_tests", red_required: false, command: "bun test", reason: "r" },
+      },
+    });
     const devCfg: DevHarnessConfig = {
       ...minimalDevConfig(),
       orchestration: { quick_fix_loop: { max_test_review_loops: 0 } },
@@ -1236,10 +1048,8 @@ describe("quick-fix orchestration", () => {
       devCfg,
     );
     expect(note).toContain("retry cap reached");
-    const task = JSON.parse(readFileSync(join(".tasks", "QAP-0-task-1.json"), "utf8")) as {
-      status: string;
-    };
-    expect(task.status).toBe("blocked");
+    const task = readTaskRaw("QAP-0");
+    expect(task.control.status).toBe("blocked");
   });
 
   test("applyReviewTestPostResult persists phase-code on clean verdict", () => {
@@ -1260,41 +1070,21 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "QAP-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QAP-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: {
-            strategy: "existing_tests",
-            red_required: false,
-            command: "bun test",
-            reason: "r",
-          },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QAP-1",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "existing_tests", red_required: false, command: "bun test", reason: "r" },
+      },
+    });
     const note = applyReviewTestPostResult("QAP-1", { verdict: "clean", findings: [] });
     expect(note).toContain("Quick-fix (review-test)");
-    const task = JSON.parse(readFileSync(join(".tasks", "QAP-1-task-1.json"), "utf8")) as {
-      phase: string;
-    };
-    expect(task.phase).toBe("phase-code");
+    const task = readTaskRaw("QAP-1");
+    expect(task.control.phase).toBe("phase-code");
   });
 
   test("applyReviewTestPostResult blocks task at loop cap", () => {
@@ -1316,44 +1106,27 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "QAP-2-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QAP-2",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: policy.maxTestReviewLoops },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: {
-            strategy: "existing_tests",
-            red_required: false,
-            command: "bun test",
-            reason: "r",
-          },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QAP-2",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      retries: {
+        test_review: { used: policy.maxTestReviewLoops, lifetime: policy.maxTestReviewLoops },
+      },
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "existing_tests", red_required: false, command: "bun test", reason: "r" },
+      },
+    });
     const note = applyReviewTestPostResult("QAP-2", {
       verdict: "issues",
       findings: [{ severity: "critical", issue: "x" }],
     });
     expect(note).toContain("retry cap reached");
-    const task = JSON.parse(readFileSync(join(".tasks", "QAP-2-task-1.json"), "utf8")) as {
-      status: string;
-    };
-    expect(task.status).toBe("blocked");
+    const task = readTaskRaw("QAP-2");
+    expect(task.control.status).toBe("blocked");
   });
 
   test("resolveResumeOrchestration forwards quick_fix fixing when task is loop-blocked", () => {
@@ -1374,35 +1147,24 @@ describe("quick-fix orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "QFBLK-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QFBLK-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "blocked",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 1 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: {
-            strategy: "existing_tests",
-            red_required: false,
-            command: "bun test",
-            reason: "r",
-          },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "QFBLK-1",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      status: "blocked",
+      preImplGates: "pending",
+      blocked: {
+        kind: "cap",
+        reason: "Review-test retry cap reached (3)",
+        ref: "T1/decision",
+        loop: "T",
+      },
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "existing_tests", red_required: false, command: "bun test", reason: "r" },
+      },
+    });
     const forwarded = resolveResumeOrchestration("QFBLK-1", minimalDevConfig());
     expect(forwarded.outcome).toBe("blocked");
   });
@@ -1581,30 +1343,17 @@ describe("finish orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", `${id}-task-1.json`),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: id,
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: id,
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      preImplGates: "pending",
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
+      },
+    });
     const cfg: DevHarnessConfig = {
       ...minimalDevConfig(),
       orchestration: { judgment: { enabled: true } },
@@ -1644,30 +1393,17 @@ describe("finish orchestration", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", `${id}-task-1.json`),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: id,
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: {
-          plan: {
-            summary: "s",
-            target_paths: [],
-            out_of_scope: [],
-            expected_finish: "done",
-          },
-          test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
-        },
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: id,
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-test",
+      preImplGates: "pending",
+      quickFixContract: {
+        plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "done" },
+        test: { strategy: "new_red_test", red_required: true, command: "bun test", reason: "r" },
+      },
+    });
     const p = buildDevOrchestratePayload("resume", id, minimalDevConfig());
     expect(p.resolution.outcome).toBe("spawn");
     expect(p.judgment_configured_for_spawn).toBe(false);
@@ -1676,7 +1412,7 @@ describe("finish orchestration", () => {
 });
 
 describe("implement phase-code harness hook", () => {
-  test("applyPhaseCodePostResult advances to review-code when reviews_requested", () => {
+  test("applyPhaseCodePostResult advances to review-code", () => {
     mkdirSync(join(tempCwd, "docs", "dev", "IPC-1"), { recursive: true });
     writeFileSync(
       join("docs", "dev", "IPC-1", "plan.json"),
@@ -1703,20 +1439,15 @@ describe("implement phase-code harness hook", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "IPC-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IPC-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-code",
-        status: "in_progress",
-        pre_impl_gates: "complete",
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "IPC-1",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-code",
+      status: "in_progress",
+      preImplGates: "complete",
+      coversAc: ["AC-1"],
+    });
     const note = applyPhaseCodePostResult(
       "IPC-1",
       {
@@ -1731,13 +1462,14 @@ describe("implement phase-code harness hook", () => {
       minimalDevConfig(),
     );
     expect(note).toContain("review-code");
-    const task = JSON.parse(readFileSync(join(".tasks", "IPC-1-task-1.json"), "utf8")) as {
-      phase: string;
-    };
-    expect(task.phase).toBe("review-code");
+    const task = readTaskRaw("IPC-1");
+    expect(task.control.phase).toBe("review-code");
   });
 
-  test("applyPhaseCodePostResult always enqueues review-code even when implement_loop flags are false", () => {
+  test("applyPhaseCodePostResult always enqueues review-code regardless of legacy implement_loop config flags", () => {
+    // v2: review-code is unconditional after phase-code (no test files, no security-sensitive
+    // paths) — `orchestration.implement_loop.*` flags no longer affect routing
+    // (see `nextPhaseAfterPhaseCode` / `ImplementCodeReviewPolicy` docstring).
     mkdirSync(join(tempCwd, "docs", "dev", "IPC-2"), { recursive: true });
     writeFileSync(
       join("docs", "dev", "IPC-2", "plan.json"),
@@ -1764,20 +1496,15 @@ describe("implement phase-code harness hook", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "IPC-2-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IPC-2",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-code",
-        status: "in_progress",
-        pre_impl_gates: "complete",
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "IPC-2",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-code",
+      status: "in_progress",
+      preImplGates: "complete",
+      coversAc: ["AC-1"],
+    });
     const cfg: DevHarnessConfig = {
       ...minimalDevConfig(),
       orchestration: {
@@ -1801,10 +1528,8 @@ describe("implement phase-code harness hook", () => {
       cfg,
     );
     expect(note).toContain("review-code");
-    const task = JSON.parse(readFileSync(join(".tasks", "IPC-2-task-1.json"), "utf8")) as {
-      phase: string;
-    };
-    expect(task.phase).toBe("review-code");
+    const task = readTaskRaw("IPC-2");
+    expect(task.control.phase).toBe("review-code");
   });
 
   test("applyPhaseCodePostResult respawns phase-test when test files appear in files_changed (RGR)", () => {
@@ -1834,20 +1559,15 @@ describe("implement phase-code harness hook", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "IPC-3-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IPC-3",
-        task_id: 1,
-        owner_nonce: "abcdef",
-        phase: "phase-code",
-        status: "in_progress",
-        pre_impl_gates: "complete",
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "IPC-3",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "phase-code",
+      status: "in_progress",
+      preImplGates: "complete",
+      coversAc: ["AC-1"],
+    });
     const note = applyPhaseCodePostResult(
       "IPC-3",
       {
@@ -1861,14 +1581,12 @@ describe("implement phase-code harness hook", () => {
     );
     expect(note).toContain("phase-test");
     expect(note).toContain("RGR");
-    const task = JSON.parse(readFileSync(join(".tasks", "IPC-3-task-1.json"), "utf8")) as {
-      phase: string;
-      pre_impl_gates: string;
-    };
-    expect(task.phase).toBe("phase-test");
-    expect(task.pre_impl_gates).toBe("pending");
+    const task = readTaskRaw("IPC-3");
+    expect(task.control.phase).toBe("phase-test");
+    expect(task.control.pre_impl_gates).toBe("pending");
   });
 });
+
 describe("review retry policy", () => {
   test("reviewRetryPolicyForAgent: quick_fix review-test uses quick_fix_loop", () => {
     const cfg: DevHarnessConfig = {
@@ -1890,105 +1608,184 @@ describe("review retry policy", () => {
     });
   });
 
-  test("decideAfterReviewTest: implement warn gate retries on warning findings", () => {
+  // NOTE: `decideAfterReviewTest` (counters-in, decision-out) was removed — the same
+  // severity-gate / lifetime-cap behaviour now lives inline in `decideLoop` + `capCheck`
+  // (`src/tasks/decide.ts`), driven off the findings actually recorded on the v2 task file.
+  // Rewritten below as end-to-end `applyReviewTestPostResult` runs against real fixtures.
+
+  test("applyReviewTestPostResult: implement warn gate retries on warning findings", () => {
+    writeWorkItem("RRP-WARN", {
+      schema_version: "1.0",
+      id: "RRP-WARN",
+      title: "impl",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      phase: "implementing",
+      task_ids: [1],
+      spec: "docs/dev/RRP-WARN/spec.json",
+      plan: "docs/dev/RRP-WARN/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeTaskFixture({
+      workItemId: "RRP-WARN",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      coversAc: ["AC-1"],
+    });
     const cfg: DevHarnessConfig = {
       ...minimalDevConfig(),
       orchestration: { review_loop: { severity_gate: "warn", max_critical_retries: 2 } },
     };
-    expect(
-      decideAfterReviewTest(
-        {
-          test_review_retries_used: 0,
-          code_review_retries_used: 0,
-          lifetime_test_review_cycles: 0,
-          lifetime_code_review_cycles: 0,
-          unblock_count: 0,
-          rgr_respawns_used: 0,
-          lifetime_rgr_respawns: 0,
-        },
-        {
-          verdict: "issues",
-          findings: [{ severity: "warning", issue: "weak assertion" }],
-        },
-        cfg,
-        "implement",
-      ),
-    ).toMatchObject({ nextPhase: "phase-test", bumpTestRetry: true });
+    applyReviewTestPostResult(
+      "RRP-WARN",
+      {
+        verdict: "issues",
+        findings: [{ severity: "warning", ac_id: "AC-1", issue: "weak assertion" }],
+      },
+      cfg,
+    );
+    const task = readTaskRaw("RRP-WARN");
+    expect(task.control.phase).toBe("phase-test");
+    expect(task.control.retries.test_review).toEqual({ used: 1, lifetime: 1 });
   });
 
-  test("decideAfterReviewTest: implement block gate skips warning-only issues", () => {
+  test("applyReviewTestPostResult: implement block gate skips warning-only issues", () => {
+    writeWorkItem("RRP-BLOCK", {
+      schema_version: "1.0",
+      id: "RRP-BLOCK",
+      title: "impl",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      phase: "implementing",
+      task_ids: [1],
+      spec: "docs/dev/RRP-BLOCK/spec.json",
+      plan: "docs/dev/RRP-BLOCK/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeTaskFixture({
+      workItemId: "RRP-BLOCK",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      coversAc: ["AC-1"],
+    });
     const cfg: DevHarnessConfig = {
       ...minimalDevConfig(),
       orchestration: { review_loop: { severity_gate: "block" } },
     };
-    expect(
-      decideAfterReviewTest(
-        {
-          test_review_retries_used: 0,
-          code_review_retries_used: 0,
-          lifetime_test_review_cycles: 0,
-          lifetime_code_review_cycles: 0,
-          unblock_count: 0,
-          rgr_respawns_used: 0,
-          lifetime_rgr_respawns: 0,
-        },
-        {
-          verdict: "issues",
-          findings: [{ severity: "warning", issue: "nit" }],
-        },
-        cfg,
-        "implement",
-      ),
-    ).toMatchObject({ nextPhase: "phase-code", bumpTestRetry: false });
+    applyReviewTestPostResult(
+      "RRP-BLOCK",
+      { verdict: "issues", findings: [{ severity: "warning", ac_id: "AC-1", issue: "nit" }] },
+      cfg,
+    );
+    const task = readTaskRaw("RRP-BLOCK");
+    expect(task.control.phase).toBe("phase-code");
+    expect(task.control.retries.test_review).toEqual({ used: 0, lifetime: 0 });
   });
 
-  test("decideAfterReviewTest: lifetime cap blocks even when the resettable counter is fresh (post-unblock)", () => {
-    const cfg: DevHarnessConfig = {
-      ...minimalDevConfig(),
-      orchestration: { review_loop: { max_critical_retries: 3 } },
-    };
+  test("applyReviewTestPostResult: lifetime cap blocks even when the resettable counter is fresh (post-unblock)", () => {
+    writeWorkItem("RRP-LIFE", {
+      schema_version: "1.0",
+      id: "RRP-LIFE",
+      title: "impl",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      phase: "implementing",
+      task_ids: [1],
+      spec: "docs/dev/RRP-LIFE/spec.json",
+      plan: "docs/dev/RRP-LIFE/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
     // Simulates state right after `/dev unblock`: resettable counter back to 0, but the
     // lifetime counter (which unblock never touches) already at the default ceiling
     // (maxRetries * (max_unblocks_per_task=1 + 1) = 6).
-    const decision = decideAfterReviewTest(
-      {
-        test_review_retries_used: 0,
-        code_review_retries_used: 0,
-        lifetime_test_review_cycles: 6,
-        lifetime_code_review_cycles: 0,
-        unblock_count: 1,
-        rgr_respawns_used: 0,
-        lifetime_rgr_respawns: 0,
-      },
-      { verdict: "issues", findings: [{ severity: "critical", issue: "still broken" }] },
-      cfg,
-      "implement",
-    );
-    expect(decision).toMatchObject({ blocked: true });
-    if (!("blocked" in decision)) return;
-    expect(decision.reason).toContain("LIFETIME");
-    expect(decision.reason).toContain("/dev unblock");
-  });
-
-  test("decideAfterReviewTest: resettable counter under cap but lifetime cap not yet reached still retries and bumps both counters", () => {
+    writeTaskFixture({
+      workItemId: "RRP-LIFE",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      coversAc: ["AC-1"],
+      retries: { test_review: { used: 0, lifetime: 6 }, unblocks: 1 },
+    });
     const cfg: DevHarnessConfig = {
       ...minimalDevConfig(),
       orchestration: { review_loop: { max_critical_retries: 3 } },
     };
-    const decision = decideAfterReviewTest(
+    const note = applyReviewTestPostResult(
+      "RRP-LIFE",
       {
-        test_review_retries_used: 0,
-        code_review_retries_used: 0,
-        lifetime_test_review_cycles: 5,
-        lifetime_code_review_cycles: 0,
-        unblock_count: 1,
-        rgr_respawns_used: 0,
-        lifetime_rgr_respawns: 0,
+        verdict: "issues",
+        findings: [{ severity: "critical", ac_id: "AC-1", issue: "still broken" }],
       },
-      { verdict: "issues", findings: [{ severity: "critical", issue: "still broken" }] },
       cfg,
-      "implement",
     );
-    expect(decision).toMatchObject({ nextPhase: "phase-test", bumpTestRetry: true });
+    const task = readTaskRaw("RRP-LIFE");
+    expect(task.control.status).toBe("blocked");
+    expect(task.control.blocked?.lifetime).toBe(true);
+    expect(task.control.blocked?.reason).toContain("LIFETIME");
+    expect(note).toContain("accord unblock");
+  });
+
+  test("applyReviewTestPostResult: resettable counter under cap but lifetime cap not yet reached still retries and bumps both counters", () => {
+    writeWorkItem("RRP-OK", {
+      schema_version: "1.0",
+      id: "RRP-OK",
+      title: "impl",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      phase: "implementing",
+      task_ids: [1],
+      spec: "docs/dev/RRP-OK/spec.json",
+      plan: "docs/dev/RRP-OK/plan.json",
+      verify: null,
+      brief: null,
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeTaskFixture({
+      workItemId: "RRP-OK",
+      taskId: 1,
+      ownerNonce: "abcdef",
+      phase: "review-test",
+      preImplGates: "pending",
+      coversAc: ["AC-1"],
+      retries: { test_review: { used: 0, lifetime: 5 }, unblocks: 1 },
+    });
+    const cfg: DevHarnessConfig = {
+      ...minimalDevConfig(),
+      orchestration: { review_loop: { max_critical_retries: 3 } },
+    };
+    applyReviewTestPostResult(
+      "RRP-OK",
+      {
+        verdict: "issues",
+        findings: [{ severity: "critical", ac_id: "AC-1", issue: "still broken" }],
+      },
+      cfg,
+    );
+    const task = readTaskRaw("RRP-OK");
+    expect(task.control.phase).toBe("phase-test");
+    expect(task.control.retries.test_review).toEqual({ used: 1, lifetime: 6 });
   });
 });

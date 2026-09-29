@@ -4,6 +4,10 @@
  */
 
 import { type PlanTaskStep, planTaskPipelineProfile } from "../plan/task-pipeline-profile.js";
+import { isTaskFileV2 } from "../tasks/model.js";
+import { seedTaskFromDisk } from "../tasks/seed.js";
+import { legacyTaskFileMessage } from "../tasks/store.js";
+import type { TaskFileV2 } from "../tasks/types.js";
 import { err, ok, type Result } from "../types/result.js";
 import { readJson, taskJsonPath, writeJson } from "../work-items/io.js";
 import { devNonce } from "./nonce.js";
@@ -30,33 +34,21 @@ function bootstrapTaskFileForSpawn(input: {
   ownerNonce: string;
   dispatchAgent: "phase-test" | "phase-code";
   planTaskSteps?: PlanTaskStep[];
-}): Record<string, unknown> {
+}): TaskFileV2 {
   const profile = planTaskPipelineProfile(input.planTaskSteps);
-  if (input.dispatchAgent === "phase-test") {
-    return {
-      schema_version: "1.0",
-      work_item_id: input.workItemId,
-      task_id: input.taskId,
-      owner_nonce: input.ownerNonce,
-      phase: profile.initialPhase,
-      status: "pending",
-      pre_impl_gates: profile.preImplGates,
-      test_files: [],
-      events: [],
-    };
-  }
+  return seedTaskFromDisk({
+    workItemId: input.workItemId,
+    taskId: input.taskId,
+    ownerNonce: input.ownerNonce,
+    ...(input.dispatchAgent === "phase-test"
+      ? { initialPhase: profile.initialPhase, preImplGates: profile.preImplGates }
+      : { initialPhase: "phase-code" as const, preImplGates: "complete" as const }),
+  });
+}
 
-  return {
-    schema_version: "1.0",
-    work_item_id: input.workItemId,
-    task_id: input.taskId,
-    owner_nonce: input.ownerNonce,
-    phase: "phase-code",
-    status: "pending",
-    pre_impl_gates: "complete",
-    test_files: [],
-    events: [],
-  };
+function ownerNonceOf(taskFile: Record<string, unknown> | null): string {
+  const control = taskFile?.control as { owner_nonce?: unknown } | undefined;
+  return typeof control?.owner_nonce === "string" ? control.owner_nonce : "";
 }
 
 /**
@@ -75,7 +67,10 @@ export function syncTaskFileOwnerNonceForSpawn(input: {
 }): Result<{ ownerNonce: string; taskFilePath: string }> {
   const taskFilePath = taskJsonPath(input.workItemId, String(input.taskId));
   const taskFile = input.taskFile ?? readJson<Record<string, unknown>>(taskFilePath);
-  const onDisk = taskFile && typeof taskFile.owner_nonce === "string" ? taskFile.owner_nonce : "";
+  if (taskFile && !isTaskFileV2(taskFile)) {
+    return err(legacyTaskFileMessage(input.workItemId, input.taskId));
+  }
+  const onDisk = ownerNonceOf(taskFile);
 
   if (isValidOwnerNonce(onDisk) && onDisk !== input.ownerNonce) {
     return err(
@@ -87,7 +82,13 @@ export function syncTaskFileOwnerNonceForSpawn(input: {
 
   if (needsWrite) {
     const next = taskFile
-      ? { ...taskFile, owner_nonce: input.ownerNonce }
+      ? {
+          ...taskFile,
+          control: {
+            ...(taskFile.control as unknown as Record<string, unknown>),
+            owner_nonce: input.ownerNonce,
+          },
+        }
       : bootstrapTaskFileForSpawn({
           workItemId: input.workItemId,
           taskId: input.taskId,
@@ -99,7 +100,7 @@ export function syncTaskFileOwnerNonceForSpawn(input: {
   }
 
   const verify = readJson<Record<string, unknown>>(taskFilePath);
-  const verifyNonce = verify && typeof verify.owner_nonce === "string" ? verify.owner_nonce : "";
+  const verifyNonce = ownerNonceOf(verify);
   if (verifyNonce !== input.ownerNonce) {
     return err(
       `owner_nonce drift on ${taskFilePath}: expected ${input.ownerNonce} after sync, found ${verifyNonce || "(missing)"}`,

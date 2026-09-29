@@ -9,7 +9,10 @@ import {
   runSubagentPrepareHook,
   runSubagentResultHook,
 } from "@clive.shirley/accord-core/harness/lifecycle-wiring.js";
-import { tryCommitOnTaskDone } from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
+import {
+  TASK_DONE_AGENTS,
+  tryCommitOnTaskDone,
+} from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
 import type { OrchestrationNotifyLevel } from "@clive.shirley/accord-core/orchestration/host.js";
 import type { SubagentSpawnResult } from "@clive.shirley/accord-core/orchestration/types.js";
 import { readPreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/index.js";
@@ -108,7 +111,7 @@ export async function runSpawnPipeline(
     availableToolNames,
   });
 
-  if (agent === "review-code" && singleResult.exitCode === 0) {
+  if (TASK_DONE_AGENTS.has(agent) && singleResult.exitCode === 0) {
     const workItemId = extractWorkItemId(task, { mustExist: true });
     const taskId = extractTaskIdFromTaskText(task);
     if (workItemId && taskId != null) {

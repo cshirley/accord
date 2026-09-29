@@ -9,8 +9,8 @@ import {
 } from "../briefing/sync-task-owner-nonce.js";
 import { sliceTaskRequirements } from "../briefing/task-requirements.js";
 import type { DevHarnessConfig } from "../config/index.js";
+import { markTaskAgentSpawned, TASK_PIPELINE_AGENTS } from "../orchestration/task-agent-audit.js";
 import { extractTaskIdFromTaskText, extractWorkItemId } from "../telemetry/usage.js";
-import { readJson, taskJsonPath, writeJson } from "../work-items/io.js";
 
 function extractOwnerNonceFromTaskText(task: string): string | null {
   const match =
@@ -19,18 +19,9 @@ function extractOwnerNonceFromTaskText(task: string): string | null {
   return match?.[1] ?? null;
 }
 
-function markTaskInProgress(workItemId: string, taskId: number): void {
-  const taskPath = taskJsonPath(workItemId, String(taskId));
-  const task = readJson<Record<string, unknown>>(taskPath);
-  if (!task) {
-    return;
-  }
-  task.status = "in_progress";
-  writeJson(taskPath, task);
-}
-
 /**
- * Ensure per-task nonce alignment and `in_progress` status before implement spawns.
+ * Ensure per-task nonce alignment and pin `control.in_flight` (status `in_progress`) before
+ * task-pipeline spawns.
  * Idempotent when `buildImplementSpawnTaskBrief` already synced the file.
  */
 export function prepareWorkflowStateBeforeSpawn(input: {
@@ -38,15 +29,21 @@ export function prepareWorkflowStateBeforeSpawn(input: {
   task: string;
   devConfig: DevHarnessConfig | null;
 }): { ok: true } | { ok: false; reason: string } {
-  if (!NONCE_SYNC_SPAWN_AGENTS.has(input.agent)) {
+  if (!TASK_PIPELINE_AGENTS.has(input.agent)) {
     return { ok: true };
   }
-
-  const dispatchAgent = input.agent as "phase-test" | "phase-code";
   const workItemId = extractWorkItemId(input.task, { mustExist: true });
   if (!workItemId) {
     return { ok: true };
   }
+  if (!NONCE_SYNC_SPAWN_AGENTS.has(input.agent)) {
+    // Reviewers / verify: record the run we are about to start (crash recovery).
+    const taskId = extractTaskIdFromTaskText(input.task);
+    markTaskAgentSpawned(workItemId, input.agent, taskId ?? undefined);
+    return { ok: true };
+  }
+
+  const dispatchAgent = input.agent as "phase-test" | "phase-code";
 
   const taskId = extractTaskIdFromTaskText(input.task);
   if (taskId === null) {
@@ -56,7 +53,7 @@ export function prepareWorkflowStateBeforeSpawn(input: {
     if (!sliced.ok) {
       return { ok: false, reason: sliced.error };
     }
-    markTaskInProgress(workItemId, sliced.value.task_id);
+    markTaskAgentSpawned(workItemId, input.agent, sliced.value.task_id);
     return { ok: true };
   }
 
@@ -73,6 +70,6 @@ export function prepareWorkflowStateBeforeSpawn(input: {
     return { ok: false, reason: sync.error };
   }
 
-  markTaskInProgress(workItemId, taskId);
+  markTaskAgentSpawned(workItemId, input.agent, taskId);
   return { ok: true };
 }

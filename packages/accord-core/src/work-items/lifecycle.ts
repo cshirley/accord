@@ -13,16 +13,11 @@ import {
   checkBriefPresentForSpeccing,
   checkSpecPresentForPlanning,
 } from "../subagent/preflight/pipeline-artifacts.js";
+import { loadTaskV2 } from "../tasks/store.js";
+import type { TaskEvent, TaskFileV2 } from "../tasks/types.js";
 import { err, ok, type Result } from "../types/result.js";
 import { devCheckpointDelete } from "./checkpoint.js";
-import {
-  loadTaskFile,
-  loadWorkItem,
-  now,
-  resolveTasksDir,
-  workItemJsonPath,
-  writeJson,
-} from "./io.js";
+import { loadWorkItem, now, resolveTasksDir, workItemJsonPath, writeJson } from "./io.js";
 import type {
   IntentConfidence,
   IntentMode,
@@ -188,7 +183,11 @@ export interface PromotionResult {
   review_agents: string[];
 }
 
-export function devPromoteEvents(workItemId: string, taskId: string): PromotionResult {
+export function devPromoteEvents(
+  workItemId: string,
+  taskId: string,
+  inMemoryTask?: TaskFileV2,
+): PromotionResult {
   const empty: PromotionResult = {
     escalations_added: 0,
     deviations_added: 0,
@@ -196,7 +195,7 @@ export function devPromoteEvents(workItemId: string, taskId: string): PromotionR
     review_agents: [],
   };
 
-  const tf = loadTaskFile(workItemId, taskId);
+  const tf = inMemoryTask ?? loadTaskV2(workItemId, taskId);
   if (!tf) return empty;
 
   const wi = loadWorkItem(workItemId);
@@ -208,24 +207,27 @@ export function devPromoteEvents(workItemId: string, taskId: string): PromotionR
   const reviewAgents: string[] = [];
   const existingDecisionIds = new Set((wi.decisions || []).map((d) => d.id));
 
-  // Decision IDs encode the per-task event index so re-running promotion on
-  // a task with new escalations doesn't collide with previously-promoted IDs.
-  const events = tf.events || [];
+  // Decision IDs encode the log ref + event index so re-running promotion never collides.
+  const events: Array<{ event: TaskEvent; key: string }> = [];
+  for (const entry of tf.log) {
+    (entry.events ?? []).forEach((event, eventIndex) => {
+      events.push({ event, key: `${entry.ref}#${String(eventIndex)}` });
+    });
+  }
   const numericTaskId = parseTaskId(taskId);
 
-  for (let i = 0; i < events.length; i++) {
-    const event = events[i];
+  for (const { event, key } of events) {
     switch (event.type) {
       case "escalation": {
-        const decisionId = `esc-${workItemId}-${taskId}-evt${i}`;
+        const decisionId = `esc-${workItemId}-${taskId}-${key}`;
         if (existingDecisionIds.has(decisionId)) continue;
         wi.decisions.push({
           id: decisionId,
           source: "escalation",
           status: "pending",
-          question: event.question || "Unknown question",
-          context: event.context,
-          phase: event.phase || wi.phase,
+          question: typeof event.question === "string" ? event.question : "Unknown question",
+          ...(typeof event.context === "string" ? { context: event.context } : {}),
+          phase: typeof event.phase === "string" ? event.phase : wi.phase,
           asked_at: now(),
         });
         existingDecisionIds.add(decisionId);
@@ -245,8 +247,8 @@ export function devPromoteEvents(workItemId: string, taskId: string): PromotionR
         if (alreadyExists) continue;
         wi.deviations.push({
           task_id: numericTaskId,
-          description: event.description || "",
-          reason: event.reason || "",
+          description: typeof event.description === "string" ? event.description : "",
+          reason: typeof event.reason === "string" ? event.reason : "",
           at: now(),
         });
         devs++;
@@ -255,7 +257,9 @@ export function devPromoteEvents(workItemId: string, taskId: string): PromotionR
       case "request_review": {
         reviewRequested = true;
         reviewAgents.push("review-code");
-        const files: string[] = event.files || [];
+        const files = Array.isArray(event.files)
+          ? event.files.filter((f): f is string => typeof f === "string")
+          : [];
         if (pathsIncludeTestFiles(files)) reviewAgents.push("review-test");
         if (pathsIncludeSecuritySensitive(files)) reviewAgents.push("review-security");
         break;

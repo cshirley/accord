@@ -2,7 +2,10 @@
  * Pi {@link OrchestrationRuntimeHost} — preflight, programmatic spawn, harness result path.
  */
 
-import { tryCommitOnTaskDone } from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
+import {
+  TASK_DONE_AGENTS,
+  tryCommitOnTaskDone,
+} from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
 import type { OrchestrationRuntimeHost } from "@clive.shirley/accord-core/orchestration/host.js";
 import {
   buildSingleSubagentRunRequest,
@@ -169,7 +172,7 @@ export function createResumeOrchestrationRuntimeHost(
       });
 
       let commitAppend = "";
-      if (agent === "review-code" && singleResult.exitCode === 0) {
+      if (TASK_DONE_AGENTS.has(agent) && singleResult.exitCode === 0) {
         const workItemId = extractWorkItemId(task, { mustExist: true });
         const taskId = extractTaskIdFromTaskText(task);
         if (workItemId && taskId != null) {

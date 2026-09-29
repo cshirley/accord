@@ -8,16 +8,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import type { DevHarnessConfig } from "../config/index.js";
-import { readQuickFixLoopCounters } from "../orchestration/quick-fix.js";
+import { seedTaskFile } from "../tasks/model.js";
+import { legacyTaskFileMessage, loadTaskResult, writeTaskV2 } from "../tasks/store.js";
 import { err, ok, type Result } from "../types/result.js";
-import {
-  loadWorkItem,
-  now,
-  readJson,
-  taskJsonPath,
-  workItemJsonPath,
-  writeJson,
-} from "../work-items/io.js";
+import { loadWorkItem, now, taskJsonPath, workItemJsonPath, writeJson } from "../work-items/io.js";
 import { devNonce } from "./nonce.js";
 import { formatCodeTaskBrief, sliceTaskRequirements } from "./task-requirements.js";
 
@@ -219,38 +213,38 @@ export function devQuickFixBrief(
 
   const taskId = "1";
   const taskFilePath = taskJsonPath(workItemId, taskId);
-  const existingTask = readJson<Record<string, unknown>>(taskFilePath);
-  const rawNonce =
-    existingTask && typeof existingTask.owner_nonce === "string" ? existingTask.owner_nonce : "";
+  const loaded = loadTaskResult(workItemId, taskId);
+  if (loaded.kind === "legacy") return err(legacyTaskFileMessage(workItemId, taskId));
+  const existingTask = loaded.kind === "ok" ? loaded.task : null;
+  const rawNonce = existingTask?.control.owner_nonce ?? "";
   const ownerNonce = /^[0-9a-f]{6}$/.test(rawNonce) ? rawNonce : devNonce();
   const contract = quickFixContract(wi, config);
 
   const { specPath, planPath } = writeQuickFixStubs(workItemId, wi, contract, config);
 
-  const loopCounters = readQuickFixLoopCounters(
-    existingTask && typeof existingTask === "object"
-      ? (existingTask as Record<string, unknown>)
-      : {},
-  );
-
-  const taskFile = {
-    schema_version: "1.0",
-    work_item_id: workItemId,
-    task_id: 1,
-    owner_nonce: ownerNonce,
-    phase:
-      typeof existingTask?.phase === "string" && existingTask.phase !== "phase-test"
-        ? existingTask.phase
-        : "phase-test",
-    status: existingTask?.status === "done" ? "done" : "pending",
-    pre_impl_gates: existingTask?.pre_impl_gates === "complete" ? "complete" : "pending",
-    test_files: Array.isArray(existingTask?.test_files) ? existingTask.test_files : [],
-    red_confirmed: existingTask?.red_confirmed === true,
-    quick_fix_loop: { test_review_cycles_used: loopCounters.test_review_cycles_used },
-    quick_fix_contract: contract,
-    events: Array.isArray(existingTask?.events) ? existingTask.events : [],
-  };
-  writeJson(taskFilePath, taskFile);
+  if (existingTask) {
+    existingTask.control.owner_nonce = ownerNonce;
+    existingTask.control.quick_fix_contract = contract;
+    writeTaskV2(existingTask);
+  } else {
+    writeTaskV2(
+      seedTaskFile({
+        workItemId,
+        taskId: 1,
+        title: contract.plan.summary || wi.title,
+        planPath,
+        specPath,
+        coversAc: [],
+        acceptanceCriteria: [],
+        testCases: [],
+        ownerNonce,
+        initialPhase: "phase-test",
+        preImplGates: "pending",
+        quickFixContract: contract,
+        at: now(),
+      }),
+    );
+  }
 
   if (!wi.task_ids.includes(1)) wi.task_ids.push(1);
   wi.phase = "fixing";

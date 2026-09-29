@@ -11,8 +11,9 @@ import {
   resolveImplementingResumeAgentId,
 } from "../orchestration/resolve/primary-task.js";
 import { resolveResumeOrchestration } from "../orchestration/resolve/resume.js";
+import { loadTaskV2 } from "../tasks/store.js";
 import { devCheckpointRead } from "../work-items/checkpoint.js";
-import { loadTaskFile, loadWorkItem } from "../work-items/io.js";
+import { loadWorkItem } from "../work-items/io.js";
 import { ensureWorkItemHydrated } from "../work-items/rehydrate.js";
 
 export interface WorkItemTaskStatusRow {
@@ -20,6 +21,9 @@ export interface WorkItemTaskStatusRow {
   status: string;
   phase: string;
   pre_impl_gates?: string;
+  round?: string;
+  headline?: string;
+  blockers?: number;
 }
 
 export interface WorkItemStatusResult {
@@ -56,13 +60,16 @@ export function devWorkItemStatus(
   const cp = devCheckpointRead(workItemId);
   const tasks: WorkItemTaskStatusRow[] = [];
   for (const tid of [...(wi.task_ids ?? [])].sort((a, b) => a - b)) {
-    const tf = loadTaskFile(workItemId, String(tid));
+    const tf = loadTaskV2(workItemId, String(tid));
     if (!tf) continue;
     tasks.push({
-      task_id: tf.task_id,
-      status: tf.status,
-      phase: tf.phase,
-      ...(typeof tf.pre_impl_gates === "string" ? { pre_impl_gates: tf.pre_impl_gates } : {}),
+      task_id: tf.task,
+      status: tf.control.status,
+      phase: tf.control.phase,
+      pre_impl_gates: tf.control.pre_impl_gates,
+      round: tf.control.round,
+      headline: tf.summary.headline,
+      blockers: tf.summary.blockers.length,
     });
   }
 
@@ -112,13 +119,15 @@ export function devWorkItemStatus(
       "",
       "## Tasks",
       "",
-      "| task | status | phase | gates |",
-      "| --- | --- | --- | --- |",
+      "| task | status | phase | round | gates | summary |",
+      "| --- | --- | --- | --- | --- | --- |",
     );
     for (const t of tasks) {
       const gates = t.pre_impl_gates ?? "—";
       const agentOk = getAgentMeta(t.phase) ? "" : " ⚠";
-      lines.push(`| ${String(t.task_id)} | ${t.status} | \`${t.phase}\`${agentOk} | ${gates} |`);
+      lines.push(
+        `| ${String(t.task_id)} | ${t.status} | \`${t.phase}\`${agentOk} | ${t.round ?? "—"} | ${gates} | ${(t.headline ?? "").replace(/\|/g, "\\|")} |`,
+      );
     }
   }
 
