@@ -310,9 +310,30 @@
             }
           }
         },
+        "verify_loop": {
+          "type": "object",
+          "description": "**phase-verify-task** after review-code. A failing AC raises a gating finding and loops to **phase-code**; blocks for a human after `max_retries`.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Default true. When false, a clean review-code marks the task done."
+            },
+            "max_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Verify-fail → phase-code bounces before blocking. Default 3."
+            },
+            "max_lifetime_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Never reset by unblock. Default max_retries × (max_unblocks_per_task + 1)."
+            }
+          }
+        },
         "review_loop": {
           "type": "object",
-          "description": "Finding retries after **review-test** or **review-code** for implement (and quick-fix **review-code**). Findings persisted on the task file as `last_review_feedback`.",
+          "description": "Finding retries after **review-test** or **review-code** for implement (and quick-fix **review-code**). Findings persisted under `requirements[].findings` on the task file.",
           "additionalProperties": false,
           "properties": {
             "max_critical_retries": {

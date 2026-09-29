@@ -86,45 +86,8 @@ export interface Deviation {
   blocking_recommendation?: string;
 }
 
-export interface TaskFile {
-  schema_version: string;
-  work_item_id: string;
-  task_id: number;
-  owner_nonce: string;
-  phase: string;
-  status: string;
-  /** Harness quick-fix test↔review loop counters (see `schemas/task-schema.json`). */
-  quick_fix_loop?: { test_review_cycles_used: number };
-  quick_fix_contract?: QuickFixContract;
-  events: TaskEvent[];
-  [key: string]: unknown;
-}
-
-export interface QuickFixContract {
-  plan: {
-    summary: string;
-    target_paths: string[];
-    out_of_scope: string[];
-    expected_finish: string;
-  };
-  test: {
-    strategy: "existing_tests" | "new_red_test" | "no_test";
-    command?: string;
-    red_required: boolean;
-    reason?: string;
-  };
-}
-
-export interface TaskEvent {
-  type: string;
-  question?: string;
-  context?: string;
-  phase?: string;
-  description?: string;
-  reason?: string;
-  files?: string[];
-  [key: string]: unknown;
-}
+/** Per-task file — v2 requirement-centric trace (see `src/tasks/types.ts`). */
+export type { QuickFixContract, TaskEvent, TaskFileV2 as TaskFile } from "../tasks/types.js";
 
 export interface Checkpoint {
   schema_version: string;

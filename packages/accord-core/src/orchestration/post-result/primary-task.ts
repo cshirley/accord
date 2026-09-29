@@ -1,18 +1,17 @@
 /**
  * `advancePrimaryTask` — shared mutation for post-result handlers that touch the primary task file.
  *
- * Loads the work item + primary task file, lets `mutate` adjust both, appends a
- * single event to the task file, persists timestamps, and writes both records.
- * Returns `null` when the work item / task file isn't loadable so callers can
- * fall back to the "this path does not apply" return value.
+ * Loads the work item + primary v2 task file under the work item's task lock, lets `mutate`
+ * adjust both, recomputes the task snapshot (`refreshTask`), and writes both records.
  */
 
+import { worktreeFingerprintSync } from "../../git/helpers.js";
+import { refreshTask } from "../../tasks/model.js";
+import { loadTaskResult, loadTaskV2 } from "../../tasks/store.js";
+import type { TaskFileV2 } from "../../tasks/types.js";
 import {
-  loadTaskFile,
   loadWorkItem,
   now,
-  readJson,
-  taskJsonPath,
   taskLockPath,
   withJsonFileLock,
   workItemJsonPath,
@@ -30,11 +29,11 @@ export function resolveActivePrimaryTaskId(workItem: WorkItem): number | null {
   const candidates = sorted.length > 0 ? sorted : [1];
 
   for (const taskId of candidates) {
-    const task = loadTaskFile(workItem.id, String(taskId));
+    const task = loadTaskV2(workItem.id, String(taskId));
     if (!task) {
       continue;
     }
-    const status = task.status;
+    const status = task.control.status;
     if (status === "done" || status === "blocked") {
       continue;
     }
@@ -43,43 +42,30 @@ export function resolveActivePrimaryTaskId(workItem: WorkItem): number | null {
   return null;
 }
 
-/** Task id to use when mutating per-task state: active task, else legacy `task_ids[0] ?? 1`. */
+/** Task id to use when mutating per-task state: active task, else `task_ids[0] ?? 1`. */
 export function resolvePrimaryTaskIdForMutation(workItem: WorkItem): number {
   return resolveActivePrimaryTaskId(workItem) ?? workItem.task_ids[0] ?? 1;
 }
 
 export interface PrimaryTaskMutationContext {
   workItem: WorkItem;
-  task: Record<string, unknown>;
+  task: TaskFileV2;
   taskPath: string;
   primaryTaskId: number;
   timestamp: string;
 }
 
-export interface PrimaryTaskMutationResult {
-  /** Event to append to `task.events[]`. When omitted, no event is recorded. */
-  event?: Record<string, unknown>;
-}
-
 /**
- * Loads the primary task and lets `mutate` adjust both records. Returns `true`
- * iff state was written.
+ * Loads the primary task and lets `mutate` adjust both records. Returns `true` iff state was
+ * written. `mutate` returns `false` to abort without writing.
  */
 export function advancePrimaryTask(
   workItemId: string,
-  mutate: (ctx: PrimaryTaskMutationContext) => PrimaryTaskMutationResult | false,
+  mutate: (ctx: PrimaryTaskMutationContext) => boolean | undefined,
 ): boolean {
-  // Every caller in this pipeline (`applyTaskEventsFromPacket`, `persistValidatedAgentReturn`,
-  // and each `apply<Agent>PostResult` handler) does its own bare read \u2192 mutate \u2192 write of the
-  // SAME task file, often several times in a row for one subagent return. Without a lock, two
-  // overlapping calls (concurrent subagent-result batches, or an overlapping harness process on
-  // the same work item) can interleave: both read the pre-mutation task, both write back, and
-  // the second write silently discards the first mutation. That is invisible for append-only
-  // fields (`agent_returns`, `events` \u2014 both writers' appends usually survive across the two
-  // writes) but drops scalar/object fields like `review_loop.test_review_retries_used` or
-  // `phase`, which is exactly the failure mode that let the review-test\u2194phase-test retry cap
-  // run well past its configured limit without ever tripping. Hold the lock (keyed on the task
-  // path) for the full read-mutate-write cycle so callers serialise instead of racing.
+  // Every caller in this pipeline does read → mutate → write of the SAME task file, often
+  // several times for one subagent return. Hold the lock for the full cycle so overlapping
+  // callers serialise instead of silently dropping each other's control/counter updates.
   return withJsonFileLock(taskLockPath(workItemId), () => {
     const wi = loadWorkItem(workItemId);
     if (!wi) {
@@ -87,17 +73,16 @@ export function advancePrimaryTask(
     }
 
     const primaryTaskId = resolvePrimaryTaskIdForMutation(wi);
-    const resolvedTaskPath = taskJsonPath(workItemId, primaryTaskId);
-    const task = readJson<Record<string, unknown>>(resolvedTaskPath);
-    if (!task) {
+    const loaded = loadTaskResult(workItemId, primaryTaskId);
+    if (loaded.kind !== "ok") {
       return false;
     }
 
     const timestamp = now();
     const result = mutate({
       workItem: wi,
-      task,
-      taskPath: resolvedTaskPath,
+      task: loaded.task,
+      taskPath: loaded.path,
       primaryTaskId,
       timestamp,
     });
@@ -105,12 +90,13 @@ export function advancePrimaryTask(
       return false;
     }
 
-    if (result.event) {
-      const events = Array.isArray(task.events) ? [...(task.events as unknown[])] : [];
-      task.events = [...events, { at: timestamp, ...result.event }];
+    const block = loaded.task.control.blocked;
+    if (loaded.task.control.status === "blocked" && block && !block.fingerprint) {
+      const fingerprint = worktreeFingerprintSync();
+      if (fingerprint) block.fingerprint = fingerprint;
     }
-
-    writeJson(resolvedTaskPath, task);
+    refreshTask(loaded.task, timestamp);
+    writeJson(loaded.path, loaded.task);
     // Mutators such as `devPromoteEvents` may persist work-item side effects; reload so we
     // do not clobber decisions/deviations written during `mutate`.
     const wiToWrite = loadWorkItem(workItemId) ?? wi;

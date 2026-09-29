@@ -59,8 +59,12 @@ export type ParsedCli =
       kind: "unblock";
       workItemId: string;
       rawArgs: string;
+      /** Tail tokens after the work item id (shell quoting preserved). */
+      args: string[];
       options: GlobalOptions;
     }
+  | { kind: "trace"; workItemId: string; args: string[]; options: GlobalOptions }
+  | { kind: "task-reseed"; workItemId: string; args: string[]; options: GlobalOptions }
   | {
       kind: "block";
       workItemId: string;
@@ -316,8 +320,25 @@ export function parseCli(argv: string[]): ParsedCli {
       kind: "unblock",
       workItemId,
       rawArgs: tail.slice(1).join(" "),
+      args: tail.slice(1),
       options: flags,
     };
+  }
+
+  if (command === "trace") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return { kind: "error", message: "trace requires a work item id ([--task n] [--open])" };
+    }
+    return { kind: "trace", workItemId, args: tail.slice(1), options: flags };
+  }
+
+  if (command === "task" && tail[0] === "reseed") {
+    const workItemId = tail[1];
+    if (!workItemId) {
+      return { kind: "error", message: "task reseed requires a work item id (--task n)" };
+    }
+    return { kind: "task-reseed", workItemId, args: tail.slice(2), options: flags };
   }
 
   if (command === "block") {

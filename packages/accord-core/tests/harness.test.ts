@@ -27,8 +27,11 @@ import {
   validateHarnessArtifactWriteIfApplicable,
 } from "@clive.shirley/accord-core/harness/index.js";
 import type { HarnessMutableState } from "@clive.shirley/accord-core/harness/types.js";
+import { readLastTestOutput } from "@clive.shirley/accord-core/tasks/store.js";
+import type { QuickFixContract } from "@clive.shirley/accord-core/tasks/types.js";
 import { loadPricing } from "@clive.shirley/accord-core/telemetry/usage.js";
 import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
+import { readTaskFixture, writeTaskFixture } from "./helpers/task-fixture.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -67,7 +70,7 @@ function fencedJsonAssistantBody(payload: unknown): string {
 
 function quickFixContractFixture(
   testStrategy: "existing_tests" | "new_red_test",
-): Record<string, unknown> {
+): QuickFixContract {
   return {
     plan: {
       summary: "s",
@@ -589,9 +592,11 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("PKP-INV-1", "Invalid packet", "quick_fix", undefined, quickFixIntent());
 
+    // v2 phase-code schema no longer requires ac_covered/deviations_emitted; the old
+    // "badPacket" (missing those) is now schema-valid. Violate `anyOf: [changes, files_changed]`
+    // instead (status "done" with neither changes[] nor files_changed[]).
     const badPacket = {
       status: "done",
-      files_changed: [],
       tests_passing: true,
       usage: { prompt_tokens: 1, completion_tokens: 1 },
     };
@@ -709,21 +714,16 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("QRT-1", "quick fix review apply", "quick_fix", undefined, quickFixIntent());
     persistPrimaryTaskId(project, "QRT-1");
-    writeFileSync(
-      join(project, ".tasks", "QRT-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QRT-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "QRT-1",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: quickFixContractFixture("existing_tests"),
-        events: [],
-      })}\n`,
-      "utf8",
+        preImplGates: "pending",
+        quickFixContract: quickFixContractFixture("existing_tests"),
+      },
+      project,
     );
 
     const reviewPacket = { verdict: "clean" as const, findings: [] };
@@ -734,10 +734,8 @@ describe("harness processSubagentToolResult", () => {
       emptyHarnessState(),
     );
     expect(out).toContain("Quick-fix (review-test)");
-    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-1-task-1.json"), "utf8")) as {
-      phase: string;
-    };
-    expect(task.phase).toBe("phase-code");
+    const task = readTaskFixture("QRT-1", 1, project);
+    expect(task.control.phase).toBe("phase-code");
   });
 
   test("applies quick_fix phase-test → review-test handoff after validated phase-test packet", async () => {
@@ -745,22 +743,16 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("QPT-1", "quick fix phase test apply", "quick_fix", undefined, quickFixIntent());
     persistPrimaryTaskId(project, "QPT-1");
-    writeFileSync(
-      join(project, ".tasks", "QPT-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QPT-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "QPT-1",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: [],
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: quickFixContractFixture("new_red_test"),
-        events: [],
-      })}\n`,
-      "utf8",
+        preImplGates: "pending",
+        quickFixContract: quickFixContractFixture("new_red_test"),
+      },
+      project,
     );
 
     const phaseTestPacket = {
@@ -779,16 +771,13 @@ describe("harness processSubagentToolResult", () => {
       emptyHarnessState(),
     );
     expect(out).toContain("Quick-fix (phase-test)");
-    const task = JSON.parse(readFileSync(join(project, ".tasks", "QPT-1-task-1.json"), "utf8")) as {
-      phase: string;
-      test_files: string[];
-      test_output?: string;
-      ac_covered?: string[];
-    };
-    expect(task.phase).toBe("review-test");
-    expect(task.test_files).toEqual(["src/qpt.test.ts"]);
-    expect(task.test_output).toBe("FAIL: expected 403");
-    expect(task.ac_covered).toEqual(["AC-1"]);
+    const task = readTaskFixture("QPT-1", 1, project);
+    expect(task.control.phase).toBe("review-test");
+    expect(task.control.test_files).toEqual(["src/qpt.test.ts"]);
+    expect(readLastTestOutput(task)).toBe("FAIL: expected 403");
+    // v2 has no flat `ac_covered` — it's derived from requirements[].changes at brief time, and
+    // quick_fix tasks (coversAc: []) route every change to the catch-all `_task` requirement, so
+    // there is no per-AC requirement to assert coverage against here.
   });
 
   test("applies implement phase-test → review-test handoff after validated phase-test packet", async () => {
@@ -796,20 +785,15 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("IPT-1", "implement phase test apply", "implement", "express");
     persistPrimaryTaskId(project, "IPT-1");
-    writeFileSync(
-      join(project, ".tasks", "IPT-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IPT-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "IPT-1",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: [],
-        events: [],
-      })}\n`,
-      "utf8",
+        coversAc: ["AC-1"],
+      },
+      project,
     );
 
     const phaseTestPacket = {
@@ -827,12 +811,14 @@ describe("harness processSubagentToolResult", () => {
       emptyHarnessState(),
     );
     expect(out).toContain("Implement (phase-test)");
-    const task = JSON.parse(readFileSync(join(project, ".tasks", "IPT-1-task-1.json"), "utf8")) as {
-      phase: string;
-      test_files: string[];
-    };
-    expect(task.phase).toBe("review-test");
-    expect(task.test_files).toEqual(["src/ipt.test.ts"]);
+    const task = readTaskFixture("IPT-1", 1, project);
+    expect(task.control.phase).toBe("review-test");
+    expect(task.control.test_files).toEqual(["src/ipt.test.ts"]);
+    // AC-1 requirement exists (coversAc), so — unlike quick_fix — coverage is attributable:
+    // the legacy ac_covered assertion becomes a requirement-changes assertion.
+    expect(task.requirements.find((r) => r.id === "AC-1")?.changes.map((c) => c.file)).toEqual([
+      "src/ipt.test.ts",
+    ]);
   });
 
   test("applies implement review-test → phase-code handoff after validated review-test packet", async () => {
@@ -840,20 +826,17 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("IRT-1", "implement review test apply", "implement", "express");
     persistPrimaryTaskId(project, "IRT-1");
-    writeFileSync(
-      join(project, ".tasks", "IRT-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "IRT-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "IRT-1",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: ["src/irt.test.ts"],
-        events: [],
-      })}\n`,
-      "utf8",
+        preImplGates: "pending",
+        coversAc: ["AC-1"],
+        testFiles: ["src/irt.test.ts"],
+      },
+      project,
     );
 
     const reviewPacket = {
@@ -867,12 +850,9 @@ describe("harness processSubagentToolResult", () => {
       emptyHarnessState(),
     );
     expect(out).toContain("Implement (review-test)");
-    const task = JSON.parse(readFileSync(join(project, ".tasks", "IRT-1-task-1.json"), "utf8")) as {
-      phase: string;
-      pre_impl_gates: string;
-    };
-    expect(task.phase).toBe("phase-code");
-    expect(task.pre_impl_gates).toBe("complete");
+    const task = readTaskFixture("IRT-1", 1, project);
+    expect(task.control.phase).toBe("phase-code");
+    expect(task.control.pre_impl_gates).toBe("complete");
   });
 
   test("review-test warning-only issues advance to phase-code (with severity_gate config)", async () => {
@@ -880,21 +860,16 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("QRT-2", "gate", "quick_fix", undefined, quickFixIntent());
     persistPrimaryTaskId(project, "QRT-2");
-    writeFileSync(
-      join(project, ".tasks", "QRT-2-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QRT-2",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "QRT-2",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: quickFixContractFixture("existing_tests"),
-        events: [],
-      })}\n`,
-      "utf8",
+        preImplGates: "pending",
+        quickFixContract: quickFixContractFixture("existing_tests"),
+      },
+      project,
     );
 
     const reviewPacket = {
@@ -918,12 +893,9 @@ describe("harness processSubagentToolResult", () => {
         }),
       ),
     );
-    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-2-task-1.json"), "utf8")) as {
-      phase: string;
-      quick_fix_loop?: { test_review_cycles_used: number };
-    };
-    expect(task.phase).toBe("phase-code");
-    expect(task.quick_fix_loop?.test_review_cycles_used).toBe(0);
+    const task = readTaskFixture("QRT-2", 1, project);
+    expect(task.control.phase).toBe("phase-code");
+    expect(task.control.retries.test_review.used).toBe(0);
   });
 
   test("review-test warning-only issues retry phase-test when severity_gate is warn", async () => {
@@ -931,21 +903,16 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("QRT-4", "warn gate", "quick_fix", undefined, quickFixIntent());
     persistPrimaryTaskId(project, "QRT-4");
-    writeFileSync(
-      join(project, ".tasks", "QRT-4-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QRT-4",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "QRT-4",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: quickFixContractFixture("existing_tests"),
-        events: [],
-      })}\n`,
-      "utf8",
+        preImplGates: "pending",
+        quickFixContract: quickFixContractFixture("existing_tests"),
+      },
+      project,
     );
 
     const reviewPacket = {
@@ -972,12 +939,9 @@ describe("harness processSubagentToolResult", () => {
       ),
     );
     expect(out).toMatch(/retrying \*\*phase-test\*\*/i);
-    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-4-task-1.json"), "utf8")) as {
-      phase: string;
-      quick_fix_loop?: { test_review_cycles_used: number };
-    };
-    expect(task.phase).toBe("phase-test");
-    expect(task.quick_fix_loop?.test_review_cycles_used).toBe(1);
+    const task = readTaskFixture("QRT-4", 1, project);
+    expect(task.control.phase).toBe("phase-test");
+    expect(task.control.retries.test_review.used).toBe(1);
   });
 
   test("review-test warning-only issues advance to phase-code (no devConfig)", async () => {
@@ -985,21 +949,16 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("QRT-3", "gate", "quick_fix", undefined, quickFixIntent());
     persistPrimaryTaskId(project, "QRT-3");
-    writeFileSync(
-      join(project, ".tasks", "QRT-3-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QRT-3",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "QRT-3",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: quickFixContractFixture("existing_tests"),
-        events: [],
-      })}\n`,
-      "utf8",
+        preImplGates: "pending",
+        quickFixContract: quickFixContractFixture("existing_tests"),
+      },
+      project,
     );
 
     const reviewPacket = {
@@ -1019,12 +978,9 @@ describe("harness processSubagentToolResult", () => {
       fencedJsonAssistantBody(reviewPacket),
       emptyHarnessState(),
     );
-    const task = JSON.parse(readFileSync(join(project, ".tasks", "QRT-3-task-1.json"), "utf8")) as {
-      phase: string;
-      quick_fix_loop?: { test_review_cycles_used: number };
-    };
-    expect(task.phase).toBe("phase-code");
-    expect(task.quick_fix_loop?.test_review_cycles_used).toBe(0);
+    const task = readTaskFixture("QRT-3", 1, project);
+    expect(task.control.phase).toBe("phase-code");
+    expect(task.control.retries.test_review.used).toBe(0);
   });
 
   test("blocks quick_fix when review-test issues hit loop cap (quick_fix_loop_blocked)", async () => {
@@ -1032,21 +988,16 @@ describe("harness processSubagentToolResult", () => {
     process.chdir(project);
     devBootstrap("QFBC-1", "loop cap", "quick_fix", undefined, quickFixIntent());
     persistPrimaryTaskId(project, "QFBC-1");
-    writeFileSync(
-      join(project, ".tasks", "QFBC-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "QFBC-1",
-        task_id: 1,
-        owner_nonce: "abcdef",
+    writeTaskFixture(
+      {
+        workItemId: "QFBC-1",
+        taskId: 1,
+        ownerNonce: "abcdef",
         phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        quick_fix_loop: { test_review_cycles_used: 0 },
-        quick_fix_contract: quickFixContractFixture("existing_tests"),
-        events: [],
-      })}\n`,
-      "utf8",
+        preImplGates: "pending",
+        quickFixContract: quickFixContractFixture("existing_tests"),
+      },
+      project,
     );
 
     const reviewPacket = {
@@ -1075,13 +1026,15 @@ describe("harness processSubagentToolResult", () => {
     expect(out).toContain("Quick-fix:");
     expect(out).toMatch(/cap reached/i);
 
-    const task = JSON.parse(
-      readFileSync(join(project, ".tasks", "QFBC-1-task-1.json"), "utf8"),
-    ) as { status: string; events: Array<{ type?: string; reason?: string }> };
-    expect(task.status).toBe("blocked");
-    const blockedEvent = task.events.find((e) => e.type === "quick_fix_loop_blocked");
-    expect(blockedEvent).toBeDefined();
-    expect(String(blockedEvent?.reason)).toMatch(/cap reached/i);
+    const task = readTaskFixture("QFBC-1", 1, project);
+    expect(task.control.status).toBe("blocked");
+    // v1's flat `events[]` (`quick_fix_loop_blocked`) is gone — the equivalent v2 fact is the
+    // `control.blocked` cap record plus the harness `<round>/decision` log entry.
+    expect(task.control.blocked?.kind).toBe("cap");
+    expect(task.control.blocked?.reason).toMatch(/cap reached/i);
+    const decisionEntry = task.log.find((e) => e.result === "blocked");
+    expect(decisionEntry).toBeDefined();
+    expect(decisionEntry?.note).toMatch(/cap reached/i);
 
     const wi = JSON.parse(readFileSync(join(project, ".tasks", "QFBC-1.json"), "utf8")) as {
       updated?: string;

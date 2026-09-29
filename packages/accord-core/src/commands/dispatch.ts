@@ -34,7 +34,14 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
   { value: "gaps", description: "List verify gaps (--tickets spawns phase-gaps)" },
   { value: "review", description: "Decision queue" },
   { value: "deviations", description: "List/accept/revert plan deviations (review spawns agent)" },
-  { value: "unblock", description: "Clear a review-loop retry-cap block after fixing findings" },
+  {
+    value: "trace",
+    description: "Per-task trace: requirements → findings → history (--task n, --open)",
+  },
+  {
+    value: "unblock",
+    description: "Decide blockers (--note/--fixed/--accept/--waive F-n) and unblock a task",
+  },
   {
     value: "block",
     description: "Force a task to blocked (manual override when the retry-cap loop hasn't tripped)",

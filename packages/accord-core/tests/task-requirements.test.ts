@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { devCodeBrief } from "@clive.shirley/accord-core/briefing/code-brief.js";
@@ -11,8 +11,10 @@ import {
   sliceTaskRequirements,
 } from "@clive.shirley/accord-core/briefing/task-requirements.js";
 import type { DevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import { applyPhaseTestPostResult } from "@clive.shirley/accord-core/orchestration/post-result/index.js";
 import { resolveResumeOrchestration } from "@clive.shirley/accord-core/orchestration/resolve/resume.js";
 import { resetSpawnPreflightCheckForTests } from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
+import { readTaskFixture, taskFixture, writeTaskFixture } from "./helpers/task-fixture.js";
 
 function minimalDevConfig(): DevHarnessConfig {
   return {
@@ -126,21 +128,14 @@ describe("task-requirements", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "TR-1-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "TR-1",
-        task_id: 1,
-        owner_nonce: "aabbcc",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: [],
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "TR-1",
+      taskId: 1,
+      ownerNonce: "aabbcc",
+      phase: "phase-test",
+      coversAc: ["AC-1"],
+      acText: { "AC-1": "does thing" },
+    });
 
     const brief = buildImplementSpawnTaskBrief({
       workItemId: "TR-1",
@@ -221,23 +216,26 @@ describe("task-requirements", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "TR-RT-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "TR-RT",
-        task_id: 1,
-        owner_nonce: "ddeeff",
-        phase: "review-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        test_files: ["src/a.test.ts"],
+    // Seed at phase-test, then drive the real phase-test → review-test transition so the
+    // v2 task file ends up with a genuine sidecar test_output, confirmed RED, and an
+    // AC-1 requirement covered by a `test`-kind change (ac_covered is derived, not stored).
+    writeTaskFixture({
+      workItemId: "TR-RT",
+      taskId: 1,
+      ownerNonce: "ddeeff",
+      phase: "phase-test",
+      coversAc: ["AC-1"],
+      acText: { "AC-1": "does thing" },
+    });
+    applyPhaseTestPostResult(
+      "TR-RT",
+      {
+        status: "done",
+        changes: [{ file: "src/a.test.ts", action: "add", kind: "test", ac_ids: ["AC-1"] }],
         red_confirmed: true,
         test_output: "FAIL: expected 401",
-        ac_covered: ["AC-1"],
-        events: [],
-      })}\n`,
-      "utf8",
+      },
+      minimalDevConfig(),
     );
 
     const brief = buildImplementSpawnTaskBrief({
@@ -308,47 +306,36 @@ describe("task-requirements", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "TR-SYNC-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "TR-SYNC",
-        task_id: 1,
-        owner_nonce: "not-hex",
-        phase: "phase-code",
-        status: "pending",
-        pre_impl_gates: "complete",
-        test_files: ["src/a.test.ts"],
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    // owner_nonce is deliberately not a valid 6-hex nonce so devCodeBrief mints and syncs one.
+    writeTaskFixture({
+      workItemId: "TR-SYNC",
+      taskId: 1,
+      ownerNonce: "not-hex",
+      phase: "phase-code",
+      preImplGates: "complete",
+      coversAc: ["AC-1"],
+      acText: { "AC-1": "s" },
+      testFiles: ["src/a.test.ts"],
+    });
 
     const result = devCodeBrief("TR-SYNC", "1", minimalDevConfig());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.error);
     expect(result.value.brief).toContain(`**owner_nonce:** ${result.value.owner_nonce}`);
 
-    const onDisk = JSON.parse(readFileSync(join(".tasks", "TR-SYNC-task-1.json"), "utf8")) as {
-      owner_nonce: string;
-    };
-    expect(onDisk.owner_nonce).toBe(result.value.owner_nonce);
-    expect(onDisk.owner_nonce).toMatch(/^[0-9a-f]{6}$/);
+    const onDisk = readTaskFixture("TR-SYNC", 1);
+    expect(onDisk.control.owner_nonce).toBe(result.value.owner_nonce);
+    expect(onDisk.control.owner_nonce).toMatch(/^[0-9a-f]{6}$/);
   });
 
   test("syncTaskFileOwnerNonceForSpawn blocks when assigned nonce disagrees with on-disk nonce", () => {
-    const taskFile = {
-      schema_version: "1.0",
-      work_item_id: "TR-DRIFT",
-      task_id: 1,
-      owner_nonce: "aabbcc",
+    const taskFile = taskFixture({
+      workItemId: "TR-DRIFT",
+      taskId: 1,
+      ownerNonce: "aabbcc",
       phase: "phase-test",
-      status: "pending",
-      pre_impl_gates: "pending",
-      test_files: [],
-      events: [],
-    };
-    writeFileSync(join(".tasks", "TR-DRIFT-task-1.json"), `${JSON.stringify(taskFile)}\n`, "utf8");
+      coversAc: ["AC-1"],
+    });
 
     const blocked = syncTaskFileOwnerNonceForSpawn({
       workItemId: "TR-DRIFT",
@@ -356,7 +343,7 @@ describe("task-requirements", () => {
       ownerNonce: "111111",
       minted: true,
       dispatchAgent: "phase-test",
-      taskFile,
+      taskFile: taskFile as unknown as Record<string, unknown>,
     });
     expect(blocked.ok).toBe(false);
     if (blocked.ok) throw new Error("expected drift block");
@@ -412,20 +399,14 @@ describe("task-requirements", () => {
       deviations: [],
       cost_usd: 0,
     });
-    writeFileSync(
-      join(".tasks", "WI-RT-task-1.json"),
-      `${JSON.stringify({
-        schema_version: "1.0",
-        work_item_id: "WI-RT",
-        task_id: 1,
-        owner_nonce: "112233",
-        phase: "phase-test",
-        status: "pending",
-        pre_impl_gates: "pending",
-        events: [],
-      })}\n`,
-      "utf8",
-    );
+    writeTaskFixture({
+      workItemId: "WI-RT",
+      taskId: 1,
+      ownerNonce: "112233",
+      phase: "phase-test",
+      coversAc: ["AC-1"],
+      acText: { "AC-1": "s" },
+    });
 
     const r = resolveResumeOrchestration("WI-RT", minimalDevConfig());
     expect(r.outcome).toBe("spawn");

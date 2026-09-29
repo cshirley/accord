@@ -102,7 +102,7 @@ export interface DevHarnessOrchestrationConfig {
     /**
      * Max times `/dev unblock` / `accord unblock` may reset a `blocked` task's retry counters
      * for this work item's lifetime. Default: `DEFAULT_MAX_UNBLOCKS_PER_TASK` (1). Once reached,
-     * unblock refuses and points at `last_review_feedback` / raising this cap explicitly.
+     * unblock refuses unless the blockers are accepted/waived or this cap is raised.
      */
     max_unblocks_per_task?: number;
     /**
@@ -120,6 +120,18 @@ export interface DevHarnessOrchestrationConfig {
       max_retries?: number;
       max_lifetime_retries?: number;
     };
+  };
+  /**
+   * **phase-verify-task** after review-code for every implementation task. A failing AC raises a
+   * gating finding and loops to **phase-code** (full code round); capped like review loops.
+   */
+  verify_loop?: {
+    /** Default true. When false, a clean review-code marks the task done (legacy). */
+    enabled?: boolean;
+    /** Max verify-fail → phase-code bounces before the task blocks. Default 3. */
+    max_retries?: number;
+    /** Never reset by unblock. Default `max_retries * (max_unblocks_per_task + 1)`. */
+    max_lifetime_retries?: number;
   };
   /**
    * Bounded LLM output merged into resume task text (Phase 5). Never selects agents —

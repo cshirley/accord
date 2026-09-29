@@ -2,16 +2,22 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { applyPhaseVerifyTaskPostResult } from "@clive.shirley/accord-core/orchestration/post-result/phase-verify-task.js";
+import type { TaskFileV2 } from "@clive.shirley/accord-core/tasks/types.js";
 import {
   bootstrapImplementTasksFromPlan,
   reconcileVerifyOnlyTasksFromPlan,
 } from "@clive.shirley/accord-core/work-items/artifact-discovery.js";
+import { writeTaskFixture } from "./helpers/task-fixture.js";
 
 const tmpRoot = join(import.meta.dirname, ".tmp-verify-only");
 const originalCwd = process.cwd();
 
 function writeJson(path: string, data: unknown) {
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+}
+
+function readTask(id: string): TaskFileV2 {
+  return JSON.parse(readFileSync(join(".tasks", `${id}-task-1.json`), "utf8")) as TaskFileV2;
 }
 
 function setupProject() {
@@ -82,48 +88,37 @@ describe("verify-only implement tasks", () => {
   test("bootstrap sets phase-verify-task and pre_impl_gates complete", () => {
     const { id, planPath } = setupProject();
     expect(bootstrapImplementTasksFromPlan(id, planPath)).toBe(1);
-    const task = JSON.parse(readFileSync(join(".tasks", `${id}-task-1.json`), "utf8")) as {
-      phase: string;
-      pre_impl_gates: string;
-    };
-    expect(task.phase).toBe("phase-verify-task");
-    expect(task.pre_impl_gates).toBe("complete");
+    const task = readTask(id);
+    expect(task.control.phase).toBe("phase-verify-task");
+    expect(task.control.pre_impl_gates).toBe("complete");
   });
 
-  test("reconcile migrates legacy phase-test verify-only task", () => {
+  test("reconcile migrates a verify-only task stuck at phase-test", () => {
     const { id, planPath } = setupProject();
-    writeJson(join(".tasks", `${id}-task-1.json`), {
-      schema_version: "1.0",
-      work_item_id: id,
-      task_id: 1,
-      owner_nonce: "aabbcc",
-      phase: "phase-test",
-      status: "pending",
-      pre_impl_gates: "pending",
-      test_files: [],
-      events: [],
-    });
+    writeTaskFixture(
+      {
+        workItemId: id,
+        taskId: 1,
+        phase: "phase-test",
+        preImplGates: "pending",
+        coversAc: ["AC-1"],
+      },
+      ".",
+    );
     writeJson(join(".tasks", `${id}.json`), {
       ...JSON.parse(readFileSync(join(".tasks", `${id}.json`), "utf8")),
       task_ids: [1],
     });
 
     expect(reconcileVerifyOnlyTasksFromPlan(id, planPath)).toBe(1);
-    const task = JSON.parse(readFileSync(join(".tasks", `${id}-task-1.json`), "utf8")) as {
-      phase: string;
-      pre_impl_gates: string;
-    };
-    expect(task.phase).toBe("phase-verify-task");
-    expect(task.pre_impl_gates).toBe("complete");
+    const task = readTask(id);
+    expect(task.control.phase).toBe("phase-verify-task");
+    expect(task.control.pre_impl_gates).toBe("complete");
   });
 
   test("phase-verify-task post-result marks task done", () => {
     const { id, planPath } = setupProject();
     bootstrapImplementTasksFromPlan(id, planPath);
-    writeJson(join(".tasks", `${id}.json`), {
-      ...JSON.parse(readFileSync(join(".tasks", `${id}.json`), "utf8")),
-      task_ids: [1],
-    });
     const packet = {
       status: "done" as const,
       verify_output: "all green",
@@ -131,24 +126,19 @@ describe("verify-only implement tasks", () => {
       usage: { prompt_tokens: 1, completion_tokens: 1 },
     };
     const out = applyPhaseVerifyTaskPostResult(id, packet);
-    expect(out).toContain("verify-only");
-    const task = JSON.parse(readFileSync(join(".tasks", `${id}-task-1.json`), "utf8")) as {
-      status: string;
-      phase: string;
-      events: Array<{ type: string }>;
-    };
-    expect(task.status).toBe("done");
-    expect(task.phase).toBe("phase-verify-task");
-    expect(task.events.some((e) => e.type === "implement_verify_task_applied")).toBe(true);
+    expect(out).toContain("verification passed");
+    const task = readTask(id);
+    expect(task.control.status).toBe("done");
+    expect(task.control.phase).toBe("phase-verify-task");
+    // legacy `ac_covered` (no `evidence[]`) is inferred as a pass for each covered AC.
+    const ac1 = task.requirements.find((r) => r.id === "AC-1");
+    expect(ac1?.verification).toEqual({ by: "V1/phase-verify-task", result: "pass", tests: [] });
+    expect(ac1?.status).toBe("satisfied");
   });
 
   test("phase-verify-task post-result blocks (does not mark done) when verify_output shows a crashed runner", () => {
     const { id, planPath } = setupProject();
     bootstrapImplementTasksFromPlan(id, planPath);
-    writeJson(join(".tasks", `${id}.json`), {
-      ...JSON.parse(readFileSync(join(".tasks", `${id}.json`), "utf8")),
-      task_ids: [1],
-    });
     const packet = {
       status: "done" as const,
       verify_output: "UnhandledPromiseRejectionWarning: Error: boom\n  at foo (bar.js:1:1)\n",
@@ -157,17 +147,12 @@ describe("verify-only implement tasks", () => {
     };
     const out = applyPhaseVerifyTaskPostResult(id, packet);
     expect(out).toContain("CRASH detected");
-    const task = JSON.parse(readFileSync(join(".tasks", `${id}-task-1.json`), "utf8")) as {
-      status: string;
-      phase: string;
-      test_runner_crash?: { reason: string };
-      events: Array<{ type: string }>;
-    };
-    // Must NOT be marked done on a crashed run \u2014 no RED/review cycle downstream would ever
+    const task = readTask(id);
+    // Must NOT be marked done on a crashed run — no RED/review cycle downstream would ever
     // catch this otherwise, since verify-only tasks complete in one gate pass.
-    expect(task.status).toBe("blocked");
-    expect(task.phase).toBe("phase-verify-task");
-    expect(task.test_runner_crash?.reason).toContain("unhandled promise rejection");
-    expect(task.events.some((e) => e.type === "implement_verify_task_crash_detected")).toBe(true);
+    expect(task.control.status).toBe("blocked");
+    expect(task.control.phase).toBe("phase-verify-task");
+    expect(task.control.blocked?.kind).toBe("crash");
+    expect(task.control.blocked?.reason).toContain("unhandled promise rejection");
   });
 });

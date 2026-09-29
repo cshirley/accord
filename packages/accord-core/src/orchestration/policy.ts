@@ -34,6 +34,9 @@ export const DEFAULT_MAX_GATHER_ATTEMPTS = 3;
  */
 export const DEFAULT_MAX_RGR_RESPAWNS = 3;
 
+/** Default cap on phase-verify-task fail → phase-code bounces per task. */
+export const DEFAULT_MAX_VERIFY_RETRIES = 3;
+
 export type PolicySeverityGate = "none" | "warn" | "block";
 
 export type ReviewLoopAgent = "review-test" | "review-code";
@@ -191,6 +194,30 @@ export interface RgrRespawnPolicy {
   maxRespawns: number;
   /** Never reset by `/dev unblock`. */
   maxLifetimeRespawns: number;
+}
+
+export interface VerifyLoopPolicy {
+  /** Run phase-verify-task after review-code for every implementation task. Default true. */
+  enabled: boolean;
+  maxRetries: number;
+  /** Never reset by `/dev unblock`. */
+  maxLifetimeRetries: number;
+}
+
+/** `orchestration.verify_loop` (default enabled, {@link DEFAULT_MAX_VERIFY_RETRIES} retries). */
+export function verifyLoopPolicyFromDevConfig(
+  config: DevHarnessConfig | null | undefined,
+): VerifyLoopPolicy {
+  const raw = config?.orchestration?.verify_loop;
+  const maxRetries =
+    typeof raw?.max_retries === "number" && Number.isFinite(raw.max_retries)
+      ? Math.max(0, Math.floor(raw.max_retries))
+      : DEFAULT_MAX_VERIFY_RETRIES;
+  const maxLifetimeRetries =
+    typeof raw?.max_lifetime_retries === "number" && Number.isFinite(raw.max_lifetime_retries)
+      ? Math.max(0, Math.floor(raw.max_lifetime_retries))
+      : maxRetries * (maxUnblocksPerTaskFromDevConfig(config) + 1);
+  return { enabled: raw?.enabled !== false, maxRetries, maxLifetimeRetries };
 }
 
 /** `orchestration.review_loop.max_rgr_respawns` (default {@link DEFAULT_MAX_RGR_RESPAWNS}). */

@@ -24,6 +24,7 @@ import { isFinishReady } from "@clive.shirley/accord-core/queries/dashboard-hint
 import { resetSpawnPreflightCheckForTests } from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
 import { unblockTask } from "@clive.shirley/accord-core/queries/unblock-task.js";
 import type { WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
+import { readTaskFixture, taskFixturePath, writeTaskFixture } from "./helpers/task-fixture.js";
 
 function devConfig(): DevHarnessConfig {
   return {
@@ -78,38 +79,20 @@ function writeWorkItem(id: string, body: Partial<WorkItem> & Record<string, unkn
   );
 }
 
-function writeTask(id: string, taskId: number, body: Record<string, unknown>): void {
-  writeFileSync(
-    join(".tasks", `${id}-task-${String(taskId)}.json`),
-    `${JSON.stringify({
-      schema_version: "1.0",
-      work_item_id: id,
-      task_id: taskId,
-      owner_nonce: "abcdef",
-      phase: "phase-test",
-      status: "pending",
-      pre_impl_gates: "pending",
-      test_files: [],
-      events: [],
-      ...body,
-    })}\n`,
-  );
-}
-
-function readTask(id: string, taskId = 1): Record<string, unknown> {
-  return JSON.parse(readFileSync(join(".tasks", `${id}-task-${String(taskId)}.json`), "utf8"));
+function readTask(id: string, taskId = 1): ReturnType<typeof readTaskFixture> {
+  return readTaskFixture(id, taskId);
 }
 
 function readWorkItem(id: string): WorkItem {
   return JSON.parse(readFileSync(join(".tasks", `${id}.json`), "utf8"));
 }
 
-function setTaskPhase(id: string, phase: string): void {
-  const task = readTask(id);
-  writeFileSync(
-    join(".tasks", `${id}-task-1.json`),
-    `${JSON.stringify({ ...task, phase, status: "pending" })}\n`,
-  );
+/** Rewrite `phase`/`status` directly on the v2 task file — mirrors "the agent re-ran". */
+function setTaskPhase(id: string, phase: string, taskId = 1): void {
+  const task = readTask(id, taskId);
+  task.control.phase = phase as (typeof task)["control"]["phase"];
+  task.control.status = "pending";
+  writeFileSync(taskFixturePath(id, taskId), `${JSON.stringify(task)}\n`);
 }
 
 const CRITICAL = {
@@ -138,11 +121,13 @@ describe("review-test → phase-test", () => {
   for (const pattern of ["implement", "quick_fix"] as const) {
     test(`${pattern}: 3 retries, then blocked on the 4th gated review`, () => {
       writeWorkItem("RT", pattern === "quick_fix" ? { pattern, phase: "fixing" } : {});
-      writeTask("RT", 1, {
+      writeTaskFixture({
+        workItemId: "RT",
+        taskId: 1,
         phase: "review-test",
         ...(pattern === "quick_fix"
           ? {
-              quick_fix_contract: {
+              quickFixContract: {
                 plan: { summary: "s", target_paths: [], out_of_scope: [], expected_finish: "d" },
                 test: { strategy: "new_red_test", red_required: true, command: "bun test" },
               },
@@ -151,13 +136,13 @@ describe("review-test → phase-test", () => {
       });
       for (let attempt = 1; attempt <= 3; attempt++) {
         applyReviewTestPostResult("RT", CRITICAL, devConfig());
-        expect(readTask("RT").phase).toBe("phase-test");
-        expect(readTask("RT").status).toBe("pending");
+        expect(readTask("RT").control.phase).toBe("phase-test");
+        expect(readTask("RT").control.status).toBe("pending");
         setTaskPhase("RT", "review-test");
       }
       const note = applyReviewTestPostResult("RT", CRITICAL, devConfig());
       expect(note).toContain("retry cap reached");
-      expect(readTask("RT").status).toBe("blocked");
+      expect(readTask("RT").control.status).toBe("blocked");
     });
   }
 });
@@ -165,14 +150,19 @@ describe("review-test → phase-test", () => {
 describe("review-code → phase-code", () => {
   test("3 retries, then blocked on the 4th gated review", () => {
     writeWorkItem("RC", {});
-    writeTask("RC", 1, { phase: "review-code", pre_impl_gates: "complete" });
+    writeTaskFixture({
+      workItemId: "RC",
+      taskId: 1,
+      phase: "review-code",
+      preImplGates: "complete",
+    });
     for (let attempt = 1; attempt <= 3; attempt++) {
       applyReviewCodePostResult("RC", CRITICAL, devConfig());
-      expect(readTask("RC").phase).toBe("phase-code");
+      expect(readTask("RC").control.phase).toBe("phase-code");
       setTaskPhase("RC", "review-code");
     }
     applyReviewCodePostResult("RC", CRITICAL, devConfig());
-    expect(readTask("RC").status).toBe("blocked");
+    expect(readTask("RC").control.status).toBe("blocked");
   });
 });
 
@@ -186,29 +176,37 @@ describe("phase-code → phase-test (RGR test_issue) respawns", () => {
 
   test("3 respawns, then blocked; unblock resets but lifetime cap holds", () => {
     writeWorkItem("RGR", {});
-    writeTask("RGR", 1, { phase: "phase-code", pre_impl_gates: "complete" });
+    writeTaskFixture({
+      workItemId: "RGR",
+      taskId: 1,
+      phase: "phase-code",
+      preImplGates: "complete",
+    });
     for (let attempt = 1; attempt <= 3; attempt++) {
       const note = applyPhaseCodePostResult("RGR", TEST_ISSUE, devConfig());
-      expect(note).toContain(`RGR respawn ${String(attempt)} / 3`);
-      expect(readTask("RGR").phase).toBe("phase-test");
+      expect(note).toContain(`(rgr ${String(attempt)}/3)`);
+      expect(readTask("RGR").control.phase).toBe("phase-test");
       setTaskPhase("RGR", "phase-code");
     }
     const blockedNote = applyPhaseCodePostResult("RGR", TEST_ISSUE, devConfig());
     expect(blockedNote).toContain("RGR respawn cap reached");
-    expect(readTask("RGR").status).toBe("blocked");
-    expect(readTask("RGR").phase).toBe("phase-code");
+    expect(readTask("RGR").control.status).toBe("blocked");
+    expect(readTask("RGR").control.phase).toBe("phase-code");
 
-    // Unblock grants another 3 (default max_unblocks_per_task = 1) …
+    // Unblock grants another 3 (default max_unblocks_per_task = 1) — unblock reopens the T
+    // loop (RGR is a T-loop finding), so drive phase-code again from `phase-code`.
     expect(unblockTask("RGR", 1).ok).toBe(true);
+    expect(readTask("RGR").control.phase).toBe("phase-test");
+    setTaskPhase("RGR", "phase-code");
     for (let attempt = 1; attempt <= 3; attempt++) {
       applyPhaseCodePostResult("RGR", TEST_ISSUE, devConfig());
-      expect(readTask("RGR").status).toBe("pending");
+      expect(readTask("RGR").control.status).toBe("pending");
       setTaskPhase("RGR", "phase-code");
     }
     // … then the lifetime ceiling (3 × 2) blocks, and a second unblock is refused.
     const lifetimeNote = applyPhaseCodePostResult("RGR", TEST_ISSUE, devConfig());
     expect(lifetimeNote).toContain("LIFETIME");
-    expect(readTask("RGR").status).toBe("blocked");
+    expect(readTask("RGR").control.status).toBe("blocked");
     expect(unblockTask("RGR", 1).ok).toBe(false);
   });
 });
@@ -216,8 +214,14 @@ describe("phase-code → phase-test (RGR test_issue) respawns", () => {
 describe("blocked tasks halt the work item", () => {
   test("resume refuses to skip a blocked task to later tasks or into finish", () => {
     writeWorkItem("HALT", { task_ids: [1, 2] });
-    writeTask("HALT", 1, { phase: "review-test", status: "blocked" });
-    writeTask("HALT", 2, { phase: "phase-test", status: "pending" });
+    writeTaskFixture({
+      workItemId: "HALT",
+      taskId: 1,
+      phase: "review-test",
+      status: "blocked",
+      blocked: { kind: "cap", reason: "retry cap reached", ref: "T1/decision", loop: "T" },
+    });
+    writeTaskFixture({ workItemId: "HALT", taskId: 2, phase: "phase-test", status: "pending" });
     const resolution = resolveResumeOrchestration("HALT", devConfig());
     expect(resolution.outcome).toBe("blocked");
     const text = (resolution.messages ?? []).map((m) => m.text).join("\n");
@@ -230,10 +234,16 @@ describe("blocked tasks halt the work item", () => {
 
   test("done + blocked is not finish-ready", () => {
     writeWorkItem("FIN", { task_ids: [1, 2] });
-    writeTask("FIN", 1, { phase: "review-code", status: "done" });
-    writeTask("FIN", 2, { phase: "review-test", status: "blocked" });
+    writeTaskFixture({ workItemId: "FIN", taskId: 1, phase: "review-code", status: "done" });
+    writeTaskFixture({
+      workItemId: "FIN",
+      taskId: 2,
+      phase: "review-test",
+      status: "blocked",
+      blocked: { kind: "cap", reason: "retry cap reached", ref: "T1/decision", loop: "T" },
+    });
     expect(isFinishReady("FIN", readWorkItem("FIN"))).toBe(false);
-    writeTask("FIN", 2, { phase: "review-code", status: "done" });
+    writeTaskFixture({ workItemId: "FIN", taskId: 2, phase: "review-code", status: "done" });
     expect(isFinishReady("FIN", readWorkItem("FIN"))).toBe(true);
   });
 });

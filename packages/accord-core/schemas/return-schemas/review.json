@@ -6,7 +6,9 @@
   "required": ["verdict", "findings"],
   "additionalProperties": true,
   "properties": {
-    "verdict": { "enum": ["clean", "issues"] },
+    "verdict": {
+      "enum": ["clean", "issues"]
+    },
     "analysis": {
       "type": "string",
       "minLength": 1,
@@ -19,19 +21,77 @@
         "required": ["severity", "issue"],
         "additionalProperties": true,
         "properties": {
-          "severity": { "enum": ["critical", "warning", "suggestion"] },
-          "file": { "type": "string" },
-          "line": { "type": "integer", "minimum": 1 },
-          "issue": { "type": "string", "minLength": 1 },
-          "evidence": { "type": "string" },
-          "recommendation": { "type": "string" },
+          "severity": {
+            "enum": ["critical", "warning", "suggestion"]
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "issue": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
           "category": {
             "type": "string",
             "description": "Machine routing tag (e.g. OWASP A01, drift, adversarial, H1)."
           },
           "ref": {
             "type": "string",
-            "description": "External reference when file:line is not applicable (AC-3, TC-2, H1, task-2)."
+            "description": "Deprecated — use ac_id / tc_id."
+          },
+          "ac_id": {
+            "type": "string",
+            "description": "Requirement this finding concerns — infer from requirement_map changes (file → AC). Omit only if cross-cutting."
+          },
+          "tc_id": {
+            "type": "string",
+            "description": "Spec test case (TC-n) when applicable."
+          },
+          "also_affects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Other ACs the finding touches."
+          },
+          "finding_id": {
+            "type": "string",
+            "pattern": "^F-\\d+$",
+            "description": "Only when re-raising a prior finding (prefer rechecks[] outcome reraised)."
+          }
+        }
+      }
+    },
+    "rechecks": {
+      "type": "array",
+      "description": "Retry rounds: one entry per prior finding in the harness ledger.",
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "outcome"],
+        "additionalProperties": false,
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "pattern": "^F-\\d+$"
+          },
+          "outcome": {
+            "enum": ["verified", "reraised", "dispute_upheld", "wont_fix_accepted"]
+          },
+          "note": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": ["critical", "warning", "suggestion"]
           }
         }
       }

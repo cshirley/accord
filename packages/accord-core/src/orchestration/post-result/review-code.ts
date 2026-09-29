@@ -1,17 +1,25 @@
 /**
- * After validated **review-code** return — persist findings on the task file; critical
- * findings retry **phase-code** until `orchestration.review_loop.max_critical_retries`.
+ * After validated **review-code** return — record findings/rechecks, then gate the code loop:
+ * advance to **phase-verify-task** (open `V` round; or `done` when the verify loop is disabled),
+ * retry **phase-code** (open next `C` round, consume a code_review slot), or block at the cap.
  */
 
 import type { DevHarnessConfig } from "../../config/types.js";
-import { severityGateRemediationLabel } from "../policy.js";
+import { bumpRetry, capForKey, decideLoop } from "../../tasks/decide.js";
+import { claimRef, clearInFlight, logDecision, recordReview } from "../../tasks/record.js";
 import {
-  decideAfterReviewCode,
-  isReviewReturnPacket,
-  persistLastReviewFeedback,
-  readReviewLoopCounters,
-  writeReviewLoopCounters,
-} from "../review-feedback.js";
+  reviewRetryPolicyForAgent,
+  severityGateRemediationLabel,
+  verifyLoopPolicyFromDevConfig,
+} from "../policy.js";
+import { isReviewReturnPacket } from "../review-feedback.js";
+import {
+  analysisFrom,
+  footer,
+  type PostResultContext,
+  pipelineLabel,
+  traceHint,
+} from "./pipeline.js";
 import { advancePrimaryTask } from "./primary-task.js";
 
 /**
@@ -21,113 +29,118 @@ export function applyReviewCodePostResult(
   workItemId: string,
   packet: unknown,
   devConfig?: DevHarnessConfig | null,
+  context?: PostResultContext,
 ): string {
-  if (!isReviewReturnPacket(packet)) {
-    return "";
-  }
+  if (!isReviewReturnPacket(packet)) return "";
+  const record = packet as unknown as Record<string, unknown>;
 
-  let footer = "";
+  let out = "";
+  const applied = advancePrimaryTask(workItemId, ({ workItem, task, timestamp }) => {
+    const label = pipelineLabel(workItem);
+    if (!label || task.control.phase !== "review-code") return false;
+    const ref = claimRef(task, "review-code");
+    if (!ref) return false;
 
-  const applied = advancePrimaryTask(workItemId, ({ workItem: wi, task, timestamp }) => {
-    const onImplement = wi.pattern === "implement" && wi.phase === "implementing";
-    const onQuickFix = wi.pattern === "quick_fix" && wi.phase === "fixing";
-    if ((!onImplement && !onQuickFix) || task.phase !== "review-code") {
-      return false;
-    }
+    const policy = reviewRetryPolicyForAgent(devConfig, workItem.pattern, "review-code");
+    const rec = recordReview(task, ref, "review-code", record, timestamp, {
+      gate: policy.severityGate,
+      analysis: analysisFrom(record, context),
+    });
+    clearInFlight(task, "review-code");
 
-    persistLastReviewFeedback(task, "review-code", packet, timestamp);
+    const cap = capForKey("code_review", devConfig, workItem.pattern);
+    const decision = decideLoop(task, "C", cap);
 
-    const counters = readReviewLoopCounters(task);
-    const decision = decideAfterReviewCode(counters, packet, devConfig, wi.pattern);
-
-    if ("blocked" in decision) {
-      task.status = "blocked";
-      const label = onQuickFix ? "Quick-fix" : "Implement";
-      footer = [
-        "",
-        "",
-        `**${label}:** review-code critical-issue retry cap reached.`,
-        "",
-        `- ${decision.reason}`,
-        "",
-        "Findings are on the task file under `last_review_feedback`. Task `status` is `blocked`.",
-      ].join("\n");
-      return {
-        event: {
-          type: onQuickFix ? "quick_fix_review_code_blocked" : "implement_review_code_blocked",
-          reason: decision.reason,
-          phase: "review-code",
-        },
-      };
-    }
-
-    const previousPhase = "review-code";
-
-    if (decision.bumpCodeRetry) {
-      const used = counters.code_review_retries_used + 1;
-      writeReviewLoopCounters(task, {
-        ...counters,
-        code_review_retries_used: used,
-        // Never reset by `/dev unblock` — this is the hard ceiling that survives it.
-        lifetime_code_review_cycles: counters.lifetime_code_review_cycles + 1,
+    if (decision.kind === "blocked") {
+      const decisionRef = logDecision(task, timestamp, {
+        result: "blocked",
+        note: `${decision.reason}; gating ${decision.gating.join(", ")}`,
       });
-      task.phase = "phase-code";
-      task.status = "pending";
-
-      const label = onQuickFix ? "Quick-fix" : "Implement";
-      const gateLabel = severityGateRemediationLabel(decision.retryPolicy.severityGate);
-      footer = [
-        "",
-        "",
-        `**${label} (review-code):** ${gateLabel} — retrying **phase-code** (gate \`${decision.retryPolicy.severityGate}\`).`,
-        "",
-        `- Task phase: \`${previousPhase}\` → \`phase-code\`.`,
-        `- Findings: \`last_review_feedback\` on the per-task JSON.`,
-        `- Used ${String(readReviewLoopCounters(task).code_review_retries_used)} / ${String(decision.retryPolicy.maxRetries)} code-review retry slot(s).`,
-        "",
-        "Run `/dev resume` for **phase-code**; prior feedback is appended to the harness brief.",
-      ].join("\n");
-
-      return {
-        event: {
-          type: onQuickFix ? "quick_fix_review_code_applied" : "implement_review_code_applied",
-          verdict: packet.verdict,
-          previous_phase: previousPhase,
-          next_phase: "phase-code",
-          bumped_cycle: true,
-          critical_retry: true,
-        },
+      task.control.status = "blocked";
+      task.control.blocked = {
+        kind: "cap",
+        reason: decision.reason,
+        ref: decisionRef,
+        loop: "C",
+        lifetime: decision.lifetime,
       };
+      out = footer([
+        `**${label}:** review-code retry cap reached — task \`blocked\`.`,
+        "",
+        `- ${decision.reason}.`,
+        `- Blocking findings: ${decision.gating.join(", ")}.`,
+        "",
+        "Decide each blocker (`--note/--fixed/--accept/--waive`) with `accord unblock`, then `accord resume`.",
+        traceHint(task),
+      ]);
+      return true;
     }
 
-    task.status = "done";
-    const label = onQuickFix ? "Quick-fix" : "Implement";
-    footer = [
-      "",
-      "",
-      `**${label} (review-code):** code review complete.`,
-      "",
-      `- Task phase: \`${previousPhase}\` (unchanged); \`status\` → \`done\`.`,
-      `- Findings: \`last_review_feedback\` on the per-task JSON.`,
+    if (decision.kind === "retry") {
+      const counter = bumpRetry(task, "code_review");
+      logDecision(
+        task,
+        timestamp,
+        {
+          result: "retry",
+          note: `${String(decision.gating.length)} gating (${decision.gating.join(", ")}) → phase-code (code_review ${String(counter.used)}/${String(cap.maxRetries)})`,
+          next_phase: "phase-code",
+        },
+        "C",
+      );
+      task.control.phase = "phase-code";
+      task.control.status = "pending";
+      out = footer([
+        `**${label} (review-code):** ${severityGateRemediationLabel(policy.severityGate)} — retrying **phase-code** (${String(counter.used)}/${String(cap.maxRetries)}; gate \`${policy.severityGate}\`).`,
+        "",
+        `- Gating findings: ${decision.gating.join(", ")}.`,
+        `- Task phase: \`review-code\` → \`phase-code\` (round ${task.control.round}).`,
+        "Run `/dev resume` for **phase-code**; open findings are in the brief.",
+      ]);
+      return true;
+    }
+
+    const verify = verifyLoopPolicyFromDevConfig(devConfig);
+    const advisory = packet.verdict === "issues" ? " (advisory findings remain open)" : "";
+    if (verify.enabled) {
+      logDecision(
+        task,
+        timestamp,
+        {
+          result: "advance",
+          note: `No gating code findings → phase-verify-task${advisory}`,
+          next_phase: "phase-verify-task",
+        },
+        "V",
+      );
+      task.control.phase = "phase-verify-task";
+      task.control.status = "pending";
+      out = footer([
+        `**${label} (review-code):** ${rec.raised.length ? `raised ${rec.raised.join(", ")} (below gate)` : "clean"}.`,
+        "",
+        `- Task phase: \`review-code\` → \`phase-verify-task\` (round ${task.control.round}).`,
+        "Run `/dev resume` to spawn **phase-verify-task** (per-AC verification evidence).",
+      ]);
+      return true;
+    }
+
+    logDecision(task, timestamp, {
+      result: "done",
+      note: `No gating code findings; verify loop disabled → done${advisory}`,
+    });
+    task.control.status = "done";
+    out = footer([
+      `**${label} (review-code):** code review complete; \`status\` → \`done\`.`,
       packet.verdict === "issues"
-        ? `- Verdict: \`issues\` below repo gate (\`${decision.retryPolicy.severityGate}\`) — advisory only.`
+        ? `- Verdict: \`issues\` below repo gate (\`${policy.severityGate}\`) — advisory only.`
         : "- Verdict: `clean`.",
       "",
-      onQuickFix
+      label === "Quick-fix"
         ? "Run `/dev finish` or report when verification is complete."
         : "Run `/dev resume` for the next plan task, or `/dev finish` when all tasks are done.",
-    ].join("\n");
-
-    return {
-      event: {
-        type: onQuickFix ? "quick_fix_review_code_applied" : "implement_review_code_applied",
-        verdict: packet.verdict,
-        previous_phase: previousPhase,
-        status: "done",
-        critical_retry: false,
-      },
-    };
+    ]);
+    return true;
   });
 
-  return applied ? footer : "";
+  return applied ? out : "";
 }

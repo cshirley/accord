@@ -3,10 +3,11 @@
  */
 
 import * as path from "node:path";
+import { loadTaskV2 } from "../tasks/store.js";
 import { devCheckpointRead } from "../work-items/checkpoint.js";
-import { listWorkItemFileRefs, readJson, taskJsonPath } from "../work-items/io.js";
+import { listWorkItemFileRefs, readJson } from "../work-items/io.js";
 import { workItemJsonPath } from "../work-items/tasks-dir.js";
-import type { Deviation, TaskFile, WorkItem } from "../work-items/types.js";
+import type { Deviation, WorkItem } from "../work-items/types.js";
 import { formatTasksDashboard } from "./dashboard-format.js";
 import {
   missingArtifactsForWorkItem,
@@ -122,11 +123,11 @@ export function devTasks(): TasksDashboardResult {
       pending = 0;
     for (const tid of wi.task_ids || []) {
       total++;
-      const tf = readJson<TaskFile>(taskJsonPath(wi.id, tid));
-      if (tf?.status === "done") done++;
-      else if (tf?.status === "blocked") blocked++;
-      else if (tf?.status === "in_progress") inProgress++;
-      else if (tf?.status === "pending") pending++;
+      const status = loadTaskV2(wi.id, tid)?.control.status;
+      if (status === "done") done++;
+      else if (status === "blocked") blocked++;
+      else if (status === "in_progress") inProgress++;
+      else if (status === "pending") pending++;
     }
 
     const pendingDeviations = countPendingDeviations(wi.deviations);

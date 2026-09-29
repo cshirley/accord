@@ -2,6 +2,9 @@
 
 ## 2026-09-29
 
+* **Creation**: [Per-task file (v2)](/references/task-file.md) — requirement-centric task file (summary, control, requirements → findings → history, round log), sidecars, recovery, per-blocker unblock.
+* **Update**: [Crucible verification](/architecture/crucible-verification.md) — rounds per loop, verify loop after review-code, advisory review-security, findings by id. [Orchestration policy](/references/orchestration-policy.md) — `verify_loop`, findings/counters location, commit log entry. [Unblock a task](/playbooks/unblock-a-task.md) rewritten for per-blocker decisions. [Artifacts and state](/references/artifacts-and-state.md), [/dev command](/references/dev-command.md), [accord CLI](/references/accord-cli.md), [Tool surface](/architecture/tool-surface.md) (`dev_trace`, `dev_unblock`), [Agents](/architecture/agents.md) aligned.
+* **Creation**: [Specs](/specs/index.md) links the proposed [task trace ledger plan](../docs/plans/task-trace-ledger-plan.md) (per-task JSON v2).
 * **Resolved**: Loop-cap config (`max_rgr_respawns`, `max_gather_attempts`, `max_unblocks_per_task`, `max_lifetime_retries`) landed in commit `129976d`; [Orchestration policy](/references/orchestration-policy.md) now matches committed source.
 * **Update**: `AGENTS.md` slimmed to always-loaded rules + OKF routing; detail previously duplicated there now lives only in this bundle. Concepts that cited `/AGENTS.md` ([Monorepo packages](/architecture/monorepo-packages.md), [Agents](/architecture/agents.md), [Add an agent](/playbooks/add-an-agent.md)) re-pointed at primary sources; [Verify a change](/playbooks/verify-a-change.md) keeps it only for the `## Dev Harness` block.
 * **Update**: [Overview](/overview.md) gains the "not a standalone workflow engine" principle (moved from `AGENTS.md`).

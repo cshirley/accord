@@ -8,9 +8,9 @@ import {
   resolveDashboardActionHint,
   resolveReadOnlyResumeAgent,
 } from "@clive.shirley/accord-core/queries/dashboard-hints.js";
-import { writeJson } from "@clive.shirley/accord-core/work-items/io.js";
 import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
-import type { TaskFile, WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
+import type { WorkItem } from "@clive.shirley/accord-core/work-items/types.js";
+import { writeTaskFixture } from "./helpers/task-fixture.js";
 
 function tempProject(): string {
   const dir = join(
@@ -53,10 +53,13 @@ describe("dashboard hints", () => {
     wi.pattern = "implement";
     wi.task_ids = [1];
     writeFileSync(wiPath, `${JSON.stringify(wi, null, 2)}\n`);
-    writeJson(join(".tasks", "HINT-2-task-1.json"), {
-      status: "done",
+    writeTaskFixture({
+      workItemId: "HINT-2",
+      taskId: 1,
       phase: "phase-code",
-    } satisfies Partial<TaskFile>);
+      status: "done",
+      preImplGates: "complete",
+    });
     expect(isFinishReady("HINT-2", wi)).toBe(true);
     expect(
       resolveDashboardActionHint("HINT-2", wi, {

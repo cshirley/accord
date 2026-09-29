@@ -31,6 +31,8 @@ import { devRetro } from "../queries/retro.js";
 import { devReviewQueue } from "../queries/review-queue.js";
 import { devSpecGaps } from "../queries/spec-gaps.js";
 import { runSubagentSpawnPreflightCheck } from "../queries/subagent-preflight-shared.js";
+import { devTaskTrace } from "../queries/task-trace.js";
+import { unblockTask } from "../queries/unblock-task.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
 import { devWorkItemStatus } from "../queries/work-item-status.js";
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
@@ -440,6 +442,69 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         text: result.value.formatted,
         details: result.value,
       };
+    },
+  }),
+
+  defineTool({
+    name: "dev_trace",
+    label: "Task Trace",
+    description:
+      "Per-task trace: summary (headline, next action, blockers), requirements → changes → findings → history, and the round log",
+    promptSnippet:
+      "Use when the user asks why a task is blocked, what happened to an AC, or what the adversarial loop did. Reads .tasks/<ID>-task-<n>.json (v2).",
+    promptGuidelines: [
+      "Prefer dev_trace over reading .tasks/*-task-*.json directly when explaining a task's findings, blockers, or loop history.",
+    ],
+    parameters: Type.Object({
+      id: Type.String({ description: "Work item ID" }),
+      task_id: Type.Optional(Type.Number({ description: "Task id (default: all tasks)" })),
+      open_only: Type.Optional(
+        Type.Boolean({ description: "Only unresolved findings / unfinished tasks" }),
+      ),
+    }),
+    handler(params) {
+      const result = devTaskTrace(params.id, {
+        ...(params.task_id !== undefined ? { taskId: params.task_id } : {}),
+        openOnly: params.open_only === true,
+      });
+      if (!result.ok) return { ok: false, text: result.error };
+      return { ok: true, text: result.value.formatted, details: result.value };
+    },
+  }),
+
+  defineTool({
+    name: "dev_unblock",
+    label: "Unblock Task",
+    description:
+      "Record human decisions on blocking findings (note/fixed/accept/waive) and unblock a task. All-resolved blockers advance without using the unblock budget.",
+    promptSnippet:
+      "Only on explicit user instruction — each decision needs the user's reason. Blind unblocks (no decisions, no code change) are refused unless force is given.",
+    parameters: Type.Object({
+      id: Type.String({ description: "Work item ID" }),
+      task_id: Type.Optional(Type.Number({ description: "Task id (required with decisions)" })),
+      decisions: Type.Optional(
+        Type.Array(
+          Type.Object({
+            target: Type.String({ description: "Finding id (F-n) or requirement id (AC-n)" }),
+            action: Type.Union([
+              Type.Literal("note"),
+              Type.Literal("fixed"),
+              Type.Literal("accept"),
+              Type.Literal("waive"),
+            ]),
+            reason: Type.String(),
+          }),
+        ),
+      ),
+      force: Type.Optional(Type.String({ description: "Reason for a blind unblock" })),
+    }),
+    handler(params) {
+      const result = unblockTask(params.id, params.task_id, {
+        decisions: params.decisions ?? [],
+        ...(params.force ? { force: params.force } : {}),
+      });
+      if (!result.ok) return { ok: false, text: result.error };
+      return { ok: true, text: result.value.formatted, details: result.value };
     },
   }),
 

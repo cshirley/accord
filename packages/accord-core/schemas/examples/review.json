@@ -12,7 +12,8 @@
         "line": 142,
         "issue": "Refresh token not rotated on use — allows replay attacks",
         "evidence": "Line 142 returns existingRefreshToken instead of generating a new one after validation",
-        "recommendation": "Generate a new refresh token, persist it, and invalidate the old one before returning"
+        "recommendation": "Generate a new refresh token, persist it, and invalidate the old one before returning",
+        "ac_id": "AC-1"
       },
       {
         "severity": "suggestion",
@@ -20,7 +21,21 @@
         "line": 28,
         "issue": "Token validation error message leaks internal details",
         "evidence": "Error response includes the decoded token payload in development mode",
-        "recommendation": "Return a generic 401 message; log details server-side only"
+        "recommendation": "Return a generic 401 message; log details server-side only",
+        "ac_id": "AC-1"
+      }
+    ],
+    "rechecks": [
+      {
+        "finding_id": "F-003",
+        "outcome": "verified",
+        "note": "Assertion now checks the 401 body."
+      },
+      {
+        "finding_id": "F-004",
+        "outcome": "reraised",
+        "note": "Still passes when the limiter is a no-op.",
+        "severity": "critical"
       }
     ]
   }

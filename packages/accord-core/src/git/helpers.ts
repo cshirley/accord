@@ -2,7 +2,8 @@
  * Minimal git helpers for harness commit steps (no Pi tool dependency).
  */
 
-import { execFile as execFileCb } from "node:child_process";
+import { execFile as execFileCb, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -84,4 +85,22 @@ export async function commitWithMessage(
 
   const hash = (await git(["rev-parse", "--short", "HEAD"], root, signal)).trim();
   return { hash };
+}
+
+/**
+ * Synchronous fingerprint of the working tree (HEAD + uncommitted diff, excluding `.tasks/`).
+ * `null` outside a git repository. Used to detect a "blind" unblock (nothing changed since the
+ * block).
+ */
+export function worktreeFingerprintSync(cwd: string = process.cwd()): string | null {
+  const run = (args: string[]): string | null => {
+    const result = spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    return result.status === 0 ? result.stdout : null;
+  };
+  const head = run(["rev-parse", "HEAD"]);
+  if (head === null) return null;
+  const diff = run(["diff", "HEAD", "--", ".", ":(exclude).tasks"]) ?? "";
+  const untracked =
+    run(["ls-files", "--others", "--exclude-standard", "--", ".", ":(exclude).tasks"]) ?? "";
+  return createHash("sha1").update(head).update(diff).update(untracked).digest("hex");
 }

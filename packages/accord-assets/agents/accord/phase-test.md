@@ -21,7 +21,7 @@ The orchestrator's brief supplies:
 
 - **`work_item_id`** — e.g. `ACCORD-1234`.
 - **`task`** — the full task object from the plan: `{id, title, covers_ac, challenge, files[], steps[], depends_on?}`.
-- **`owner_nonce`** — 6-char hex token assigned at spawn. Write it into the per-task file; it gates cross-worktree tampering.
+- **`owner_nonce`** — 6-char hex token assigned at spawn. The orchestrator stores it on the per-task file at `control.owner_nonce`; it gates cross-worktree tampering.
 - **`task_file_path`** — `.tasks/<work_item_id>-task-<id>.json`. **Read-only** — orchestrator initializes and updates this file from your return packet.
 - **`brief_path`** — optional path to `docs/dev/<ID>/brief.md`. The grounding document from `phase-align`. Read it when you need to understand the *why* behind an AC — especially for edge case assertions and negative-path tests where the spec scenario is terse.
 - **`covered_acs`** — the `acceptance_criteria` entries from the spec that this task covers. These define what you must test.
@@ -33,7 +33,8 @@ The orchestrator's brief supplies:
   - `new_red_test`: write one narrow regression test; confirm behaviour RED.
   - `existing_tests`: run existing suite; confirm failure matches `expected_finish`; do not add tests unless necessary.
   - `no_test`: still run phase-test — confirm whether an automated test is feasible; escalate with `stuck` if RED cannot be established.
-- **`## Prior review feedback (harness)`** — appended to the brief only on a retry, when `review-test` reported findings against tests you (or a prior round) wrote for this task. Contains the reviewer's `verdict`, `analysis`, full `findings[]` (each with `severity`, `file`, `line`, `evidence`, `recommendation`), and the raw return packet. **When this section is present, it is the primary reason you were respawned** — see Step 1a below. Findings with `category: "import_only_red"` come from the harness itself (deterministic Check 0 on your `test_output`), not from a review-test spawn — review-test is skipped until the suite actually loads the system under test.
+- **`requirement_map`** — this task's requirements (`AC-n`, text, test cases) with the files already changed for each (`changes[]`, `by` = the run that changed it).
+- **`## Open test findings (harness ledger)`** — appended on a retry. Grouped by requirement (AC): each finding has a stable **`F-nnn` id**, severity, file, recommendation, and its **history** (earlier fixes, disputes, re-raises, human notes from `accord unblock`). **When this section is present, it is the primary reason you were respawned** — see Step 1a below. Findings with `category: "import_only_red"` are raised by `<round>/harness` (deterministic Check 0 on your `test_output`), not by review-test. Human `note` entries are guidance — follow them.
 - **`prior_round`** — present on retries: `{test_files, stub_files, test_output}` from the previous round. These files already exist on disk — **edit them**, do not start over.
 
 ## Operating Rules
@@ -48,19 +49,19 @@ The orchestrator's brief supplies:
 
 The orchestrator has already created `task_file_path` with your `owner_nonce`.
 
-Read it. If its `owner_nonce` does not match your assigned nonce, **abort immediately** — return `status: "stuck"` with `question: "owner_nonce mismatch on <task_file_path>"` and do not continue.
+Read it. If `control.owner_nonce` does not match your assigned nonce, **abort immediately** — return `status: "stuck"` with `question: "owner_nonce mismatch on <task_file_path>"` and do not continue.
 
 ## Step 1a — Address prior review feedback (retry only)
 
-If the brief contains a `## Prior review feedback (harness)` section, this is a retry after `review-test` found issues with the previous test round — not a fresh task. Before writing or editing anything:
+If the brief contains a `## Open test findings (harness ledger)` section, this is a retry after `review-test` (or the harness) found issues with the previous test round — not a fresh task. Before writing or editing anything:
 
 1. Read `prior_round.test_files` and `prior_round.stub_files` from disk, and `prior_round.test_output`. That is the state the reviewer attacked.
 2. Read every finding's `evidence` and `recommendation`. Each one describes a concrete false-green, coverage gap, or non-executing test in the *existing* tests.
 3. Fix or extend the specific test(s) named in `finding.file`/`finding.line` per the `recommendation` — edit in place; do not rewrite everything from scratch and hope the same gaps don't recur.
 4. **Import-only / Check 0 findings** (`category: "import_only_red"`, or any finding citing `Cannot find module`, `Failed to resolve import`, missing export, etc.): these are fixed in **this** phase, by you, via Step 3 — create the unimplemented declaration for each named symbol. Never answer them by mocking the module under test, deleting/skip-ing the test, or deferring to phase-code.
 5. If a recommendation asks for something outside your contract (e.g. "phase-code should add X"), translate it into the in-contract fix (a Step 3 stub, a stronger assertion) — do not ignore it.
-6. Findings below the retry policy's `severity_gate` (see the retry policy line in that section) are advisory — address them if cheap, but they don't block `red_confirmed`.
-7. Record one `review_responses[]` entry per finding (Step 6): `resolution: "fixed"` with what you changed, or `resolution: "disputed"` with concrete evidence (file:line, spec quote) that the finding is wrong. "Disputed" is not a way to skip work — review-test re-checks every entry and will re-raise unsupported disputes.
+6. Findings tagged `advisory` are below the retry gate — address them if cheap, but they don't block `red_confirmed`. Read each finding's history first: do not repeat a fix the reviewer already re-raised.
+7. Record one `review_responses[]` entry per finding **by `finding_id`** (Step 6): `resolution: "fixed"` with what you changed, `"disputed"` with concrete evidence (file:line, spec quote) that the finding is wrong, or `"wont_fix"` with a reason (it keeps blocking until review-test or a human accepts it). "Disputed" is not a way to skip work — review-test re-checks every entry and will re-raise unsupported disputes.
 8. Only after addressing every finding at or above the gate, continue to Step 2 for any remaining/new work, then **re-run Step 4** — a retry must end with fresh `test_output`.
 
 ## Step 2 — Write tests
@@ -108,10 +109,10 @@ Run the test command from `verification_commands` (the test-specific one). Recor
 
 ## Step 5 — Deviations and escalations
 
-Record events in your return packet `events[]` array (orchestrator merges them onto the per-task file):
+Record events in your return packet `events[]` array (the orchestrator stores them on this run's log entry and timestamps them):
 
-- **`deviation`** — non-blocking autonomous change (renamed a test file, added a helper not in the plan). Fields: `type`, `at` (ISO-8601-UTC), `description`, `reason`.
-- **`escalation`** — you are blocked (AC is untestable, framework missing, etc.). Fields: `type`, `at`, `question`, `context`, `tried`. Emit the event, then return `status: "stuck"`.
+- **`deviation`** — non-blocking autonomous change (renamed a test file, added a helper not in the plan). Fields: `type`, `description`, `reason`, optional `ac_id`.
+- **`escalation`** — you are blocked (AC is untestable, framework missing, etc.). Fields: `type`, `question`, `context`, `tried`. Emit the event, then return `status: "stuck"`.
 
 ## Step 6 — Return packet
 
@@ -120,14 +121,13 @@ Do **not** mutate the per-task JSON file. The orchestrator updates workflow stat
 Emit exactly one fenced ```json block as the **last** thing in your response. Matches the injected `return: phase-test` schema. See the injected examples for realistic payloads showing `done` and `stuck` statuses.
 
 Key content expectations:
-- **`test_files`** — actual paths of test files created.
-- **`stub_files`** — paths of any unimplemented declarations you created in Step 3 (omit or `[]` when every imported symbol already existed). `phase-code` replaces these with real implementations.
+- **`changes`** — **every** file you created/modified/deleted this run: `{file, action: add|modify|delete, kind: test|stub|fixture|config, ac_ids: ["AC-n"], tc_ids?, tests?: [test names]}`. `ac_ids` ties the change to the requirement it serves — reviewers use it to attribute findings, so be precise. Stub skeletons from Step 3 use `kind: "stub"` (phase-code replaces them).
+- **`test_files`** / **`stub_files`** / **`ac_covered`** — deprecated (derived from `changes`); still accepted.
 - **`red_confirmed`** — `true` only when the suite actually executed against the system under test and failed on an assertion or a Step 3 "not implemented" stub. Set `false` when the run died on import/resolution or syntax errors and no assertion ran — and in that case you must also emit an `escalation` event, because Step 4 requires you to fix that before finishing.
 - **`test_output`** — raw stdout/stderr from the test run (last 64 KiB if truncated). Required when `status: "done"` in the implement pipeline.
-- **`ac_covered`** — which ACs from the task are covered by the tests written.
-- **`review_responses`** — retry rounds only: one `{issue, ref?, file?, resolution: "fixed" | "disputed", note}` per finding in `## Prior review feedback (harness)`. Omitting it on a retry is flagged by the harness and forces review-test to re-audit every prior finding from scratch.
+- **`review_responses`** — retry rounds only: one `{finding_id, resolution: "fixed" | "disputed" | "wont_fix", note}` per finding in `## Open test findings (harness ledger)`. Omitting it on a retry is flagged by the harness and leaves those findings open.
 
-Before returning `status: "done"`, self-check: every production import in `test_files` resolves (existing code or a `stub_files` entry), and the final `test_output` shows assertions / not-implemented errors — not resolution errors.
+Before returning `status: "done"`, self-check: every production import in your test changes resolves (existing code or a `stub` change), and the final `test_output` shows assertions / not-implemented errors — not resolution errors.
 
 ## Scope discipline
 

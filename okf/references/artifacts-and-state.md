@@ -41,7 +41,9 @@ Artifacts are immutable after their phase returns `done`; changes go through
 |------|---------|
 | `<ID>.json` | **Authoritative** work-item state: `pattern`, `variant`, `phase`, `decisions[]`, `deviations[]`, `cost_usd`, `gather_attempts` |
 | `<ID>-checkpoint.json` | Multi-turn draft + `answered`/`pending` (derived cache of `decisions[]`); atomic tmp+rename writes |
-| `<ID>-task-N.json` | Per-task `phase`, `status` (`pending`/`in_progress`/`done`/`blocked`), `owner_nonce`, append-only `events[]`, `last_review_feedback`, loop counters |
+| `<ID>-task-N.json` | Per-task v2 file: `summary` (headline, next action, blockers), `control` (phase, status, round, retries, in-flight run), `requirements[]` (AC → changes → findings → history → verification), `log[]` — see [Per-task file](/references/task-file.md) |
+| `<ID>-task-N/` | Write-once sidecars: raw return packets and test/verify output per run |
+| `archive/` | v1 task files replaced by `accord task reseed` |
 | `<ID>-enrichments/` | Gather cache payloads |
 | `<ID>-usage.jsonl` | Per-spawn token/cost lines |
 | `<ID>-investigation.json` | Investigate-pattern log |

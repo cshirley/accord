@@ -29,7 +29,7 @@ When the harness applies a validated **`review-test`** return packet for a **`qu
 
 | Field | Type | Default | Meaning |
 |-------|------|---------|--------|
-| `max_test_review_loops` | integer ≥ 0 | `3` | After this many consumed `test↔review` retries (stored on the per-task file as `quick_fix_loop.test_review_cycles_used`), further gated `issues` verdicts set the task `status` to `blocked`. |
+| `max_test_review_loops` | integer ≥ 0 | `3` | After this many consumed `test↔review` retries (stored on the per-task file as `control.retries.test_review.used`), further gated `issues` verdicts set the task `status` to `blocked`. |
 | `severity_gate` | `"none"` \| `"warn"` \| `"block"` | `"warn"` | Which finding severities count as consuming a retry when verdict is `issues`: `none` = all issues; `warn` = warning or critical; `block` = critical only. |
 
 Example:
@@ -175,18 +175,19 @@ When **`review-test`** or **`review-code`** completes for an **`implement`** wor
 | `review_code` | object | — | Optional override for **review-code** → **phase-code**. |
 | `max_lifetime_retries` | integer ≥ 0 | `max × (max_unblocks_per_task + 1)` | Hard per-task ceiling that `/dev unblock` never resets. |
 | `max_unblocks_per_task` | integer ≥ 0 | `1` | Max `/dev unblock` resets per task, ever. |
-| `max_rgr_respawns` | integer ≥ 0 | `3` | Max **phase-code → phase-test** respawns per task (phase-code emitted `test_issue` or touched test files) before the task is blocked. Counted as `review_loop.rgr_respawns_used`; lifetime ceiling as above. |
+| `max_rgr_respawns` | integer ≥ 0 | `3` | Max **phase-code → phase-test** respawns per task (phase-code emitted `test_issue` or touched test files) before the task is blocked. Counted as `control.retries.rgr.used`; lifetime ceiling as above. |
 
 ### Loop caps (all default to 3)
 
 | Loop | Counter | Cap | On cap |
 |------|---------|-----|--------|
-| review-test → phase-test (incl. harness import-only RED bounce) | `review_loop.test_review_retries_used` | `review_test.max_retries` / `max_critical_retries` (quick_fix: `quick_fix_loop.max_test_review_loops`) | task `blocked` |
-| review-code → phase-code | `review_loop.code_review_retries_used` | `review_code.max_retries` / `max_critical_retries` | task `blocked` |
-| phase-code → phase-test (RGR) | `review_loop.rgr_respawns_used` | `max_rgr_respawns` | task `blocked` |
+| review-test → phase-test (incl. harness import-only RED bounce) | `control.retries.test_review` | `review_test.max_retries` / `max_critical_retries` (quick_fix: `quick_fix_loop.max_test_review_loops`) | task `blocked` |
+| review-code → phase-code | `control.retries.code_review` | `review_code.max_retries` / `max_critical_retries` | task `blocked` |
+| phase-code → phase-test (RGR) | `control.retries.rgr` | `max_rgr_respawns` | task `blocked` |
+| phase-verify-task → phase-code (AC failed) | `control.retries.verify` | `verify_loop.max_retries` | task `blocked` |
 | phase-align → phase-gather | work item `gather_attempts` | `orchestration.max_gather_attempts` | escalation in `decisions[]`, resume stops `stuck`; counter resets |
 
-"3" means three automated retries after the first attempt. A **blocked** task halts the whole work item: resume will not skip to later tasks, and the item is not finish-ready (so `accord drive --finish` stops) until `/dev unblock`.
+"3" means three automated retries after the first attempt. A **blocked** task halts the whole work item: resume will not skip to later tasks, and the item is not finish-ready (so `accord drive --finish` stops) until `/dev unblock` (decide each blocker: `--note/--fixed/--accept/--waive F-n "reason"`; see `okf/references/task-file.md`).
 
 Example (strict test review, lenient code review):
 

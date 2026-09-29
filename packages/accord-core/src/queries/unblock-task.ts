@@ -1,40 +1,68 @@
 /**
- * `/dev unblock` / `accord unblock` \u2014 clear a task's review-loop retry-cap block
- * after the engineer has addressed the findings, without hand-editing task JSON.
+ * `/dev unblock` / `accord unblock` — resolve a blocked task **per blocker**.
  *
- * `applyReviewTestPostResult` / `applyReviewCodePostResult` set `task.status = "blocked"`
- * and freeze `review_loop` retry counters at the cap once `review-test`/`review-code`
- * keeps reporting findings at or above the configured severity gate
- * (`packages/accord-core/src/orchestration/policy.ts`). There is no automatic path back
- * from `blocked` \u2014 `resolveReadOnlyResumeAgent` refuses to resume it \u2014 by design: a
- * human should look at `last_review_feedback` first. This module is that "I looked, I
- * fixed it, resume" action.
+ * Every human decision is recorded in the finding's `history` and the log, so the next agent
+ * round sees it:
+ *
+ *   --note   F-n "…"   guidance for the fixer (finding stays gating)
+ *   --fixed  F-n "…"   human fixed it; the raiser rechecks it next round
+ *   --accept F-n "…"   accept the agent's wont_fix / dispute (no longer gating)
+ *   --waive  F-n|AC-n "…"  waive a finding or a whole requirement
+ *   --force  "…"       allow a blind unblock (nothing decided, nothing changed)
+ *
+ * Outcomes for a retry-cap block:
+ * - nothing left gating → the loop gate passes (advance as a clean decision); **no** unblock
+ *   budget used and counters untouched
+ * - gating remains → reset that loop's `used` counter, `unblocks += 1`, open the next round
+ *   (fixer, or the reviewer when every remaining blocker was `--fixed` by the human)
+ * Refusals: lifetime cap, `max_unblocks_per_task` exhausted, blind unblock without `--force`.
  */
 
-import { parseKnownDevSubcommandArgs } from "../commands/dispatch.js";
 import { loadDevHarnessConfig } from "../config/index.js";
-import { maxUnblocksPerTaskFromDevConfig } from "../orchestration/policy.js";
-import { err, ok, type Result } from "../types/result.js";
+import type { DevHarnessConfig } from "../config/types.js";
+import { worktreeFingerprintSync } from "../git/helpers.js";
 import {
-  loadTaskFile,
-  loadWorkItem,
-  taskLockPath,
-  withJsonFileLock,
-  writeJson,
-} from "../work-items/io.js";
-import { taskJsonPath } from "../work-items/tasks-dir.js";
-import type { TaskFile } from "../work-items/types.js";
+  maxUnblocksPerTaskFromDevConfig,
+  verifyLoopPolicyFromDevConfig,
+} from "../orchestration/policy.js";
+import { capForKey, RETRY_KEY_FOR_LOOP, type RetryKey } from "../tasks/decide.js";
+import {
+  allocateRef,
+  appendLog,
+  applyHumanDecision,
+  gatingFindings,
+  type HumanAction,
+  type HumanDecision,
+  openRound,
+  refreshTask,
+} from "../tasks/model.js";
+import { logDecision } from "../tasks/record.js";
+import { legacyTaskFileMessage, loadTaskResult, writeTaskV2 } from "../tasks/store.js";
+import type { LoopKind, TaskFileV2 } from "../tasks/types.js";
+import { err, ok, type Result } from "../types/result.js";
+import { loadWorkItem, now, taskLockPath, withJsonFileLock } from "../work-items/io.js";
+
+export type { HumanDecision };
+
+export interface UnblockOptions {
+  decisions?: HumanDecision[];
+  /** Reason for bypassing the blind-unblock guard. */
+  force?: string;
+  /** Test seam: working-tree fingerprint provider. */
+  fingerprint?: () => string | null;
+}
 
 export interface UnblockedTaskSummary {
   task_id: number;
   was_status: string;
-  retries_reset: { test_review_retries_used?: number; code_review_retries_used?: number };
-  last_review_verdict?: string;
-  last_review_finding_count?: number;
-  /** Unblocks consumed for this task, ever, after this one (never reset). */
+  /** `advanced` (gate passed), `retry` (counters reset), `resumed` (crash/manual/stuck), `decided` (not blocked). */
+  outcome: "advanced" | "retry" | "resumed" | "decided";
+  decisions: string[];
+  next_phase: string;
+  round: string;
+  retries_reset: Partial<Record<RetryKey, number>>;
   unblock_count: number;
-  /** Lifetime retry-cycle counts, carried through unchanged \u2014 never reset by unblock. */
-  lifetime_cycles: { test?: number; code?: number };
+  remaining_blockers: string[];
 }
 
 export interface UnblockResult {
@@ -43,104 +71,279 @@ export interface UnblockResult {
   formatted: string;
 }
 
-interface ReviewLoopShape {
-  test_review_retries_used?: number;
-  code_review_retries_used?: number;
-  lifetime_test_review_cycles?: number;
-  lifetime_code_review_cycles?: number;
-  unblock_count?: number;
-  rgr_respawns_used?: number;
-  lifetime_rgr_respawns?: number;
+type UnblockOneResult =
+  | { kind: "ok"; summary: UnblockedTaskSummary }
+  | { kind: "skip" }
+  | { kind: "error"; message: string };
+
+function loopOfBlock(task: TaskFileV2): LoopKind {
+  const loop = task.control.blocked?.loop;
+  if (loop === "rgr") return "T";
+  if (loop === "T" || loop === "C" || loop === "V") return loop;
+  const phase = task.control.phase;
+  if (phase === "phase-test" || phase === "review-test") return "T";
+  if (phase === "phase-verify-task") return "V";
+  return "C";
 }
 
-function reviewLoopCounters(task: TaskFile): ReviewLoopShape | undefined {
-  const loop = task.review_loop;
-  if (!loop || typeof loop !== "object") return undefined;
-  return loop as ReviewLoopShape;
+/** Advance as if the blocked loop's gate had passed (all blockers accepted/waived). */
+function advancePastGate(
+  task: TaskFileV2,
+  loop: LoopKind,
+  rgr: boolean,
+  at: string,
+  devConfig: DevHarnessConfig | null,
+): string {
+  if (rgr) {
+    // phase-code finished; its test issues were resolved by the human → continue the C round.
+    task.control.phase = "review-code";
+    logDecision(task, at, {
+      result: "advance",
+      note: "Test issues resolved by human → review-code",
+      next_phase: "review-code",
+    });
+    return "review-code";
+  }
+  if (loop === "T") {
+    task.control.phase = "phase-code";
+    task.control.pre_impl_gates = "complete";
+    logDecision(
+      task,
+      at,
+      {
+        result: "advance",
+        note: "Blockers resolved by human → phase-code",
+        next_phase: "phase-code",
+      },
+      "C",
+    );
+    return "phase-code";
+  }
+  if (loop === "C" && verifyLoopPolicyFromDevConfig(devConfig).enabled) {
+    task.control.phase = "phase-verify-task";
+    logDecision(
+      task,
+      at,
+      {
+        result: "advance",
+        note: "Blockers resolved by human → phase-verify-task",
+        next_phase: "phase-verify-task",
+      },
+      "V",
+    );
+    return "phase-verify-task";
+  }
+  task.control.status = "done";
+  logDecision(task, at, { result: "done", note: "Blockers resolved by human → done" });
+  return task.control.phase;
 }
 
-function lastReviewFeedback(
-  task: TaskFile,
-): { agent?: string; verdict?: string; findings?: unknown[] } | undefined {
-  const feedback = task.last_review_feedback;
-  if (!feedback || typeof feedback !== "object") return undefined;
-  return feedback as { agent?: string; verdict?: string; findings?: unknown[] };
+function allFindingsIn(task: TaskFileV2, loop: LoopKind) {
+  return task.requirements
+    .filter((req) => !req.waived)
+    .flatMap((req) => req.findings)
+    .filter((finding) => finding.loop === loop && !finding.advisory);
 }
 
-/**
- * Resets one blocked task's *resettable* retry counters/status. Returns `null` if it wasn't
- * blocked, or `{ capReached: true, ... }` if this task has already used up its lifetime unblock
- * budget (`orchestration.review_loop.max_unblocks_per_task`) \u2014 refusing rather than silently
- * granting another reset is the guard against "repeatedly `/dev unblock` without fixing anything"
- * defeating the review-loop retry cap entirely.
- */
 function unblockOne(
   workItemId: string,
   taskId: number,
-): UnblockedTaskSummary | { capReached: true; unblockCount: number; maxUnblocks: number } | null {
-  // Locked (on the shared `taskLockPath` key, same one `advancePrimaryTask` uses) so this
-  // read-modify-write cycle can't interleave with a concurrent post-result write on the same
-  // work item and silently lose either side's mutation.
+  options: UnblockOptions,
+  devConfig: DevHarnessConfig | null,
+): UnblockOneResult {
   return withJsonFileLock(taskLockPath(workItemId), () => {
-    const task = loadTaskFile(workItemId, String(taskId));
-    if (task?.status !== "blocked") {
-      return null;
+    const loaded = loadTaskResult(workItemId, taskId);
+    if (loaded.kind === "missing") {
+      return { kind: "error", message: `Task ${String(taskId)} not found on ${workItemId}.` };
     }
-
-    const wasStatus = task.status;
-    const priorCounters = reviewLoopCounters(task);
-    const feedback = lastReviewFeedback(task);
-
-    const priorUnblockCount =
-      typeof priorCounters?.unblock_count === "number" ? priorCounters.unblock_count : 0;
-    const maxUnblocks = maxUnblocksPerTaskFromDevConfig(loadDevHarnessConfig());
-    if (priorUnblockCount >= maxUnblocks) {
-      return { capReached: true, unblockCount: priorUnblockCount, maxUnblocks };
+    if (loaded.kind === "legacy") {
+      return { kind: "error", message: legacyTaskFileMessage(workItemId, taskId) };
     }
+    const task = loaded.task;
+    const wi = loadWorkItem(workItemId);
+    const pattern = wi?.pattern ?? "implement";
+    const at = now();
+    const decisions = options.decisions ?? [];
+    const wasStatus = task.control.status;
 
-    task.status = "pending";
-    const resetCounters: UnblockedTaskSummary["retries_reset"] = {};
-    // Lifetime cycle counts are carried through untouched \u2014 they are the hard ceiling that
-    // survives unblocking (see `decideAfterReviewTest` / `decideAfterReviewCode`).
-    const lifetimeCycles = {
-      test: priorCounters?.lifetime_test_review_cycles,
-      code: priorCounters?.lifetime_code_review_cycles,
-    };
-    if (priorCounters) {
-      if (typeof priorCounters.test_review_retries_used === "number") {
-        resetCounters.test_review_retries_used = priorCounters.test_review_retries_used;
-      }
-      if (typeof priorCounters.code_review_retries_used === "number") {
-        resetCounters.code_review_retries_used = priorCounters.code_review_retries_used;
-      }
+    if (wasStatus !== "blocked" && decisions.length === 0) return { kind: "skip" };
+
+    // 1. Apply decisions.
+    const unblockRef = allocateRef(task, "unblock");
+    const applied: string[] = [];
+    for (const decision of decisions) {
+      const result = applyHumanDecision(task, decision, unblockRef);
+      if (!result.ok) return { kind: "error", message: result.error };
+      applied.push(`${decision.action} ${decision.target}`);
     }
-    const unblockCount = priorUnblockCount + 1;
-    task.review_loop = {
-      test_review_retries_used: 0,
-      code_review_retries_used: 0,
-      lifetime_test_review_cycles: lifetimeCycles.test ?? 0,
-      lifetime_code_review_cycles: lifetimeCycles.code ?? 0,
-      unblock_count: unblockCount,
-      rgr_respawns_used: 0,
-      // Lifetime RGR count survives unblock, like the review lifetime counters above.
-      lifetime_rgr_respawns: priorCounters?.lifetime_rgr_respawns ?? 0,
-    };
-    if (task.quick_fix_loop && typeof task.quick_fix_loop === "object") {
-      task.quick_fix_loop = { test_review_cycles_used: 0 };
-    }
+    refreshTask(task, at);
 
-    writeJson(taskJsonPath(workItemId, taskId), task);
-
-    return {
+    const summaryBase = {
       task_id: taskId,
       was_status: wasStatus,
-      retries_reset: resetCounters,
-      last_review_verdict: feedback?.verdict,
-      last_review_finding_count: Array.isArray(feedback?.findings)
-        ? feedback.findings.length
-        : undefined,
-      unblock_count: unblockCount,
-      lifetime_cycles: lifetimeCycles,
+      decisions: applied,
+      retries_reset: {} as Partial<Record<RetryKey, number>>,
+    };
+
+    if (wasStatus !== "blocked") {
+      appendLog(task, {
+        ref: unblockRef,
+        at,
+        result: "decided",
+        note: applied.join("; "),
+        actor: "human",
+      });
+      writeTaskV2(task, at);
+      return {
+        kind: "ok",
+        summary: {
+          ...summaryBase,
+          outcome: "decided",
+          next_phase: task.control.phase,
+          round: task.control.round,
+          unblock_count: task.control.retries.unblocks,
+          remaining_blockers: task.summary.blockers.map((b) => b.finding),
+        },
+      };
+    }
+
+    const block = task.control.blocked;
+    const logUnblock = (result: string, extra: string) =>
+      appendLog(task, {
+        ref: unblockRef,
+        at,
+        result,
+        note: [applied.join("; "), extra].filter(Boolean).join(" — "),
+        actor: "human",
+      });
+
+    // 2. Non-cap blocks (crash / manual / stuck): release and resume.
+    if (block?.kind !== "cap") {
+      logUnblock("resumed", block ? `${block.kind}: ${block.reason}` : "");
+      task.control.status = "pending";
+      task.control.blocked = null;
+      task.control.in_flight = null;
+      if (block?.kind === "crash") {
+        openRound(task, loopOfBlock(task));
+      }
+      writeTaskV2(task, at);
+      return {
+        kind: "ok",
+        summary: {
+          ...summaryBase,
+          outcome: "resumed",
+          next_phase: task.control.phase,
+          round: task.control.round,
+          unblock_count: task.control.retries.unblocks,
+          remaining_blockers: task.summary.blockers.map((b) => b.finding),
+        },
+      };
+    }
+
+    // 3. Retry-cap block.
+    const rgr = block.loop === "rgr";
+    const loop = loopOfBlock(task);
+    const key: RetryKey = rgr ? "rgr" : RETRY_KEY_FOR_LOOP[loop];
+    const gating = gatingFindings(task, [loop]);
+    // Findings the human marked fixed must still be rechecked by their reviewer.
+    const humanFixed = allFindingsIn(task, loop).filter(
+      (finding) =>
+        finding.history.at(-1)?.by === unblockRef && finding.history.at(-1)?.outcome === "fixed",
+    );
+
+    if (gating.length === 0 && humanFixed.length === 0) {
+      logUnblock("advanced", "all blockers resolved");
+      task.control.status = "pending";
+      task.control.blocked = null;
+      const next = advancePastGate(task, loop, rgr, at, devConfig);
+      writeTaskV2(task, at);
+      return {
+        kind: "ok",
+        summary: {
+          ...summaryBase,
+          outcome: "advanced",
+          next_phase: next,
+          round: task.control.round,
+          unblock_count: task.control.retries.unblocks,
+          remaining_blockers: [],
+        },
+      };
+    }
+
+    const remaining = [
+      ...gating.map(({ finding }) => finding.id),
+      ...humanFixed.map((finding) => finding.id),
+    ];
+    const cap = capForKey(key, devConfig, pattern);
+    if (task.control.retries[key].lifetime >= cap.maxLifetimeRetries) {
+      return {
+        kind: "error",
+        message:
+          `Task ${String(taskId)} on ${workItemId}: ${key} LIFETIME cap reached (${String(cap.maxLifetimeRetries)}). ` +
+          `Unblock cannot reset it — --accept/--waive the remaining blockers (${remaining.join(", ")}) or raise the lifetime cap in config.`,
+      };
+    }
+    const maxUnblocks = maxUnblocksPerTaskFromDevConfig(devConfig);
+    if (task.control.retries.unblocks >= maxUnblocks) {
+      return {
+        kind: "error",
+        message:
+          `Task ${String(taskId)} on ${workItemId} has used its unblock budget (${String(task.control.retries.unblocks)}/${String(maxUnblocks)}; orchestration.review_loop.max_unblocks_per_task). ` +
+          `--accept/--waive the remaining blockers (${remaining.join(", ")}), fix them for real, or raise the cap deliberately.`,
+      };
+    }
+
+    const decidedTargets = new Set(decisions.map((decision) => decision.target));
+    const anyDecided = remaining.some((id) => decidedTargets.has(id)) || humanFixed.length > 0;
+    if (!anyDecided && !options.force) {
+      const fingerprint = (options.fingerprint ?? (() => worktreeFingerprintSync()))();
+      if (block.fingerprint && fingerprint && fingerprint === block.fingerprint) {
+        return {
+          kind: "error",
+          message:
+            `Blind unblock refused for task ${String(taskId)} on ${workItemId}: blockers ${remaining.join(", ")} have no decision and nothing changed since the block. ` +
+            'Add --note/--fixed/--accept/--waive per blocker, change the code, or pass --force "reason".',
+        };
+      }
+    }
+
+    // Reset only the blocked loop's counter; lifetime counters survive.
+    summaryBase.retries_reset[key] = task.control.retries[key].used;
+    task.control.retries[key].used = 0;
+    task.control.retries.unblocks += 1;
+    // Every remaining blocker was fixed by the human → go straight to the reviewer's recheck.
+    const allHumanFixed = gating.length === 0;
+    const forceNote = options.force ? `forced: ${options.force}` : "";
+    logUnblock("retry", [`${key} used reset`, forceNote].filter(Boolean).join("; "));
+    task.control.status = "pending";
+    task.control.blocked = null;
+    task.control.in_flight = null;
+    openRound(task, loop);
+    if (rgr || loop === "T") {
+      task.control.pre_impl_gates = "pending";
+      task.control.phase = allHumanFixed ? "review-test" : "phase-test";
+    } else if (loop === "C") {
+      task.control.phase = allHumanFixed ? "review-code" : "phase-code";
+    } else {
+      // Verify failures are fixed by phase-code in a code round, then re-verified.
+      if (allHumanFixed) {
+        task.control.phase = "phase-verify-task";
+      } else {
+        openRound(task, "C");
+        task.control.phase = "phase-code";
+      }
+    }
+    writeTaskV2(task, at);
+    return {
+      kind: "ok",
+      summary: {
+        ...summaryBase,
+        outcome: "retry",
+        next_phase: task.control.phase,
+        round: task.control.round,
+        unblock_count: task.control.retries.unblocks,
+        remaining_blockers: remaining,
+      },
     };
   });
 }
@@ -149,116 +352,163 @@ function formatUnblockResult(workItemId: string, unblocked: UnblockedTaskSummary
   if (unblocked.length === 0) {
     return `${workItemId}: no blocked task(s) to unblock.`;
   }
-  const lines = [`${workItemId}: unblocked ${String(unblocked.length)} task(s).`, ""];
+  const lines = [`${workItemId}: ${String(unblocked.length)} task(s) updated.`, ""];
   for (const summary of unblocked) {
-    const retryBits = Object.entries(summary.retries_reset)
-      .map(([key, value]) => `${key}=${String(value)}\u21920`)
+    const resetBits = Object.entries(summary.retries_reset)
+      .map(([key, value]) => `${key}=${String(value)}→0`)
       .join(", ");
-    const verdictBits = [
-      summary.last_review_verdict ? `last verdict: ${summary.last_review_verdict}` : "",
-      summary.last_review_finding_count !== undefined
-        ? `${String(summary.last_review_finding_count)} finding(s)`
-        : "",
-    ]
-      .filter(Boolean)
-      .join(", ");
+    const outcome =
+      summary.outcome === "advanced"
+        ? "all blockers resolved — gate passed (no unblock budget used)"
+        : summary.outcome === "retry"
+          ? `retry round ${summary.round}${resetBits ? ` (${resetBits})` : ""}; ${String(summary.remaining_blockers.length)} blocker(s) remain: ${summary.remaining_blockers.join(", ")}`
+          : summary.outcome === "resumed"
+            ? "released"
+            : "decisions recorded";
     lines.push(
-      `  task ${String(summary.task_id)}: ${summary.was_status} \u2192 pending${retryBits ? ` (${retryBits})` : ""}${verdictBits ? ` \u2014 ${verdictBits}` : ""}`,
+      `  task ${String(summary.task_id)}: ${summary.was_status} → ${summary.next_phase} — ${outcome}`,
     );
+    if (summary.decisions.length) lines.push(`    decisions: ${summary.decisions.join("; ")}`);
   }
   lines.push(
     "",
-    "This only resets the retry budget \u2014 make sure the findings on the task file's `last_review_feedback` are actually addressed first.",
     `Run \`/dev resume ${workItemId}\` (or \`accord resume ${workItemId}\`) to continue.`,
   );
   return lines.join("\n");
 }
 
 /**
- * Unblocks a specific task (`taskId` given) or every currently-blocked task on the work
- * item (`taskId` omitted). Errors only on a hard problem (work item missing, or an
- * explicitly-named task that doesn't exist / isn't blocked) \u2014 the "unblock all" path
- * silently skips tasks that aren't blocked.
+ * Unblocks a specific task (`taskId` given) or every currently-blocked task on the work item
+ * (`taskId` omitted; decisions require an explicit task).
  */
-export function unblockTask(workItemId: string, taskId?: number): Result<UnblockResult> {
+export function unblockTask(
+  workItemId: string,
+  taskId?: number,
+  options: UnblockOptions = {},
+): Result<UnblockResult> {
   const wi = loadWorkItem(workItemId);
   if (!wi) {
     return err(`Work item not found: ${workItemId}`);
   }
+  const devConfig = loadDevHarnessConfig();
 
   if (taskId !== undefined) {
-    const summary = unblockOne(workItemId, taskId);
-    if (summary && "capReached" in summary) {
-      return err(unblockCapReachedMessage(workItemId, taskId, summary));
-    }
-    if (!summary) {
-      const task = loadTaskFile(workItemId, String(taskId));
-      if (!task) return err(`Task ${String(taskId)} not found on ${workItemId}.`);
-      return err(
-        `Task ${String(taskId)} on ${workItemId} is not blocked (status: ${task.status}).`,
-      );
+    const result = unblockOne(workItemId, taskId, options, devConfig);
+    if (result.kind === "error") return err(result.message);
+    if (result.kind === "skip") {
+      const loaded = loadTaskResult(workItemId, taskId);
+      const status = loaded.kind === "ok" ? loaded.task.control.status : "unknown";
+      return err(`Task ${String(taskId)} on ${workItemId} is not blocked (status: ${status}).`);
     }
     return ok({
       work_item_id: workItemId,
-      unblocked: [summary],
-      formatted: formatUnblockResult(workItemId, [summary]),
+      unblocked: [result.summary],
+      formatted: formatUnblockResult(workItemId, [result.summary]),
     });
   }
 
-  const candidateIds = (wi.task_ids ?? []).map((id) => Number(id));
-  const unblocked: UnblockedTaskSummary[] = [];
-  const capMessages: string[] = [];
-  for (const id of candidateIds) {
-    const summary = unblockOne(workItemId, id);
-    if (!summary) continue;
-    if ("capReached" in summary) {
-      capMessages.push(unblockCapReachedMessage(workItemId, id, summary));
-      continue;
-    }
-    unblocked.push(summary);
+  if (options.decisions?.length) {
+    return err("Decisions (--note/--fixed/--accept/--waive) need an explicit task: --task <n>.");
   }
 
-  const formatted = [formatUnblockResult(workItemId, unblocked), ...capMessages]
+  const unblocked: UnblockedTaskSummary[] = [];
+  const errors: string[] = [];
+  for (const id of (wi.task_ids ?? []).map(Number)) {
+    const result = unblockOne(workItemId, id, options, devConfig);
+    if (result.kind === "ok") unblocked.push(result.summary);
+    else if (result.kind === "error") errors.push(result.message);
+  }
+  const formatted = [formatUnblockResult(workItemId, unblocked), ...errors]
     .filter(Boolean)
     .join("\n\n");
-
-  return ok({
-    work_item_id: workItemId,
-    unblocked,
-    formatted,
-  });
+  return ok({ work_item_id: workItemId, unblocked, formatted });
 }
 
-function unblockCapReachedMessage(
-  workItemId: string,
-  taskId: number,
-  cap: { unblockCount: number; maxUnblocks: number },
-): string {
-  return (
-    `Task ${String(taskId)} on ${workItemId} has already used its lifetime unblock budget ` +
-    `(${String(cap.unblockCount)}/${String(cap.maxUnblocks)}; orchestration.review_loop.max_unblocks_per_task). ` +
-    "Resetting the retry counters again will not fix the underlying review-test/review-code " +
-    "findings \u2014 read `last_review_feedback` on the task file and either fix the flagged " +
-    "gaps for real, or deliberately raise `orchestration.review_loop.max_unblocks_per_task` " +
-    "(and consider `max_lifetime_retries`) in the dev harness config if this task genuinely " +
-    "needs more cycles."
-  );
+// ── Argument parsing (shared by /dev unblock and accord unblock) ─────
+
+/** Shell-like tokenizer: whitespace-separated, single/double quotes group. */
+export function tokenizeArgs(raw: string): string[] {
+  const tokens: string[] = [];
+  const re = /"((?:[^"\\]|\\.)*)"|'([^']*)'|(\S+)/g;
+  for (const match of raw.matchAll(re)) {
+    tokens.push(match[1] !== undefined ? match[1].replace(/\\"/g, '"') : (match[2] ?? match[3]));
+  }
+  return tokens;
 }
 
-/**
- * `/dev unblock <work-item-id> [task_id]` entry point \u2014 same parsing convention as
- * `/dev deviations` (`parseKnownDevSubcommandArgs`).
- */
+const DECISION_FLAGS: Record<string, HumanAction> = {
+  "--note": "note",
+  "--fixed": "fixed",
+  "--accept": "accept",
+  "--waive": "waive",
+};
+
+export interface ParsedUnblockArgs {
+  workItemId?: string;
+  taskId?: number;
+  decisions: HumanDecision[];
+  force?: string;
+  errors: string[];
+}
+
+export function parseUnblockArgs(tokens: string[]): ParsedUnblockArgs {
+  const parsed: ParsedUnblockArgs = { decisions: [], errors: [] };
+  const positional: string[] = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    const action = DECISION_FLAGS[token];
+    if (action) {
+      const target = tokens[index + 1];
+      const reason = tokens[index + 2];
+      if (!target || !/^(F-\d+|AC-\d+|QF|_task)$/.test(target)) {
+        parsed.errors.push(`${token} needs a target (F-n or AC-n).`);
+        index += 1;
+        continue;
+      }
+      if (!reason || reason.startsWith("--")) {
+        parsed.errors.push(`${token} ${target} needs a quoted reason.`);
+        index += 1;
+        continue;
+      }
+      parsed.decisions.push({ target, action, reason });
+      index += 2;
+      continue;
+    }
+    if (token === "--task") {
+      const value = Number.parseInt(tokens[index + 1] ?? "", 10);
+      if (!Number.isFinite(value)) parsed.errors.push("--task needs a number.");
+      else parsed.taskId = value;
+      index += 1;
+      continue;
+    }
+    if (token === "--force") {
+      const reason = tokens[index + 1];
+      if (!reason || reason.startsWith("--")) parsed.errors.push("--force needs a quoted reason.");
+      else parsed.force = reason;
+      index += 1;
+      continue;
+    }
+    positional.push(token);
+  }
+  if (positional[0]) parsed.workItemId = positional[0];
+  if (positional[1] !== undefined && parsed.taskId === undefined) {
+    const value = Number.parseInt(positional[1], 10);
+    if (!Number.isFinite(value)) parsed.errors.push("task_id must be a number.");
+    else parsed.taskId = value;
+  }
+  return parsed;
+}
+
+export const UNBLOCK_USAGE =
+  'Usage: `/dev unblock <work-item-id> [task_id|--task n] [--note|--fixed|--accept|--waive F-n|AC-n "reason"]... [--force "reason"]`';
+
+/** `/dev unblock …` entry point. */
 export function devUnblock(rawArgs: string): Result<UnblockResult> {
-  const parsed = parseKnownDevSubcommandArgs("unblock", rawArgs);
-  const workItemId = parsed.leadingWorkItemId;
-  if (!workItemId) {
-    return err("Usage: `/dev unblock <work-item-id> [task_id]`");
-  }
-  const taskRaw = parsed.positional[1];
-  const taskId = taskRaw !== undefined ? Number.parseInt(taskRaw, 10) : undefined;
-  if (taskRaw !== undefined && !Number.isFinite(taskId)) {
-    return err(`Usage: \`/dev unblock ${workItemId} [task_id]\` \u2014 task_id must be a number.`);
-  }
-  return unblockTask(workItemId, taskId);
+  const parsed = parseUnblockArgs(tokenizeArgs(rawArgs.trim()));
+  if (!parsed.workItemId) return err(UNBLOCK_USAGE);
+  if (parsed.errors.length) return err(`${parsed.errors.join(" ")}\n${UNBLOCK_USAGE}`);
+  return unblockTask(parsed.workItemId, parsed.taskId, {
+    decisions: parsed.decisions,
+    ...(parsed.force ? { force: parsed.force } : {}),
+  });
 }

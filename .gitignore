@@ -46,3 +46,6 @@ temp/
 # pi-accord
 .tasks/
 .review-diff.tmp
+
+# Git worktrees (managed by pi)
+.worktrees/

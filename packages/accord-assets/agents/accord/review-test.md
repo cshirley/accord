@@ -71,8 +71,9 @@ If `phase-code` reports test issues or modifies test files, the harness respawns
 - `ac_covered` — AC ids phase-test claims to cover (when supplied); cross-check against `task.covers_ac` and test source.
 - `red_confirmed` — whether phase-test asserted behaviour RED.
 - `stub_files` — unimplemented declarations phase-test created (see Check 0 → Stub skeletons).
-- `phase_test_review_responses` — retry rounds: phase-test's answer to each of your prior findings (`resolution: fixed | disputed`, `note`). See "Retry rounds" below.
-- `test_output` — raw stdout/stderr from the test run. **Pre-impl:** RED output from phase-test. **Post-impl:** latest run output. If empty, read the newest `agent_returns[]` entry for `phase-test` and use `packet.test_output` when present.
+- `requirement_map` — each requirement (`AC-n`) with the files changed for it (`changes[]`: `file`, `kind`, `by`). Use it to set each finding's `ac_id` from the file it concerns.
+- `## Prior test findings to recheck (harness ledger)` — retry rounds: every prior test finding by **`F-nnn` id**, grouped by requirement, with its **history** (phase-test's `fixed`/`disputed`/`wont_fix` responses, earlier re-raises, human notes). See "Retry rounds" below.
+- `test_output` — raw stdout/stderr from the latest phase-test run (the harness reads it from the task sidecar folder).
 
 Schemas of truth: Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk.
 
@@ -241,13 +242,15 @@ For performance/scalability ACs: require an explicit perf test, benchmark step, 
 
 Missing → **critical** (MUST) / **warning** (SHOULD).
 
-## Retry rounds (`phase_test_review_responses`)
+## Retry rounds (`rechecks[]`)
 
-When present, this is a re-review after phase-test addressed your previous findings. Before new analysis:
+When the ledger section is present, this is a re-review. Before new analysis, return **one `rechecks[]` entry per listed finding** — `{finding_id, outcome, note}`:
 
-1. For each `fixed` entry: verify in the test source that the fix is real. If it is, do **not** re-raise it. If it is not, re-raise with the same `ref`/`file` and say what is still missing.
-2. For each `disputed` entry: weigh the `note`'s evidence. Accept it (drop the finding) when it cites the spec or code convincingly; otherwise re-raise once with a direct rebuttal in `evidence`. Do not re-raise a dispute unchanged — escalate the disagreement in `analysis` instead so the human sees it at the retry cap.
-3. New findings are allowed, but prefer the prior round's root causes; do not move the goalposts on points already fixed.
+1. `fixed` in history → verify in the test source that the fix is real: `verified`, or `reraised` with what is still missing (optionally a new `severity`).
+2. `disputed` → weigh the evidence: `dispute_upheld` when it cites the spec/code convincingly; otherwise `reraised` once with a direct rebuttal in `note`. Do not re-raise an unchanged dispute twice — say so in `analysis` so the human sees it at the retry cap.
+3. `wont_fix` → `wont_fix_accepted` if the reason is sound (scope, spec, cost), else `reraised`.
+4. Still `open` (phase-test did not answer) → `verified` if the current tests resolve it, else `reraised`.
+5. Never open a new finding for the same root cause — re-raise by id. New findings are allowed for genuinely new gaps; do not move the goalposts on points already verified. Findings raised by `<round>/harness` or `<round>/phase-code` (test issues) are yours to recheck too.
 
 ## Actionability rule
 
@@ -259,8 +262,9 @@ Emit exactly one fenced ```json block last. Matches the injected `return: review
 
 Key content expectations:
 
-- Each finding: `severity`, `file`, `line`, `issue` (reference AC/TC), `evidence`, `recommendation` (specific test or setup to add).
-- Optional `category` (`adversarial`, `assertion`, `inventory`, `fixture`) and `ref` (`AC-3`, `TC-2`).
+- Each new finding: `severity`, `ac_id` (from `requirement_map`), optional `tc_id`, `file`, `line`, `issue`, `evidence`, `recommendation` (specific test or setup to add). Use `also_affects` when it spans ACs.
+- Optional `category` (`adversarial`, `assertion`, `inventory`, `fixture`).
+- Retry rounds: `rechecks[]` covering every ledger finding.
 - `verdict: "clean"` only when Checks 0–9 find no exploitable gaps.
 
 Severity:
@@ -274,14 +278,14 @@ Severity:
 `severity` is the harness priority signal — do not add a separate `priority` field.
 
 1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
-2. Within the same severity: Check 0 / false-green and MUST AC adversarial gaps before inventory and fixture nits; then ascending `ref` (`AC-*`, `TC-*`); then test `file` path (and `line` within a file).
+2. Within the same severity: Check 0 / false-green and MUST AC adversarial gaps before inventory and fixture nits; then ascending `ac_id` / `tc_id`; then test `file` path (and `line` within a file).
 3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `file`+`line` unless categories differ materially.
 4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
 
 ## Rules
 
 - Do not modify tests. Observe and attack only.
-- Do not re-run the suite. Use `test_output` from the brief or latest `phase-test` `agent_returns` entry.
+- Do not re-run the suite. Use `test_output` from the brief.
 - Every finding must name the **adversarial implementation** it permits.
 - Pre-impl should be aggressive — last chance to strengthen tests before implementation.
 - Findings without `file` + `line` may be downgraded by the harness — cite file:line whenever possible; for inventory gaps, cite the test file or AC id in `issue` and put the AC in `evidence`.

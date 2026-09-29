@@ -44,9 +44,9 @@ backend/model/thinking via `subagent.json` profiles or `harness.tiers`.
 | `phase-explore` | workhorse | yes | Files, symbols, reuse candidates |
 | `phase-spec` | reasoning | yes | `spec.json` (multi-turn) |
 | `phase-plan` | reasoning | yes | `plan.json` (multi-turn) |
-| `phase-test` | workhorse | yes | Failing tests mapped to `covers_ac`, `stub_files`, `review_responses` |
+| `phase-test` | workhorse | yes | Failing tests + stubs as `changes[]` (with `ac_ids`), `review_responses` by `finding_id` |
 | `phase-code` | workhorse | yes, `verifyAfter` | Production code; `deviations`; never writes tests |
-| `phase-verify-task` | workhorse | yes | Evidence for verify-only plan tasks |
+| `phase-verify-task` | workhorse | yes | Per-AC `evidence[]` after review-code (and for verify-only plan tasks); a fail loops to phase-code |
 | `phase-verify-acceptance` | workhorse | yes (deferred guard) | `verify.json` per-AC evidence |
 | `phase-verify-infra` | workhorse | yes (deferred guard) | IaC validity/preview |
 | `phase-hypothesise` | reasoning | no | Hypotheses with evidence + test plans |
@@ -63,7 +63,7 @@ Read-only. Shared packet: `verdict` (`clean` / `issues`) + `findings[]` with `se
 | `review-spec` | workhorse | Spec structure, AC↔TC integrity | After spec draft |
 | `review-plan` | reasoning | Plan ordering, task coverage, reuse | After plan draft |
 | `review-test` | reasoning | Test adequacy, adversarial gaps | **Pre-impl** after `phase-test`; `/review` post-impl |
-| `review-security` | reasoning | OWASP, authz, secrets, supply chain | Security-sensitive paths, after `phase-code` before `review-code` |
+| `review-security` | reasoning | OWASP, authz, secrets, supply chain | Security-sensitive paths, after `phase-code` before `review-code`; findings advisory |
 | `review-code` | workhorse | Correctness, plan drift, observability | **Post-impl** after `phase-code` |
 | `review-design` | workhorse | ADR / design reasoning | `analyse` pattern |
 | `review-investigation` | workhorse | Hypothesis quality, anti-anchoring | `investigate` pattern |

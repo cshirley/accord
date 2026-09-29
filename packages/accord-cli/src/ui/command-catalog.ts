@@ -21,6 +21,30 @@ export const TOP_LEVEL_COMMANDS: CommandSpec[] = [
   { name: "spec-gaps", summary: "Spec gap report", needsWorkItem: true },
   { name: "gaps", summary: "Implementation gap report", needsWorkItem: true },
   { name: "deviations", summary: "Deviation review", needsWorkItem: true },
+  {
+    name: "trace",
+    summary: "Per-task trace: requirements → findings → history",
+    usage: "trace <ID> [--task n] [--open]",
+    needsWorkItem: true,
+  },
+  {
+    name: "unblock",
+    summary: "Decide blockers and unblock a task",
+    usage:
+      'unblock <ID> [--task n] [--note|--fixed|--accept|--waive F-n|AC-n "reason"]… [--force "reason"]',
+    needsWorkItem: true,
+  },
+  {
+    name: "block",
+    summary: "Manually block a task",
+    usage: "block <ID> <task> <reason>",
+    needsWorkItem: true,
+  },
+  {
+    name: "task",
+    summary: "Re-seed a v1/broken task file from the plan",
+    usage: "task reseed <ID> [--task n] [--from test|code]",
+  },
   { name: "run", summary: "Bootstrap from ticket or description", usage: "run <text>" },
   { name: "drive", summary: "Drive work item loop", needsWorkItem: true },
   {

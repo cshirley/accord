@@ -2,10 +2,10 @@ export { applyPhaseCodePostResult } from "./phase-code.js";
 export { applyPhaseTestPostResult } from "./phase-test.js";
 export { applyPhaseVerifyAcceptancePostResult } from "./phase-verify-acceptance.js";
 export { applyPhaseVerifyTaskPostResult } from "./phase-verify-task.js";
+export type { PostResultContext } from "./pipeline.js";
 export {
   advancePrimaryTask,
   type PrimaryTaskMutationContext,
-  type PrimaryTaskMutationResult,
   resolveActivePrimaryTaskId,
   resolvePrimaryTaskIdForMutation,
 } from "./primary-task.js";

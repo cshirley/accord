@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { blockTask, devBlock } from "@clive.shirley/accord-core/queries/block-task.js";
+import type { TaskFileV2 } from "@clive.shirley/accord-core/tasks/types.js";
 import { writeJson } from "@clive.shirley/accord-core/work-items/io.js";
 import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
-import { taskJsonPath } from "@clive.shirley/accord-core/work-items/tasks-dir.js";
+import { readTaskFixture, writeTaskFixture } from "./helpers/task-fixture.js";
 
 let tempCwd: string;
 let originalCwd: string;
@@ -22,20 +23,6 @@ afterEach(() => {
   rmSync(tempCwd, { recursive: true, force: true });
 });
 
-function inProgressTaskFixture(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    schema_version: "1.0",
-    work_item_id: "BLK-1",
-    task_id: 1,
-    owner_nonce: "abc123",
-    phase: "review-test",
-    status: "in_progress",
-    events: [],
-    review_loop: { test_review_retries_used: 2, code_review_retries_used: 0 },
-    ...overrides,
-  };
-}
-
 function bootstrapWithTasks(taskIds: number[]): void {
   devBootstrap("BLK-1", "Block fixture", "implement", "standard");
   const wiPath = join(".tasks", "BLK-1.json");
@@ -45,9 +32,16 @@ function bootstrapWithTasks(taskIds: number[]): void {
 }
 
 describe("blockTask", () => {
-  test("forces an in-progress task to blocked and records the reason as an escalation event", () => {
+  test("forces an in-progress task to blocked and records a manual block + log entry", () => {
     bootstrapWithTasks([1]);
-    writeJson(taskJsonPath("BLK-1", 1), inProgressTaskFixture());
+    writeTaskFixture({
+      workItemId: "BLK-1",
+      taskId: 1,
+      phase: "phase-code",
+      status: "in_progress",
+      round: "C2",
+      retries: { code_review: { used: 2, lifetime: 2 } },
+    });
 
     const result = blockTask("BLK-1", 1, "stuck in adversarial test/review loop");
     expect(result.ok).toBe(true);
@@ -61,21 +55,27 @@ describe("blockTask", () => {
     expect(result.value.formatted).toContain("task 1 in_progress → blocked");
     expect(result.value.formatted).toContain("/dev unblock BLK-1 1");
 
-    const task = JSON.parse(readFileSync(taskJsonPath("BLK-1", 1), "utf8"));
-    expect(task.status).toBe("blocked");
-    // Retry counters are left untouched \u2014 blocking is a status override, not a reset.
-    expect(task.review_loop).toEqual({ test_review_retries_used: 2, code_review_retries_used: 0 });
-    expect(task.events).toHaveLength(1);
-    expect(task.events[0]).toMatchObject({
-      type: "escalation",
-      question: "Manually blocked via /dev block",
-      context: "stuck in adversarial test/review loop",
+    const task: TaskFileV2 = readTaskFixture("BLK-1", 1);
+    expect(task.control.status).toBe("blocked");
+    expect(task.control.blocked).toEqual({
+      kind: "manual",
+      reason: "stuck in adversarial test/review loop",
+      ref: "C2/block",
+    });
+    // Retry counters are left untouched — blocking is a status override, not a reset.
+    expect(task.control.retries.code_review).toEqual({ used: 2, lifetime: 2 });
+    const entry = task.log.at(-1);
+    expect(entry).toMatchObject({
+      ref: "C2/block",
+      result: "blocked",
+      note: "stuck in adversarial test/review loop",
+      actor: "human",
     });
   });
 
   test("errors without a reason", () => {
     bootstrapWithTasks([1]);
-    writeJson(taskJsonPath("BLK-1", 1), inProgressTaskFixture());
+    writeTaskFixture({ workItemId: "BLK-1", taskId: 1, status: "in_progress" });
 
     const result = blockTask("BLK-1", 1, "   ");
     expect(result.ok).toBe(false);
@@ -85,9 +85,14 @@ describe("blockTask", () => {
 
   test("errors when the task is already blocked", () => {
     bootstrapWithTasks([1]);
-    writeJson(taskJsonPath("BLK-1", 1), inProgressTaskFixture({ status: "blocked" }));
+    writeTaskFixture({
+      workItemId: "BLK-1",
+      taskId: 1,
+      status: "blocked",
+      blocked: { kind: "manual", reason: "already stuck", ref: "T1/block" },
+    });
 
-    const result = blockTask("BLK-1", 1, "already stuck");
+    const result = blockTask("BLK-1", 1, "already stuck again");
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toContain("already blocked");
@@ -95,7 +100,7 @@ describe("blockTask", () => {
 
   test("errors when the task is already done", () => {
     bootstrapWithTasks([1]);
-    writeJson(taskJsonPath("BLK-1", 1), inProgressTaskFixture({ status: "done" }));
+    writeTaskFixture({ workItemId: "BLK-1", taskId: 1, status: "done" });
 
     const result = blockTask("BLK-1", 1, "too late");
     expect(result.ok).toBe(false);
@@ -118,7 +123,7 @@ describe("blockTask", () => {
 
   test("devBlock parses `<ID> <task_id> <reason...>` and requires all three", () => {
     bootstrapWithTasks([1]);
-    writeJson(taskJsonPath("BLK-1", 1), inProgressTaskFixture());
+    writeTaskFixture({ workItemId: "BLK-1", taskId: 1, status: "in_progress" });
 
     const missingId = devBlock("");
     expect(missingId.ok).toBe(false);

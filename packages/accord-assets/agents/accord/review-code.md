@@ -30,6 +30,8 @@ Orchestrator inlines:
 - When populated: `deployment` (e.g. `dark_deploy`, rollout or feature-flag constraints)
 - Plan fields: `guidance`, `reuse_candidates`, the full task object (id, title, covers_ac, files[], steps[])
 - `stub_files` (when present): unimplemented declarations phase-test created pre-impl. Any surviving `not implemented` body in these files is a **critical** Step drift finding; they count as in-scope for File drift.
+- `requirement_map` (harness pipeline): each requirement (`AC-n`) with the files changed for it (`changes[]`). Set each finding's `ac_id` from the file it concerns (use `also_affects` when the file serves several ACs).
+- `## Prior code findings to recheck (harness ledger)` (retry rounds): your earlier findings by **`F-nnn` id** with their history (phase-code's `fixed`/`disputed`/`wont_fix` responses, human notes). Return **one `rechecks[]` entry per listed finding**: `{finding_id, outcome: verified|reraised|dispute_upheld|wont_fix_accepted, note}`. Re-raise by id — never open a new finding for the same root cause.
 
 Schemas of truth: Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk.
 
@@ -75,7 +77,8 @@ Emit exactly one fenced ```json block last. Matches the injected `return: review
 
 Key content expectations:
 - Each finding has: `severity` (critical/warning/suggestion), `file`, `line`, `issue` (one sentence), `evidence` (what you observed), `recommendation` (actionable fix).
-- Optional `category` (e.g. `correctness`, `performance`, `reliability`, `drift`, `observability`, `compatibility`, `consistency`) and `ref` (e.g. `AC-3`, api_contract symbol) for machine routing.
+- Harness pipeline: `ac_id` on every finding (from `requirement_map`), and `rechecks[]` on retry rounds.
+- Optional `category` (e.g. `correctness`, `performance`, `reliability`, `drift`, `observability`, `compatibility`, `consistency`) and `ref` (e.g. api_contract symbol when there is no file:line).
 - Empty `findings[]` with `verdict: "clean"` when code aligns with spec+plan.
 
 Severity rules:

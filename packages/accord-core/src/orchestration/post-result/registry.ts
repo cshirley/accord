@@ -16,6 +16,7 @@ import { applyPhaseSpecPostResult } from "./phase-spec.js";
 import { applyPhaseTestPostResult } from "./phase-test.js";
 import { applyPhaseVerifyAcceptancePostResult } from "./phase-verify-acceptance.js";
 import { applyPhaseVerifyTaskPostResult } from "./phase-verify-task.js";
+import type { PostResultContext } from "./pipeline.js";
 import { applyReviewCodePostResult } from "./review-code.js";
 import { applyReviewSecurityPostResult } from "./review-security.js";
 import { applyReviewTestPostResult } from "./review-test.js";
@@ -24,6 +25,7 @@ export type PostResultHandler = (
   workItemId: string,
   packet: unknown,
   devConfig: DevHarnessConfig | null | undefined,
+  context?: PostResultContext,
 ) => string;
 
 export const POST_RESULT_HANDLERS: Readonly<Record<string, PostResultHandler>> = {
@@ -48,10 +50,11 @@ export function runPostResultHandlerForAgent(
   workItemId: string,
   packet: unknown,
   devConfig: DevHarnessConfig | null | undefined,
+  context?: PostResultContext,
 ): string {
   if (!agentId || !workItemId) {
     return "";
   }
   const handler = POST_RESULT_HANDLERS[agentId];
-  return handler ? handler(workItemId, packet, devConfig) : "";
+  return handler ? handler(workItemId, packet, devConfig, context) : "";
 }

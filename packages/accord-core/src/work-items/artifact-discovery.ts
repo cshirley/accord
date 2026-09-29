@@ -8,8 +8,11 @@ import * as path from "node:path";
 import { devNonce } from "../briefing/nonce.js";
 import { findGitRoot } from "../config/git.js";
 import { type PlanTaskStep, planTaskPipelineProfile } from "../plan/task-pipeline-profile.js";
+import { ensureRoundForActor } from "../tasks/model.js";
+import { seedTaskFromDisk } from "../tasks/seed.js";
+import { loadTaskV2, writeTaskV2 } from "../tasks/store.js";
 import { loadWorkItem, readJson, taskJsonPath, workItemJsonPath, writeJson } from "./io.js";
-import type { TaskFile, WorkItem } from "./types.js";
+import type { WorkItem } from "./types.js";
 
 export type ArtifactKind = "brief" | "spec" | "plan";
 
@@ -257,21 +260,12 @@ export function bootstrapImplementTasksFromPlan(workItemId: string, planPath: st
     taskIds.add(taskId);
 
     const taskPath = taskJsonPath(workItemId, taskId);
-    const existing = readJson<TaskFile>(taskPath);
-    if (existing) continue;
+    if (readJson<Record<string, unknown>>(taskPath)) continue;
 
-    const profile = planTaskPipelineProfile(task.steps);
-    writeJson(taskPath, {
-      schema_version: "1.0",
-      work_item_id: workItemId,
-      task_id: taskId,
-      owner_nonce: devNonce(),
-      phase: profile.initialPhase,
-      status: "pending",
-      pre_impl_gates: profile.preImplGates,
-      test_files: [],
-      events: [],
-    } satisfies TaskFile);
+    writeJson(
+      taskPath,
+      seedTaskFromDisk({ workItemId, taskId, ownerNonce: devNonce(), planTask: task }),
+    );
     created += 1;
   }
 
@@ -295,27 +289,22 @@ export function reconcileVerifyOnlyTasksFromPlan(workItemId: string, planPath: s
     const profile = planTaskPipelineProfile(task.steps);
     if (!profile.verifyOnly) continue;
 
-    const taskPath = taskJsonPath(workItemId, taskId);
-    const existing = readJson<TaskFile>(taskPath);
-    if (!existing || existing.status === "done" || existing.status === "blocked") continue;
+    const existing = loadTaskV2(workItemId, taskId);
+    if (!existing) continue;
+    const { control } = existing;
+    if (control.status === "done" || control.status === "blocked") continue;
 
-    const phase = typeof existing.phase === "string" ? existing.phase : "";
-    const needsPhase =
-      phase === "phase-test" ||
-      phase === "review-test" ||
-      phase === "phase-code" ||
-      phase === "review-security" ||
-      phase === "review-code";
-    const needsGates = existing.pre_impl_gates !== "complete";
-
+    const needsPhase = control.phase !== "phase-verify-task";
+    const needsGates = control.pre_impl_gates !== "complete";
     if (!needsPhase && !needsGates) continue;
 
-    existing.phase = "phase-verify-task";
-    existing.pre_impl_gates = "complete";
-    if (existing.status !== "in_progress") {
-      existing.status = "pending";
+    control.phase = "phase-verify-task";
+    control.pre_impl_gates = "complete";
+    ensureRoundForActor(existing, "phase-verify-task");
+    if (control.status !== "in_progress") {
+      control.status = "pending";
     }
-    writeJson(taskPath, existing);
+    writeTaskV2(existing);
     updated += 1;
   }
   return updated;

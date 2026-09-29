@@ -6,107 +6,304 @@
   "definitions": {
     "task_event": {
       "type": "object",
-      "required": ["type", "at"],
+      "required": ["type"],
       "additionalProperties": false,
       "properties": {
         "type": {
           "enum": ["usage", "escalation", "deviation", "request_review", "test_issue"]
         },
-        "at": { "type": "string", "minLength": 1 },
-        "model": { "type": "string", "minLength": 1 },
+        "at": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Ignored — the harness timestamps the log entry."
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
         "usage": {
           "type": "object",
           "required": ["prompt_tokens", "completion_tokens"],
           "additionalProperties": false,
           "properties": {
-            "prompt_tokens": { "type": "integer", "minimum": 0 },
-            "completion_tokens": { "type": "integer", "minimum": 0 }
+            "prompt_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completion_tokens": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
-        "question": { "type": "string", "minLength": 1 },
-        "context": { "type": "string" },
-        "tried": { "type": "string" },
-        "phase": { "type": "string" },
-        "description": { "type": "string" },
-        "reason": { "type": "string" },
-        "files": { "type": "array", "items": { "type": "string" } },
-        "test_file": { "type": "string", "minLength": 1 },
-        "test_name": { "type": "string" },
-        "issue": { "type": "string", "minLength": 1 },
-        "ac_id": { "type": "string" },
-        "recommendation": { "enum": ["fix_test", "clarify_spec", "acceptable"] }
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context": {
+          "type": "string"
+        },
+        "tried": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "test_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_name": {
+          "type": "string"
+        },
+        "issue": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ac_id": {
+          "type": "string"
+        },
+        "recommendation": {
+          "enum": ["fix_test", "clarify_spec", "acceptable"]
+        }
       },
       "oneOf": [
         {
           "required": ["type", "at", "model", "usage"],
-          "properties": { "type": { "const": "usage" } }
+          "properties": {
+            "type": {
+              "const": "usage"
+            }
+          }
         },
         {
           "required": ["type", "at", "question"],
-          "properties": { "type": { "const": "escalation" } }
+          "properties": {
+            "type": {
+              "const": "escalation"
+            }
+          }
         },
         {
           "required": ["type", "at", "description", "reason"],
-          "properties": { "type": { "const": "deviation" } }
+          "properties": {
+            "type": {
+              "const": "deviation"
+            }
+          }
         },
         {
           "required": ["type", "at", "files"],
-          "properties": { "type": { "const": "request_review" } }
+          "properties": {
+            "type": {
+              "const": "request_review"
+            }
+          }
         },
         {
           "required": ["type", "at", "test_file", "issue", "recommendation"],
-          "properties": { "type": { "const": "test_issue" } }
+          "properties": {
+            "type": {
+              "const": "test_issue"
+            }
+          }
         }
       ]
     }
   },
-  "required": ["status", "files_changed", "tests_passing", "usage"],
+  "required": ["status", "tests_passing", "usage"],
   "additionalProperties": false,
   "properties": {
-    "status": { "enum": ["done", "stuck", "blocked"] },
-    "files_changed": { "type": "array", "items": { "type": "string" } },
-    "tests_passing": { "type": "boolean" },
+    "status": {
+      "enum": ["done", "stuck", "blocked"]
+    },
+    "changes": {
+      "type": "array",
+      "description": "Every production file touched with the ACs it serves. Never test files (report a test_issue event).",
+      "items": {
+        "type": "object",
+        "required": ["file", "ac_ids"],
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "enum": ["add", "modify", "delete"]
+          },
+          "kind": {
+            "enum": ["test", "stub", "fixture", "config", "code", "dep"]
+          },
+          "ac_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Acceptance criteria this file change serves (AC-n). Empty only for cross-cutting changes."
+          },
+          "tc_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Test names added/changed in this file (test changes)."
+          }
+        }
+      }
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Deprecated — report via changes[]."
+    },
+    "tests_passing": {
+      "type": "boolean"
+    },
     "ac_covered": {
       "type": "array",
-      "items": { "type": "string", "pattern": "^AC-\\d+$" }
+      "items": {
+        "type": "string",
+        "pattern": "^AC-\\d+$"
+      }
     },
-    "deviations_emitted": { "type": "integer", "minimum": 0 },
-    "reviews_requested": { "type": "integer", "minimum": 0 },
-    "test_issues_emitted": { "type": "integer", "minimum": 0 },
+    "deviations_emitted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reviews_requested": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "test_issues_emitted": {
+      "type": "integer",
+      "minimum": 0
+    },
     "events": {
       "type": "array",
       "description": "Per-task events for orchestrator promotion (deviation, escalation, test_issue, request_review)",
-      "items": { "$ref": "#/definitions/task_event" }
+      "items": {
+        "$ref": "#/definitions/task_event"
+      }
     },
-    "question": { "type": "string", "minLength": 1 },
-    "context": { "type": "string" },
-    "tried": { "type": "string" },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "context": {
+      "type": "string"
+    },
+    "tried": {
+      "type": "string"
+    },
     "usage": {
       "type": "object",
       "required": ["prompt_tokens", "completion_tokens"],
       "additionalProperties": false,
       "properties": {
-        "prompt_tokens": { "type": "integer", "minimum": 0 },
-        "completion_tokens": { "type": "integer", "minimum": 0 }
+        "prompt_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "review_responses": {
+      "type": "array",
+      "description": "One entry per owed code / verification / security finding in the harness ledger (by finding_id).",
+      "items": {
+        "type": "object",
+        "required": ["resolution", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "pattern": "^F-\\d+$",
+            "description": "ID from the harness findings ledger in the brief. Required on retry rounds."
+          },
+          "issue": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Deprecated — use finding_id."
+          },
+          "ref": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "resolution": {
+            "enum": ["fixed", "disputed", "wont_fix"]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What changed (fixed), concrete evidence the finding is wrong (disputed), or why it should not be fixed (wont_fix — gates until a reviewer or human accepts)."
+          }
+        }
       }
     }
   },
   "allOf": [
     {
       "if": {
-        "properties": { "status": { "const": "stuck" } },
-        "required": ["status"]
-      },
-      "then": { "required": ["question", "context"] }
-    },
-    {
-      "if": {
-        "properties": { "status": { "const": "done" } },
+        "properties": {
+          "status": {
+            "const": "stuck"
+          }
+        },
         "required": ["status"]
       },
       "then": {
-        "properties": { "tests_passing": { "const": true } },
-        "required": ["ac_covered"]
+        "required": ["question", "context"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "done"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "tests_passing": {
+            "const": true
+          }
+        },
+        "anyOf": [
+          {
+            "required": ["changes"]
+          },
+          {
+            "required": ["files_changed"]
+          }
+        ]
       }
     }
   ]

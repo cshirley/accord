@@ -1,9 +1,13 @@
 /**
- * After validated **review-security** return — persist findings; always advance to **review-code**.
+ * After validated **review-security** return — findings are **advisory** (never gate, never
+ * consume a retry) but persist under their requirement and reach phase-code's next brief.
+ * Always advances to **review-code**.
  */
 
 import type { DevHarnessConfig } from "../../config/types.js";
-import { isReviewReturnPacket, persistLastReviewFeedback } from "../review-feedback.js";
+import { claimRef, clearInFlight, recordReview } from "../../tasks/record.js";
+import { isReviewReturnPacket } from "../review-feedback.js";
+import { analysisFrom, footer, type PostResultContext, pipelineLabel } from "./pipeline.js";
 import { advancePrimaryTask } from "./primary-task.js";
 
 /**
@@ -13,52 +17,38 @@ export function applyReviewSecurityPostResult(
   workItemId: string,
   packet: unknown,
   _devConfig?: DevHarnessConfig | null,
+  context?: PostResultContext,
 ): string {
-  if (!isReviewReturnPacket(packet)) {
-    return "";
-  }
+  if (!isReviewReturnPacket(packet)) return "";
+  const record = packet as unknown as Record<string, unknown>;
 
-  let footer = "";
+  let out = "";
+  const applied = advancePrimaryTask(workItemId, ({ workItem, task, timestamp }) => {
+    const label = pipelineLabel(workItem);
+    if (!label || task.control.phase !== "review-security") return false;
+    const ref = claimRef(task, "review-security");
+    if (!ref) return false;
 
-  const applied = advancePrimaryTask(workItemId, ({ workItem: wi, task, timestamp }) => {
-    const onImplement = wi.pattern === "implement" && wi.phase === "implementing";
-    const onQuickFix = wi.pattern === "quick_fix" && wi.phase === "fixing";
-    if ((!onImplement && !onQuickFix) || task.phase !== "review-security") {
-      return false;
-    }
+    const rec = recordReview(task, ref, "review-security", record, timestamp, {
+      gate: "block",
+      analysis: analysisFrom(record, context),
+    });
+    clearInFlight(task, "review-security");
+    task.control.phase = "review-code";
+    task.control.status = "pending";
 
-    persistLastReviewFeedback(task, "review-security", packet, timestamp);
-
-    const previousPhase = "review-security";
-    task.phase = "review-code";
-    task.status = "pending";
-
-    const label = onQuickFix ? "Quick-fix" : "Implement";
-    footer = [
+    out = footer([
+      `**${label} (review-security):** recorded \`${ref}\` — **review-code** is required next.`,
       "",
-      "",
-      `**${label} (review-security):** security review complete — **review-code** is required next.`,
-      "",
-      `- Task phase: \`${previousPhase}\` → \`review-code\`.`,
-      `- Findings: \`last_review_feedback\` on the per-task JSON (advisory unless combined with review-code gate).`,
+      "- Task phase: `review-security` → `review-code`.",
       packet.verdict === "issues"
-        ? "- Verdict: `issues` — address critical items before merge; review-code still runs."
+        ? `- Verdict: \`issues\` — ${String(rec.raised.length + rec.reraised.length)} advisory finding(s) (${[...rec.raised, ...rec.reraised].join(", ")}); phase-code should respond on its next run.`
         : "- Verdict: `clean`.",
       "",
       "Run `/dev resume` to spawn **review-code**.",
-    ].join("\n");
-
-    return {
-      event: {
-        type: onQuickFix
-          ? "quick_fix_review_security_applied"
-          : "implement_review_security_applied",
-        verdict: packet.verdict,
-        previous_phase: previousPhase,
-        next_phase: "review-code",
-      },
-    };
+    ]);
+    return true;
   });
 
-  return applied ? footer : "";
+  return applied ? out : "";
 }

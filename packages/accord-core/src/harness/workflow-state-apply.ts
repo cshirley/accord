@@ -4,9 +4,11 @@
 
 import type { DevHarnessConfig } from "../config/index.js";
 import { runPostResultHandlerForAgent } from "../orchestration/post-result/registry.js";
-import { persistValidatedAgentReturn } from "../orchestration/task-agent-audit.js";
+import {
+  finalizeTaskAgentReturn,
+  recordTaskAgentReturn,
+} from "../orchestration/task-agent-audit.js";
 import { extractAnalysisFromSubagentResult } from "../subagent/result/packet.js";
-import { applyTaskEventsFromPacket } from "./workflow-state-events.js";
 
 export type ApplyWorkflowStateInput = {
   workItemId: string;
@@ -15,23 +17,33 @@ export type ApplyWorkflowStateInput = {
   devConfig: DevHarnessConfig | null;
   /** Raw subagent result row for analysis extraction. */
   subagentResult?: unknown;
+  /** Pre-extracted analysis (recovery from sidecar). */
+  analysis?: string;
 };
 
 /**
  * Single writer path for workflow state after return-packet validation:
- * 1. merge `events[]` from packet onto per-task file
- * 2. persist agent return audit row
- * 3. run registered post-result handler (transitions, phase advances)
+ * 1. task-pipeline agents: raw packet sidecar + `in_flight` → `returned`
+ * 2. registered post-result handler (log entry, facts, routing decision)
+ * 3. finalize: log returns the handler did not apply, release `in_flight`
  */
 export function applyWorkflowStateFromValidatedReturn(input: ApplyWorkflowStateInput): string {
-  applyTaskEventsFromPacket(input.workItemId, input.packet);
-
-  const analysisText =
-    input.subagentResult !== undefined
+  const analysis =
+    input.analysis ??
+    (input.subagentResult !== undefined
       ? extractAnalysisFromSubagentResult(input.subagentResult)
-      : undefined;
-  const audit = analysisText ? { analysisText } : undefined;
-  persistValidatedAgentReturn(input.workItemId, input.agent, input.packet, audit);
+      : undefined);
 
-  return runPostResultHandlerForAgent(input.agent, input.workItemId, input.packet, input.devConfig);
+  recordTaskAgentReturn(input.workItemId, input.agent, input.packet, analysis);
+
+  const footer = runPostResultHandlerForAgent(
+    input.agent,
+    input.workItemId,
+    input.packet,
+    input.devConfig,
+    analysis ? { analysis } : undefined,
+  );
+
+  finalizeTaskAgentReturn(input.workItemId, input.agent, input.packet, analysis);
+  return footer;
 }

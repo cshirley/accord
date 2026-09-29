@@ -31,7 +31,8 @@ import { devGaps, gapsArgsWantTickets } from "@clive.shirley/accord-core/queries
 import { devRetro } from "@clive.shirley/accord-core/queries/retro.js";
 import { devReviewQueue } from "@clive.shirley/accord-core/queries/review-queue.js";
 import { devSpecGaps } from "@clive.shirley/accord-core/queries/spec-gaps.js";
-import { devUnblock } from "@clive.shirley/accord-core/queries/unblock-task.js";
+import { devTaskTrace, parseTraceArgs } from "@clive.shirley/accord-core/queries/task-trace.js";
+import { tokenizeArgs } from "@clive.shirley/accord-core/queries/unblock-task.js";
 import {
   clearHarnessRunTag,
   describeHarnessRunMeta,
@@ -56,6 +57,7 @@ import { registerPiHarnessHookListeners } from "./pi-hook-listeners.js";
 import { isPlanModeActive, planModeBlockMessage } from "./plan-mode.js";
 import { registerOrchestratorSubagentChatRenderer } from "./subagent/chat-display.js";
 import { registerTools } from "./tools.js";
+import { devUnblockInteractive } from "./unblock-interactive.js";
 import {
   ORCHESTRATOR_DISABLED_MESSAGE,
   tryClassifyFollowUpViaCoreOrchestrator,
@@ -288,8 +290,26 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
+    if (route.type === "known" && route.subcommand === "trace") {
+      const parsed = parseTraceArgs(tokenizeArgs(route.args));
+      if (!parsed.workItemId || parsed.error) {
+        ctx.ui.notify(parsed.error ?? "Usage: /dev trace <ID> [--task n] [--open]", "error");
+        return;
+      }
+      const result = devTaskTrace(parsed.workItemId, {
+        ...(parsed.taskId !== undefined ? { taskId: parsed.taskId } : {}),
+        openOnly: parsed.openOnly,
+      });
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "trace", result.value.formatted);
+      return;
+    }
+
     if (route.type === "known" && route.subcommand === "unblock") {
-      const result = devUnblock(route.args);
+      const result = await devUnblockInteractive(route.args, ctx);
       if (!result.ok) {
         ctx.ui.notify(result.error, "error");
         return;

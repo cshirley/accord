@@ -326,6 +326,9 @@ export function mergeOrchestrationConfig(
     ...(g.review_loop || p.review_loop
       ? { review_loop: { ...g.review_loop, ...p.review_loop } }
       : {}),
+    ...(g.verify_loop || p.verify_loop
+      ? { verify_loop: { ...g.verify_loop, ...p.verify_loop } }
+      : {}),
     ...(g.judgment || p.judgment ? { judgment: { ...g.judgment, ...p.judgment } } : {}),
     ...(g.resume || p.resume ? { resume: { ...g.resume, ...p.resume } } : {}),
     ...(g.commit || p.commit ? { commit: { ...g.commit, ...p.commit } } : {}),
