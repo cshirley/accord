@@ -6,9 +6,12 @@ tags: [monorepo, packages, layering, bun]
 status: stable
 generated: { by: agent:pi, at: 2026-09-28T16:41:59Z }
 sources:
-  - id: agents-md
-    resource: /AGENTS.md
-    title: Repository AGENTS.md
+  - id: pi-extension
+    resource: /packages/pi-accord/src/extension.ts
+    title: Pi extension entry (/dev wiring, tools, hooks)
+  - id: subcommand-routing
+    resource: /packages/accord-core/src/commands/subcommand-routing.ts
+    title: /dev subcommand ownership (local vs core orchestrator)
   - id: file-structure
     resource: /docs/file-structure.md
     title: File structure

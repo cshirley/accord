@@ -15,9 +15,9 @@ sources:
   - id: workflow
     resource: /docs/accord-workflow.md
     title: ACCORD agentic workflow (phase + review agent tables)
-  - id: agents-md
-    resource: /AGENTS.md
-    title: Review agent scope matrix
+  - id: review-code-scope
+    resource: /packages/accord-assets/agents/accord/review-code.md
+    title: review-code scope boundary (defers security / test adequacy)
 ---
 
 # Definition model

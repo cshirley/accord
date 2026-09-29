@@ -9,9 +9,12 @@ sources:
   - id: extending
     resource: /docs/extending.md
     title: Extending
-  - id: agents-md
-    resource: /AGENTS.md
-    title: Development notes
+  - id: registry
+    resource: /packages/accord-core/src/agents/registry.ts
+    title: Agent registry
+  - id: manifest
+    resource: /packages/accord-assets/manifest.json
+    title: Asset manifest
   - id: validator
     resource: /packages/accord-assets/scripts/validate-assets.ts
     title: Asset validator

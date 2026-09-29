@@ -1,5 +1,12 @@
 # Bundle Update Log
 
+## 2026-09-29
+
+* **Resolved**: Loop-cap config (`max_rgr_respawns`, `max_gather_attempts`, `max_unblocks_per_task`, `max_lifetime_retries`) landed in commit `129976d`; [Orchestration policy](/references/orchestration-policy.md) now matches committed source.
+* **Update**: `AGENTS.md` slimmed to always-loaded rules + OKF routing; detail previously duplicated there now lives only in this bundle. Concepts that cited `/AGENTS.md` ([Monorepo packages](/architecture/monorepo-packages.md), [Agents](/architecture/agents.md), [Add an agent](/playbooks/add-an-agent.md)) re-pointed at primary sources; [Verify a change](/playbooks/verify-a-change.md) keeps it only for the `## Dev Harness` block.
+* **Update**: [Overview](/overview.md) gains the "not a standalone workflow engine" principle (moved from `AGENTS.md`).
+* **Tooling**: `bun run validate:okf` (`scripts/validate-okf.ts`, part of `bun run check`) enforces frontmatter, `sources` paths, links, and index reachability.
+
 ## 2026-09-28
 
 * **Creation**: Established OKF v0.2 bundle at `okf/` with overview, architecture, playbooks, specs, and references sections.

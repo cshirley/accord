@@ -66,3 +66,4 @@ Key consequences:
 - **Isolated context** — every phase/review agent runs in a fresh subprocess. See [Subagent spawning](/architecture/subagent-spawning.md).
 - **State on disk** — JSON artifacts and `.tasks/` state make every phase resumable from a cold start.
 - **Schema-first** — every artifact and return packet validated. See [Schemas](/references/schemas.md).
+- **Not a standalone workflow engine** — the packages supply command wiring, tools, hooks, schemas, validation, status, and telemetry; agent and skill definitions supply the orchestration prompts and execution roles.
