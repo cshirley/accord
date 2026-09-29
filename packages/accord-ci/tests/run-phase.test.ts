@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  resultFromBackend,
-  runPhase,
   type PhaseBackendResult,
   type PhaseRunBackend,
+  resultFromBackend,
+  runPhase,
 } from "../src/run-phase.js";
 
 const DONE_PACKET = {
@@ -27,7 +27,10 @@ describe("runPhase — backend routing (AC-6)", () => {
   test("invokes backend with phase + ticket", async () => {
     const { backend, argvSeen } = stubBackend({
       exitCode: 0,
-      lastRun: { stopReason: "spawned_subagent", lastSpawn: { agent: "phase-spec", exitCode: 0, parsedReturn: DONE_PACKET } },
+      lastRun: {
+        stopReason: "spawned_subagent",
+        lastSpawn: { agent: "phase-spec", exitCode: 0, parsedReturn: DONE_PACKET },
+      },
     });
     await runPhase({ phase: "spec", ticket: "PROJ-1", runBackend: backend });
     expect(argvSeen).toHaveLength(1);
@@ -37,7 +40,10 @@ describe("runPhase — backend routing (AC-6)", () => {
   test("forwards extra allowlist flags via opts.extraArgs", async () => {
     const { backend, argvSeen } = stubBackend({
       exitCode: 0,
-      lastRun: { stopReason: "spawned_subagent", lastSpawn: { agent: "phase-code", exitCode: 0, parsedReturn: DONE_PACKET } },
+      lastRun: {
+        stopReason: "spawned_subagent",
+        lastSpawn: { agent: "phase-code", exitCode: 0, parsedReturn: DONE_PACKET },
+      },
     });
     await runPhase({
       phase: "code",
@@ -45,12 +51,7 @@ describe("runPhase — backend routing (AC-6)", () => {
       runBackend: backend,
       extraArgs: ["--task-id=2", "--owner-nonce=abc123"],
     });
-    expect(argvSeen[0]).toEqual([
-      "code",
-      "PROJ-1",
-      "--task-id=2",
-      "--owner-nonce=abc123",
-    ]);
+    expect(argvSeen[0]).toEqual(["code", "PROJ-1", "--task-id=2", "--owner-nonce=abc123"]);
   });
 });
 
@@ -114,7 +115,11 @@ describe("runPhase — truncated/stuck stream synthesis", () => {
   });
 
   test("unsupported phase → stuck unsupported_phase", async () => {
-    const r = await runPhase({ phase: "hax0r", ticket: "PROJ-1", runBackend: async () => ({ exitCode: 0 }) });
+    const r = await runPhase({
+      phase: "hax0r",
+      ticket: "PROJ-1",
+      runBackend: async () => ({ exitCode: 0 }),
+    });
     expect(r.status).toBe("stuck");
     if (r.status === "stuck") {
       expect(r.reason).toBe("unsupported_phase");

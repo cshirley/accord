@@ -2,12 +2,11 @@
  * Resolve agent/model details for Pi subprocess spawns.
  */
 
-import { loadAgentFromFile } from "./load.js";
-import { discoverAgents, resolveModelConfig } from "./config.js";
-import type { AgentConfig, ReasoningEffort, ResolvedModel, ThinkingLevel } from "./types.js";
-import { formatResponseContractAppendix } from "./response-contract.js";
 import type { SubagentResponseContract } from "../types/subagent-spawn.js";
-
+import { discoverAgents, resolveModelConfig } from "./config.js";
+import { loadAgentFromFile } from "./load.js";
+import { formatResponseContractAppendix } from "./response-contract.js";
+import type { AgentConfig, ReasoningEffort, ResolvedModel, ThinkingLevel } from "./types.js";
 
 export type SpawnSubagentParams = {
   cwd: string;
@@ -63,7 +62,14 @@ export function resolveSpawnModel(
   if (overrides.model) {
     const slash = overrides.model.indexOf("/");
     const isQualified = slash > 0;
-    const base = resolveModelConfig(agent);
+    // An explicit override already pins the model; don't let an unrelated credential
+    // mismatch on the agent's own tier config block it (fall back to null quietly here).
+    let base: ResolvedModel | null = null;
+    try {
+      base = resolveModelConfig(agent);
+    } catch {
+      base = null;
+    }
     const provider = isQualified
       ? overrides.model.slice(0, slash)
       : (base?.provider ?? "anthropic");

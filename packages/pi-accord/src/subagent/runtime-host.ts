@@ -16,10 +16,10 @@ import {
   loadPricing,
 } from "@clive.shirley/accord-core/telemetry/usage.js";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../integrations/pi-subagent.js";
 import { activateForDispatchAgent } from "../dynamic-tools.js";
 import type { HookState } from "../hook-state.js";
 import { syncHarnessRunSessionEntry } from "../hook-state.js";
+import { SPAWN_TIMEOUT_DISABLED, SubagentRunError } from "../integrations/pi-subagent.js";
 import { updateStatusBar } from "../status-bar.js";
 import { startOrchestratorSubagentChatDisplay } from "./chat-display.js";
 import { runOrchestrationJudgment } from "./judgment.js";

@@ -138,7 +138,9 @@ export function resolveBackendExecConfig(
 export function harnessHasExecRoute(harness?: DevHarnessHarnessConfig): boolean {
   if (!harness) return false;
   if (harness.exec?.command?.length) return true;
-  return Boolean(harness.backends?.some((backend) => backend.kind === "exec" && backend.command?.length));
+  return Boolean(
+    harness.backends?.some((backend) => backend.kind === "exec" && backend.command?.length),
+  );
 }
 
 export function resolveAgentTierConfig(

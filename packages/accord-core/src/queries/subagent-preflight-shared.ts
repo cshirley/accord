@@ -60,6 +60,16 @@ export function registerSpawnPreflightCheck(fn: SpawnPreflightCheckFn): void {
   spawnPreflightCheckImpl = fn;
 }
 
+/**
+ * Test-only: clear a previously registered host backend so accord-core unit tests get the
+ * deterministic permissive default instead of accidentally depending on a real host backend
+ * (e.g. pi-accord's) that happened to self-register earlier in the same test process, and on
+ * whatever real credentials/config exist on the machine running the suite.
+ */
+export function resetSpawnPreflightCheckForTests(): void {
+  spawnPreflightCheckImpl = null;
+}
+
 function permissiveCheck(agent: string): SubagentPreflightCheck {
   return {
     ok: true,

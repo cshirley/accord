@@ -4,7 +4,10 @@
 
 import { spawn } from "node:child_process";
 import { loadGlobalConfig } from "@clive.shirley/accord-core/config/global.js";
-import { mergeHarnessConfig, resolveBackendExecConfig } from "@clive.shirley/accord-core/config/harness-resolve.js";
+import {
+  mergeHarnessConfig,
+  resolveBackendExecConfig,
+} from "@clive.shirley/accord-core/config/harness-resolve.js";
 import type { ExecHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
 import { extractReturnPacket } from "@clive.shirley/accord-core/subagent/result/packet.js";
 import type { PreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/run-request.js";
@@ -21,12 +24,14 @@ export type ExecHarnessOptions = AgentHarnessFactoryOptions & {
 
 export function resolveExecHarnessConfig(
   state: HarnessMutableState,
-  options?: { harnessConfig?: import("@clive.shirley/accord-core/config/types.js").DevHarnessHarnessConfig; backendId?: string },
+  options?: {
+    harnessConfig?: import("@clive.shirley/accord-core/config/types.js").DevHarnessHarnessConfig;
+    backendId?: string;
+  },
 ): ExecHarnessConfig | undefined {
   const globalConfig = loadGlobalConfig();
   const merged =
-    options?.harnessConfig ??
-    mergeHarnessConfig(globalConfig?.harness, state.devConfig?.harness);
+    options?.harnessConfig ?? mergeHarnessConfig(globalConfig?.harness, state.devConfig?.harness);
   return resolveBackendExecConfig(merged, options?.backendId);
 }
 

@@ -161,6 +161,18 @@ accord review --json
 
 Core helpers: `packages/accord-core/src/review/standalone.ts`.
 
+### Answering pending questions (`needs_input`)
+
+When a phase agent returns `needs_input`, its questions are promoted into the work item JSON's `decisions[]` array (`docs/dev/<ID>/<ID>.json`) — that file is the source of truth, not the checkpoint. Each entry looks like:
+
+```json
+{ "id": "q1", "source": "spec", "status": "pending", "question": "...", "asked_at": "..." }
+```
+
+To answer headlessly, edit the matching entry: set `"status": "resolved"` and add `"answer": "..."` (optionally `"resolved_at"`), then re-run `accord resume <ID>` (or the specific subcommand, e.g. `accord spec <ID>`). The checkpoint's `answered`/`pending` arrays (`.tasks/<ID>-checkpoint.json`) are a derived cache re-synced from `decisions[]` on the agent's next turn — editing `decisions[]` alone is sufficient. In Pi, `/dev review <ID>` gives an interactive equivalent.
+
+A `phase-verify-acceptance` gap (`verdict: "gaps"`) is not a question — no `decisions[]` entry is created. Fix the failing AC per `verify.json`'s per-criterion `summary` and rerun `accord check <ID>`.
+
 ## Harness backends
 
 | ID | Implementation | Notes |

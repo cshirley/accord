@@ -4,10 +4,10 @@
 
 import { spawnSync } from "node:child_process";
 import {
+  type HarnessSelection,
   harnessHasExecRoute,
   mergeHarnessConfig,
   parseHarnessSelection,
-  type HarnessSelection,
 } from "./harness-resolve.js";
 import type { DevHarnessConfig, DevHarnessGlobalConfig } from "./types.js";
 

@@ -72,10 +72,14 @@ export function isFinishReady(workItemId: string, wi: WorkItem): boolean {
   if (wi.pattern !== "implement" || wi.phase !== "implementing") return false;
   const ids = wi.task_ids ?? [];
   if (ids.length === 0) return false;
-  return ids.every((taskId) => {
-    const task = loadTaskFile(workItemId, String(taskId));
-    return task?.status === "done" || task?.status === "blocked";
-  });
+  // Blocked tasks halt the work item (retry/RGR caps) — they are not finish-ready.
+  return ids.every((taskId) => loadTaskFile(workItemId, String(taskId))?.status === "done");
+}
+
+function hasBlockedTask(workItemId: string, wi: WorkItem): boolean {
+  return (wi.task_ids ?? []).some(
+    (taskId) => loadTaskFile(workItemId, String(taskId))?.status === "blocked",
+  );
 }
 
 /** Resume agent id without rehydrate, bootstrap, or plan reconciliation. */
@@ -120,7 +124,10 @@ export function resolveDashboardActionHint(
   if (wi.completed_at) return null;
 
   if (attention.pending_decisions > 0 || attention.pending_deviations > 0) {
-    return "→ review";
+    return "→ see decisions below";
+  }
+  if (hasBlockedTask(workItemId, wi)) {
+    return "→ blocked (unblock)";
   }
   if (isFinishReady(workItemId, wi)) {
     return "→ finish";

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { detectInstalledHarnesses } from "../src/config/detect-harnesses.js";
 import {
   buildGlobalAccordConfig,
   defaultTiersForHarness,
 } from "../src/config/generate-global-config.js";
-import { detectInstalledHarnesses } from "../src/config/detect-harnesses.js";
 
 describe("generate global accord config", () => {
   test("buildGlobalAccordConfig includes backends and tiers", () => {

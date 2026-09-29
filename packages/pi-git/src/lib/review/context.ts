@@ -88,4 +88,3 @@ export async function runGitReviewContext(cwd: string) {
     details,
   };
 }
-

@@ -13,6 +13,8 @@ import {
   now,
   readJson,
   taskJsonPath,
+  taskLockPath,
+  withJsonFileLock,
   workItemJsonPath,
   writeJson,
 } from "../../work-items/io.js";
@@ -67,34 +69,53 @@ export function advancePrimaryTask(
   workItemId: string,
   mutate: (ctx: PrimaryTaskMutationContext) => PrimaryTaskMutationResult | false,
 ): boolean {
-  const wi = loadWorkItem(workItemId);
-  if (!wi) {
-    return false;
-  }
+  // Every caller in this pipeline (`applyTaskEventsFromPacket`, `persistValidatedAgentReturn`,
+  // and each `apply<Agent>PostResult` handler) does its own bare read \u2192 mutate \u2192 write of the
+  // SAME task file, often several times in a row for one subagent return. Without a lock, two
+  // overlapping calls (concurrent subagent-result batches, or an overlapping harness process on
+  // the same work item) can interleave: both read the pre-mutation task, both write back, and
+  // the second write silently discards the first mutation. That is invisible for append-only
+  // fields (`agent_returns`, `events` \u2014 both writers' appends usually survive across the two
+  // writes) but drops scalar/object fields like `review_loop.test_review_retries_used` or
+  // `phase`, which is exactly the failure mode that let the review-test\u2194phase-test retry cap
+  // run well past its configured limit without ever tripping. Hold the lock (keyed on the task
+  // path) for the full read-mutate-write cycle so callers serialise instead of racing.
+  return withJsonFileLock(taskLockPath(workItemId), () => {
+    const wi = loadWorkItem(workItemId);
+    if (!wi) {
+      return false;
+    }
 
-  const primaryTaskId = resolvePrimaryTaskIdForMutation(wi);
-  const taskPath = taskJsonPath(workItemId, primaryTaskId);
-  const task = readJson<Record<string, unknown>>(taskPath);
-  if (!task) {
-    return false;
-  }
+    const primaryTaskId = resolvePrimaryTaskIdForMutation(wi);
+    const resolvedTaskPath = taskJsonPath(workItemId, primaryTaskId);
+    const task = readJson<Record<string, unknown>>(resolvedTaskPath);
+    if (!task) {
+      return false;
+    }
 
-  const timestamp = now();
-  const result = mutate({ workItem: wi, task, taskPath, primaryTaskId, timestamp });
-  if (result === false) {
-    return false;
-  }
+    const timestamp = now();
+    const result = mutate({
+      workItem: wi,
+      task,
+      taskPath: resolvedTaskPath,
+      primaryTaskId,
+      timestamp,
+    });
+    if (result === false) {
+      return false;
+    }
 
-  if (result.event) {
-    const events = Array.isArray(task.events) ? [...(task.events as unknown[])] : [];
-    task.events = [...events, { at: timestamp, ...result.event }];
-  }
+    if (result.event) {
+      const events = Array.isArray(task.events) ? [...(task.events as unknown[])] : [];
+      task.events = [...events, { at: timestamp, ...result.event }];
+    }
 
-  writeJson(taskPath, task);
-  // Mutators such as `devPromoteEvents` may persist work-item side effects; reload so we
-  // do not clobber decisions/deviations written during `mutate`.
-  const wiToWrite = loadWorkItem(workItemId) ?? wi;
-  wiToWrite.updated = timestamp;
-  writeJson(workItemJsonPath(workItemId), wiToWrite);
-  return true;
+    writeJson(resolvedTaskPath, task);
+    // Mutators such as `devPromoteEvents` may persist work-item side effects; reload so we
+    // do not clobber decisions/deviations written during `mutate`.
+    const wiToWrite = loadWorkItem(workItemId) ?? wi;
+    wiToWrite.updated = timestamp;
+    writeJson(workItemJsonPath(workItemId), wiToWrite);
+    return true;
+  });
 }

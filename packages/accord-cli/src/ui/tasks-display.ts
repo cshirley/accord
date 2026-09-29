@@ -23,7 +23,8 @@ export function classifyTasksDashboardLine(line: string): TasksDashboardLineKind
   const trimmed = line.trimEnd();
   if (trimmed.length === 0) return "empty";
   if (trimmed.startsWith("Work items")) return "title";
-  if (trimmed === "Active" || trimmed === "Done") return "section";
+  if (trimmed === "Active" || trimmed === "Done" || trimmed === "Pending decisions")
+    return "section";
   if (trimmed.startsWith("ID")) return "header";
   if (trimmed === "—") return "dash";
   if (trimmed.startsWith("Needs attention")) return "attention";
@@ -34,6 +35,7 @@ export function classifyTasksDashboardLine(line: string): TasksDashboardLineKind
   if (trimmed.startsWith(`${INDENT}tasks:`)) return "legend";
   if (/^\s+\d+ work item/.test(line)) return "title";
   if (/^[A-Z][A-Z0-9_-]+/.test(trimmed)) return "row";
+  if (trimmed.startsWith(INDENT)) return "muted";
   return "title";
 }
 

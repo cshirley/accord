@@ -3,6 +3,7 @@
  * test → review-test → code → review-code pipeline and complete in one gate pass.
  */
 
+import { detectTestRunnerCrash } from "../test-crash-detection.js";
 import { advancePrimaryTask } from "./primary-task.js";
 
 interface PhaseVerifyTaskDonePacket {
@@ -35,7 +36,7 @@ export function applyPhaseVerifyTaskPostResult(workItemId: string, packet: unkno
 
   let footerLines: string[] = [];
 
-  const applied = advancePrimaryTask(workItemId, ({ workItem: wi, task }) => {
+  const applied = advancePrimaryTask(workItemId, ({ workItem: wi, task, timestamp }) => {
     if (wi.pattern !== "implement" || wi.phase !== "implementing") {
       return false;
     }
@@ -55,6 +56,32 @@ export function applyPhaseVerifyTaskPostResult(workItemId: string, packet: unkno
     }
 
     const previousPhase = phase;
+
+    // This packet marks the task `done` outright (no RED/review cycle to catch a bad run
+    // later) — a crashed verify run masquerading as a pass would ship straight through.
+    // Guard it the same way as phase-test.
+    const crash = detectTestRunnerCrash(packet.verify_output);
+    if (crash) {
+      task.status = "blocked";
+      task.test_runner_crash = { reason: crash.reason, matched: crash.matched, at: timestamp };
+      footerLines = [
+        "**Implement (verify-only task):** test-runner CRASH detected in `verify_output` — not a valid pass signal.",
+        "",
+        `- ${crash.reason}.`,
+        `- Matched: \`${crash.matched}\``,
+        "- Task `status` is `blocked`; NOT marked `done`.",
+        "",
+        "Fix the crash, re-run to confirm a normal pass/fail result, then `/dev unblock` and `/dev resume`.",
+      ];
+      return {
+        event: {
+          type: "implement_verify_task_crash_detected",
+          previous_phase: previousPhase,
+          reason: crash.reason,
+        },
+      };
+    }
+
     task.phase = "phase-verify-task";
     task.status = "done";
     task.pre_impl_gates = "complete";

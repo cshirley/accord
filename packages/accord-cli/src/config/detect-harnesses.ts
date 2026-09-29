@@ -3,8 +3,8 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { HarnessBackendDef } from "@clive.shirley/accord-core/config/types.js";
 
 export type DetectedHarness = HarnessBackendDef & {

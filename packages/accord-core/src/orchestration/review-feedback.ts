@@ -11,6 +11,7 @@ import {
   reviewRetryPolicyForAgent,
   severityGateRemediationLabel,
 } from "./policy.js";
+import { resolvePrimaryTaskIdForMutation } from "./post-result/primary-task.js";
 
 export type ReviewTestVerdict = "clean" | "issues";
 
@@ -46,6 +47,19 @@ export interface LastReviewFeedback {
 export interface ReviewLoopCounters {
   test_review_retries_used: number;
   code_review_retries_used: number;
+  /**
+   * Lifetime cycle counts — incremented alongside the resettable counters above but never
+   * cleared by `/dev unblock`. `decideAfterReviewTest` / `decideAfterReviewCode` block once these
+   * hit `retryPolicy.maxLifetimeRetries`, independent of how many unblock slots remain.
+   */
+  lifetime_test_review_cycles: number;
+  lifetime_code_review_cycles: number;
+  /** Times `/dev unblock` has reset this task's retry counters, ever. Never decremented. */
+  unblock_count: number;
+  /** phase-code → phase-test RGR respawns (test_issue / test files touched). Reset by unblock. */
+  rgr_respawns_used: number;
+  /** Lifetime RGR respawns — never reset by `/dev unblock`. */
+  lifetime_rgr_respawns: number;
 }
 
 export function isReviewReturnPacket(packet: unknown): packet is ReviewReturnPacket {
@@ -72,21 +86,38 @@ export function hasCriticalFindings(findings: ReadonlyArray<ReviewFinding>): boo
   return findingsTriggerReviewRetry(findings, "block");
 }
 
+function nonNegativeInt(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
 export function readReviewLoopCounters(task: Record<string, unknown>): ReviewLoopCounters {
   const loop = task.review_loop as
-    | { test_review_retries_used?: unknown; code_review_retries_used?: unknown }
+    | {
+        test_review_retries_used?: unknown;
+        code_review_retries_used?: unknown;
+        lifetime_test_review_cycles?: unknown;
+        lifetime_code_review_cycles?: unknown;
+        unblock_count?: unknown;
+        rgr_respawns_used?: unknown;
+        lifetime_rgr_respawns?: unknown;
+      }
     | undefined;
   const legacy = task.quick_fix_loop as { test_review_cycles_used?: unknown } | undefined;
 
   const testRaw = loop?.test_review_retries_used ?? legacy?.test_review_cycles_used;
-  const codeRaw = loop?.code_review_retries_used;
 
-  const test =
-    typeof testRaw === "number" && Number.isFinite(testRaw) ? Math.max(0, Math.floor(testRaw)) : 0;
-  const code =
-    typeof codeRaw === "number" && Number.isFinite(codeRaw) ? Math.max(0, Math.floor(codeRaw)) : 0;
-
-  return { test_review_retries_used: test, code_review_retries_used: code };
+  return {
+    test_review_retries_used: nonNegativeInt(testRaw),
+    code_review_retries_used: nonNegativeInt(loop?.code_review_retries_used),
+    // Lifetime counters have no legacy fallback: a task written before this field existed had
+    // zero prior lifetime cycles recorded, so defaulting to 0 (not to the resettable counter) is
+    // correct — it does *not* retroactively grant extra budget on first read.
+    lifetime_test_review_cycles: nonNegativeInt(loop?.lifetime_test_review_cycles),
+    lifetime_code_review_cycles: nonNegativeInt(loop?.lifetime_code_review_cycles),
+    unblock_count: nonNegativeInt(loop?.unblock_count),
+    rgr_respawns_used: nonNegativeInt(loop?.rgr_respawns_used),
+    lifetime_rgr_respawns: nonNegativeInt(loop?.lifetime_rgr_respawns),
+  };
 }
 
 export function writeReviewLoopCounters(
@@ -96,6 +127,11 @@ export function writeReviewLoopCounters(
   task.review_loop = {
     test_review_retries_used: counters.test_review_retries_used,
     code_review_retries_used: counters.code_review_retries_used,
+    lifetime_test_review_cycles: counters.lifetime_test_review_cycles,
+    lifetime_code_review_cycles: counters.lifetime_code_review_cycles,
+    unblock_count: counters.unblock_count,
+    rgr_respawns_used: counters.rgr_respawns_used,
+    lifetime_rgr_respawns: counters.lifetime_rgr_respawns,
   };
   task.quick_fix_loop = { test_review_cycles_used: counters.test_review_retries_used };
 }
@@ -190,6 +226,12 @@ export function decideAfterReviewTest(
   if (!findingsTriggerReviewRetry(packet.findings, retryPolicy.severityGate)) {
     return { nextPhase: "phase-code", bumpTestRetry: false, retryPolicy };
   }
+  if (counters.lifetime_test_review_cycles >= retryPolicy.maxLifetimeRetries) {
+    return {
+      blocked: true,
+      reason: `Review-test LIFETIME retry cap reached (${String(retryPolicy.maxLifetimeRetries)} cycles across ${String(counters.unblock_count)} unblock(s); severity_gate=${retryPolicy.severityGate}). \`/dev unblock\` will not lift this — the findings in \`last_review_feedback\` must actually be fixed, or raise orchestration.review_loop.max_lifetime_retries deliberately.`,
+    };
+  }
   if (counters.test_review_retries_used >= retryPolicy.maxRetries) {
     return {
       blocked: true,
@@ -220,6 +262,12 @@ export function decideAfterReviewCode(
   if (!findingsTriggerReviewRetry(packet.findings, retryPolicy.severityGate)) {
     return { nextPhase: "phase-code", bumpCodeRetry: false, markDone: true, retryPolicy };
   }
+  if (counters.lifetime_code_review_cycles >= retryPolicy.maxLifetimeRetries) {
+    return {
+      blocked: true,
+      reason: `Review-code LIFETIME retry cap reached (${String(retryPolicy.maxLifetimeRetries)} cycles across ${String(counters.unblock_count)} unblock(s); severity_gate=${retryPolicy.severityGate}). \`/dev unblock\` will not lift this — the findings in \`last_review_feedback\` must actually be fixed, or raise orchestration.review_loop.max_lifetime_retries deliberately.`,
+    };
+  }
   if (counters.code_review_retries_used >= retryPolicy.maxRetries) {
     return {
       blocked: true,
@@ -246,8 +294,11 @@ export function appendReviewFeedbackToResumeBrief(
     return baseBrief;
   }
 
-  const taskIds = [...(wi.task_ids ?? [])].sort((a, b) => a - b);
-  const candidates = taskIds.length > 0 ? taskIds : [1];
+  // Only the task this spawn targets — the same resolution the implement brief builder uses.
+  // Scanning every task_id let a finished task's stale feedback (e.g. advisory review-code
+  // findings on task 1) leak into task 2's phase-code / phase-test brief, while the active
+  // task's own findings were never shown.
+  const candidates = [resolvePrimaryTaskIdForMutation(wi)];
 
   for (const taskId of candidates) {
     const task = loadTaskFile(workItemId, String(taskId));
@@ -287,6 +338,12 @@ export function appendReviewFeedbackToResumeBrief(
       `Retry policy: \`severity_gate=${retryPolicy.severityGate}\` (max ${String(retryPolicy.maxRetries)} retries). Address **${remediation}** before returning; lower severities are advisory unless the gate is \`none\`.`,
       "",
     ];
+    if (dispatchAgent === "phase-test") {
+      lines.push(
+        "**Required on this retry:** edit the existing `test_files` (and create Step 3 stub skeletons for any unresolved import) — do not start over. Return `review_responses[]` with one entry per finding above (`issue`, `resolution: fixed|disputed`, `note`, plus `ref`/`file` when the finding had them). `disputed` needs concrete evidence; review-test re-checks every entry.",
+        "",
+      );
+    }
     if (hasAnalysis) {
       lines.push("### Analysis (from task file)", "", feedback.analysis ?? "", "");
     }

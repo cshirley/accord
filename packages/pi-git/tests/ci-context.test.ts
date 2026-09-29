@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { formatGhCiContext, type GhCiContextData } from "../src/lib/pr/ci-context.js";
-import { resolveWorktreeQuery, type GitWorktreeEntry } from "../src/lib/worktree/resolve.js";
+import { type GitWorktreeEntry, resolveWorktreeQuery } from "../src/lib/worktree/resolve.js";
 
 describe("formatGhCiContext", () => {
   test("formats failing checks", () => {

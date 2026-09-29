@@ -11,13 +11,13 @@ import { fileURLToPath } from "node:url";
 import { parseSubagentReturnJson, spawnSubagent } from "@clive.shirley/accord-core/agents/index.js";
 import type { PreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/run-request.js";
 import { cliNotify } from "../notify.js";
-import { runSpawnPipeline, type SpawnExecutionResult } from "./spawn-pipeline.js";
 import {
+  type ExecAgentSpawnArgs,
   loadAgentFromSpawnFile,
   parseExecAgentSpawnArgv,
   readFileIfExists,
-  type ExecAgentSpawnArgs,
 } from "./exec-agent-shared.js";
+import { runSpawnPipeline, type SpawnExecutionResult } from "./spawn-pipeline.js";
 import type { AgentHarness, AgentHarnessFactoryOptions } from "./types.js";
 
 export type PiExecArgs = ExecAgentSpawnArgs;
@@ -63,7 +63,8 @@ export async function runPiExec(args: PiExecArgs): Promise<PiExecResult> {
   const task = readFileIfExists(args.taskFile);
   const systemAppend = readFileIfExists(args.systemAppendFile);
   const agentId =
-    args.agentId ?? path.basename(args.agentFile ?? "unknown", ".md").replace(/^phase-|^review-/, "");
+    args.agentId ??
+    path.basename(args.agentFile ?? "unknown", ".md").replace(/^phase-|^review-/, "");
 
   return runPiExecSpawn(
     {

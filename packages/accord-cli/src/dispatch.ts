@@ -5,10 +5,11 @@
 import path from "node:path";
 import type { ParsedCli } from "./cli.js";
 import {
+  runBlockCommand,
   runCompletionCommand,
   runConfigInitCommand,
-  runDeviationsCommand,
   runDevHelpCommand,
+  runDeviationsCommand,
   runDriveCommand,
   runFinishCommand,
   runGapsCommand,
@@ -22,10 +23,15 @@ import {
   runSpecGapsCommand,
   runTagCommand,
   runTasksCommand,
+  runUnblockCommand,
   runWorkflowCommand,
 } from "./commands/index.js";
 import { createCliContext } from "./context.js";
-import { createHarness, parseHarnessSelectionFromCli } from "./harnesses/registry.js";
+import {
+  createHarness,
+  type HarnessSelectionResult,
+  parseHarnessSelectionFromCli,
+} from "./harnesses/registry.js";
 import { cliNotify } from "./notify.js";
 
 export async function executeParsed(parsed: ParsedCli): Promise<number> {
@@ -101,7 +107,7 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
     return runPlanCommand(ctx, parsed.command, parsed.workItemId, { json: parsed.options.json });
   }
 
-  let harnessSelection;
+  let harnessSelection: HarnessSelectionResult;
   try {
     harnessSelection = parseHarnessSelectionFromCli(parsed.options.harness, ctx);
   } catch (error) {
@@ -120,6 +126,7 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
     finish: parsed.options.finish,
     maxRounds: parsed.options.maxRounds,
     json: parsed.options.json,
+    allowPendingDecisions: parsed.options.allowPendingDecisions,
   };
 
   if (parsed.kind === "run") {
@@ -142,6 +149,14 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
     });
   }
 
+  if (parsed.kind === "unblock") {
+    return runUnblockCommand(parsed.workItemId, parsed.rawArgs, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "block") {
+    return runBlockCommand(parsed.workItemId, parsed.rawArgs, { json: parsed.options.json });
+  }
+
   if (parsed.kind === "workflow") {
     const result = await runWorkflowCommand(
       ctx,
@@ -154,7 +169,9 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
   }
 
   if (parsed.kind === "resume") {
-    const result = await runResumeCommand(ctx, harness, parsed.workItemId);
+    const result = await runResumeCommand(ctx, harness, parsed.workItemId, {
+      allowPendingDecisions: parsed.options.allowPendingDecisions,
+    });
     return result.exitCode;
   }
 

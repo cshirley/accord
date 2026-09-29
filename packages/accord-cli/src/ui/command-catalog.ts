@@ -23,7 +23,11 @@ export const TOP_LEVEL_COMMANDS: CommandSpec[] = [
   { name: "deviations", summary: "Deviation review", needsWorkItem: true },
   { name: "run", summary: "Bootstrap from ticket or description", usage: "run <text>" },
   { name: "drive", summary: "Drive work item loop", needsWorkItem: true },
-  { name: "plan", summary: "Orchestration plan or phase-plan workflow", usage: "plan <resume|finish|ID>" },
+  {
+    name: "plan",
+    summary: "Orchestration plan or phase-plan workflow",
+    usage: "plan <resume|finish|ID>",
+  },
   { name: "resume", summary: "Resume orchestration", needsWorkItem: true },
   { name: "finish", summary: "Finish closeout", needsWorkItem: true },
   { name: "init", summary: "Stack detect + AGENTS.md bootstrap" },
@@ -37,7 +41,16 @@ export const TOP_LEVEL_COMMANDS: CommandSpec[] = [
   })),
 ];
 
-export const WORK_ITEM_ACTIONS = ["resume", "finish", "drive", "plan", "align", "spec", "check", "gaps"] as const;
+export const WORK_ITEM_ACTIONS = [
+  "resume",
+  "finish",
+  "drive",
+  "plan",
+  "align",
+  "spec",
+  "check",
+  "gaps",
+] as const;
 
 export function allCommandNames(): string[] {
   const names = new Set<string>();

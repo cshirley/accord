@@ -1,16 +1,13 @@
 import { afterAll, describe, expect, mock, test } from "bun:test";
 import * as path from "node:path";
 import * as accordAgents from "@clive.shirley/accord-core/agents/index.js";
-import { createHarness } from "../src/harnesses/registry.js";
-import { runPiExec } from "../src/harnesses/pi-exec.js";
-import { writeExecTaskFile } from "../src/harnesses/exec-template.js";
 import { createCliContext } from "../src/context.js";
+import { writeExecTaskFile } from "../src/harnesses/exec-template.js";
+import { runPiExec } from "../src/harnesses/pi-exec.js";
+import { createHarness } from "../src/harnesses/registry.js";
 
 const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
-const PHASE_ALIGN = path.join(
-  REPO_ROOT,
-  "packages/accord-assets/agents/accord/phase-align.md",
-);
+const PHASE_ALIGN = path.join(REPO_ROOT, "packages/accord-assets/agents/accord/phase-align.md");
 
 const spawnCalls: Array<Record<string, unknown>> = [];
 

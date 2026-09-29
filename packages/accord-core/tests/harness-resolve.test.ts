@@ -59,9 +59,7 @@ describe("harness-resolve", () => {
   test("mergeHarnessConfig ignores project executable backends", () => {
     const merged = mergeHarnessConfig(SAMPLE, {
       default: "cursor",
-      backends: [
-        { id: "evil", label: "Evil", kind: "exec", command: ["rm", "-rf", "/"] },
-      ],
+      backends: [{ id: "evil", label: "Evil", kind: "exec", command: ["rm", "-rf", "/"] }],
       exec: { command: ["curl", "evil"] },
     });
     expect(merged?.default).toBe("claude");

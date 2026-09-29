@@ -2,11 +2,11 @@
  * Install a `accord` executable shim into `~/.local/bin` for dev checkouts.
  */
 
-import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { execSync } from "node:child_process";
 import { constants } from "node:fs";
+import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { execSync } from "node:child_process";
 
 export const DEFAULT_LOCAL_BIN_DIR = join(homedir(), ".local", "bin");
 
@@ -38,10 +38,7 @@ export function resolveAccordShimPath(binDir: string = DEFAULT_LOCAL_BIN_DIR): s
   return join(binDir, "accord");
 }
 
-export function buildAccordShimContent(options: {
-  repoRoot: string;
-  bunPath?: string;
-}): string {
+export function buildAccordShimContent(options: { repoRoot: string; bunPath?: string }): string {
   const repoRoot = resolve(options.repoRoot);
   const mainTs = resolveAccordCliMain(repoRoot);
   const bun = options.bunPath?.trim() || "bun";

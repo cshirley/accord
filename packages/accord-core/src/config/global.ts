@@ -4,7 +4,6 @@ import { resolveLegacyGlobalConfigPath, resolveNeutralGlobalConfigPath } from ".
 import type {
   ContextSourceConfig,
   DevHarnessGlobalConfig,
-  DevHarnessHarnessConfig,
   DevHarnessOrchestrationConfig,
 } from "./types.js";
 

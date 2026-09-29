@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdtempSync, readlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, test } from "bun:test";
 
 const repoRoot = join(import.meta.dir, "..", "..", "..");
 const scriptPath = join(import.meta.dir, "..", "scripts", "install-review-agents.ts");
@@ -18,10 +18,11 @@ describe("install-review-agents", () => {
 
   test("dry-run links three review agents from accord-assets", async () => {
     tempTarget = mkdtempSync(join(tmpdir(), "pi-skills-agent-install-"));
-    const proc = Bun.spawn(
-      ["bun", scriptPath, "--target", tempTarget, "--dry-run", "--force"],
-      { cwd: repoRoot, stdout: "pipe", stderr: "pipe" },
-    );
+    const proc = Bun.spawn(["bun", scriptPath, "--target", tempTarget, "--dry-run", "--force"], {
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     const exitCode = await proc.exited;
     const stdout = await new Response(proc.stdout).text();
     expect(exitCode).toBe(0);

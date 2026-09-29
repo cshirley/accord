@@ -4,8 +4,8 @@ import {
   clearSearchableToolsForTests,
   isProgressiveToolsEnabled,
   registerSearchableTools,
-  scoreToolCatalog,
   SEARCH_ACCORD_TOOLS,
+  scoreToolCatalog,
 } from "../src/tools/progressive-discovery.js";
 
 describe("isProgressiveToolsEnabled", () => {
@@ -55,10 +55,7 @@ describe("scoreToolCatalog", () => {
 describe("buildLoaderActiveSet", () => {
   test("hides managed tools but keeps loader", () => {
     const managed = new Set(["gh_pr_context", "wt_exec"]);
-    const active = buildLoaderActiveSet(
-      ["read", "bash", "gh_pr_context", "wt_exec"],
-      managed,
-    );
+    const active = buildLoaderActiveSet(["read", "bash", "gh_pr_context", "wt_exec"], managed);
     expect(active).toContain("read");
     expect(active).toContain(SEARCH_ACCORD_TOOLS);
     expect(active).not.toContain("gh_pr_context");

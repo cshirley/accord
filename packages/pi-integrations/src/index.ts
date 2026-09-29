@@ -35,8 +35,8 @@ import slackSend from "./defs/slack-send.js";
 import slackUnread from "./defs/slack-unread.js";
 import slackUserInfo from "./defs/slack-user-info.js";
 import slackUserLookup from "./defs/slack-user-lookup.js";
-import { registerCommands, registerToolDefs } from "./framework.js";
 import { initIntegrationsDynamicTools } from "./dynamic-tools.js";
+import { registerCommands, registerToolDefs } from "./framework.js";
 import { resetMcpRegistry } from "./mcp-registry.js";
 
 export default function tools(pi: ExtensionAPI) {

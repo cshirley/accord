@@ -66,7 +66,7 @@ export function formatGhCiContext(d: GhCiContextData): string {
   const out: string[] = [];
   out.push(`Branch: ${d.branch}`);
   out.push(`Ticket: ${d.ticket ?? "(not detected)"}`);
-  out.push(`gh auth: ${d.ghAuth ? "✓" : "✗ — run \`gh auth login\`"}`);
+  out.push(`gh auth: ${d.ghAuth ? "✓" : "✗ — run `gh auth login`"}`);
 
   if (!d.pr) {
     out.push("\nPR: none on current branch — open one with gh_pr_submit or /pr");
@@ -200,9 +200,11 @@ export async function runGhCiContext(
 
     const failed = runs.filter((r) => r.conclusion === "failure" || r.conclusion === "cancelled");
     for (const run of failed.slice(0, 2)) {
-      const log = await gh(["run", "view", String(run.databaseId), "--log-failed"], root, signal).catch(
-        () => "",
-      );
+      const log = await gh(
+        ["run", "view", String(run.databaseId), "--log-failed"],
+        root,
+        signal,
+      ).catch(() => "");
       const [excerpt] = truncateLines(log.trim() || "(no log output)", 80);
       failedRuns.push({
         databaseId: run.databaseId,

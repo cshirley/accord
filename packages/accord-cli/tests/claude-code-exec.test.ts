@@ -3,20 +3,20 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { runClaudeCodeExec } from "../src/harnesses/claude-code-exec.js";
-import { formatClaudeCodeCliEffort, formatClaudeCodeCliModel } from "../src/harnesses/claude-code-model.js";
-import { formatClaudeCodeTools, loadAgentFromSpawnFile, resolveSpawnModelFromAgentFile } from "../src/harnesses/exec-agent-shared.js";
-import { resolveCursorAgentModel } from "../src/harnesses/cursor-agent-exec.js";
+import {
+  formatClaudeCodeCliEffort,
+  formatClaudeCodeCliModel,
+} from "../src/harnesses/claude-code-model.js";
+import {
+  formatClaudeCodeTools,
+  loadAgentFromSpawnFile,
+  resolveSpawnModelFromAgentFile,
+} from "../src/harnesses/exec-agent-shared.js";
 import { writeExecTaskFile } from "../src/harnesses/exec-template.js";
 
 const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
-const PHASE_ALIGN = path.join(
-  REPO_ROOT,
-  "packages/accord-assets/agents/accord/phase-align.md",
-);
-const REVIEW_CODE = path.join(
-  REPO_ROOT,
-  "packages/accord-assets/agents/accord/review-code.md",
-);
+const PHASE_ALIGN = path.join(REPO_ROOT, "packages/accord-assets/agents/accord/phase-align.md");
+const REVIEW_CODE = path.join(REPO_ROOT, "packages/accord-assets/agents/accord/review-code.md");
 
 describe("claude code model formatting", () => {
   test("strips provider prefix from model id", () => {
@@ -89,9 +89,9 @@ describe("claude code exec spawn (mock)", () => {
         '    --system-prompt) SYSTEM="$2"; shift 2 ;;',
         '    --append-system-prompt) APPEND="$2"; shift 2 ;;',
         '    --tools) TOOLS="$2"; shift 2 ;;',
-        '    -p|--print|--output-format|--dangerously-skip-permissions) shift ;;',
-        '    text) shift ;;',
-        "    *) TASK=\"$1\"; shift ;;",
+        "    -p|--print|--output-format|--dangerously-skip-permissions) shift ;;",
+        "    text) shift ;;",
+        '    *) TASK="$1"; shift ;;',
         "  esac",
         "done",
         'printf "model=%s\\neffort=%s\\ntools=%s\\n" "$MODEL" "$EFFORT" "$TOOLS" > "$LOG_FILE"',
@@ -131,11 +131,7 @@ describe("claude code exec spawn (mock)", () => {
     const logFile = path.join(mockDir, "args.log");
     fs.writeFileSync(
       mockBin,
-      [
-        "#!/usr/bin/env bash",
-        'printf "%s\\n" "$*" > "' + logFile + '"',
-        "exit 0",
-      ].join("\n"),
+      ["#!/usr/bin/env bash", `printf "%s\\n" "$*" > "${logFile}"`, "exit 0"].join("\n"),
       { mode: 0o755 },
     );
 

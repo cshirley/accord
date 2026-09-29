@@ -6,18 +6,18 @@ import {
   buildLoaderActiveSet,
   getRegisteredSearchableToolNames,
   isProgressiveToolsEnabled,
-  registerSearchableTools,
   notifyToolsMatched,
-  scoreToolCatalog,
+  registerSearchableTools,
   SEARCH_ACCORD_TOOLS,
+  scoreToolCatalog,
 } from "@clive.shirley/accord-core/tools/progressive-discovery.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import {
+  GIT_MANAGED_TOOL_NAMES,
   type GitToolBundle,
   gitBundleForTool,
   gitToolsForBundles,
-  GIT_MANAGED_TOOL_NAMES,
   isGitManagedTool,
 } from "./tool-bundles.js";
 
@@ -79,13 +79,16 @@ function ensureSearchTool(pi: ExtensionAPI): void {
     name: SEARCH_ACCORD_TOOLS,
     label: "Search Accord Tools",
     description: "Search for and enable pi-git / pi-integrations tools by task keywords",
-    promptSnippet: "Load additional Accord extension tools when the active set cannot perform the task",
+    promptSnippet:
+      "Load additional Accord extension tools when the active set cannot perform the task",
     promptGuidelines: [
       "Call search_accord_tools when you need git, PR, worktree, review, harness, Jira, Slack, or Gmail tools that are not currently active.",
       "Prefer search_accord_tools over guessing inactive tool names.",
     ],
     parameters: Type.Object({
-      query: Type.String({ description: "Capability or task to search for (e.g. 'merge PR', 'worktree', 'jira')" }),
+      query: Type.String({
+        description: "Capability or task to search for (e.g. 'merge PR', 'worktree', 'jira')",
+      }),
       limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 12 })),
     }),
     async execute(_toolCallId, params) {

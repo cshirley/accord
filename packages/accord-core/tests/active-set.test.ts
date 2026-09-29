@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   ACCORD_CORE_TOOLS,
   ACCORD_TOOL_BUNDLES,
@@ -14,10 +14,19 @@ import {
 
 describe("isDynamicToolsEnabled", () => {
   const original = process.env.ACCORD_DYNAMIC_TOOLS;
+  // Master switch overrides the package var — clear it so a host shell's
+  // `PI_PROGRESSIVE_TOOLS=0` (e.g. under `pi-more`) cannot flip these assertions.
+  const originalMaster = process.env.PI_PROGRESSIVE_TOOLS;
+
+  beforeEach(() => {
+    delete process.env.PI_PROGRESSIVE_TOOLS;
+  });
 
   afterEach(() => {
     if (original === undefined) delete process.env.ACCORD_DYNAMIC_TOOLS;
     else process.env.ACCORD_DYNAMIC_TOOLS = original;
+    if (originalMaster === undefined) delete process.env.PI_PROGRESSIVE_TOOLS;
+    else process.env.PI_PROGRESSIVE_TOOLS = originalMaster;
   });
 
   test("defaults to enabled when unset", () => {

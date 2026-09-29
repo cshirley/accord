@@ -273,6 +273,11 @@
       "description": "Deterministic harness behaviour overrides (Phase 3+).",
       "additionalProperties": false,
       "properties": {
+        "max_gather_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Max **phase-gather** spawns (align `needs_gather` → gather) before the harness escalates to a human via decisions[]. Persisted on the work item as `gather_attempts`. Default: 3."
+        },
         "quick_fix_loop": {
           "type": "object",
           "description": "Quick-fix adversarial test↔review loop: after each validated `review-test` packet, the harness may bump counters, set task `phase` to `phase-test` or `phase-code`, or mark the task `blocked` when the cap is reached.",
@@ -281,7 +286,7 @@
             "max_test_review_loops": {
               "type": "integer",
               "minimum": 0,
-              "description": "Maximum `test_review_cycles_used` before further gated `issues` verdicts block the task. Default: 5."
+              "description": "Maximum `test_review_cycles_used` before further gated `issues` verdicts block the task. Default: 3."
             },
             "severity_gate": {
               "type": "string",
@@ -315,6 +320,21 @@
               "minimum": 0,
               "description": "Max retries per loop when gated findings fire. Default: 3."
             },
+            "max_lifetime_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Hard lifetime ceiling per task that `/dev unblock` never resets. Default: max retries × (max_unblocks_per_task + 1)."
+            },
+            "max_unblocks_per_task": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Max `/dev unblock` resets per task, ever. Default: 1."
+            },
+            "max_rgr_respawns": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Max **phase-code → phase-test** respawns per task (phase-code emitted `test_issue` or touched test files) before the task is blocked. Default: 3."
+            },
             "severity_gate": {
               "type": "string",
               "enum": ["none", "warn", "block"],
@@ -332,6 +352,10 @@
                 "max_retries": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "max_lifetime_retries": {
+                  "type": "integer",
+                  "minimum": 0
                 }
               }
             },
@@ -345,6 +369,10 @@
                   "enum": ["none", "warn", "block"]
                 },
                 "max_retries": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_lifetime_retries": {
                   "type": "integer",
                   "minimum": 0
                 }

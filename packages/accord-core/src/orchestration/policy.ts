@@ -4,14 +4,35 @@
 
 import type { DevHarnessConfig } from "../config/types.js";
 
-/** Default max respawns for adversarial test↔review loops before forcing user / skill. */
-export const DEFAULT_MAX_QUICK_FIX_TEST_REVIEW_LOOPS = 5;
+/**
+ * Default max respawns for adversarial test↔review loops before forcing user / skill.
+ * Aligned with {@link DEFAULT_MAX_CRITICAL_REVIEW_RETRIES} — every adversarial loop stops after 3.
+ */
+export const DEFAULT_MAX_QUICK_FIX_TEST_REVIEW_LOOPS = 3;
 
 /** Default max retries when **review-test** or **review-code** reports critical findings. */
 export const DEFAULT_MAX_CRITICAL_REVIEW_RETRIES = 3;
 
-/** Default max gather retries when sources flap (future; hooks own gather today). */
+/**
+ * Default max times `/dev unblock` may reset a blocked task's retry counters, per task, ever.
+ * Guards against the resettable per-cycle cap (`DEFAULT_MAX_CRITICAL_REVIEW_RETRIES`) being
+ * defeated by repeatedly unblocking without addressing `last_review_feedback`.
+ */
+export const DEFAULT_MAX_UNBLOCKS_PER_TASK = 1;
+
+/**
+ * Default max **phase-gather** spawns (align → `needs_gather` → gather) before the harness stops
+ * and asks a human. Persisted on the work item (`gather_attempts`) so the cap survives across
+ * resumes / `accord drive` rounds, not just one follow-up chain.
+ */
 export const DEFAULT_MAX_GATHER_ATTEMPTS = 3;
+
+/**
+ * Default max **phase-code → phase-test** RGR respawns per task (phase-code reported `test_issue`
+ * or touched test files). Without a cap this cycle (phase-code → phase-test → review-test clean →
+ * phase-code → test_issue …) never consumes a review retry slot and can run forever.
+ */
+export const DEFAULT_MAX_RGR_RESPAWNS = 3;
 
 export type PolicySeverityGate = "none" | "warn" | "block";
 
@@ -67,12 +88,20 @@ export function severityGateRemediationLabel(gate: PolicySeverityGate): string {
 export interface ResolvedReviewRetryPolicy {
   severityGate: PolicySeverityGate;
   maxRetries: number;
+  /**
+   * Hard ceiling on the lifetime cycle counter (`review_loop.lifetime_test_review_cycles` /
+   * `lifetime_code_review_cycles`), which `/dev unblock` never resets. Tripping this blocks the
+   * task regardless of how many unblock slots remain.
+   */
+  maxLifetimeRetries: number;
 }
 
 export function defaultReviewLoopPolicy(): ResolvedReviewRetryPolicy {
+  const maxRetries = DEFAULT_MAX_CRITICAL_REVIEW_RETRIES;
   return {
     severityGate: "block",
-    maxRetries: DEFAULT_MAX_CRITICAL_REVIEW_RETRIES,
+    maxRetries,
+    maxLifetimeRetries: maxRetries * (DEFAULT_MAX_UNBLOCKS_PER_TASK + 1),
   };
 }
 
@@ -94,12 +123,17 @@ export function reviewRetryPolicyForAgent(
 ): ResolvedReviewRetryPolicy {
   if (pattern === "quick_fix" && agent === "review-test") {
     const qf = quickFixLoopPolicyFromDevConfig(config);
-    return { severityGate: qf.severityGate, maxRetries: qf.maxTestReviewLoops };
+    return {
+      severityGate: qf.severityGate,
+      maxRetries: qf.maxTestReviewLoops,
+      maxLifetimeRetries: qf.maxTestReviewLoops * (maxUnblocksPerTaskFromDevConfig(config) + 1),
+    };
   }
 
   const base = defaultReviewLoopPolicy();
   let severityGate = base.severityGate;
   let maxRetries = base.maxRetries;
+  let maxLifetimeRetries: number | undefined;
   const raw = config?.orchestration?.review_loop;
   if (raw && typeof raw === "object") {
     if (raw.severity_gate !== undefined) {
@@ -108,6 +142,10 @@ export function reviewRetryPolicyForAgent(
     const maxRaw = raw.max_critical_retries;
     if (typeof maxRaw === "number" && Number.isFinite(maxRaw)) {
       maxRetries = Math.max(0, Math.floor(maxRaw));
+    }
+    const lifetimeRaw = raw.max_lifetime_retries;
+    if (typeof lifetimeRaw === "number" && Number.isFinite(lifetimeRaw)) {
+      maxLifetimeRetries = Math.max(0, Math.floor(lifetimeRaw));
     }
     const agentRaw = agent === "review-test" ? raw.review_test : raw.review_code;
     if (agentRaw && typeof agentRaw === "object") {
@@ -118,10 +156,66 @@ export function reviewRetryPolicyForAgent(
       if (typeof agentMax === "number" && Number.isFinite(agentMax)) {
         maxRetries = Math.max(0, Math.floor(agentMax));
       }
+      const agentLifetimeMax = agentRaw.max_lifetime_retries;
+      if (typeof agentLifetimeMax === "number" && Number.isFinite(agentLifetimeMax)) {
+        maxLifetimeRetries = Math.max(0, Math.floor(agentLifetimeMax));
+      }
     }
   }
 
-  return { severityGate, maxRetries };
+  // Not explicitly configured: derive from the *effective* maxRetries so overriding
+  // `max_critical_retries` without also setting `max_lifetime_retries` still yields a sane,
+  // proportionally larger hard ceiling rather than silently reusing the stale default.
+  if (maxLifetimeRetries === undefined) {
+    maxLifetimeRetries = maxRetries * (maxUnblocksPerTaskFromDevConfig(config) + 1);
+  }
+
+  return { severityGate, maxRetries, maxLifetimeRetries };
+}
+
+/**
+ * Max lifetime `/dev unblock` resets for a single task's review-loop retry counters
+ * (`orchestration.review_loop.max_unblocks_per_task`, default {@link DEFAULT_MAX_UNBLOCKS_PER_TASK}).
+ */
+export function maxUnblocksPerTaskFromDevConfig(
+  config: DevHarnessConfig | null | undefined,
+): number {
+  const raw = config?.orchestration?.review_loop?.max_unblocks_per_task;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return Math.max(0, Math.floor(raw));
+  }
+  return DEFAULT_MAX_UNBLOCKS_PER_TASK;
+}
+
+export interface RgrRespawnPolicy {
+  maxRespawns: number;
+  /** Never reset by `/dev unblock`. */
+  maxLifetimeRespawns: number;
+}
+
+/** `orchestration.review_loop.max_rgr_respawns` (default {@link DEFAULT_MAX_RGR_RESPAWNS}). */
+export function rgrRespawnPolicyFromDevConfig(
+  config: DevHarnessConfig | null | undefined,
+): RgrRespawnPolicy {
+  const raw = config?.orchestration?.review_loop?.max_rgr_respawns;
+  const maxRespawns =
+    typeof raw === "number" && Number.isFinite(raw)
+      ? Math.max(0, Math.floor(raw))
+      : DEFAULT_MAX_RGR_RESPAWNS;
+  return {
+    maxRespawns,
+    maxLifetimeRespawns: maxRespawns * (maxUnblocksPerTaskFromDevConfig(config) + 1),
+  };
+}
+
+/** `orchestration.max_gather_attempts` (default {@link DEFAULT_MAX_GATHER_ATTEMPTS}). */
+export function maxGatherAttemptsFromDevConfig(
+  config: DevHarnessConfig | null | undefined,
+): number {
+  const raw = config?.orchestration?.max_gather_attempts;
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? Math.max(0, Math.floor(raw))
+    : DEFAULT_MAX_GATHER_ATTEMPTS;
 }
 
 export interface QuickFixLoopPolicy {

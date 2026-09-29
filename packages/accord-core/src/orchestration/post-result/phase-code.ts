@@ -9,6 +9,8 @@
 
 import type { DevHarnessConfig } from "../../config/types.js";
 import { devPromoteEvents, type PromotionResult } from "../../work-items/lifecycle.js";
+import { rgrRespawnPolicyFromDevConfig } from "../policy.js";
+import { readReviewLoopCounters, writeReviewLoopCounters } from "../review-feedback.js";
 import { nextPhaseAfterPhaseCode, phaseCodeMustRespawnPhaseTest } from "../review-paths.js";
 import { advancePrimaryTask } from "./primary-task.js";
 
@@ -57,7 +59,7 @@ function isPhaseCodeDonePacket(packet: unknown): packet is PhaseCodeDonePacket {
 export function applyPhaseCodePostResult(
   workItemId: string,
   packet: unknown,
-  _devConfig?: DevHarnessConfig | null,
+  devConfig?: DevHarnessConfig | null,
 ): string {
   if (!isPhaseCodeDonePacket(packet)) {
     return "";
@@ -86,7 +88,43 @@ export function applyPhaseCodePostResult(
     const nextPhase = nextPhaseAfterPhaseCode(filesChanged, {
       testIssuesEmitted: packet.test_issues_emitted,
     });
+    const label = onQuickFix ? "Quick-fix" : "Implement";
+
     if (respawnPhaseTest) {
+      // phase-code → phase-test → review-test (clean) → phase-code → test_issue … never touches
+      // the review retry counters, so it needs its own cap or it cycles forever.
+      const counters = readReviewLoopCounters(task);
+      const rgrPolicy = rgrRespawnPolicyFromDevConfig(devConfig);
+      const lifetimeHit = counters.lifetime_rgr_respawns >= rgrPolicy.maxLifetimeRespawns;
+      if (lifetimeHit || counters.rgr_respawns_used >= rgrPolicy.maxRespawns) {
+        const reason = lifetimeHit
+          ? `phase-code → phase-test RGR LIFETIME cap reached (${String(rgrPolicy.maxLifetimeRespawns)} respawns across ${String(counters.unblock_count)} unblock(s)). \`/dev unblock\` will not lift this — fix the test/spec disagreement or raise orchestration.review_loop.max_rgr_respawns.`
+          : `phase-code → phase-test RGR respawn cap reached (${String(rgrPolicy.maxRespawns)}). phase-code keeps reporting test issues the tests do not resolve — review the test_issue events and the spec, then \`/dev unblock\`.`;
+        task.status = "blocked";
+        const promotion = devPromoteEvents(workItemId, String(primaryTaskId));
+        footer = [
+          "",
+          "",
+          `**${label} (phase-code):** RGR respawn cap reached — task \`blocked\`.`,
+          "",
+          `- ${reason}`,
+          "- Task phase left at `phase-code`; test_issue events are on the per-task JSON.",
+          formatPromotionFooter(promotion),
+        ].join("\n");
+        return {
+          event: {
+            type: onQuickFix ? "quick_fix_rgr_respawn_blocked" : "implement_rgr_respawn_blocked",
+            previous_phase: previousPhase,
+            reason,
+            promotion,
+          },
+        };
+      }
+      writeReviewLoopCounters(task, {
+        ...counters,
+        rgr_respawns_used: counters.rgr_respawns_used + 1,
+        lifetime_rgr_respawns: counters.lifetime_rgr_respawns + 1,
+      });
       task.pre_impl_gates = "pending";
     }
     task.phase = nextPhase;
@@ -94,7 +132,6 @@ export function applyPhaseCodePostResult(
 
     const promotion = devPromoteEvents(workItemId, String(primaryTaskId));
     const promotionFooter = formatPromotionFooter(promotion);
-    const label = onQuickFix ? "Quick-fix" : "Implement";
 
     const rgrNote = respawnPhaseTest
       ? [
@@ -103,6 +140,7 @@ export function applyPhaseCodePostResult(
           packet.test_issues_emitted
             ? `  (${String(packet.test_issues_emitted)} test_issue event(s) reported.)`
             : "  (Test paths appeared in `files_changed`.)",
+          `  RGR respawn ${String(readReviewLoopCounters(task).rgr_respawns_used)} / ${String(rgrRespawnPolicyFromDevConfig(devConfig).maxRespawns)}.`,
         ].join("\n")
       : "";
 

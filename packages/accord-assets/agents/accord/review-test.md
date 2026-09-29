@@ -70,6 +70,8 @@ If `phase-code` reports test issues or modifies test files, the harness respawns
 - Plan fields: full `task` object, `guidance` (prioritise `source: engineer` and `source: convention` for test setup, e2e auth, and test topology).
 - `ac_covered` — AC ids phase-test claims to cover (when supplied); cross-check against `task.covers_ac` and test source.
 - `red_confirmed` — whether phase-test asserted behaviour RED.
+- `stub_files` — unimplemented declarations phase-test created (see Check 0 → Stub skeletons).
+- `phase_test_review_responses` — retry rounds: phase-test's answer to each of your prior findings (`resolution: fixed | disputed`, `note`). See "Retry rounds" below.
 - `test_output` — raw stdout/stderr from the test run. **Pre-impl:** RED output from phase-test. **Post-impl:** latest run output. If empty, read the newest `agent_returns[]` entry for `phase-test` and use `packet.test_output` when present.
 
 Schemas of truth: Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk.
@@ -89,9 +91,15 @@ In `pre-impl` mode, a failing suite is only meaningful for adversarial review wh
 
 **Do not** treat import-only failures as evidence that tests cover ACs or that `red_confirmed` is sound.
 
-**When import-only:** recommend (a) **module mocks** in tests so assertions run without production files, or (b) **minimal export stubs** (throw / wrong return) as the first **phase-code** step, then re-run tests and **re-run review-test**. `phase-test` must not add production code per its contract.
+**When import-only:** recommend that **phase-test** create an unimplemented declaration (phase-test Step 3 stub skeleton) for each unresolved module/symbol — exact exported name + signature the test calls, body only throws `not implemented: <symbol>` — list it in `stub_files`, and re-run. Name every missing module/symbol in `evidence`. **Never** recommend mocking the module under test (that makes the mock the SUT — see "Testing the fake") and **never** defer the fix to phase-code: your findings are routed back to phase-test, so a recommendation phase-test cannot act on stalls the loop.
 
 If `red_confirmed: true` but `test_output` is import-only → **critical**, name missing modules.
+
+The harness also runs a deterministic Check 0 on phase-test output and skips review-test when resolution errors are detected, so reaching you with import-only output usually means an unrecognised runner format — still flag it.
+
+### Stub skeletons (`stub_files`)
+
+`stub_files` lists unimplemented declarations phase-test created so the suite loads. In pre-impl they are **expected**, and a failure on their `not implemented` error counts as behaviour RED. Read each stub and flag **critical** if it contains any logic that could satisfy an assertion (branches, returned values, field writes, input reads) — that destroys the RED signal. Otherwise do not raise findings against stubs.
 
 ## Check 1 — Adversarial implementation analysis
 
@@ -232,6 +240,18 @@ For `property` ACs: require parameterized, generated, or table-driven tests — 
 For performance/scalability ACs: require an explicit perf test, benchmark step, or documented deferral in spec `scope.out`.
 
 Missing → **critical** (MUST) / **warning** (SHOULD).
+
+## Retry rounds (`phase_test_review_responses`)
+
+When present, this is a re-review after phase-test addressed your previous findings. Before new analysis:
+
+1. For each `fixed` entry: verify in the test source that the fix is real. If it is, do **not** re-raise it. If it is not, re-raise with the same `ref`/`file` and say what is still missing.
+2. For each `disputed` entry: weigh the `note`'s evidence. Accept it (drop the finding) when it cites the spec or code convincingly; otherwise re-raise once with a direct rebuttal in `evidence`. Do not re-raise a dispute unchanged — escalate the disagreement in `analysis` instead so the human sees it at the retry cap.
+3. New findings are allowed, but prefer the prior round's root causes; do not move the goalposts on points already fixed.
+
+## Actionability rule
+
+Every finding's `recommendation` must be something **phase-test** can do within its contract: add/strengthen a test, fix setup/fixtures, or add/adjust a Step 3 not-implemented stub. Do not recommend production logic, phase-code steps, or plan/spec edits as the fix — if the real problem is the spec (AC untestable, interface undefined), say so in `issue` and recommend phase-test escalate with `stuck`.
 
 ## Return packet
 

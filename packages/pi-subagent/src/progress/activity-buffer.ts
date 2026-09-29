@@ -2,10 +2,10 @@ import type { Message } from "@earendil-works/pi-ai";
 import { applyToolExecutionToMessages } from "./messages.js";
 import { extractToolOutputPreview, formatToolCall } from "./tool-format.js";
 import {
+  HARVEST_STREAM_MAX,
   MAX_STATUS_ACTIVITY_LINES,
   MAX_TOOL_ACTIVITY_LINES,
   type SubagentLiveActivity,
-  HARVEST_STREAM_MAX,
   TEXT_DELTA_PULSE_MS,
   THINKING_DELTA_PULSE_MS,
 } from "./types.js";

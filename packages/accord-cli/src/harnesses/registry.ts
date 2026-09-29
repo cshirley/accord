@@ -5,19 +5,19 @@
 import { loadGlobalConfig } from "@clive.shirley/accord-core/config/global.js";
 import { resolveDefaultHarnessSelection } from "@clive.shirley/accord-core/config/harness-default.js";
 import {
+  type HarnessSelection,
   mergeHarnessConfig,
   parseHarnessSelection,
   resolveAgentTierConfig,
   resolveBackendExecConfig,
-  type HarnessSelection,
 } from "@clive.shirley/accord-core/config/harness-resolve.js";
 import { discoverAvailableToolNames } from "@clive.shirley/accord-core/integrations/mcp-tool-discovery.js";
 import type { PreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/run-request.js";
 import type { CliContext } from "../context.js";
-import { loadAgentFromSpawnFile } from "./exec-agent-shared.js";
 import { cliNotify } from "../notify.js";
 import { createCliLifecycleHost } from "./cli-lifecycle-host.js";
 import { runExecSpawn } from "./exec.js";
+import { loadAgentFromSpawnFile } from "./exec-agent-shared.js";
 import { runPiExecSpawn } from "./pi-exec.js";
 import { runSpawnPipeline } from "./spawn-pipeline.js";
 import type { AgentHarness, AgentHarnessFactoryOptions, AgentHarnessId } from "./types.js";

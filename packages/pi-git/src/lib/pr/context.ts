@@ -190,4 +190,3 @@ export async function runGhPrSubmit(
     details: { action: "created", url, number, branch },
   };
 }
-

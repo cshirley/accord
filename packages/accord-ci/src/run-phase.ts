@@ -12,7 +12,12 @@
  */
 
 import { appendFile } from "node:fs/promises";
-
+import { createCliContext } from "@clive.shirley/accord-cli/context.js";
+import { asRuntimeHost } from "@clive.shirley/accord-cli/harnesses/as-runtime-host.js";
+import {
+  createHarness,
+  parseHarnessSelectionFromCli,
+} from "@clive.shirley/accord-cli/harnesses/registry.js";
 import {
   runDevSubcommandOrchestrationWithReplans,
   runFinishOrchestrationFromResolution,
@@ -21,12 +26,6 @@ import {
 import { resolveFinishOrchestration } from "@clive.shirley/accord-core/orchestration/resolve/finish.js";
 import { extractReturnStatus } from "@clive.shirley/accord-core/orchestration/spawn-followup.js";
 import type { RunUntilStopResult } from "@clive.shirley/accord-core/orchestration/types.js";
-import { createCliContext } from "@clive.shirley/accord-cli/context.js";
-import { asRuntimeHost } from "@clive.shirley/accord-cli/harnesses/as-runtime-host.js";
-import {
-  createHarness,
-  parseHarnessSelectionFromCli,
-} from "@clive.shirley/accord-cli/harnesses/registry.js";
 
 export interface RunPhaseOpts {
   readonly phase: string;
@@ -52,7 +51,7 @@ export type RunPhaseResult =
 export interface PhaseBackendResult {
   readonly exitCode: number;
   readonly lastRun?: RunUntilStopResult;
-  readonly stalledReason?: "repeat_spawn" | "needs_input";
+  readonly stalledReason?: "repeat_spawn" | "needs_input" | "stuck";
 }
 
 export type PhaseRunBackend = (opts: RunPhaseOpts) => Promise<PhaseBackendResult>;
@@ -63,9 +62,7 @@ const WORKFLOW_SUBCOMMANDS = new Set(["align", "spec", "plan", "check"]);
 
 function extraArgsToRaw(extraArgs?: readonly string[]): string {
   if (!extraArgs?.length) return "";
-  return extraArgs
-    .map((token) => (token.startsWith("--") ? token : `--${token}`))
-    .join(" ");
+  return extraArgs.map((token) => (token.startsWith("--") ? token : `--${token}`)).join(" ");
 }
 
 function asPacket(parsedReturn: unknown): PhaseReturnPacket | null {
@@ -107,6 +104,16 @@ export function resultFromBackend(backend: PhaseBackendResult): RunPhaseResult {
     return {
       status: "needs_input",
       packet: packet ?? synthesizePacket("needs_input", backend.stalledReason),
+    };
+  }
+
+  if (backend.stalledReason === "stuck") {
+    return {
+      status: "stuck",
+      reason: "agent_stuck",
+      detail:
+        (typeof packet?.question === "string" ? packet.question : undefined) ??
+        "Agent returned status: stuck (see decisions[] in the work item JSON).",
     };
   }
 
@@ -191,11 +198,7 @@ async function defaultRunBackend(opts: RunPhaseOpts): Promise<PhaseBackendResult
   }
 
   if (opts.phase === "code" || opts.phase === "resume") {
-    const result = await runResumeOrchestrationWithReplans(
-      opts.ticket,
-      ctx.devConfig,
-      host,
-    );
+    const result = await runResumeOrchestrationWithReplans(opts.ticket, ctx.devConfig, host);
     const exit = result.lastRun.lastSpawn?.exitCode;
     return {
       exitCode: typeof exit === "number" && exit !== 0 ? exit : result.stalledReason ? 1 : 0,

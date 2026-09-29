@@ -23,6 +23,7 @@ import {
   type AgentConfig,
   CURSOR_PROVIDER,
   findCursorProfileName,
+  hasAnthropicCredentials,
   hasCursorCredentials,
   loadSubagentConfig,
   resolveAgentFile,
@@ -47,26 +48,36 @@ export {
 function evaluateCredentials(
   provider: string,
   requestedProfile: string,
-  effectiveProfile: string,
+  _effectiveProfile: string,
   cfg: SubagentConfig,
 ): { ok: boolean; blocks: string[]; warnings: string[] } {
   const blocks: string[] = [];
   const warnings: string[] = [];
 
   if (provider === "anthropic") {
-    if (process.env.ANTHROPIC_API_KEY) {
+    // Accept either a raw ANTHROPIC_API_KEY or Pi's own stored OAuth/session credential
+    // (~/.config/pi/agent/auth.json). Pi-subscription users authenticate via OAuth and never
+    // set ANTHROPIC_API_KEY, so checking the env var alone is a false negative for them.
+    if (hasAnthropicCredentials()) {
       return { ok: true, blocks, warnings };
     }
+    // resolveModelConfig/resolveProfileForCredentials now throw on this mismatch instead of
+    // silently swapping to Cursor — mirror that here as a hard block rather than a warning.
     const cursorProfile = findCursorProfileName(cfg);
-    if (cursorProfile && effectiveProfile === cursorProfile) {
-      warnings.push(
-        `Profile "${requestedProfile}" targets Anthropic but ANTHROPIC_API_KEY is unset; runtime will use "${effectiveProfile}" (${CURSOR_PROVIDER}).`,
+    if (cursorProfile) {
+      blocks.push(
+        `Profile "${requestedProfile}" targets Anthropic but no Anthropic credentials were found ` +
+          `(ANTHROPIC_API_KEY unset and no stored Pi OAuth/session credential). Runtime will throw ` +
+          `rather than silently use "${cursorProfile}" (${CURSOR_PROVIDER}). Log in to Pi's Anthropic ` +
+          `account, set ANTHROPIC_API_KEY, or explicitly set activeProfile/reviewProfile/skills.*.profile ` +
+          `to "${cursorProfile}" in subagent.json.`,
       );
-      return { ok: true, blocks, warnings };
+      return { ok: false, blocks, warnings };
     }
     blocks.push(
-      "ANTHROPIC_API_KEY is unset and no Cursor credentials are available for fallback. " +
-        "Subagent will hang until spawn timeout. Set ANTHROPIC_API_KEY or log in to Cursor.",
+      "No Anthropic credentials found (ANTHROPIC_API_KEY unset, no Pi OAuth/session credential) and no " +
+        "Cursor credentials are available for fallback. Subagent will hang until spawn timeout. Log in to " +
+        "Pi's Anthropic account, set ANTHROPIC_API_KEY, or log in to Cursor.",
     );
     return { ok: false, blocks, warnings };
   }
@@ -168,11 +179,26 @@ export function runSubagentSpawnPreflightCheck(
   };
 
   const requestedProfile = resolveRequestedProfileName(agentConfig, cfg);
-  const effectiveProfile = resolveProfileForCredentials(cfg, requestedProfile);
+  // Simulate the real spawn boundary in strict mode: resolveProfileForCredentials/
+  // resolveModelConfig throw there on a credential/provider mismatch (see config.ts) instead
+  // of silently swapping providers. This preflight check's job is to report that mismatch
+  // ahead of time, not crash, so catch it and let evaluateCredentials() surface the
+  // actionable block below.
+  let effectiveProfile = requestedProfile;
+  try {
+    effectiveProfile = resolveProfileForCredentials(cfg, requestedProfile, { strict: true });
+  } catch {
+    effectiveProfile = requestedProfile;
+  }
   const profileDef = cfg.profiles[effectiveProfile] ?? cfg.profiles[cfg.defaultProfile];
   const provider = profileDef?.provider ?? "unknown";
 
-  const resolvedModel = resolveModelConfig(agentConfig, cfg);
+  let resolvedModel: ReturnType<typeof resolveModelConfig> = null;
+  try {
+    resolvedModel = resolveModelConfig(agentConfig, cfg, { strict: true });
+  } catch {
+    resolvedModel = null;
+  }
   const model = resolvedModel?.model ?? null;
   const resolvedProvider = resolvedModel?.provider ?? provider;
 

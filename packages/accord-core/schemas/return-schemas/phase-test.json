@@ -84,6 +84,31 @@
       "items": { "type": "string" },
       "description": "AC ids covered by the written tests (implement pipeline)"
     },
+    "stub_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Unimplemented declarations (body only throws 'not implemented') created so tests load the system under test (implement pipeline). phase-code replaces them."
+    },
+    "review_responses": {
+      "type": "array",
+      "description": "Retry rounds only: one entry per prior review-test finding and how this round resolved it. review-test re-checks every entry.",
+      "items": {
+        "type": "object",
+        "required": ["issue", "resolution", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "issue": { "type": "string", "minLength": 1 },
+          "ref": { "type": "string" },
+          "file": { "type": "string" },
+          "resolution": { "enum": ["fixed", "disputed"] },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What changed (fixed) or concrete evidence the finding is wrong (disputed)"
+          }
+        }
+      }
+    },
     "deviations_emitted": {
       "type": "integer",
       "minimum": 0,

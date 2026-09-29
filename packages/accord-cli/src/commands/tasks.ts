@@ -1,9 +1,9 @@
 import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
 import { parseCli } from "../cli.js";
 import { executeParsed } from "../dispatch.js";
-import { renderTasksDashboard, renderTasksDashboardHeader } from "../ui/tasks-display.js";
-import { selectWorkItem, selectWorkItemAction } from "../ui/select.js";
 import { muted } from "../ui/colors.js";
+import { selectWorkItem, selectWorkItemAction } from "../ui/select.js";
+import { renderTasksDashboard, renderTasksDashboardHeader } from "../ui/tasks-display.js";
 
 export type TasksCommandOptions = {
   json?: boolean;

@@ -34,6 +34,47 @@ const PRIMARY_TASK_COARSE_PHASES: Readonly<Record<WorkItemPattern, string | null
 };
 
 /**
+ * Blocked tasks (retry cap hit, RGR cap, runner crash, `/dev block`) on a primary-task coarse
+ * phase. A blocked task must halt the work item: skipping it lets resume run later tasks built
+ * on it, and "all tasks done or blocked" used to read as ready-for-finish, so `accord drive
+ * --finish` would ship past a cap that was supposed to stop the loop.
+ *
+ * @returns Human-readable block message, or `null` when no task is blocked.
+ */
+export function describeBlockedPrimaryTasks(workItemId: string): string | null {
+  const wi = loadWorkItem(workItemId);
+  if (!wi) return null;
+  const coarseGate = PRIMARY_TASK_COARSE_PHASES[wi.pattern];
+  if (!coarseGate || wi.phase !== coarseGate) return null;
+
+  const sorted = [...(wi.task_ids ?? [])].sort((a, b) => a - b);
+  const blocked: string[] = [];
+  for (const taskId of sorted.length > 0 ? sorted : [1]) {
+    const task = loadTaskFile(workItemId, String(taskId));
+    if (task?.status !== "blocked") continue;
+    const events = Array.isArray(task.events) ? task.events : [];
+    const last = [...events]
+      .reverse()
+      .find((e) => typeof (e as { reason?: unknown }).reason === "string") as
+      | { reason?: string }
+      | undefined;
+    const phase = typeof task.phase === "string" ? task.phase : "?";
+    blocked.push(
+      `- task ${String(taskId)} (phase \`${phase}\`)${last?.reason ? `: ${last.reason}` : ""}`,
+    );
+  }
+  if (blocked.length === 0) return null;
+
+  return [
+    `Work item ${workItemId} is halted: ${String(blocked.length)} task(s) **blocked**.`,
+    "",
+    ...blocked,
+    "",
+    `Inspect \`last_review_feedback\` / events on the per-task JSON under \`.tasks/\`, fix the underlying issue, then \`/dev unblock ${workItemId}\` (or \`accord unblock ${workItemId}\`) and resume.`,
+  ].join("\n");
+}
+
+/**
  * @returns The harness subagent id to resume, or `null` when the work item
  * isn't on a primary-task coarse phase or the per-task phase is non-resumable.
  */
@@ -144,14 +185,18 @@ export function describeImplementingResumeBlocked(workItemId: string): string | 
     ].join(" ");
   }
 
-  const allTerminal = sorted.every((taskId) => {
-    const task = loadTaskFile(workItemId, String(taskId));
-    return task?.status === "done" || task?.status === "blocked";
-  });
-  if (allTerminal) {
+  const blockedMessage = describeBlockedPrimaryTasks(workItemId);
+  if (blockedMessage) {
+    return blockedMessage;
+  }
+
+  const allDone = sorted.every(
+    (taskId) => loadTaskFile(workItemId, String(taskId))?.status === "done",
+  );
+  if (allDone) {
     return [
-      `All implementation tasks for ${workItemId} are **done** or **blocked**.`,
-      "Run `/dev finish` for acceptance verification, or inspect task files under `.tasks/`.",
+      `All implementation tasks for ${workItemId} are **done**.`,
+      "Run `/dev finish` for acceptance verification.",
     ].join(" ");
   }
 

@@ -30,13 +30,16 @@ The orchestrator's brief supplies:
 - **`verification_commands`** — the spec's `verification.commands` array, or the project verification commands for quick_fix work. Run for the final verify step.
 - **`quick_fix_direct`** — optional boolean. When true, the work item used auto-generated spec/plan stubs instead of full `phase-spec` / `phase-plan` agents. **Does not skip the test phase.** RGR still applies: `phase-test` writes tests and confirms RED; `review-test` runs pre-impl; only then may `phase-code` run.
 - **`quick_fix_contract`** — for quick fixes, read this from the per-task file. It contains a mini plan and a test strategy: `existing_tests`, `new_red_test`, or `no_test`.
+- **`## Prior review feedback (harness)`** — appended to the brief only on a retry, when `review-code` (or `review-security`) reported findings against production code you (or a prior round) wrote for this task. Contains the reviewer's `verdict`, `analysis`, full `findings[]` (each with `severity`, `file`, `line`, `evidence`, `recommendation`), and the raw return packet. **When this section is present, it is the primary reason you were respawned** — see Step 1a below.
+
+- **`stub_files`** — optional. Unimplemented declarations `phase-test` created so the tests could load the system under test (bodies only throw `not implemented`). These are yours to replace — see Step 3.
 
 **NOT supplied:** Test file source code. Read test files from disk yourself to understand the contract you must satisfy.
 
 ## Operating Rules
 
 1. **Production code only — always.** Never create or modify test files. Tests are written exclusively by `phase-test` in a separate context. If a test is wrong, emit `test_issue` — the orchestrator respawns `phase-test`.
-2. **Single task, single file set.** Modify only the production files listed in `task.files[]`. Do **not** write the per-task JSON file or work item JSON.
+2. **Single task, single file set.** Modify only the production files listed in `task.files[]` plus any `stub_files`. Do **not** write the per-task JSON file or work item JSON.
 3. **Never edit a file outside your worktree.** Another task owns other files on other branches.
 4. **Never mutate another per-task file.**
 5. **Do not write to the work item JSON.** The orchestrator promotes your per-task events.
@@ -48,6 +51,15 @@ Read `task_file_path` for context. Verify `owner_nonce` matches. If not, **abort
 For standard implement and quick_fix tasks, the file should have `status: "done"` (from `phase-test`), `test_files: [...]`, and `pre_impl_gates: "complete"` (set after pre-impl `review-test`).
 
 For `quick_fix_direct: true`, the same gates apply: `pre_impl_gates: "complete"`, matching `owner_nonce`, `test_files` populated by `phase-test`, and `quick_fix_contract`. For `new_red_test`, `red_confirmed: true` must be set by `phase-test` before you run.
+
+## Step 1a — Address prior review feedback (retry only)
+
+If the brief contains a `## Prior review feedback (harness)` section, this is a retry after `review-code`/`review-security` found issues with the previous implementation round — not a fresh task. Before touching anything:
+
+1. Read every finding's `evidence` and `recommendation`. Each one describes a concrete correctness, security, or drift defect in the *existing* production code.
+2. Fix the specific file(s) named in `finding.file`/`finding.line` per the `recommendation` — do not rewrite unrelated code, and do not just re-run the same approach that produced the finding.
+3. Findings below the retry policy's `severity_gate` (see the retry policy line in that section) are advisory — address them if cheap, but they don't block progress.
+4. Only after addressing every finding at or above the gate, continue to Step 2 for any remaining/new work.
 
 ## Step 2 — Read the tests
 
@@ -61,6 +73,8 @@ Do NOT assume the tests are correct. If you find issues, emit a `test_issue` eve
 
 ## Step 3 — Implement
 
+Start from `stub_files` when present: each is a signature-only placeholder the tests already import. Replace the `not implemented` body with the real implementation in place — keep the exported name and signature the tests call (changing it means a `test_issue`, not a silent rename).
+
 For each `tag: "impl"` step in `steps[]`:
 
 1. Implement the described behaviour in the planned file(s). For quick fixes, this is the mini plan in `quick_fix_contract.plan`.
@@ -72,6 +86,8 @@ For each `tag: "impl"` step in `steps[]`:
 ## Step 4 — Final verification
 
 After all `impl` steps are done:
+
+0. Grep every `stub_files` entry for `not implemented` — none may survive. A leftover stub is an incomplete task.
 
 1. Run the verification commands supplied in the brief. For quick fixes, always run `quick_fix_contract.test.command` unless the strategy is `no_test`, then run any non-test verification commands supplied in the brief. All relevant checks should pass.
 2. The ACCORD extension runs `type_check` (hard gate) and `test` (advisory) automatically after this agent completes. Write correct types the first time — type-check failure causes a respawn.

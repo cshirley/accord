@@ -3,10 +3,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ArtifactStore, findArtifactRef } from "../src/artifacts.js";
-import {
-  reduceMessagesInPlace,
-  shouldSkipTurnPrefixCompactionPrep,
-} from "../src/compaction.js";
+import { reduceMessagesInPlace, shouldSkipTurnPrefixCompactionPrep } from "../src/compaction.js";
 import { DEFAULT_CONFIG, type ThriftConfig } from "../src/config.js";
 
 const stores: ArtifactStore[] = [];

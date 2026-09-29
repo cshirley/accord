@@ -6,6 +6,11 @@ import { agentRequiresVerification, agentSchemas } from "../../agents/registry.j
 import { validateReturn } from "../../artifacts/validation.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
+import {
+  applyInterviewNeedsInputPostResult,
+  isNeedsInputPacket,
+} from "../../orchestration/post-result/needs-input.js";
+import { applyStuckPostResult } from "../../orchestration/post-result/stuck.js";
 import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
 import { tryRecoverMissingReturnPacketFromTaskFile } from "../../orchestration/recover-task-packet.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
@@ -28,6 +33,13 @@ const log = createLogger("subagent");
 
 const COARSE_PHASE_AGENTS = new Set(["phase-align", "phase-spec", "phase-plan"]);
 
+/** Multi-turn interview agents \u2014 coarse phase to pass to `applyInterviewNeedsInputPostResult`. */
+const INTERVIEW_COARSE_PHASE_BY_AGENT: Readonly<Record<string, string>> = {
+  "phase-align": "aligning",
+  "phase-spec": "speccing",
+  "phase-plan": "planning",
+};
+
 const MISSING_PACKET_RECONCILE_AGENTS = new Set([
   "phase-align",
   "phase-spec",
@@ -39,6 +51,33 @@ const MISSING_PACKET_RECONCILE_AGENTS = new Set([
 ]);
 
 const REVIEW_AGENTS = new Set(["review-test", "review-code"]);
+
+function packetHasValidUsage(packet: Record<string, unknown>): boolean {
+  const usage = packet.usage;
+  if (!usage || typeof usage !== "object") return false;
+  const u = usage as Record<string, unknown>;
+  return typeof u.prompt_tokens === "number" && typeof u.completion_tokens === "number";
+}
+
+/**
+ * Every return-schema requires the agent to self-report `usage.{prompt_tokens,completion_tokens}`,
+ * but the host already measures real token usage per spawn (`result.usage`). Models
+ * occasionally drop the self-reported field despite instructions; when that happens, fill it
+ * from the host measurement instead of failing validation and stranding the phase on a
+ * misleading "needs_input" (there is nothing for the user to answer \u2014 the agent's own work is fine).
+ */
+function backfillPacketUsageFromHostMeasurement(
+  packet: Record<string, unknown>,
+  hostUsage: unknown,
+  agentName: string,
+  logger: { debug: (msg: string) => void },
+): void {
+  if (packetHasValidUsage(packet) || !hostUsage) return;
+  const normalized = normalizeUsageCostFields(hostUsage);
+  if (normalized.input === 0 && normalized.output === 0) return;
+  packet.usage = { prompt_tokens: normalized.input, completion_tokens: normalized.output };
+  logger.debug(`agent=${agentName} backfilled packet.usage from host-measured result.usage`);
+}
 
 export interface ProcessSubagentToolResultParams {
   details: unknown;
@@ -215,7 +254,15 @@ export async function processSubagentToolResult(
     }
 
     if (packet && agentName) {
+      backfillPacketUsageFromHostMeasurement(packet, result.usage, agentName, log);
       contentAppend += formatPacketInjection(agentName, packet);
+
+      // Every agent's `stuck` shape (question/context/tried) is uniform \u2014 promote it to
+      // decisions[] regardless of agent or whether the rest of the packet validates, so a
+      // stuck agent is never silently lost.
+      if (workItemId) {
+        contentAppend += applyStuckPostResult(workItemId, agentName, packet);
+      }
 
       const validation = await validateReturn(agentName, packet);
       if (!validation.valid) {
@@ -223,6 +270,18 @@ export async function processSubagentToolResult(
           `\n⚠ Return packet validation failed for ${agentName}:`,
           ...validation.errors.map((e) => `  • ${e}`),
         ].join("\n");
+        // Never silently drop a genuine needs_input question set behind an unrelated schema
+        // error (e.g. a missing/malformed field elsewhere in the packet) — those questions are
+        // user-facing state that must land in decisions[]/checkpoint regardless.
+        const interviewCoarsePhase = INTERVIEW_COARSE_PHASE_BY_AGENT[agentName];
+        if (workItemId && interviewCoarsePhase && isNeedsInputPacket(packet)) {
+          contentAppend += applyInterviewNeedsInputPostResult(
+            workItemId,
+            agentName,
+            interviewCoarsePhase,
+            packet,
+          );
+        }
       } else if (workItemId) {
         contentAppend += applyWorkflowStateFromValidatedReturn({
           workItemId,

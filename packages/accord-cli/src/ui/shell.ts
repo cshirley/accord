@@ -2,8 +2,8 @@
  * Interactive accord shell — readline REPL with tab completion.
  */
 
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
 import { parseCli } from "../cli.js";
 import { executeParsed } from "../dispatch.js";
@@ -67,9 +67,15 @@ export async function runInteractiveShell(options: InteractiveShellOptions = {})
         continue;
       }
 
+      console.log(muted(`Running: accord ${argv.join(" ")}\u2026`));
+      const started = Date.now();
       const code = await executeParsed(parsed);
+      const elapsedMs = Date.now() - started;
+      const elapsed = elapsedMs >= 1000 ? ` in ${(elapsedMs / 1000).toFixed(1)}s` : "";
       if (code !== 0 && parsed.kind !== "error") {
-        console.log(dim(`(exit ${String(code)})`));
+        console.log(dim(`(exit ${String(code)}${elapsed})`));
+      } else if (elapsedMs >= 1000) {
+        console.log(dim(`(done${elapsed})`));
       }
     }
   } finally {

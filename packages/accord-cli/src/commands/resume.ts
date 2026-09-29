@@ -7,13 +7,14 @@ import { cliNotify } from "../notify.js";
 
 export type ResumeCommandResult = {
   exitCode: number;
-  stalledReason?: "repeat_spawn" | "needs_input";
+  stalledReason?: "repeat_spawn" | "needs_input" | "stuck";
 };
 
 export async function runResumeCommand(
   ctx: CliContext,
   harness: AgentHarness,
   workItemId: string,
+  options?: { allowPendingDecisions?: boolean },
 ): Promise<ResumeCommandResult> {
   if (!isCoreOrchestratorEnabled()) {
     cliNotify("error", "ACCORD_CORE_ORCHESTRATOR is disabled. Unset ACCORD_CORE_ORCHESTRATOR=0.");
@@ -25,6 +26,7 @@ export async function runResumeCommand(
     workItemId,
     ctx.devConfig,
     asRuntimeHost(harness),
+    { allowPendingDecisions: options?.allowPendingDecisions },
   );
 
   if (result.stalledReason === "repeat_spawn") {
@@ -34,6 +36,13 @@ export async function runResumeCommand(
   if (result.stalledReason === "needs_input") {
     cliNotify("warning", "Resume paused: agent returned needs_input.");
     return { exitCode: 2, stalledReason: "needs_input" };
+  }
+  if (result.stalledReason === "stuck") {
+    cliNotify(
+      "warning",
+      `Resume paused: agent is stuck. See decisions[] in the work item JSON to answer, then re-run \`accord resume ${workItemId}\`.`,
+    );
+    return { exitCode: 2, stalledReason: "stuck" };
   }
 
   const exit = result.lastRun.lastSpawn?.exitCode;

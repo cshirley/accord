@@ -6,7 +6,8 @@ export function stringEnum<const T extends readonly string[]>(
   options?: { description?: string },
 ): TSchema {
   const literals = values.map((value) => Type.Literal(value));
-  const schema = literals.length === 1 ? literals[0]! : Type.Union(literals);
+  const [onlyLiteral] = literals;
+  const schema = literals.length === 1 && onlyLiteral ? onlyLiteral : Type.Union(literals);
   if (options?.description) {
     return { ...schema, description: options.description } as TSchema;
   }

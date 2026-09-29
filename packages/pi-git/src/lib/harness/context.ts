@@ -13,7 +13,9 @@ export interface RepoHarnessContextData {
 
 export function formatRepoHarnessContext(d: RepoHarnessContextData): string {
   const out: string[] = [];
-  out.push(`Dev Harness: ${d.config ? "✓ loaded" : d.agentsMdFound ? "✗ invalid/missing JSON" : "✗ no AGENTS.md"}`);
+  out.push(
+    `Dev Harness: ${d.config ? "✓ loaded" : d.agentsMdFound ? "✗ invalid/missing JSON" : "✗ no AGENTS.md"}`,
+  );
   out.push(`Suggested verify cwd: ${d.suggestedVerifyCwd}`);
 
   if (!d.config) return out.join("\n");
@@ -21,7 +23,9 @@ export function formatRepoHarnessContext(d: RepoHarnessContextData): string {
   const c = d.config;
   out.push(`Language: ${c.language}`);
   if (c.tracker?.type) out.push(`Tracker: ${c.tracker.type}`);
-  out.push(`\nTest: \`${c.test.command}\`${c.test.file_pattern ? ` (pattern: ${c.test.file_pattern})` : ""}`);
+  out.push(
+    `\nTest: \`${c.test.command}\`${c.test.file_pattern ? ` (pattern: ${c.test.file_pattern})` : ""}`,
+  );
   if (c.type_check) out.push(`Type check: \`${c.type_check}\``);
   if (c.lint) out.push(`Lint: \`${c.lint}\``);
 

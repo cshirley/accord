@@ -61,6 +61,11 @@ export interface DevHarnessHarnessConfig {
 /** Optional harness orchestration overrides (see `schemas/accord-schema.json`). */
 export interface DevHarnessOrchestrationConfig {
   /**
+   * Max **phase-gather** spawns (align `needs_gather` → gather) before the harness stops and
+   * escalates to a human. Default 3. Counter resets when that escalation is raised.
+   */
+  max_gather_attempts?: number;
+  /**
    * Caps and severity gating for quick-fix `review-test` → `phase-test` retries.
    * Omitted fields fall back to `defaultQuickFixLoopPolicy()` in `src/core/orchestration/policy.ts`.
    */
@@ -86,13 +91,34 @@ export interface DevHarnessOrchestrationConfig {
     max_critical_retries?: number;
     /** `block` = critical only; `warn` = warning+critical; `none` = any finding. Default: `block`. */
     severity_gate?: "none" | "warn" | "block";
+    /**
+     * Hard, lifetime ceiling on retry cycles per task — unlike `max_critical_retries` /
+     * `review_test.max_retries` / `review_code.max_retries`, this counter is **never** reset
+     * by `/dev unblock`, so a human repeatedly unblocking an adversarial test\u2194review loop
+     * without fixing the underlying findings still eventually trips a hard stop. Default:
+     * `max_retries * (max_unblocks_per_task + 1)`.
+     */
+    max_lifetime_retries?: number;
+    /**
+     * Max times `/dev unblock` / `accord unblock` may reset a `blocked` task's retry counters
+     * for this work item's lifetime. Default: `DEFAULT_MAX_UNBLOCKS_PER_TASK` (1). Once reached,
+     * unblock refuses and points at `last_review_feedback` / raising this cap explicitly.
+     */
+    max_unblocks_per_task?: number;
+    /**
+     * Max **phase-code → phase-test** RGR respawns per task (test_issue / test files touched).
+     * Default 3. Lifetime ceiling = this × (max_unblocks_per_task + 1).
+     */
+    max_rgr_respawns?: number;
     review_test?: {
       severity_gate?: "none" | "warn" | "block";
       max_retries?: number;
+      max_lifetime_retries?: number;
     };
     review_code?: {
       severity_gate?: "none" | "warn" | "block";
       max_retries?: number;
+      max_lifetime_retries?: number;
     };
   };
   /**

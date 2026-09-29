@@ -7,9 +7,9 @@ import {
 } from "@clive.shirley/accord-core/tools/progressive-discovery.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
-  type IntegrationsToolBundle,
-  INTEGRATIONS_TOOL_BUNDLES,
   INTEGRATIONS_MANAGED_TOOL_NAMES,
+  INTEGRATIONS_TOOL_BUNDLES,
+  type IntegrationsToolBundle,
   integrationsBundleForTool,
   isIntegrationsManagedTool,
 } from "./tool-bundles.js";

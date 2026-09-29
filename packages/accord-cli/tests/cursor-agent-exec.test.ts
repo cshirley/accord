@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { resolveModelConfig } from "@clive.shirley/accord-core/agents/index.js";
 import {
   buildCursorAgentPrompt,
   inferAgentNamespace,
@@ -10,18 +11,11 @@ import {
   runCursorAgentExec,
 } from "../src/harnesses/cursor-agent-exec.js";
 import { formatCursorAgentCliModel } from "../src/harnesses/cursor-agent-model.js";
-import { resolveModelConfig } from "@clive.shirley/accord-core/agents/index.js";
 import { writeExecTaskFile } from "../src/harnesses/exec-template.js";
 
 const REPO_ROOT = path.resolve(import.meta.dir, "../../..");
-const PHASE_ALIGN = path.join(
-  REPO_ROOT,
-  "packages/accord-assets/agents/accord/phase-align.md",
-);
-const REVIEW_CODE = path.join(
-  REPO_ROOT,
-  "packages/accord-assets/agents/accord/review-code.md",
-);
+const PHASE_ALIGN = path.join(REPO_ROOT, "packages/accord-assets/agents/accord/phase-align.md");
+const REVIEW_CODE = path.join(REPO_ROOT, "packages/accord-assets/agents/accord/review-code.md");
 
 describe("cursor agent model formatting", () => {
   test("maps gpt reasoning effort to bracket syntax", () => {

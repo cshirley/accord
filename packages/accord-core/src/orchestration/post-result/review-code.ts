@@ -68,6 +68,8 @@ export function applyReviewCodePostResult(
       writeReviewLoopCounters(task, {
         ...counters,
         code_review_retries_used: used,
+        // Never reset by `/dev unblock` — this is the hard ceiling that survives it.
+        lifetime_code_review_cycles: counters.lifetime_code_review_cycles + 1,
       });
       task.phase = "phase-code";
       task.status = "pending";

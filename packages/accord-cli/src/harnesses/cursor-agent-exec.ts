@@ -11,21 +11,23 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildCursorAgentPrompt,
+  type ExecAgentSpawnArgs,
   loadAgentFromSpawnFile,
   parseExecAgentSpawnArgv,
   readFileIfExists,
   resolveSpawnModelFromAgentFile,
-  type ExecAgentSpawnArgs,
 } from "./exec-agent-shared.js";
+
 export {
   buildCursorAgentPrompt,
+  type ExecAgentSpawnArgs,
   inferAgentNamespace,
   loadAgentFromSpawnFile,
   parseExecAgentSpawnArgv,
   readFileIfExists,
   resolveSpawnModelFromAgentFile,
-  type ExecAgentSpawnArgs,
 } from "./exec-agent-shared.js";
+
 import { formatCursorAgentCliModel } from "./cursor-agent-model.js";
 
 export type CursorAgentExecArgs = ExecAgentSpawnArgs;

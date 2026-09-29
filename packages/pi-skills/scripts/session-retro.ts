@@ -50,7 +50,9 @@ function inc(map: Record<string, number>, key: string, amount = 1): void {
 }
 
 function top(map: Record<string, number>, limit = 20): Array<[string, number]> {
-  return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, limit);
+  return Object.entries(map)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit);
 }
 
 function textFromContent(content: unknown): string {
@@ -152,7 +154,9 @@ const report = {
   sessionFiles: files.length,
   totalUserTurns,
   totalToolCalls,
-  avgToolsPerTurn: files.length ? Math.round((totalToolCalls / Math.max(totalUserTurns, 1)) * 10) / 10 : 0,
+  avgToolsPerTurn: files.length
+    ? Math.round((totalToolCalls / Math.max(totalUserTurns, 1)) * 10) / 10
+    : 0,
   estimatedCostUsd: Math.round(totalCost * 100) / 100,
   sessionsWithDev,
   sessionsWithSubagent,

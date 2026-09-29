@@ -27,7 +27,9 @@ describe("install accord shim", () => {
       bunPath: "/opt/homebrew/bin/bun",
     });
     expect(content).toContain("#!/usr/bin/env bash");
-    expect(content).toContain('exec /opt/homebrew/bin/bun /repo/accord/packages/accord-cli/src/main.ts "$@"');
+    expect(content).toContain(
+      'exec /opt/homebrew/bin/bun /repo/accord/packages/accord-cli/src/main.ts "$@"',
+    );
   });
 
   test("installAccordShim writes executable shim", async () => {
@@ -68,8 +70,8 @@ describe("install accord shim", () => {
     await installAccordShim({ repoRoot, binDir, bunPath: "/usr/bin/bun" });
     await writeFile(join(binDir, "accord"), "#!/bin/sh\nexit 1\n", "utf8");
 
-    await expect(
-      installAccordShim({ repoRoot, binDir, bunPath: "/usr/bin/bun" }),
-    ).rejects.toThrow(/Refusing to overwrite/);
+    await expect(installAccordShim({ repoRoot, binDir, bunPath: "/usr/bin/bun" })).rejects.toThrow(
+      /Refusing to overwrite/,
+    );
   });
 });

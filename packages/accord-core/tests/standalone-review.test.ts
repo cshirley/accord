@@ -20,9 +20,6 @@ import {
 
 const execFile = promisify(execFileCb);
 
-/** Monorepo root — tests must not rely on `process.cwd()` (other suites chdir). */
-const repoRoot = join(import.meta.dirname, "..", "..", "..");
-
 async function runGit(cwd: string, args: string[]): Promise<void> {
   await execFile("git", args, { cwd });
 }

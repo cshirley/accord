@@ -3,11 +3,18 @@
  */
 
 import * as fs from "node:fs";
-import { loadGlobalConfig } from "@clive.shirley/accord-core/config/global.js";
-import { mergeHarnessConfig, resolveAgentTierConfig } from "@clive.shirley/accord-core/config/harness-resolve.js";
-import type { DevHarnessHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
 import { loadAgentFromFile, resolveModelConfig } from "@clive.shirley/accord-core/agents/index.js";
-import type { AgentConfig, ModelTier, ResolvedModel } from "@clive.shirley/accord-core/agents/types.js";
+import type {
+  AgentConfig,
+  ModelTier,
+  ResolvedModel,
+} from "@clive.shirley/accord-core/agents/types.js";
+import { loadGlobalConfig } from "@clive.shirley/accord-core/config/global.js";
+import {
+  mergeHarnessConfig,
+  resolveAgentTierConfig,
+} from "@clive.shirley/accord-core/config/harness-resolve.js";
+import type { DevHarnessHarnessConfig } from "@clive.shirley/accord-core/config/types.js";
 
 export type ExecAgentSpawnArgs = {
   taskFile: string;
@@ -55,7 +62,9 @@ function tierConfigToResolvedModel(tier: {
 }): ResolvedModel {
   const slash = tier.model.indexOf("/");
   const hasProvider = slash > 0;
-  const provider = hasProvider ? tier.model.slice(0, slash) : inferProviderFromHarnessId(tier.harness);
+  const provider = hasProvider
+    ? tier.model.slice(0, slash)
+    : inferProviderFromHarnessId(tier.harness);
   const model = hasProvider ? tier.model.slice(slash + 1) : tier.model;
   const thinkingMode =
     tier.reasoning_effort || /^gpt-/i.test(model) ? "reasoning_effort" : ("flag" as const);
@@ -94,10 +103,7 @@ export function resolveSpawnModelFromAgentFile(
   return resolveModelConfig(agent);
 }
 
-export function parseExecAgentSpawnArgv(
-  argv: string[],
-  programName: string,
-): ExecAgentSpawnArgs {
+export function parseExecAgentSpawnArgv(argv: string[], programName: string): ExecAgentSpawnArgs {
   let taskFile = "";
   let agentFile: string | undefined;
   let systemAppendFile: string | undefined;
@@ -137,9 +143,11 @@ export function buildCursorAgentPrompt(options: {
   systemAppend?: string;
   task: string;
 }): string {
-  const parts = [options.agentBody?.trim(), options.systemAppend?.trim(), options.task.trim()].filter(
-    (part): part is string => Boolean(part?.length),
-  );
+  const parts = [
+    options.agentBody?.trim(),
+    options.systemAppend?.trim(),
+    options.task.trim(),
+  ].filter((part): part is string => Boolean(part?.length));
   return parts.join("\n\n---\n\n");
 }
 

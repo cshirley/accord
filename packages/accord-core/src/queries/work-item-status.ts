@@ -6,6 +6,7 @@ import { getAgentMeta } from "../agents/registry.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../orchestration/phase-coarse-routing.js";
 import {
+  describeBlockedPrimaryTasks,
   describeImplementingResumeBlocked,
   resolveImplementingResumeAgentId,
 } from "../orchestration/resolve/primary-task.js";
@@ -73,9 +74,10 @@ export function devWorkItemStatus(
     }
   }
 
-  const finishNudge = describeImplementingResumeBlocked(workItemId);
-  let blockedHint: string | null = null;
-  if (!nextResumeAgent && !wi.completed_at && isWorkItemPattern(wi.pattern)) {
+  const blockedTasks = wi.completed_at ? null : describeBlockedPrimaryTasks(workItemId);
+  const finishNudge = blockedTasks ? null : describeImplementingResumeBlocked(workItemId);
+  let blockedHint: string | null = blockedTasks;
+  if (!blockedHint && !nextResumeAgent && !wi.completed_at && isWorkItemPattern(wi.pattern)) {
     const coarseAgent = resolveResumeAgentId(wi.phase, wi.pattern);
     if (!coarseAgent && wi.phase === "implementing" && wi.pattern === "implement") {
       blockedHint = finishNudge;

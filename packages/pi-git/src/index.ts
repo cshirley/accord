@@ -20,8 +20,8 @@ import gitReviewTasks from "./defs/git-review-tasks.js";
 import gitWorktreeResolve from "./defs/git-worktree-resolve.js";
 import repoHarnessContext from "./defs/repo-harness-context.js";
 import repoVerify from "./defs/repo-verify.js";
-import { registerToolDefs } from "./framework.js";
 import { initGitDynamicTools } from "./dynamic-tools.js";
+import { registerToolDefs } from "./framework.js";
 import { initWorktreeSession } from "./worktree/runtime.js";
 
 export default function gitExtension(pi: ExtensionAPI) {

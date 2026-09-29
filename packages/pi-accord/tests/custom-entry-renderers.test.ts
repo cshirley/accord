@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
 import {
-  OUTPUT_LEVEL_ENTRY_TYPE,
-  registerOutputLevelEntryRenderer,
-  renderOutputLevelEntry,
-} from "../../pi-thrift/src/entry-render.js";
-import {
   registerWorktreeStateEntryRenderer,
   renderWorktreeStateEntry,
   WORKTREE_STATE_ENTRY_TYPE,
 } from "../../pi-git/src/worktree/entry-render.js";
+import {
+  OUTPUT_LEVEL_ENTRY_TYPE,
+  registerOutputLevelEntryRenderer,
+  renderOutputLevelEntry,
+} from "../../pi-thrift/src/entry-render.js";
 import {
   HARNESS_RUN_ENTRY_TYPE,
   registerHarnessRunEntryRenderer,

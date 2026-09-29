@@ -19,6 +19,7 @@ export type GlobalOptions = {
   maxRounds: number | undefined;
   select: boolean;
   noColor: boolean;
+  allowPendingDecisions: boolean;
 };
 
 export type InitOptions = GlobalOptions & {
@@ -50,6 +51,18 @@ export type ParsedCli =
     }
   | {
       kind: "deviations";
+      workItemId: string;
+      rawArgs: string;
+      options: GlobalOptions;
+    }
+  | {
+      kind: "unblock";
+      workItemId: string;
+      rawArgs: string;
+      options: GlobalOptions;
+    }
+  | {
+      kind: "block";
       workItemId: string;
       rawArgs: string;
       options: GlobalOptions;
@@ -88,6 +101,7 @@ function parseGlobalFlags(argv: string[]): { flags: GlobalOptions; rest: string[
     maxRounds: undefined,
     select: false,
     noColor: false,
+    allowPendingDecisions: false,
   };
   const rest: string[] = [];
 
@@ -130,6 +144,8 @@ function parseGlobalFlags(argv: string[]): { flags: GlobalOptions; rest: string[
       flags.select = true;
     } else if (token === "--no-color") {
       flags.noColor = true;
+    } else if (token === "--allow-pending-decisions") {
+      flags.allowPendingDecisions = true;
     } else {
       rest.push(token);
     }
@@ -281,6 +297,39 @@ export function parseCli(argv: string[]): ParsedCli {
     }
     return {
       kind: "deviations",
+      workItemId,
+      rawArgs: tail.slice(1).join(" "),
+      options: flags,
+    };
+  }
+
+  if (command === "unblock") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return {
+        kind: "error",
+        message:
+          "unblock requires a work item id (task_id optional \u2014 defaults to all blocked tasks)",
+      };
+    }
+    return {
+      kind: "unblock",
+      workItemId,
+      rawArgs: tail.slice(1).join(" "),
+      options: flags,
+    };
+  }
+
+  if (command === "block") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return {
+        kind: "error",
+        message: "block requires a work item id, a task_id, and a reason",
+      };
+    }
+    return {
+      kind: "block",
       workItemId,
       rawArgs: tail.slice(1).join(" "),
       options: flags,

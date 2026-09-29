@@ -46,9 +46,15 @@ export function createAccordCompleter(ctx: AccordCompleterContext): Completer {
       return [matches.map((id) => `${prefix}${id}`), ""];
     }
 
-    if (commandNeedsWorkItem(command) || ["drive", "gaps", "deviations", "rehydrate", "spec-gaps"].includes(command)) {
+    if (
+      commandNeedsWorkItem(command) ||
+      ["drive", "gaps", "deviations", "rehydrate", "spec-gaps"].includes(command)
+    ) {
       const matches = matchWorkItems(partial, ids);
-      const prefix = tokens.length <= 1 ? `${leading}${command} ` : `${leading}${tokens.slice(0, -1).join(" ")} `;
+      const prefix =
+        tokens.length <= 1
+          ? `${leading}${command} `
+          : `${leading}${tokens.slice(0, -1).join(" ")} `;
       return [matches.map((id) => `${prefix}${id}`), ""];
     }
 

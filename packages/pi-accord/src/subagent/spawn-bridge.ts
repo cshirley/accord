@@ -67,7 +67,7 @@ export function buildOrchestratorSubagentToolResult(
 }
 
 export function createOrchestrationSubagentOnUpdate(
-  makeDetails: (results: OrchestrationSubagentSingleResult[]) => unknown,
+  _makeDetails: (results: OrchestrationSubagentSingleResult[]) => unknown,
   onToolUpdate: (partial: AgentToolResult<unknown>) => void,
 ): (partial: SpawnSubagentUpdate) => void {
   return (partial) => {

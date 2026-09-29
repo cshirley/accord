@@ -604,6 +604,43 @@ describe("harness processSubagentToolResult", () => {
     expect(out).toContain("Return packet validation failed");
   });
 
+  test("backfills missing packet usage from host-measured result.usage", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("PKP-USG-1", "Backfill usage", "quick_fix", undefined, quickFixIntent());
+
+    const packetWithoutUsage = {
+      status: "done",
+      files_changed: ["a.ts"],
+      tests_passing: true,
+      ac_covered: [],
+    };
+    const out = await processSubagentToolResult({
+      details: {
+        results: [
+          {
+            agent: "phase-code",
+            task: "PKP-USG-1",
+            model: "test-model",
+            exitCode: 0,
+            usage: { input: 100, output: 40 },
+            messages: [
+              {
+                role: "assistant",
+                content: [{ type: "text", text: fencedJsonAssistantBody(packetWithoutUsage) }],
+              },
+            ],
+          },
+        ],
+      },
+      state: emptyHarnessState(),
+      pricing: loadPricing(),
+    });
+    expect(out).not.toContain("Return packet validation failed");
+    expect(out).toContain('"prompt_tokens": 100');
+    expect(out).toContain('"completion_tokens": 40');
+  });
+
   test("detects empty assistant response for a phase agent", async () => {
     const out = await processSubagentToolResult({
       details: {
@@ -1078,6 +1115,79 @@ describe("harness processSubagentToolResult", () => {
     expect(line).toContain("USG-1");
     expect(line).toContain("subagent");
   });
+
+  test("promotes a stuck packet from ANY agent to decisions[] (universal safety net)", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("STK-1", "Stuck verify", "implement", "standard");
+
+    const stuckPacket = {
+      status: "stuck",
+      question:
+        "AC-2 says 'export excludes soft-deleted rows' but the API has no filter flag \u2014 add one or amend the AC?",
+      context: "phase-verify-acceptance could not confirm AC-2",
+      tried: "Checked export endpoint and query builder for a soft-delete filter",
+      usage: { prompt_tokens: 12, completion_tokens: 8 },
+    };
+
+    const out = await processSubagentToolResult({
+      details: {
+        results: [
+          {
+            agent: "phase-verify-acceptance",
+            task: "STK-1",
+            model: "test-model",
+            exitCode: 0,
+            messages: [
+              {
+                role: "assistant",
+                content: [{ type: "text", text: fencedJsonAssistantBody(stuckPacket) }],
+              },
+            ],
+          },
+        ],
+      },
+      state: emptyHarnessState(),
+      pricing: loadPricing(),
+    });
+
+    expect(out).toContain("is stuck");
+    expect(out).toContain("AC-2");
+
+    const wi = JSON.parse(readFileSync(join(project, ".tasks", "STK-1.json"), "utf8"));
+    expect(wi.decisions).toHaveLength(1);
+    expect(wi.decisions[0]).toMatchObject({
+      id: "phase-verify-acceptance-stuck-1",
+      source: "escalation",
+      status: "pending",
+    });
+    expect(wi.decisions[0].question).toContain("AC-2");
+    expect(wi.decisions[0].context).toContain("Tried:");
+
+    // Respawning with the identical stuck packet must not duplicate the decision.
+    await processSubagentToolResult({
+      details: {
+        results: [
+          {
+            agent: "phase-verify-acceptance",
+            task: "STK-1",
+            model: "test-model",
+            exitCode: 0,
+            messages: [
+              {
+                role: "assistant",
+                content: [{ type: "text", text: fencedJsonAssistantBody(stuckPacket) }],
+              },
+            ],
+          },
+        ],
+      },
+      state: emptyHarnessState(),
+      pricing: loadPricing(),
+    });
+    const wi2 = JSON.parse(readFileSync(join(project, ".tasks", "STK-1.json"), "utf8"));
+    expect(wi2.decisions).toHaveLength(1);
+  });
 });
 
 describe("harness pipeline artifact preflight", () => {
@@ -1216,6 +1326,39 @@ describe("phase-align post-result", () => {
     const wi = JSON.parse(readFileSync(join(project, ".tasks", "ALN-1.json"), "utf8"));
     expect(wi.phase).toBe("speccing");
     expect(wi.brief).toBe("docs/dev/ALN-1/brief.md");
+  });
+
+  test("needs_input promotes reflections to decisions[] and writes a checkpoint", async () => {
+    const project = tempProject();
+    process.chdir(project);
+    devBootstrap("ALN-2", "Align reflect", "implement", "standard");
+
+    const { applyPhaseAlignPostResult } = await import(
+      "@clive.shirley/accord-core/orchestration/post-result/phase-align.js"
+    );
+    const out = applyPhaseAlignPostResult("ALN-2", {
+      status: "needs_input",
+      brief: { core_problem: "draft" },
+      markers: [{ id: "m1", claim: "Users need X", status: "proposed" }],
+      reflections: [
+        { id: "r1", type: "probe", text: "Is X the right scope, or should it include Y?" },
+      ],
+      convergence: { round: 1, converged: false },
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    expect(out).toMatch(/needs your input/);
+    expect(out).toContain("r1");
+
+    const wi = JSON.parse(readFileSync(join(project, ".tasks", "ALN-2.json"), "utf8"));
+    expect(wi.phase).toBe("aligning");
+    expect(wi.decisions).toHaveLength(1);
+    expect(wi.decisions[0]).toMatchObject({ id: "r1", status: "pending", source: "align" });
+
+    const cp = JSON.parse(readFileSync(join(project, ".tasks", "ALN-2-checkpoint.json"), "utf8"));
+    expect(cp.phase).toBe("aligning");
+    expect(cp.pending).toEqual(["r1"]);
+    expect(cp.draft.brief).toEqual({ core_problem: "draft" });
+    expect(cp.draft.markers).toEqual([{ id: "m1", claim: "Users need X", status: "proposed" }]);
   });
 });
 

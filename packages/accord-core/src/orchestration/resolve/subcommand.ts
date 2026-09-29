@@ -7,7 +7,7 @@ import type { DevHarnessConfig } from "../../config/index.js";
 import type { ResumeOrchestrationResolution } from "../types.js";
 import { resolveFinishOrchestration } from "./finish.js";
 import { resolveForcedAgentOrchestration } from "./forced.js";
-import { resolveResumeOrchestration } from "./resume.js";
+import { type ResolveResumeOrchestrationOptions, resolveResumeOrchestration } from "./resume.js";
 
 /** Subcommands handled in the extension without spawning (tools / messaging only). */
 export const EXTENSION_ONLY_DEV_SUBCOMMANDS = new Set([
@@ -92,11 +92,12 @@ export function resolveDevSubcommandOrchestration(
   workItemId: string,
   rawArgs: string,
   devConfig: DevHarnessConfig | null,
+  options?: ResolveResumeOrchestrationOptions,
 ): ResumeOrchestrationResolution {
   const plan = planDevSubcommandOrchestration(subcommand, rawArgs);
   switch (plan.kind) {
     case "resume":
-      return resolveResumeOrchestration(workItemId, devConfig);
+      return resolveResumeOrchestration(workItemId, devConfig, options);
     case "finish":
       return resolveFinishOrchestration(workItemId, devConfig);
     case "forced":

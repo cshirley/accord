@@ -9,6 +9,7 @@ export {
   discoverAgents,
   findCursorProfileName,
   formatAgentList,
+  hasAnthropicCredentials,
   hasCursorCredentials,
   invalidateConfigCache,
   invalidateTierCache,

@@ -23,7 +23,7 @@ function mapThinkingToBracketEffort(thinking: ThinkingLevel): string {
 
 /** Format a resolved spawn model for `agent --model`. */
 export function formatCursorAgentCliModel(resolved: ResolvedModel): string {
-  let model = stripProviderPrefix(resolved.model);
+  const model = stripProviderPrefix(resolved.model);
   const thinking = resolved.thinking;
   if (!thinking || thinking === "off") {
     return model;
@@ -43,7 +43,10 @@ export function formatCursorAgentCliModel(resolved: ResolvedModel): string {
   if (resolved.thinkingMode === "reasoning_effort" || /^gpt-/i.test(model)) {
     return `${model}[effort=${mapThinkingToBracketEffort(thinking)}]`;
   }
-  if (/^claude-/i.test(model) && (thinking === "high" || thinking === "xhigh" || thinking === "max")) {
+  if (
+    /^claude-/i.test(model) &&
+    (thinking === "high" || thinking === "xhigh" || thinking === "max")
+  ) {
     const base = model.replace(/-thinking(?:-.*)?$/, "");
     const level = thinking === "max" ? "xhigh" : thinking;
     return `${base}-thinking-${level}`;

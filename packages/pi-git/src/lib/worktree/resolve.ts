@@ -10,7 +10,10 @@ export interface GitWorktreeEntry {
   head: string;
 }
 
-export async function listGitWorktrees(root: string, signal?: AbortSignal): Promise<GitWorktreeEntry[]> {
+export async function listGitWorktrees(
+  root: string,
+  signal?: AbortSignal,
+): Promise<GitWorktreeEntry[]> {
   const raw = await git(["worktree", "list", "--porcelain"], root, signal);
   const entries: GitWorktreeEntry[] = [];
   let current: Partial<GitWorktreeEntry> = {};
@@ -40,7 +43,7 @@ export function resolveWorktreeQuery(
     (w) =>
       w.path.toLowerCase().endsWith(`/${q}`) ||
       w.path.toLowerCase().includes(q) ||
-      (w.branch?.toLowerCase() === q) ||
+      w.branch?.toLowerCase() === q ||
       (w.branch?.toLowerCase().includes(q) ?? false),
   );
   return exact ?? null;

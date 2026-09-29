@@ -1,12 +1,14 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { clearSearchableToolsForTests } from "@clive.shirley/accord-core/tools/progressive-discovery.js";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  clearSearchableToolsForTests,
+  SEARCH_ACCORD_TOOLS,
+} from "@clive.shirley/accord-core/tools/progressive-discovery.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   applyGitSessionStartActiveSet,
   maybeActivateGitToolCall,
   resetGitToolBundles,
 } from "../src/dynamic-tools.js";
-import { SEARCH_ACCORD_TOOLS } from "@clive.shirley/accord-core/tools/progressive-discovery.js";
 
 function mockPi(initialActive: string[]): { pi: ExtensionAPI; active: string[] } {
   const active = [...initialActive];
@@ -25,6 +27,13 @@ describe("pi-git dynamic tools", () => {
   const envKeys = ["PI_PROGRESSIVE_TOOLS", "PI_GIT_DYNAMIC_TOOLS"] as const;
   const saved: Record<string, string | undefined> = {};
 
+  // Snapshot, then clear the master switch so a host shell's `PI_PROGRESSIVE_TOOLS=0`
+  // cannot override the per-test `PI_GIT_DYNAMIC_TOOLS=1`.
+  beforeEach(() => {
+    for (const key of envKeys) saved[key] = process.env[key];
+    delete process.env.PI_PROGRESSIVE_TOOLS;
+  });
+
   afterEach(() => {
     clearSearchableToolsForTests();
     for (const key of envKeys) {
@@ -34,7 +43,6 @@ describe("pi-git dynamic tools", () => {
   });
 
   test("session start hides git tools but keeps loader", () => {
-    for (const key of envKeys) saved[key] = process.env[key];
     process.env.PI_GIT_DYNAMIC_TOOLS = "1";
     const { pi, active } = mockPi(["read", "bash", "gh_pr_context", "wt_exec"]);
     resetGitToolBundles();
@@ -45,7 +53,6 @@ describe("pi-git dynamic tools", () => {
   });
 
   test("tool_call activates bundle on demand", () => {
-    for (const key of envKeys) saved[key] = process.env[key];
     process.env.PI_GIT_DYNAMIC_TOOLS = "1";
     const { pi, active } = mockPi(["read", SEARCH_ACCORD_TOOLS]);
     resetGitToolBundles();

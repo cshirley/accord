@@ -12,6 +12,7 @@ import {
 } from "../../queries/subagent-preflight-shared.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { ensureWorkItemHydrated } from "../../work-items/rehydrate.js";
+import { pendingDecisionsGateMessage } from "../pending-decisions-gate.js";
 import { isWorkItemPattern, resolveResumeAgentId } from "../phase-coarse-routing.js";
 import { reconcileCoarsePhaseWithMessages } from "../reconcile-coarse-phase.js";
 import { appendReviewFeedbackToResumeBrief } from "../review-feedback.js";
@@ -19,6 +20,7 @@ import type { OrchestrationMessage, ResumeOrchestrationResolution } from "../typ
 import { buildAlignResumeTaskOrGeneric } from "./align-task.js";
 import { buildInterviewResumeTaskOrGeneric } from "./interview-task.js";
 import {
+  describeBlockedPrimaryTasks,
   describeImplementingResumeBlocked,
   resolveImplementingResumeAgentId,
   resolvePrimaryTaskResumeAgentId,
@@ -55,9 +57,15 @@ export function buildResumeTaskBrief(input: {
   return lines.join("\n");
 }
 
+export interface ResolveResumeOrchestrationOptions {
+  /** Bypass the pending-decisions gate before spawning an implement-pipeline agent. */
+  allowPendingDecisions?: boolean;
+}
+
 export function resolveResumeOrchestration(
   workItemId: string,
   devConfig: DevHarnessConfig | null,
+  options?: ResolveResumeOrchestrationOptions,
 ): ResumeOrchestrationResolution {
   const messages: OrchestrationMessage[] = [];
 
@@ -116,6 +124,17 @@ export function resolveResumeOrchestration(
 
   const pattern = stateAfterReconcile.pattern;
   const phase = stateAfterReconcile.phase;
+
+  // A blocked task (retry/RGR cap, crash, manual block) halts the whole work item — never
+  // silently skip past it to later tasks or into finish.
+  const blockedTasks = describeBlockedPrimaryTasks(workItemId);
+  if (blockedTasks) {
+    return {
+      outcome: "blocked",
+      messages: [...messages, { level: "warning", text: blockedTasks }],
+    };
+  }
+
   const agent =
     resolveResumeAgentId(phase, pattern) ??
     (phase === "implementing" && pattern === "implement"
@@ -139,6 +158,13 @@ export function resolveResumeOrchestration(
         },
       ],
     };
+  }
+
+  if (wi) {
+    const gate = pendingDecisionsGateMessage(wi, agent, options?.allowPendingDecisions);
+    if (gate) {
+      return { outcome: "blocked", messages: [...messages, gate] };
+    }
   }
 
   if (agentRequiresConfig(agent) && !devConfig) {

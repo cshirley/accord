@@ -9,7 +9,7 @@ import { cliNotify } from "../notify.js";
 
 export type SubcommandCommandResult = {
   exitCode: number;
-  stalledReason?: "repeat_spawn" | "needs_input";
+  stalledReason?: "repeat_spawn" | "needs_input" | "stuck";
 };
 
 export async function runSubcommandCommand(
@@ -18,10 +18,19 @@ export async function runSubcommandCommand(
   subcommand: string,
   workItemId: string,
   rawArgs: string,
+  options?: { allowPendingDecisions?: boolean },
 ): Promise<SubcommandCommandResult> {
   ctx.state.activeWorkItem = workItemId;
 
-  const initial = resolveDevSubcommandOrchestration(subcommand, workItemId, rawArgs, ctx.devConfig);
+  const initial = resolveDevSubcommandOrchestration(
+    subcommand,
+    workItemId,
+    rawArgs,
+    ctx.devConfig,
+    {
+      allowPendingDecisions: options?.allowPendingDecisions,
+    },
+  );
   if (initial.outcome === "blocked" || initial.outcome === "complete") {
     for (const message of initial.messages ?? []) {
       cliNotify(message.level === "warning" ? "warning" : "info", message.text);
@@ -35,6 +44,7 @@ export async function runSubcommandCommand(
     rawArgs,
     ctx.devConfig,
     asRuntimeHost(harness),
+    { allowPendingDecisions: options?.allowPendingDecisions },
   );
 
   if (result.stalledReason === "repeat_spawn") {
@@ -44,6 +54,13 @@ export async function runSubcommandCommand(
   if (result.stalledReason === "needs_input") {
     cliNotify("warning", "Orchestration paused: agent returned needs_input.");
     return { exitCode: 2, stalledReason: "needs_input" };
+  }
+  if (result.stalledReason === "stuck") {
+    cliNotify(
+      "warning",
+      `Orchestration paused: agent is stuck. See decisions[] in the work item JSON to answer, then re-run \`accord ${subcommand} ${workItemId}\`.`,
+    );
+    return { exitCode: 2, stalledReason: "stuck" };
   }
 
   const exit = result.lastRun.lastSpawn?.exitCode;

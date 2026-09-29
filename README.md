@@ -22,6 +22,7 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 
 | Doc                                                      | Read this when you want to…                                                                                                                                          |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`okf/index.md`](okf/index.md) | …navigate the agent-oriented [OKF v0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) knowledge bundle (architecture, references, playbooks) with source citations. |
 | [`docs/accord-workflow.md`](docs/accord-workflow.md)     | …get the single end-to-end overview of the harness: phases, agents, schemas, hooks, commands. Start here.                                                            |
 | [`docs/accord-cli.md`](docs/accord-cli.md) | …run ACCORD headlessly: `accord resume`, harness backends (`pi` / `exec`), MCP `ACCORD_MCP_HARNESS`, env vars. |
 | [`docs/plans/accord-cli-extraction.md`](docs/plans/accord-cli-extraction.md) | …see the monorepo split (`accord-core`, `accord-cli`, `pi-accord`) and extraction phases. |

@@ -10,7 +10,9 @@ export async function promptHarnessSelection(
   options?: { defaultId?: string },
 ): Promise<string> {
   if (installed.length === 0) {
-    throw new Error("No agent runtimes detected. Install `pi`, `claude`, or `agent` (Cursor) first.");
+    throw new Error(
+      "No agent runtimes detected. Install `pi`, `claude`, or `agent` (Cursor) first.",
+    );
   }
   if (installed.length === 1) {
     return installed[0]?.id ?? "claude";
@@ -34,10 +36,12 @@ export async function promptHarnessSelection(
     });
   });
 
-  if (!answer) return defaultId ?? installed[0]!.id;
+  const fallback = defaultId ?? installed[0]?.id;
+  if (!answer && fallback) return fallback;
   const asNumber = Number.parseInt(answer, 10);
   if (Number.isFinite(asNumber) && asNumber >= 1 && asNumber <= installed.length) {
-    return installed[asNumber - 1]!.id;
+    const picked = installed[asNumber - 1];
+    if (picked) return picked.id;
   }
   const match = installed.find((backend) => backend.id === answer.toLowerCase());
   if (match) return match.id;

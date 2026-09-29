@@ -17,6 +17,7 @@ export type DriveStatus =
   | "ready_for_finish"
   | "finished"
   | "needs_input"
+  | "stuck"
   | "blocked"
   | "spawn_failed"
   | "max_rounds";
@@ -33,6 +34,7 @@ export type DriveWorkflowResult = {
 export type DriveWorkflowOptions = {
   finish?: boolean;
   maxRounds?: number;
+  allowPendingDecisions?: boolean;
 };
 
 const DEFAULT_MAX_DRIVE_ROUNDS = 32;
@@ -150,7 +152,9 @@ export async function runDriveWorkflow(
     }
 
     cliNotify("info", `Drive round ${String(round)}: resuming ${workItemId}…`);
-    const resume = await runResumeCommand(ctx, harness, workItemId);
+    const resume = await runResumeCommand(ctx, harness, workItemId, {
+      allowPendingDecisions: options.allowPendingDecisions,
+    });
 
     if (resume.stalledReason === "needs_input") {
       const phase = loadWorkItem(workItemId)?.phase;
@@ -161,6 +165,19 @@ export async function runDriveWorkflow(
         phase,
         exitCode: 2,
         message: "Agent returned needs_input — answer questions, then re-run `accord drive`.",
+      };
+    }
+
+    if (resume.stalledReason === "stuck") {
+      const phase = loadWorkItem(workItemId)?.phase;
+      return {
+        workItemId,
+        status: "stuck",
+        rounds: round,
+        phase,
+        exitCode: 2,
+        message:
+          "Agent is stuck — see decisions[] in the work item JSON, answer, then re-run `accord drive`.",
       };
     }
 

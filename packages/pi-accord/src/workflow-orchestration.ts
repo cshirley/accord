@@ -67,10 +67,14 @@ export async function tryDevSubcommandViaCoreOrchestrator(
   const { workItemId } = preflight;
   activateForDevSubcommand(pi, state, subcommand);
 
+  const allowPendingDecisions = /(^|\s)--allow-pending-decisions(\s|$)/.test(args);
+
   const initialPlan =
     subcommand === "resume"
-      ? planDevResumeOrchestration(workItemId, state.devConfig)
-      : resolveDevSubcommandOrchestration(subcommand, workItemId, args, state.devConfig);
+      ? planDevResumeOrchestration(workItemId, state.devConfig, { allowPendingDecisions })
+      : resolveDevSubcommandOrchestration(subcommand, workItemId, args, state.devConfig, {
+          allowPendingDecisions,
+        });
 
   if (initialPlan.outcome === "spawn") {
     activateForDispatchAgent(pi, state, initialPlan.agent);
@@ -82,6 +86,7 @@ export async function tryDevSubcommandViaCoreOrchestrator(
     subcommand === "resume"
       ? await delegateResumeViaAccordCli(pi, ctx, state, workItemId, {
           spawnNotifyLabel: subcommand,
+          allowPendingDecisions,
         })
       : await delegateSubcommandViaAccordCli(pi, ctx, state, subcommand, workItemId, args, {
           spawnNotifyLabel: subcommand,
@@ -95,6 +100,11 @@ export async function tryDevSubcommandViaCoreOrchestrator(
   } else if (result.stalledReason === "needs_input") {
     ctx.ui.notify(
       "Orchestration paused: a phase agent returned `needs_input`. Answer the questions shown above (or run `/dev review <ID>`), then `/dev resume <ID>` to continue.",
+      "info",
+    );
+  } else if (result.stalledReason === "stuck") {
+    ctx.ui.notify(
+      "Orchestration paused: a phase agent is stuck. Answer the escalation shown above (or run `/dev review <ID>`), then `/dev resume <ID>` to continue.",
       "info",
     );
   }
