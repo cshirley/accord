@@ -2,6 +2,30 @@
 
 This directory is the `@clive.shirley/accord` monorepo (Bun workspaces). The Pi extension package is `@clive.shirley/pi-accord` in `packages/pi-accord/`. It provides ACCORD, an agentic delivery harness exposed through the `/dev` command. The extension helps agents and users agree the work, persist that agreement as schemas and artifacts, route phase agents, and verify implementation evidence before final handoff.
 
+## Knowledge source: OKF bundle
+
+This repo documents itself using the [Open Knowledge Format (OKF) v0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md). The bundle lives in **`okf/`**; long-form narrative docs remain in `docs/`.
+
+Follow progressive disclosure — do not load the whole bundle:
+
+1. **Orient** — read [`okf/index.md`](okf/index.md).
+2. **Route** — pick the section index: design/code changes → [`okf/architecture/index.md`](okf/architecture/index.md); commands, config, env, schemas → [`okf/references/index.md`](okf/references/index.md); procedures → [`okf/playbooks/index.md`](okf/playbooks/index.md).
+3. **Read** only the concepts you need. Concept IDs are bundle-relative paths without `.md` (e.g. `architecture/orchestration`). Bundle-relative links (`/architecture/hooks.md`) resolve against `okf/`.
+
+| If the task is about… | Start here |
+| --- | --- |
+| Which package owns what | `okf/architecture/monorepo-packages.md` |
+| Routing, resume loop, post-result handlers | `okf/architecture/orchestration.md` |
+| Spawning, harness backends, return packets | `okf/architecture/subagent-spawning.md` |
+| Hooks / schema enforcement | `okf/architecture/hooks.md` |
+| Test↔review loop, verify, gaps | `okf/architecture/crucible-verification.md` |
+| `dev_*` tools / MCP | `okf/architecture/tool-surface.md` |
+| Retry caps, auto-chain, auto-commit | `okf/references/orchestration-policy.md` |
+| `.tasks/` vs `docs/dev/`, `decisions[]` | `okf/references/artifacts-and-state.md` |
+| Adding an agent / provider / language | `okf/playbooks/add-*.md` |
+
+Concepts carry `status`, `generated`, and `sources` frontmatter. If the bundle and source disagree, **source wins** — update the concept and append to `okf/log.md`.
+
 ## Extension Surface
 
 This npm package registers **multiple Pi extensions** (see root `package.json` → `pi.extensions`): `pi-subagent`, `pi-thrift`, `pi-git`, `pi-integrations`, then the ACCORD harness in `packages/pi-accord`. Install this package once with the Pi CLI (`pi install <path-to-this-repo>`); you do not need separate copies under `~/.pi/agent/extensions/` for those tools.

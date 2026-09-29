@@ -49,7 +49,8 @@
     "LICENSE",
     "CONTRIBUTING.md",
     "SECURITY.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "okf/"
   ],
   "peerDependencies": {
     "@earendil-works/pi-agent-core": "^0.83.0",
