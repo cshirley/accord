@@ -5,6 +5,7 @@
 import path from "node:path";
 import type { ParsedCli } from "./cli.js";
 import {
+  runAnswerCommand,
   runBlockCommand,
   runCompletionCommand,
   runConfigInitCommand,
@@ -89,6 +90,10 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
 
   if (parsed.kind === "task-reseed") {
     return runTaskReseedCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "answer") {
+    return runAnswerCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
   }
 
   if (parsed.kind === "block") {

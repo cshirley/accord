@@ -85,8 +85,8 @@ export function applyStuckPostResult(workItemId: string, agent: string, packet: 
     context ? `- context: ${context}` : "",
     tried ? `- tried: ${tried}` : "",
     "",
-    `Headless: edit that entry \u2014 set \`"status": "resolved"\` and add \`"answer": "..."\`, then run \`accord resume ${workItemId}\`.`,
-    `In Pi: reply in chat or run \`/dev review ${workItemId}\`, then \`/dev resume ${workItemId}\`.`,
+    `Headless: \`accord answer ${workItemId} ${id} "answer"\`, then \`accord resume ${workItemId}\`.`,
+    `In Pi: \`/dev answer ${workItemId} ${id} "answer"\` (or reply in chat), then \`/dev resume ${workItemId}\`.`,
   ]
     .filter(Boolean)
     .join("\n");

@@ -65,6 +65,7 @@ export type ParsedCli =
     }
   | { kind: "trace"; workItemId: string; args: string[]; options: GlobalOptions }
   | { kind: "task-reseed"; workItemId: string; args: string[]; options: GlobalOptions }
+  | { kind: "answer"; workItemId: string; args: string[]; options: GlobalOptions }
   | {
       kind: "block";
       workItemId: string;
@@ -339,6 +340,17 @@ export function parseCli(argv: string[]): ParsedCli {
       return { kind: "error", message: "task reseed requires a work item id (--task n)" };
     }
     return { kind: "task-reseed", workItemId, args: tail.slice(2), options: flags };
+  }
+
+  if (command === "answer") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return {
+        kind: "error",
+        message: 'answer requires a work item id ([<decision-id> "answer"]… [--force])',
+      };
+    }
+    return { kind: "answer", workItemId, args: tail.slice(1), options: flags };
   }
 
   if (command === "block") {

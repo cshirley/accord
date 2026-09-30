@@ -93,7 +93,8 @@
           "phase": { "type": "string" },
           "status": { "enum": ["pending", "resolved"] },
           "answer": { "type": ["string", "null"] },
-          "asked_at": { "type": "string" }
+          "asked_at": { "type": "string" },
+          "resolved_at": { "type": "string" }
         }
       }
     },

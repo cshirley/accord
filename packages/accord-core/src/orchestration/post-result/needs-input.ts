@@ -232,7 +232,7 @@ export function formatNeedsInputHandoff(input: {
       "`, then `/dev resume " +
       input.workItemId +
       "`.",
-    `Headless: edit the matching entry in \`${wiPath}\` \`decisions[]\` — set \`"status": "resolved"\` and add \`"answer": "..."\` for each id above — then run \`accord resume ${input.workItemId}\`.`,
+    `Headless: \`accord answer ${input.workItemId} <id> "answer" [<id> "answer"]…\` for each id above, then \`accord resume ${input.workItemId}\`.`,
     "",
     "The checkpoint's `answered`/`pending` lists are a derived cache re-synced from `decisions[]` on the agent's next turn; editing `decisions[]` is sufficient.",
   );

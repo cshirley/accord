@@ -40,7 +40,7 @@ export async function runResumeCommand(
   if (result.stalledReason === "stuck") {
     cliNotify(
       "warning",
-      `Resume paused: agent is stuck. See decisions[] in the work item JSON to answer, then re-run \`accord resume ${workItemId}\`.`,
+      `Resume paused: agent is stuck. List with \`accord answer ${workItemId}\`, answer with \`accord answer ${workItemId} <decision-id> "answer"\`, then re-run \`accord resume ${workItemId}\`.`,
     );
     return { exitCode: 2, stalledReason: "stuck" };
   }

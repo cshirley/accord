@@ -40,10 +40,18 @@ export const ACCORD_TOOL_BUNDLES: Record<AccordToolBundle, readonly string[]> = 
     "dev_promote_events",
     "dev_decision_packet",
     "dev_unblock",
+    "dev_answer",
     "dev_subagent_preflight",
   ],
   init: ["dev_init_detect", "dev_init_write"],
-  meta: ["dev_retro", "dev_review_queue", "dev_workflow_cost", "dev_orchestrate", "dev_rehydrate"],
+  meta: [
+    "dev_retro",
+    "dev_review_queue",
+    "dev_answer",
+    "dev_workflow_cost",
+    "dev_orchestrate",
+    "dev_rehydrate",
+  ],
 };
 
 const ALL_BUNDLE_TOOL_NAMES = new Set<string>(Object.values(ACCORD_TOOL_BUNDLES).flat());

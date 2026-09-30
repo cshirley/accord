@@ -1,5 +1,9 @@
 # Bundle Update Log
 
+## 2026-09-30
+
+* **Update**: `answer` / `dev_answer` (`packages/accord-core/src/queries/answer-decision.ts`) resolve pending `decisions[]` entries by id (all-or-nothing, locked atomic write, `--force` to overwrite); no answers lists pending ones. Wired as `accord answer`, `/dev answer`, and the `dev_answer` tool (bundles `code` + `meta`). Replaces the hand-edit-the-JSON guidance in the pending-decisions gate, stuck/needs_input handoffs, dashboard, and CLI stuck messages. `work-item-schema.json` decision items now allow `resolved_at` (previously documented in the playbook but rejected by `additionalProperties: false`). [Answer pending decisions](/playbooks/answer-decisions.md) rewritten (it also wrongly said `/dev review` answers decisions; it only lists the queue); [/dev command](/references/dev-command.md), [accord CLI](/references/accord-cli.md), [Tool surface](/architecture/tool-surface.md) updated.
+
 ## 2026-09-29
 
 * **Creation**: [Per-task file (v2)](/references/task-file.md) — requirement-centric task file (summary, control, requirements → findings → history, round log), sidecars, recovery, per-blocker unblock.

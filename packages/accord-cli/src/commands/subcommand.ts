@@ -58,7 +58,7 @@ export async function runSubcommandCommand(
   if (result.stalledReason === "stuck") {
     cliNotify(
       "warning",
-      `Orchestration paused: agent is stuck. See decisions[] in the work item JSON to answer, then re-run \`accord ${subcommand} ${workItemId}\`.`,
+      `Orchestration paused: agent is stuck. List with \`accord answer ${workItemId}\`, answer with \`accord answer ${workItemId} <decision-id> "answer"\`, then re-run \`accord ${subcommand} ${workItemId}\`.`,
     );
     return { exitCode: 2, stalledReason: "stuck" };
   }

@@ -15,6 +15,9 @@ sources:
   - id: gate
     resource: /packages/accord-core/src/orchestration/pending-decisions-gate.ts
     title: Pending-decisions gate
+  - id: answer
+    resource: /packages/accord-core/src/queries/answer-decision.ts
+    title: answer / dev_answer
 ---
 
 # Trigger
@@ -28,21 +31,28 @@ sources:
 ## Interactive (Pi)
 
 ```
-/dev review            # or /dev review PROJ-1234
+/dev answer PROJ-1234                    # list pending decisions (/dev review shows the whole queue)
+/dev answer PROJ-1234 q1 "Use a new method"
 ```
 
-Answer every pending item in one pass, then `/dev resume PROJ-1234`.
+Answer every pending item (repeat `<id> "answer"` pairs in one call), then `/dev resume PROJ-1234`.
 
 ## Headless
 
-1. `accord tasks` — lists pending decisions with the file and IDs to edit.
-2. Edit `.tasks/PROJ-1234.json` → `decisions[]` entry:
+1. `accord answer PROJ-1234` — lists pending decisions (`accord tasks` also shows them).
+2. Answer one or more in a single, all-or-nothing call:
 
-   ```json
-   { "id": "q1", "source": "spec", "status": "resolved", "question": "...", "answer": "Use a new method", "resolved_at": "2026-09-28T17:00:00Z" }
+   ```
+   accord answer PROJ-1234 q1 "Use a new method" phase-code-stuck-1 "Test defect; fix the test"
    ```
 
+   This sets `"status": "resolved"`, `"answer"` and `"resolved_at"` on each entry under the work
+   item lock. An unknown id, empty answer or already-resolved entry fails the whole call without
+   writing; `--force` overwrites an existing answer.
 3. `accord resume PROJ-1234` (or the specific phase, e.g. `accord spec PROJ-1234`).
+
+Pi: `/dev answer PROJ-1234 q1 "…"` is identical. Agents use the `dev_answer` tool (only with the
+user's answers). Hand-editing `.tasks/PROJ-1234.json` still works but is no longer needed.
 
 The checkpoint's `answered`/`pending` lists are a derived cache — editing `decisions[]` alone is
 enough.

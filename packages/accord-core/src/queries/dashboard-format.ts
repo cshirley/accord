@@ -183,7 +183,7 @@ export function formatDecisionHelp(rows: TasksDashboardRow[]): string[] {
 
   if (withDecisions.length > 0) {
     lines.push(
-      `${INDENT}Edit the file below, find each \`id\` in \`decisions[]\`, set \`"status": "resolved"\`, and add \`"answer": "..."\` (free text).`,
+      `${INDENT}Answer each \`id\` with \`accord answer <ID> <id> "answer"\` (\`/dev answer\` in Pi) \u2014 it resolves the entry in \`decisions[]\` of the file below.`,
     );
     for (const row of withDecisions) {
       lines.push("", `${INDENT}${row.id}  ${row.work_item_path}`);

@@ -25,6 +25,7 @@ import { devInitDetect } from "../config/init-detect.js";
 import { devInitWrite, type WriteTarget } from "../config/init-write.js";
 import type { DevHarnessConfig } from "../config/types.js";
 import { buildDevOrchestratePayload, enrichDevOrchestratePayload } from "../orchestration/plan.js";
+import { answerDecisions, listPendingDecisions } from "../queries/answer-decision.js";
 import { devTasks } from "../queries/dashboard.js";
 import { devResumeState } from "../queries/resume-state.js";
 import { devRetro } from "../queries/retro.js";
@@ -503,6 +504,50 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         decisions: params.decisions ?? [],
         ...(params.force ? { force: params.force } : {}),
       });
+      if (!result.ok) return { ok: false, text: result.error };
+      return { ok: true, text: result.value.formatted, details: result.value };
+    },
+  }),
+
+  defineTool({
+    name: "dev_answer",
+    label: "Answer Decisions",
+    description:
+      "Resolve pending work-item decisions[] (spec/plan questions, needs_input, stuck escalations) by id, or list them when no answers are given. Atomic, all-or-nothing.",
+    promptSnippet:
+      "Only on explicit user instruction — each answer must be the user's. Use instead of hand-editing .tasks/<ID>.json decisions[]. For task findings (F-n/AC-n) use dev_unblock.",
+    promptGuidelines: [
+      "Use dev_answer (not read/edit on .tasks/*.json) to resolve decisions[] entries such as phase-code-stuck-1.",
+    ],
+    parameters: Type.Object({
+      id: Type.String({ description: "Work item ID" }),
+      answers: Type.Optional(
+        Type.Array(
+          Type.Object({
+            decision_id: Type.String({
+              description: "decisions[].id, e.g. q1 or phase-code-stuck-1",
+            }),
+            answer: Type.String({ description: "Free-text answer" }),
+          }),
+          { description: "Omit to list pending decisions" },
+        ),
+      ),
+      force: Type.Optional(
+        Type.Boolean({ description: "Overwrite the answer of an already-resolved decision" }),
+      ),
+    }),
+    handler(params) {
+      const answers = params.answers ?? [];
+      if (answers.length === 0) {
+        const listed = listPendingDecisions(params.id);
+        if (!listed.ok) return { ok: false, text: listed.error };
+        return { ok: true, text: listed.value.formatted, details: listed.value };
+      }
+      const result = answerDecisions(
+        params.id,
+        answers.map((entry) => ({ id: entry.decision_id, answer: entry.answer })),
+        { force: params.force === true },
+      );
       if (!result.ok) return { ok: false, text: result.error };
       return { ok: true, text: result.value.formatted, details: result.value };
     },

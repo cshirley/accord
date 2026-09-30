@@ -58,6 +58,8 @@ Examples:
  /dev unblock ACCORD-1234 --task 1 --note F-3 "use X"   decide blockers, then unblock
  /dev unblock ACCORD-1234 --task 1 --accept F-4 "ok" --waive AC-2 "moved to ACCORD-99"
  /dev block ACCORD-1234 1 stuck in adversarial test/review loop   force task 1 to blocked
+ /dev answer ACCORD-1234                list pending decisions
+ /dev answer ACCORD-1234 q1 "use X"     resolve a pending decision (repeat id/answer pairs)
 
 State lives in .tasks/ (runtime) and docs/dev/<ID>/ (committed).
 Safe to /clear between rounds — resume with /dev resume <ID>.`;

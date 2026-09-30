@@ -37,6 +37,7 @@ Requires AGENTS.md with a `## Dev Harness` block (`accord init --write` creates 
 | `align\|spec\|plan\|check <ID>` | Forced workflow phase |
 | `plan resume\|finish <ID> [--json]` | Orchestration **preview** only (same JSON as `dev_orchestrate`) |
 | `block <ID> <task_id> <reason>` | Force-block a task |
+| `answer <ID> [<decision-id> "answer"]… [--force]` | Resolve pending `decisions[]` entries; no answers lists them. All-or-nothing; `--force` overwrites a resolved answer |
 | `unblock <ID> [--task n] [--note\|--fixed\|--accept\|--waive F-n\|AC-n "reason"]… [--force "reason"]` | Decide blockers and unblock; interactive per-blocker walk in a TTY when no flags |
 | `trace <ID> [--task n] [--open]` | Per-task trace (`--json` for the raw v2 files) |
 | `task reseed <ID> [--task n] [--from test\|code]` | Replace v1/broken task files with fresh v2 files seeded from the plan |
