@@ -91,7 +91,10 @@ export {
   isOrchestratorOwnedWorkflowStatePath,
   type WorkflowStatePathKind,
 } from "./workflow-state-paths.js";
-export { prepareWorkflowStateBeforeSpawn } from "./workflow-state-spawn.js";
+export {
+  prepareWorkflowStateBeforeSpawn,
+  prepareWorkflowStateForSubagentInput,
+} from "./workflow-state-spawn.js";
 export {
   allowAgentWorkflowStateWrites,
   formatWorkflowStateWriteBlockedMessage,

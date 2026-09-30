@@ -3,7 +3,7 @@
  */
 
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
-import { validateReturn } from "../../artifacts/validation.js";
+import { validateReturnQuarantiningEvents } from "../../artifacts/validation.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
 import {
@@ -13,6 +13,11 @@ import {
 import { applyStuckPostResult } from "../../orchestration/post-result/stuck.js";
 import { reconcileCoarsePhaseUntilStable } from "../../orchestration/reconcile-coarse-phase.js";
 import { tryRecoverMissingReturnPacketFromTaskFile } from "../../orchestration/recover-task-packet.js";
+import {
+  recordTaskAgentInvalidReturn,
+  recordTaskAgentMissingReturn,
+  recordTaskAgentReturn,
+} from "../../orchestration/task-agent-audit.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
 import {
   appendUsageLine,
@@ -27,7 +32,10 @@ import {
 import type { HarnessMutableState } from "../../types/host.js";
 import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
 import { formatMissingPacketWarning, formatPacketInjection } from "./handoff.js";
-import { extractReturnPacketFromSubagentResult } from "./packet.js";
+import {
+  extractAnalysisFromSubagentResult,
+  extractReturnPacketFromSubagentResult,
+} from "./packet.js";
 
 const log = createLogger("subagent");
 
@@ -77,6 +85,19 @@ function backfillPacketUsageFromHostMeasurement(
   if (normalized.input === 0 && normalized.output === 0) return;
   packet.usage = { prompt_tokens: normalized.input, completion_tokens: normalized.output };
   logger.debug(`agent=${agentName} backfilled packet.usage from host-measured result.usage`);
+}
+
+function textFromContent(content: unknown): string {
+  if (typeof content === "string") return content.trim();
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((block) => {
+      const b = block as { type?: string; text?: unknown };
+      return b?.type === "text" && typeof b.text === "string" ? b.text : "";
+    })
+    .filter(Boolean)
+    .join("\n")
+    .trim();
 }
 
 export interface ProcessSubagentToolResultParams {
@@ -164,13 +185,25 @@ export async function processSubagentToolResult(
     const hasContent = hasAssistantBlocks || outputText.length > 0 || streamedText.length > 0;
     const packet = agentName ? extractReturnPacketFromSubagentResult(result) : null;
 
+    // Text the agent produced, for persisting when no valid packet lands.
+    const producedText = [outputText, streamedText, textFromContent(lastContent)].find(
+      (text) => text.length > 0,
+    );
+
     if (result.timedOut === true) {
+      const partialSidecar =
+        workItemId && agentName && producedText
+          ? recordTaskAgentMissingReturn(workItemId, agentName, producedText)
+          : null;
       const timeoutLines = [
         `\n\n❌ **${agentName || "subagent"} timed out before completing.**`,
         ``,
         `The subprocess was stopped by the harness spawn timeout. Increase \`spawnTimeoutMs\` in subagent.json, set \`timeoutMs\` on the tool call, or use \`ACCORD_SUBAGENT_SPAWN_TIMEOUT_MS\` for orchestration defaults.`,
         ``,
         `**Do not respawn ${agentName || "this agent"}** until credentials and timeout are fixed. Run \`dev_subagent_preflight\` with agent="${agentName || "phase-plan"}".`,
+        ...(partialSidecar
+          ? [``, `Partial output saved to task sidecar \`${partialSidecar}\`.`]
+          : []),
       ];
       if (workItemId && agentName && COARSE_PHASE_AGENTS.has(agentName)) {
         const steps = reconcileCoarsePhaseUntilStable(workItemId);
@@ -264,12 +297,38 @@ export async function processSubagentToolResult(
         contentAppend += applyStuckPostResult(workItemId, agentName, packet);
       }
 
-      const validation = await validateReturn(agentName, packet);
+      // Persist the raw packet BEFORE validation so it survives an invalid packet or a crash
+      // between receive and apply. Flagged `validated: false` until validation passes, so
+      // crash recovery never applies an unchecked packet.
+      const analysis = extractAnalysisFromSubagentResult(result);
+      if (workItemId) {
+        recordTaskAgentReturn(workItemId, agentName, packet, analysis, { validated: false });
+      }
+
+      const validation = await validateReturnQuarantiningEvents(agentName, packet);
+      if (validation.droppedEvents.length > 0) {
+        contentAppend += [
+          `\n⚠ Dropped ${String(validation.droppedEvents.length)} malformed \`events[]\` entr${validation.droppedEvents.length === 1 ? "y" : "ies"} from the ${agentName} packet (kept in the task sidecar):`,
+          ...validation.droppedEvents.map((e) => `  • ${JSON.stringify(e).slice(0, 200)}`),
+        ].join("\n");
+      }
       if (!validation.valid) {
         contentAppend += [
           `\n⚠ Return packet validation failed for ${agentName}:`,
           ...validation.errors.map((e) => `  • ${e}`),
         ].join("\n");
+        if (workItemId) {
+          const invalidRef = recordTaskAgentInvalidReturn(
+            workItemId,
+            agentName,
+            packet,
+            validation.errors,
+            analysis,
+          );
+          if (invalidRef) {
+            contentAppend += `\n\nRaw packet saved and run logged as \`${invalidRef}\` (invalid_packet). \`/dev resume ${workItemId}\` respawns ${agentName}.`;
+          }
+        }
         // Never silently drop a genuine needs_input question set behind an unrelated schema
         // error (e.g. a missing/malformed field elsewhere in the packet) — those questions are
         // user-facing state that must land in decisions[]/checkpoint regardless.
@@ -289,6 +348,7 @@ export async function processSubagentToolResult(
           packet,
           devConfig: state.devConfig,
           subagentResult: result,
+          ...(validation.droppedEvents.length ? { droppedEvents: validation.droppedEvents } : {}),
         });
       }
     } else if (
@@ -297,6 +357,10 @@ export async function processSubagentToolResult(
       agentSchemas(agentName).some((s) => s.startsWith("return-schemas/"))
     ) {
       contentAppend += formatMissingPacketWarning(agentName, Object.keys(result || {}));
+      if (workItemId && producedText) {
+        const saved = recordTaskAgentMissingReturn(workItemId, agentName, producedText);
+        if (saved) contentAppend += `\nAgent output saved to task sidecar \`${saved}\`.`;
+      }
       if (workItemId && result.exitCode === 0 && MISSING_PACKET_RECONCILE_AGENTS.has(agentName)) {
         if (COARSE_PHASE_AGENTS.has(agentName)) {
           const steps = reconcileCoarsePhaseUntilStable(workItemId);

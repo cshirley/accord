@@ -29,6 +29,9 @@ export function recoverReturnedInFlight(
   if (!TASK_PIPELINE_AGENTS.has(inFlight.agent)) return "";
   const saved = readSidecarPacket(workItemId, resolvedTaskId, inFlight.ref);
   if (!saved) return "";
+  // Persisted before schema validation and never confirmed valid — do not apply an unchecked
+  // packet. Resume respawns the agent under the same ref (`markSpawned` reuses it).
+  if (saved.validated === false) return "";
 
   const post = runPostResultHandlerForAgent(
     inFlight.agent,

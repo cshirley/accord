@@ -512,6 +512,8 @@ export function formatImplementSpawnTaskBrief(input: {
     `**work_item_id:** ${input.slice.work_item_id}`,
     `**work_item_phase:** ${input.phase}`,
     `**dispatch_agent:** ${input.agent}`,
+    `**task_id:** ${String(input.slice.task_id)}`,
+    ...(input.slice.owner_nonce ? [`**owner_nonce:** ${input.slice.owner_nonce}`] : []),
     `**title:** ${input.title}`,
     ...(input.variant ? [`**variant:** ${input.variant}`] : []),
     "",

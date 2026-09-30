@@ -106,7 +106,7 @@ export function taskSidecarDir(workItemId: string, taskId: string | number, cwd?
 }
 
 /** Sidecar file name for a log ref: `T2/phase-test` → `T2-phase-test.<suffix>`. */
-export function sidecarName(ref: string, suffix: "json" | "output.txt"): string {
+export function sidecarName(ref: string, suffix: "json" | "output.txt" | "no-packet.txt"): string {
   return `${ref.replace(/\//g, "-")}.${suffix}`;
 }
 
@@ -145,6 +145,14 @@ export interface SidecarPacket {
   at: string;
   packet: Record<string, unknown>;
   analysis?: string;
+  /**
+   * `false` while the packet is persisted but not yet schema-validated, or when validation
+   * failed. Absent on sidecars written before validation state was tracked (treated as valid).
+   */
+  validated?: boolean;
+  validation_errors?: string[];
+  /** `events[]` entries removed because they failed the event schema. */
+  dropped_events?: unknown[];
 }
 
 export function readSidecarPacket(

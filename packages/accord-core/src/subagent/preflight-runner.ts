@@ -3,6 +3,7 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
+import { prepareWorkflowStateForSubagentInput } from "../harness/workflow-state-spawn.js";
 import {
   agentRequiresSpawnPreflight,
   runSubagentSpawnPreflightCheck,
@@ -79,6 +80,13 @@ export async function runSubagentToolPreflight(
         ].join("\n"),
       };
     }
+  }
+
+  // Last: every gate passed, so the spawn will happen — pin `control.in_flight` (and sync the
+  // owner nonce) on disk now. Runs for every host (Pi tool hook, Pi runtime host, CLI).
+  const workflowPrep = prepareWorkflowStateForSubagentInput(input, options.devConfig);
+  if (!workflowPrep.ok) {
+    return { blockReason: workflowPrep.reason };
   }
 
   return {};
