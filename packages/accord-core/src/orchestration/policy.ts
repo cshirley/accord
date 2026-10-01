@@ -419,6 +419,13 @@ export function commitOnTaskDoneFromDevConfig(
   return config?.orchestration?.commit?.on_task_done !== false;
 }
 
+/** Commit `docs/dev/<ID>/` closeout artifacts at finalize (default true). */
+export function commitOnFinalizeFromDevConfig(
+  config: DevHarnessConfig | null | undefined,
+): boolean {
+  return config?.orchestration?.commit?.on_finalize !== false;
+}
+
 /** @deprecated Use {@link reviewRetryPolicyForAgent} for severity gate + cap. */
 export function criticalReviewLoopPolicyFromDevConfig(
   config: DevHarnessConfig | null | undefined,

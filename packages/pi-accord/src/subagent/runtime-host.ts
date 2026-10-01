@@ -2,10 +2,6 @@
  * Pi {@link OrchestrationRuntimeHost} — preflight, programmatic spawn, harness result path.
  */
 
-import {
-  TASK_DONE_AGENTS,
-  tryCommitOnTaskDone,
-} from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
 import type { OrchestrationRuntimeHost } from "@clive.shirley/accord-core/orchestration/host.js";
 import {
   buildSingleSubagentRunRequest,
@@ -13,11 +9,7 @@ import {
   readPreparedSingleSubagentInput,
   runSubagentToolPreflight,
 } from "@clive.shirley/accord-core/subagent/index.js";
-import {
-  extractTaskIdFromTaskText,
-  extractWorkItemId,
-  loadPricing,
-} from "@clive.shirley/accord-core/telemetry/usage.js";
+import { loadPricing } from "@clive.shirley/accord-core/telemetry/usage.js";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { activateForDispatchAgent } from "../dynamic-tools.js";
 import type { HookState } from "../hook-state.js";
@@ -171,32 +163,10 @@ export function createResumeOrchestrationRuntimeHost(
         },
       });
 
-      let commitAppend = "";
-      if (TASK_DONE_AGENTS.has(agent) && singleResult.exitCode === 0) {
-        const workItemId = extractWorkItemId(task, { mustExist: true });
-        const taskId = extractTaskIdFromTaskText(task);
-        if (workItemId && taskId != null) {
-          const commitResult = await tryCommitOnTaskDone(
-            workItemId,
-            taskId,
-            state.devConfig,
-            ctx.cwd,
-            ctx.signal,
-          );
-          if (commitResult.ok && commitResult.hash) {
-            commitAppend = `\n\n**Task commit:** \`${commitResult.hash}\` — ${commitResult.message ?? ""}`;
-          } else if (commitResult.ok && commitResult.skipped && commitResult.reason) {
-            commitAppend = `\n\n**Task commit:** skipped (${commitResult.reason}).`;
-          } else if (!commitResult.ok && commitResult.reason) {
-            commitAppend = `\n\n**Task commit failed:** ${commitResult.reason}`;
-            ctx.ui.notify(`Task commit failed: ${commitResult.reason}`, "warning");
-          }
-        }
-      }
-
+      // Per-task commits happen in core `processSubagentToolResult` (done-task sweep).
       const exitLabel =
         singleResult.exitCode === 0 ? "ok" : `exit ${String(singleResult.exitCode)}`;
-      let tail = append || commitAppend ? `\n\n${append}${commitAppend}` : "";
+      let tail = append ? `\n\n${append}` : "";
       if (tail.length > NOTIFY_APPEND_MAX) {
         tail = `${tail.slice(0, NOTIFY_APPEND_MAX)}\n…(truncated)`;
       }

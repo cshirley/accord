@@ -2,13 +2,14 @@
  * Persist checked-in workflow cost artifacts under docs/dev/<ID>/.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import {
   buildWorkflowCostReport,
   type WorkflowCostReport,
   type WorkflowCostRow,
 } from "../queries/workflow-cost.js";
+import { appendUsageLine, readUsageLines } from "../telemetry/usage.js";
 import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, now, readJson, workItemJsonPath, writeJson } from "../work-items/io.js";
 import { renderWorkflowCostMarkdown } from "./render-workflow-cost-markdown.js";
@@ -21,6 +22,11 @@ export interface WorkflowCostArtifact {
   summary: {
     total_input_tokens: number;
     total_output_tokens: number;
+    total_cache_read_tokens?: number;
+    total_cache_write_tokens?: number;
+    total_calls?: number;
+    usage_missing_calls?: number;
+    carried_forward?: boolean;
     total_cost_usd: number;
   };
   rows: WorkflowCostRow[];
@@ -46,6 +52,11 @@ export function reportToWorkflowCostArtifact(
     summary: {
       total_input_tokens: report.total_input_tokens,
       total_output_tokens: report.total_output_tokens,
+      total_cache_read_tokens: report.total_cache_read_tokens,
+      total_cache_write_tokens: report.total_cache_write_tokens,
+      total_calls: report.total_calls,
+      usage_missing_calls: report.usage_missing_calls,
+      carried_forward: report.carried_forward,
       total_cost_usd: report.total_cost_usd,
     },
     rows: report.rows,
@@ -98,4 +109,49 @@ export function devPersistWorkflowCost(workItemId: string): Result<{
   writeJson(workItemJsonPath(workItemId), wi);
 
   return ok({ json_path: jsonPath, markdown_path: markdownPath, artifact });
+}
+
+/**
+ * After `.tasks/` is rebuilt (rehydrate), seed `<ID>-usage.jsonl` from the committed
+ * `workflow-cost.json` so earlier spend is not silently dropped from reporting. One
+ * `carried_forward` line per rollup row (with its `calls` count). No-op when usage lines
+ * already exist or no committed rollup is present.
+ * @returns number of lines written.
+ */
+export function carryForwardUsageFromCommittedRollup(workItemId: string): number {
+  if (readUsageLines(workItemId).length > 0) return 0;
+  const jsonPath = workflowCostJsonPath(workItemId);
+  if (!existsSync(jsonPath)) return 0;
+  const artifact = readJson<WorkflowCostArtifact>(jsonPath);
+  if (!artifact?.rows?.length) return 0;
+
+  let written = 0;
+  for (const row of artifact.rows) {
+    appendUsageLine(workItemId, {
+      at: artifact.generated_at,
+      work_item_id: workItemId,
+      subagent_type: row.agent,
+      ...(row.task_id != null ? { task_id: row.task_id } : {}),
+      model: undefined,
+      usage: {
+        input: row.input_tokens,
+        output: row.output_tokens,
+        cacheRead: row.cache_read_tokens ?? 0,
+        cacheWrite: row.cache_write_tokens ?? 0,
+        cost: row.cost_usd,
+        contextTokens: 0,
+        turns: 0,
+      },
+      source: "carried_forward",
+      calls: row.calls,
+    });
+    written++;
+  }
+  const wi = loadWorkItem(workItemId);
+  if (wi) {
+    wi.cost_usd = artifact.summary.total_cost_usd;
+    wi.updated = now();
+    writeJson(workItemJsonPath(workItemId), wi);
+  }
+  return written;
 }

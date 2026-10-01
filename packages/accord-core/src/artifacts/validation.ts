@@ -70,6 +70,7 @@ const SCHEMA_MAP: { match: RegExp; schema: string }[] = [
   { match: /(?:^|-)?plan\.json$/, schema: "plan-schema.json" },
   { match: /(?:^|-)?verify\.json$/, schema: "verify-schema.json" },
   { match: /(?:^|-)?workflow-cost\.json$/, schema: "workflow-cost-schema.json" },
+  { match: /(?:^|-)?trace\.json$/, schema: "trace-schema.json" },
   { match: /(?:^|-)?brief\.md$/, schema: "" }, // brief is markdown, no JSON schema
   { match: /-checkpoint\.json$/, schema: "checkpoint-schema.json" },
   { match: /-task-\d+\.json$/, schema: "task-schema.json" },

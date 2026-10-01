@@ -2,10 +2,13 @@
  * After subagent tool completes: usage, return packets, post-code verification.
  */
 
+import { existsSync } from "node:fs";
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
-import { validateReturnQuarantiningEvents } from "../../artifacts/validation.js";
+import { listWorkItemTaskIds } from "../../artifacts/trace-artifact.js";
+import { validateArtifact, validateReturnQuarantiningEvents } from "../../artifacts/validation.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
+import { commitDoneTasks, formatDoneTaskCommits } from "../../orchestration/commit-on-task-done.js";
 import {
   applyInterviewNeedsInputPostResult,
   isNeedsInputPacket,
@@ -18,6 +21,7 @@ import {
   recordTaskAgentMissingReturn,
   recordTaskAgentReturn,
 } from "../../orchestration/task-agent-audit.js";
+import { loadTaskV2 } from "../../tasks/store.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
 import {
   appendUsageLine,
@@ -31,6 +35,7 @@ import {
 } from "../../telemetry/usage.js";
 import type { HarnessMutableState } from "../../types/host.js";
 import { formatVerificationResults, runVerificationCommands } from "../../verification/runner.js";
+import { loadWorkItem } from "../../work-items/io.js";
 import { formatMissingPacketWarning, formatPacketInjection } from "./handoff.js";
 import {
   extractAnalysisFromSubagentResult,
@@ -59,6 +64,39 @@ const MISSING_PACKET_RECONCILE_AGENTS = new Set([
 ]);
 
 const REVIEW_AGENTS = new Set(["review-test", "review-code"]);
+
+/**
+ * Task id of the single task whose in-flight spawn is `agentName` — attributes usage when the
+ * brief carries no `task_id` (older brief formats, parallel spawns).
+ */
+function inFlightTaskIdForAgent(workItemId: string, agentName: string): number | null {
+  const matches = listWorkItemTaskIds(workItemId, loadWorkItem(workItemId)).filter(
+    (taskId) => loadTaskV2(workItemId, taskId)?.control.in_flight?.agent === agentName,
+  );
+  return matches.length === 1 ? (matches[0] ?? null) : null;
+}
+
+/**
+ * Agents that write a schema-governed artifact and report its path in the return packet.
+ * Subagents write outside the host's write/edit hooks, so the artifact is validated here.
+ */
+const RETURNED_ARTIFACT_PATH_FIELD: Readonly<Record<string, string>> = {
+  "phase-spec": "spec_path",
+  "phase-plan": "plan_path",
+  "phase-verify-acceptance": "verify_path",
+};
+
+/** Schema errors for the artifact a `done` packet points at, or `[]` when valid / not applicable. */
+async function validateReturnedArtifact(agentName: string, packet: unknown): Promise<string[]> {
+  const field = RETURNED_ARTIFACT_PATH_FIELD[agentName];
+  if (!field || !packet || typeof packet !== "object") return [];
+  const record = packet as Record<string, unknown>;
+  const artifactPath = record[field];
+  if (record.status !== "done" || typeof artifactPath !== "string" || !artifactPath) return [];
+  if (!existsSync(artifactPath)) return [];
+  const result = await validateArtifact(artifactPath);
+  return result.valid ? [] : result.errors.map((error) => `${artifactPath}: ${error}`);
+}
 
 function packetHasValidUsage(packet: Record<string, unknown>): boolean {
   const usage = packet.usage;
@@ -131,6 +169,8 @@ export async function processSubagentToolResult(
   // mutating these per-result lets the last result win and silently drifts
   // attribution for the next orchestrator turn.
   const billableTotals = new Map<string, number>();
+  /** Work items seen in this batch — swept for done-but-uncommitted tasks afterwards. */
+  const touchedWorkItems = new Set<string>();
 
   for (const result of d.results as Record<string, unknown>[]) {
     const agentName: string = (result.agent as string) || "";
@@ -138,35 +178,55 @@ export async function processSubagentToolResult(
     // Filter against `.tasks/` so an incidental ID token in the task brief
     // (e.g. an example "ACCORD-1234") cannot misattribute usage cost.
     const workItemId = extractWorkItemId(task, { mustExist: true });
+    if (workItemId) touchedWorkItems.add(workItemId);
 
-    if (workItemId && result.usage) {
-      const normalized = normalizeUsageCostFields(result.usage);
+    // Every spawn attributed to a work item is logged — including retries, re-runs, failures,
+    // and timeouts. A spawn without a usage block is still recorded (`usage_missing`) so the
+    // call shows up in workflow-cost reporting instead of disappearing.
+    if (workItemId && agentName) {
+      // Host-measured usage first; fall back to the agent's self-reported packet `usage`.
+      const hostUsage = normalizeUsageCostFields(result.usage ?? {});
+      const hostBillable =
+        hostUsage.input +
+        hostUsage.output +
+        hostUsage.cost +
+        hostUsage.cacheRead +
+        hostUsage.cacheWrite;
+      const selfReported =
+        hostBillable === 0
+          ? (extractReturnPacketFromSubagentResult(result) as { usage?: unknown } | null)?.usage
+          : undefined;
+      const normalized = selfReported ? normalizeUsageCostFields(selfReported) : hostUsage;
       const billable =
         normalized.input +
         normalized.output +
         normalized.cost +
         normalized.cacheRead +
         normalized.cacheWrite;
-      if (billable > 0) {
-        ensureAutoHarnessRunMeta(workItemId);
-        host?.syncHarnessRunMeta?.();
-        const taskId = extractTaskIdFromTaskText(task);
-        const line: UsageLine = {
-          at: new Date().toISOString(),
-          work_item_id: workItemId,
-          subagent_type: agentName,
-          ...(taskId != null ? { task_id: taskId } : {}),
-          model: result.model as string | undefined,
-          usage: { ...normalized, turns: normalized.turns || 0 },
-          source: "subagent",
-        };
-        appendUsageLine(workItemId, line);
-        const cached = state.costCache.get(workItemId) ?? 0;
-        const totalCost = cached + computeLineCost(line, pricing);
-        state.costCache.set(workItemId, totalCost);
-        updateWorkItemCost(workItemId, totalCost);
-        billableTotals.set(workItemId, totalCost);
-      }
+      ensureAutoHarnessRunMeta(workItemId);
+      host?.syncHarnessRunMeta?.();
+      const taskId =
+        extractTaskIdFromTaskText(task) ?? inFlightTaskIdForAgent(workItemId, agentName);
+      const exitCode = typeof result.exitCode === "number" ? result.exitCode : null;
+      const line: UsageLine = {
+        at: new Date().toISOString(),
+        work_item_id: workItemId,
+        subagent_type: agentName,
+        ...(taskId != null ? { task_id: taskId } : {}),
+        model: result.model as string | undefined,
+        usage: { ...normalized, turns: normalized.turns || 0 },
+        source: "subagent",
+        ...(billable === 0 ? { usage_missing: true } : {}),
+        ...(selfReported && billable > 0 ? { usage_self_reported: true } : {}),
+        ...(exitCode !== null && exitCode !== 0 ? { exit_code: exitCode } : {}),
+        ...(result.timedOut === true ? { timed_out: true } : {}),
+      };
+      appendUsageLine(workItemId, line);
+      const cached = state.costCache.get(workItemId) ?? 0;
+      const totalCost = cached + computeLineCost(line, pricing);
+      state.costCache.set(workItemId, totalCost);
+      updateWorkItemCost(workItemId, totalCost);
+      billableTotals.set(workItemId, totalCost);
     }
 
     const msgs = Array.isArray(result.messages) ? result.messages : [];
@@ -306,6 +366,13 @@ export async function processSubagentToolResult(
       }
 
       const validation = await validateReturnQuarantiningEvents(agentName, packet);
+      if (validation.valid) {
+        const artifactErrors = await validateReturnedArtifact(agentName, packet);
+        if (artifactErrors.length > 0) {
+          validation.valid = false;
+          validation.errors = [...validation.errors, ...artifactErrors];
+        }
+      }
       if (validation.droppedEvents.length > 0) {
         contentAppend += [
           `\n⚠ Dropped ${String(validation.droppedEvents.length)} malformed \`events[]\` entr${validation.droppedEvents.length === 1 ? "y" : "ies"} from the ${agentName} packet (kept in the task sidecar):`,
@@ -439,6 +506,20 @@ export async function processSubagentToolResult(
     const [id, total] = [...billableTotals][0];
     state.activeWorkItem = id;
     state.sessionCost = total;
+  }
+
+  // Every task that reached `done` gets a commit: sweep after the batch so tasks finished by
+  // this result, by a human unblock, or whose earlier commit failed are all committed.
+  for (const touchedId of touchedWorkItems) {
+    try {
+      contentAppend += formatDoneTaskCommits(
+        await commitDoneTasks(touchedId, state.devConfig, process.cwd()),
+      );
+    } catch (e) {
+      log.warn(
+        `task commit sweep failed for ${touchedId}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   }
 
   host?.refreshUi?.();

@@ -56,8 +56,22 @@ export interface UsageLine {
     contextTokens: number;
     turns: number;
   };
-  /** Where usage was billed: isolated subagent pi vs main orchestrator turns. */
-  source?: "subagent" | "orchestrator";
+  /**
+   * Where usage was billed: isolated subagent, main orchestrator turns, the orchestration
+   * judgment LLM, or a rollup carried forward from a committed `workflow-cost.json` when
+   * `.tasks/` was rebuilt.
+   */
+  source?: "subagent" | "orchestrator" | "judgment" | "carried_forward";
+  /** Spawns represented by this line (carried-forward rollups); default 1. */
+  calls?: number;
+  /** The spawn returned no usage block — counted as a call, tokens/cost unknown. */
+  usage_missing?: boolean;
+  /** Host reported no usage; tokens come from the agent's return packet `usage`. */
+  usage_self_reported?: boolean;
+  /** Subagent exit code when non-zero. */
+  exit_code?: number;
+  /** Subagent hit the spawn timeout. */
+  timed_out?: boolean;
   /** Correlate `.tasks/<id>-usage.jsonl` rows for post-analysis (see /dev tag). */
   harness_run_id?: string;
   harness_session_tag?: string;
@@ -373,15 +387,33 @@ export function pricingFor(pricing: PricingConfig, modelId?: string): PricingEnt
  * `.tasks/<ID>.json` so attribution can't drift onto IDs that aren't real
  * work items in this project.
  */
+/** Explicit `work_item_id:` declaration in a brief (markdown, bare line, or JSON payload). */
+const EXPLICIT_WORK_ITEM_ID_PATTERNS: readonly RegExp[] = [
+  /\*\*work_item_id:\*\*\s*([A-Z]+(?:[_-][A-Z]+)*[_-]\d+)/,
+  /(?:^|\n)\s*-?\s*work_item_id:\s*([A-Z]+(?:[_-][A-Z]+)*[_-]\d+)/,
+  /"work_item_id"\s*:\s*"([A-Z]+(?:[_-][A-Z]+)*[_-]\d+)"/,
+];
+
+/**
+ * Work item id for a subagent brief. An explicit `work_item_id:` wins; otherwise every
+ * ID-shaped token is considered in order. With `mustExist`, the first candidate that has a
+ * `.tasks/<ID>.json` is returned — so a brief that mentions another ticket (e.g. `CLD-4171`)
+ * before its own id still attributes usage to the right work item.
+ */
 export function extractWorkItemId(task: string, opts?: { mustExist?: boolean }): string | null {
-  const match = task.match(WORK_ITEM_ID_PATTERN);
-  if (!match) return null;
-  const id = match[0];
-  if (opts?.mustExist) {
-    const known = new Set(discoverWorkItems().map((i) => i.id));
-    return known.has(id) ? id : null;
+  const candidates: string[] = [];
+  for (const pattern of EXPLICIT_WORK_ITEM_ID_PATTERNS) {
+    const explicit = pattern.exec(task)?.[1];
+    if (explicit && !candidates.includes(explicit)) candidates.push(explicit);
   }
-  return id;
+  const globalPattern = new RegExp(WORK_ITEM_ID_PATTERN.source, "g");
+  for (const match of task.matchAll(globalPattern)) {
+    if (!candidates.includes(match[0])) candidates.push(match[0]);
+  }
+  if (candidates.length === 0) return null;
+  if (!opts?.mustExist) return candidates[0] ?? null;
+  const known = new Set(discoverWorkItems().map((i) => i.id));
+  return candidates.find((id) => known.has(id)) ?? null;
 }
 
 // ── Usage persistence ──────────────────────────────────────

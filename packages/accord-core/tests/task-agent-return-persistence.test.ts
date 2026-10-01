@@ -8,7 +8,7 @@
  * - crash recovery never applies a sidecar that was not validated
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -266,5 +266,64 @@ describe("return persistence", () => {
     expect(recoverReturnedInFlight(WI, null, 1)).toBe("");
     expect(readTaskFixture(WI, 1, project).control.phase).toBe("phase-test");
     expect(existsSync(sidecar(1, "T1-phase-test.json"))).toBe(true);
+  });
+});
+
+describe("returned artifact validation (phase-verify-acceptance)", () => {
+  const verifyPath = `docs/dev/${WI}/verify.json`;
+  const brief = `## phase-verify-acceptance\n\n**work_item_id:** ${WI}\n`;
+  const packet = {
+    status: "done",
+    verdict: "pass",
+    verify_path: verifyPath,
+    summary: { pass: 1, fail: 0, partial: 0, not_verified: 0 },
+    usage: { prompt_tokens: 1, completion_tokens: 1 },
+  };
+  const validReport = {
+    schema_version: "1.0",
+    work_item_id: WI,
+    date: "2026-01-01",
+    verdict: "pass",
+    criteria: [
+      {
+        ac_id: "AC-1",
+        status: "pass",
+        evidence: [{ type: "test", name: "works", file: "a.test.ts", line: 3 }],
+      },
+    ],
+    summary: { pass: 1, fail: 0, partial: 0, not_verified: 0 },
+  };
+
+  function writeReport(report: unknown): void {
+    mkdirSync(join(project, "docs", "dev", WI), { recursive: true });
+    writeFileSync(join(project, verifyPath), `${JSON.stringify(report)}\n`, "utf8");
+  }
+
+  test("a schema-invalid verify.json fails the return and skips verify.md", async () => {
+    writeReport({
+      ...validReport,
+      id: WI,
+      spec: "docs/dev/x/spec.json",
+      criteria: [{ ac_id: "AC-1", status: "pass", evidence: [{ type: "code", description: "x" }] }],
+    });
+    const out = await processText("phase-verify-acceptance", brief, fenced(packet));
+    expect(out).toContain("Return packet validation failed for phase-verify-acceptance");
+    expect(out).toContain(`${verifyPath}: / must NOT have additional properties`);
+    expect(existsSync(join(project, "docs", "dev", WI, "verify.md"))).toBe(false);
+  });
+
+  test("a valid verify.json renders verify.md with the trace sections", async () => {
+    writeReport(validReport);
+    const out = await processText("phase-verify-acceptance", brief, fenced(packet));
+    expect(out).not.toContain("validation failed");
+    const markdown = readFileSync(join(project, "docs", "dev", WI, "verify.md"), "utf8");
+    expect(markdown).toContain("## Tasks");
+    expect(markdown).toContain("## Discrepancies (verify vs trace)");
+    expect(existsSync(join(project, "docs", "dev", WI, "trace.json"))).toBe(true);
+    // Verify re-runs are reported even without finalize: the cost rollup is refreshed.
+    const cost = JSON.parse(
+      readFileSync(join(project, "docs", "dev", WI, "workflow-cost.json"), "utf8"),
+    ) as { rows: Array<{ agent: string; calls: number }> };
+    expect(cost.rows.find((row) => row.agent === "phase-verify-acceptance")?.calls).toBe(1);
   });
 });

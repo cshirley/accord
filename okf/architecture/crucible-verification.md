@@ -58,8 +58,9 @@ Rules:
 # Acceptance verification
 
 `/dev finish <ID>` → verify preflight (staleness + `verification_commands`) →
-`phase-verify-acceptance` → `dev_verify_summary` (writes `verify.md`) → `dev_finalize` (terminal
-outcome, `workflow-cost.json`).
+`phase-verify-acceptance` → schema check of `verify.json` → `dev_verify_summary` (writes
+`trace.*` and `verify.md`, cross-checking verdict vs trace) → `dev_finalize` (terminal outcome,
+`workflow-cost.json`, closeout commit of `docs/dev/<ID>/`).
 
 | AC type | Verified by |
 |---------|-------------|

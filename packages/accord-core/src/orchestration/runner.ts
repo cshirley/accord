@@ -14,10 +14,11 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
-import { devVerifySummary } from "../queries/verify-summary.js";
+import { devVerifySummary, validateVerifyReport } from "../queries/verify-summary.js";
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import type { TerminalOutcome } from "../types/domain.js";
 import { devFinalizeWorkItem } from "../work-items/lifecycle.js";
+import { commitWorkItemArtifacts, formatWorkItemArtifactsCommit } from "./commit-on-task-done.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
 import { planDevResumeOrchestration, resumeResolutionToNextSteps } from "./plan.js";
@@ -369,7 +370,7 @@ function verdictToTerminalOutcome(verdict: string): TerminalOutcome {
 export interface RunFinishOrchestrationResult {
   resolution: ResumeOrchestrationResolution;
   lastRun: RunUntilStopResult;
-  closeout?: { ok: true } | { ok: false; error: string };
+  closeout?: { ok: true; commit?: string } | { ok: false; error: string };
   /** Token/cost rollup for the full work item (includes verify-acceptance when it ran). */
   workflow_cost_formatted?: string;
 }
@@ -377,7 +378,7 @@ export interface RunFinishOrchestrationResult {
 export async function runFinishOrchestrationFromResolution(
   resolution: ResumeOrchestrationResolution,
   workItemId: string,
-  _devConfig: DevHarnessConfig | null,
+  devConfig: DevHarnessConfig | null,
   host: OrchestrationRuntimeHost,
 ): Promise<RunFinishOrchestrationResult> {
   const steps = resumeResolutionToNextSteps(resolution);
@@ -389,9 +390,15 @@ export async function runFinishOrchestrationFromResolution(
     resolution.agent === "phase-verify-acceptance" &&
     lastRun.lastSpawn?.exitCode === 0
   ) {
-    const summary = devVerifySummary(workItemId);
+    const valid = await validateVerifyReport(workItemId);
+    const summary = valid.ok ? devVerifySummary(workItemId) : valid;
     if (!summary.ok) {
-      closeout = { ok: false, error: summary.error };
+      closeout = {
+        ok: false,
+        error: valid.ok
+          ? summary.error
+          : `${summary.error}\n\nNot finalized — respawn phase-verify-acceptance (\`/dev finish ${workItemId}\`) to rewrite verify.json.`,
+      };
     } else {
       const terminal = verdictToTerminalOutcome(summary.value.verdict);
       const nextAction = terminal === "done" ? "/commit then open a PR" : `/dev gaps ${workItemId}`;
@@ -410,7 +417,13 @@ export async function runFinishOrchestrationFromResolution(
             : {}),
         },
       });
-      closeout = fin.ok ? { ok: true } : { ok: false, error: fin.error };
+      if (fin.ok) {
+        const committed = await commitWorkItemArtifacts(workItemId, devConfig, process.cwd());
+        const commit = formatWorkItemArtifactsCommit(committed).trim();
+        closeout = commit ? { ok: true, commit } : { ok: true };
+      } else {
+        closeout = { ok: false, error: fin.error };
+      }
     }
   }
 

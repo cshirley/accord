@@ -15,6 +15,12 @@ sources:
   - id: tasks-dir
     resource: /packages/accord-core/src/work-items/tasks-dir.ts
     title: .tasks/ resolution
+  - id: trace
+    resource: /packages/accord-core/src/artifacts/trace-artifact.ts
+    title: Implementation trace artifact
+  - id: verify-summary
+    resource: /packages/accord-core/src/queries/verify-summary.ts
+    title: verify.md rendering + discrepancies
   - id: rehydrate
     resource: /packages/accord-core/src/work-items/rehydrate.ts
     title: Rehydrate from artifacts
@@ -28,9 +34,13 @@ sources:
 | `spec.json` | `phase-spec` | Contract; edit this, never `spec.md` |
 | `spec.md` | harness | Regenerated whenever `spec.json` validates (incl. `diagrams[]` Mermaid) |
 | `plan.json` | `phase-plan` | Tasks with `covers_ac`, `files`, `test_files`, steps, `challenge` |
-| `verify.json` | `phase-verify-acceptance` | Per-AC `criteria[]` + `summary` |
-| `verify.md` | `dev_verify_summary` | PR-friendly summary |
+| `verify.json` | `phase-verify-acceptance` | Per-AC `criteria[]` + `summary`; schema-validated by the harness on return and before finalize (invalid → not applied / not finalized) |
+| `verify.md` | `dev_verify_summary` | **The single review document**: per-AC verdict + evidence merged with the trace (tasks, files, verified tests), task commits, accepted risks, decisions/deviations, verify-vs-trace discrepancies |
+| `trace.json` / `.md` | harness (task done, verify summary, finalize) | Committed projection of `.tasks/`: per-AC implementation + verification, accepted/unresolved findings, decisions, deviations, task commits, RED + final-verify output excerpts; regenerate, don't edit |
 | `workflow-cost.json` / `.md` | `dev_finalize` | Token/USD rollup from usage log; regenerate, don't edit |
+
+Each `done` task gets a harness commit (task files + `trace.*`); closeout commits the rest of
+`docs/dev/<ID>/` — see `orchestration.commit` in [Orchestration policy](/references/orchestration-policy.md).
 
 Artifacts are immutable after their phase returns `done`; changes go through
 `/dev amend-spec` or a replan.
@@ -45,7 +55,7 @@ Artifacts are immutable after their phase returns `done`; changes go through
 | `<ID>-task-N/` | Write-once sidecars: raw return packets and test/verify output per run |
 | `archive/` | v1 task files replaced by `accord task reseed` |
 | `<ID>-enrichments/` | Gather cache payloads |
-| `<ID>-usage.jsonl` | Per-spawn token/cost lines |
+| `<ID>-usage.jsonl` | One line per subagent spawn (every retry/re-run, incl. failures, timeouts, and spawns without host usage → `usage_missing`, or packet `usage` → `usage_self_reported`), orchestrator turn, and judgment call (`source: judgment`). Rebuilt `.tasks/` seeds `carried_forward` lines from the committed `workflow-cost.json` |
 | `<ID>-investigation.json` | Investigate-pattern log |
 | `.exec-spawn/` | Staged task files for exec harness |
 

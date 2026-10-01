@@ -43,13 +43,13 @@ and leaves only local handlers and in-session tools — not recommended.
 |--------|------|
 | `resolve/` | Pure resolution: which agent `/dev resume` / `finish` / forced subcommands (`align`, `spec`, `plan`, `check`) should run, via registry IDs and coarse phase map (`phase-coarse-routing.ts`) |
 | `plan.ts` | Resolution → `next_steps` payload; same JSON as `dev_orchestrate` and `accord plan --json` |
-| `runner.ts` | Executes steps against an `OrchestrationRuntimeHost`; `runResumeOrchestrationWithReplans` replans after each successful spawn; `runFinishOrchestration` spawns `phase-verify-acceptance` then `dev_verify_summary` → `dev_finalize` |
+| `runner.ts` | Executes steps against an `OrchestrationRuntimeHost`; `runResumeOrchestrationWithReplans` replans after each successful spawn; `runFinishOrchestration` spawns `phase-verify-acceptance`, schema-checks `verify.json`, then `dev_verify_summary` → `dev_finalize` → closeout commit |
 | `post-result/` | One handler per agent (`phase-align`, `phase-spec`, `phase-plan`, `phase-test`, `phase-code`, `phase-verify-*`, `review-test`, `review-code`, `review-security`) plus universal `needs-input.ts` and `stuck.ts` |
 | `policy.ts` | Retry caps, severity gates, resume chaining limits — see [Orchestration policy](/references/orchestration-policy.md) |
 | `pending-decisions-gate.ts` | Blocks implementation agents while `decisions[]` has pending entries |
 | `test-red-classification.ts` | Detects import-only RED in `phase-test` output and bounces back without spending a `review-test` spawn |
 | `judgment.ts` | Optional bounded LLM supplement (Pi only); validated against `orchestration-judgment-packet.json`, cannot carry routing fields |
-| `commit-on-task-done.ts` | Per-task auto-commit after `review-code` marks a task done |
+| `commit-on-task-done.ts` | Per-task commit for every `done` task (swept after each subagent result by core `processSubagentToolResult`, all hosts) and the closeout commit of `docs/dev/<ID>/` |
 | `graph.ts`, `guards.ts`, `interpreter.ts` | Declarative graph + guard registry; reference graph validated in CI |
 
 # Host ports

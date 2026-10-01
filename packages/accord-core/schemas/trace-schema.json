@@ -1,0 +1,308 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "trace-schema.json",
+  "title": "Implementation trace",
+  "description": "Harness-generated, committed projection of .tasks/ state for a work item: per-AC implementation + verification, accepted risks, decisions, deviations, task commits, RED/GREEN evidence excerpts. Regenerate, don't edit.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "work_item_id",
+    "generated_at",
+    "pattern",
+    "outcome",
+    "decisions",
+    "deviations",
+    "tasks",
+    "acceptance",
+    "accepted_risks"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "requirementStatus": {
+      "enum": ["pending", "covered", "open", "implemented", "satisfied", "waived", "n/a"]
+    },
+    "findingState": {
+      "enum": [
+        "open",
+        "addressed",
+        "disputed",
+        "wont_fix_proposed",
+        "verified",
+        "reraised",
+        "dispute_upheld",
+        "wont_fix_accepted",
+        "waived",
+        "superseded"
+      ]
+    },
+    "excerpt": {
+      "type": ["object", "null"],
+      "required": ["ref", "excerpt", "truncated"],
+      "additionalProperties": false,
+      "properties": {
+        "ref": { "type": "string", "minLength": 1 },
+        "excerpt": { "type": "string" },
+        "truncated": { "type": "boolean" }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "work_item_id": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" },
+    "generated_at": { "type": "string", "minLength": 1 },
+    "pattern": { "type": "string", "minLength": 1 },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "terminal_outcome",
+        "completed_at",
+        "next_action",
+        "retro_summary",
+        "shift_left_findings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "terminal_outcome": { "type": ["string", "null"] },
+        "completed_at": { "type": ["string", "null"] },
+        "next_action": { "type": ["string", "null"] },
+        "retro_summary": { "type": ["string", "null"] },
+        "shift_left_findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["category", "evidence", "recommendation"],
+            "additionalProperties": false,
+            "properties": {
+              "category": { "type": "string" },
+              "evidence": { "type": "string" },
+              "recommendation": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "status", "question", "answer"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "source": { "type": "string" },
+          "status": { "type": "string" },
+          "question": { "type": "string" },
+          "answer": { "type": ["string", "null"] },
+          "phase": { "type": "string" }
+        }
+      }
+    },
+    "deviations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "description", "reason", "resolution"],
+        "additionalProperties": false,
+        "properties": {
+          "task_id": { "type": "integer", "minimum": 1 },
+          "description": { "type": "string" },
+          "reason": { "type": "string" },
+          "resolution": { "type": ["string", "null"] },
+          "blocking_recommendation": { "type": "string" }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "commits",
+          "rounds",
+          "retries",
+          "unblocks",
+          "findings",
+          "human_actions",
+          "red_evidence",
+          "final_verification",
+          "requirements"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "integer", "minimum": 1 },
+          "title": { "type": "string" },
+          "status": { "enum": ["pending", "in_progress", "blocked", "done"] },
+          "commits": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "rounds": {
+            "type": "object",
+            "required": ["T", "C", "V"],
+            "additionalProperties": false,
+            "properties": {
+              "T": { "type": "integer", "minimum": 0 },
+              "C": { "type": "integer", "minimum": 0 },
+              "V": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "retries": {
+            "type": "object",
+            "required": ["test_review", "code_review", "rgr", "verify"],
+            "additionalProperties": false,
+            "properties": {
+              "test_review": { "type": "integer", "minimum": 0 },
+              "code_review": { "type": "integer", "minimum": 0 },
+              "rgr": { "type": "integer", "minimum": 0 },
+              "verify": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "unblocks": { "type": "integer", "minimum": 0 },
+          "blocked": {
+            "type": "object",
+            "required": ["kind", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          },
+          "findings": {
+            "type": "object",
+            "required": ["total", "by_state"],
+            "additionalProperties": false,
+            "properties": {
+              "total": { "type": "integer", "minimum": 0 },
+              "by_state": {
+                "type": "object",
+                "additionalProperties": { "type": "integer", "minimum": 0 }
+              }
+            }
+          },
+          "human_actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["ref", "at", "note"],
+              "additionalProperties": false,
+              "properties": {
+                "ref": { "type": "string" },
+                "at": { "type": "string" },
+                "note": { "type": "string" }
+              }
+            }
+          },
+          "red_evidence": { "$ref": "#/definitions/excerpt" },
+          "final_verification": { "$ref": "#/definitions/excerpt" },
+          "quick_fix_contract": { "type": "object" },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "status", "changes", "verification"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "minLength": 1 },
+                "text": { "type": "string" },
+                "status": { "$ref": "#/definitions/requirementStatus" },
+                "waived": {
+                  "type": "object",
+                  "required": ["by", "reason"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "by": { "type": "string" },
+                    "reason": { "type": "string" }
+                  }
+                },
+                "changes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["file", "action", "kind"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "file": { "type": "string", "minLength": 1 },
+                      "action": { "type": "string" },
+                      "kind": { "type": "string" }
+                    }
+                  }
+                },
+                "verification": {
+                  "type": ["object", "null"],
+                  "required": ["by", "result", "test_count"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "by": { "type": "string" },
+                    "result": { "enum": ["pass", "fail"] },
+                    "test_count": { "type": "integer", "minimum": 0 },
+                    "command": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ac_id", "text", "status", "tasks", "files", "tests", "verified"],
+        "additionalProperties": false,
+        "properties": {
+          "ac_id": { "type": "string", "pattern": "^(AC-\\d+|QF)$" },
+          "text": { "type": "string" },
+          "status": { "$ref": "#/definitions/requirementStatus" },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["task", "status"],
+              "additionalProperties": false,
+              "properties": {
+                "task": { "type": "integer", "minimum": 1 },
+                "status": { "$ref": "#/definitions/requirementStatus" }
+              }
+            }
+          },
+          "files": { "type": "array", "items": { "type": "string" } },
+          "tests": { "type": "array", "items": { "type": "string" } },
+          "verified": { "type": "boolean" }
+        }
+      }
+    },
+    "accepted_risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "task_id", "requirement", "advisory", "issue"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["accepted", "unresolved", "waived_requirement"] },
+          "task_id": { "type": "integer", "minimum": 1 },
+          "requirement": { "type": "string" },
+          "finding_id": { "type": "string" },
+          "state": { "$ref": "#/definitions/findingState" },
+          "severity": { "enum": ["critical", "warning", "suggestion"] },
+          "advisory": { "type": "boolean" },
+          "issue": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "raised": { "type": "string" },
+          "resolution": {
+            "type": "object",
+            "required": ["by", "outcome"],
+            "additionalProperties": false,
+            "properties": {
+              "by": { "type": "string" },
+              "outcome": { "type": "string" },
+              "note": { "type": "string" },
+              "actor": { "const": "human" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

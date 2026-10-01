@@ -39,6 +39,10 @@ export interface WorkflowCostRow {
   calls: number;
   input_tokens: number;
   output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  /** Calls whose spawn reported no usage (tokens/cost unknown). */
+  usage_missing_calls: number;
   cost_usd: number;
 }
 
@@ -47,12 +51,18 @@ export interface WorkflowCostReport {
   rows: WorkflowCostRow[];
   total_input_tokens: number;
   total_output_tokens: number;
+  total_cache_read_tokens: number;
+  total_cache_write_tokens: number;
+  total_calls: number;
+  usage_missing_calls: number;
+  /** Usage carried forward from a committed rollup after `.tasks/` was rebuilt. */
+  carried_forward: boolean;
   total_cost_usd: number;
   formatted: string;
 }
 
 function scopeLabel(line: UsageLine): string {
-  if (line.subagent_type === "orchestrator") return "Orchestrator";
+  if (line.subagent_type === "orchestrator" || line.source === "judgment") return "Orchestrator";
   if (line.task_id != null) return `Task ${String(line.task_id)}`;
   if (PIPELINE_AGENTS.has(line.subagent_type)) return "Pipeline";
   return "Other";
@@ -107,6 +117,7 @@ export function buildWorkflowCostReport(
 
   const usageLines = readUsageLines(workItemId);
   const aggregated = new Map<string, WorkflowCostRow>();
+  let carriedForward = false;
 
   for (const line of usageLines) {
     const scope = scopeLabel(line);
@@ -115,21 +126,32 @@ export function buildWorkflowCostReport(
     const cost = computeLineCost(line, pricing);
     const input = line.usage.input || 0;
     const output = line.usage.output || 0;
+    const cacheRead = line.usage.cacheRead || 0;
+    const cacheWrite = line.usage.cacheWrite || 0;
+    const calls = line.calls ?? 1;
+    const missing = line.usage_missing ? calls : 0;
+    if (line.source === "carried_forward") carriedForward = true;
 
     const existing = aggregated.get(key);
     if (existing) {
-      existing.calls += 1;
+      existing.calls += calls;
       existing.input_tokens += input;
       existing.output_tokens += output;
+      existing.cache_read_tokens += cacheRead;
+      existing.cache_write_tokens += cacheWrite;
+      existing.usage_missing_calls += missing;
       existing.cost_usd += cost;
     } else {
       aggregated.set(key, {
         scope,
         agent,
         ...(line.task_id != null ? { task_id: line.task_id } : {}),
-        calls: 1,
+        calls,
         input_tokens: input,
         output_tokens: output,
+        cache_read_tokens: cacheRead,
+        cache_write_tokens: cacheWrite,
+        usage_missing_calls: missing,
         cost_usd: cost,
       });
     }
@@ -142,10 +164,18 @@ export function buildWorkflowCostReport(
 
   let totalInput = 0;
   let totalOutput = 0;
+  let totalCacheRead = 0;
+  let totalCacheWrite = 0;
+  let totalCalls = 0;
+  let missingCalls = 0;
   let totalCost = 0;
   for (const r of rows) {
     totalInput += r.input_tokens;
     totalOutput += r.output_tokens;
+    totalCacheRead += r.cache_read_tokens;
+    totalCacheWrite += r.cache_write_tokens;
+    totalCalls += r.calls;
+    missingCalls += r.usage_missing_calls;
     totalCost += r.cost_usd;
   }
 
@@ -155,23 +185,37 @@ export function buildWorkflowCostReport(
   const lines: string[] = [
     `## Workflow cost — ${workItemId}`,
     "",
-    "| Scope | Agent | Calls | Input | Output | Est. $ |",
-    "| --- | --- | ---: | ---: | ---: | ---: |",
+    "| Scope | Agent | Calls | Input | Cache read | Cache write | Output | Est. $ |",
+    "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
   ];
 
   if (rows.length === 0) {
-    lines.push("| — | — | — | — | — | — |");
+    lines.push("| — | — | — | — | — | — | — | — |");
     lines.push("");
     lines.push("_No billable usage recorded for this work item._");
   } else {
     for (const r of rows) {
+      const missing =
+        r.usage_missing_calls > 0 ? ` (${String(r.usage_missing_calls)} no usage)` : "";
       lines.push(
-        `| ${r.scope} | ${r.agent} | ${String(r.calls)} | ${formatTokenCount(r.input_tokens)} | ${formatTokenCount(r.output_tokens)} | ${formatUsd(r.cost_usd)} |`,
+        `| ${r.scope} | ${r.agent} | ${String(r.calls)}${missing} | ${formatTokenCount(r.input_tokens)} | ${formatTokenCount(r.cache_read_tokens)} | ${formatTokenCount(r.cache_write_tokens)} | ${formatTokenCount(r.output_tokens)} | ${formatUsd(r.cost_usd)} |`,
       );
     }
     lines.push(
-      `| **Total** | | | **${formatTokenCount(totalInput)}** | **${formatTokenCount(totalOutput)}** | **${formatUsd(totalCostUsd)}** |`,
+      `| **Total** | | **${String(totalCalls)}** | **${formatTokenCount(totalInput)}** | **${formatTokenCount(totalCacheRead)}** | **${formatTokenCount(totalCacheWrite)}** | **${formatTokenCount(totalOutput)}** | **${formatUsd(totalCostUsd)}** |`,
     );
+    if (missingCalls > 0) {
+      lines.push(
+        "",
+        `⚠ ${String(missingCalls)} call(s) reported no usage — counted, but tokens and cost are unknown.`,
+      );
+    }
+    if (carriedForward) {
+      lines.push(
+        "",
+        "Includes usage carried forward from a committed workflow-cost.json (`.tasks/` was rebuilt).",
+      );
+    }
   }
 
   return {
@@ -179,6 +223,11 @@ export function buildWorkflowCostReport(
     rows,
     total_input_tokens: totalInput,
     total_output_tokens: totalOutput,
+    total_cache_read_tokens: totalCacheRead,
+    total_cache_write_tokens: totalCacheWrite,
+    total_calls: totalCalls,
+    usage_missing_calls: missingCalls,
+    carried_forward: carriedForward,
     total_cost_usd: totalCostUsd,
     formatted: lines.join("\n"),
   };

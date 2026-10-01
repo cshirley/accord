@@ -24,6 +24,10 @@ import {
 import { devInitDetect } from "../config/init-detect.js";
 import { devInitWrite, type WriteTarget } from "../config/init-write.js";
 import type { DevHarnessConfig } from "../config/types.js";
+import {
+  commitWorkItemArtifacts,
+  formatWorkItemArtifactsCommit,
+} from "../orchestration/commit-on-task-done.js";
 import { buildDevOrchestratePayload, enrichDevOrchestratePayload } from "../orchestration/plan.js";
 import { answerDecisions, listPendingDecisions } from "../queries/answer-decision.js";
 import { devTasks } from "../queries/dashboard.js";
@@ -34,7 +38,7 @@ import { devSpecGaps } from "../queries/spec-gaps.js";
 import { runSubagentSpawnPreflightCheck } from "../queries/subagent-preflight-shared.js";
 import { devTaskTrace } from "../queries/task-trace.js";
 import { unblockTask } from "../queries/unblock-task.js";
-import { devVerifySummary } from "../queries/verify-summary.js";
+import { devVerifySummary, validateVerifyReport } from "../queries/verify-summary.js";
 import { devWorkItemStatus } from "../queries/work-item-status.js";
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import {
@@ -595,6 +599,10 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
           work_item_id: report.work_item_id,
           total_input_tokens: report.total_input_tokens,
           total_output_tokens: report.total_output_tokens,
+          total_cache_read_tokens: report.total_cache_read_tokens,
+          total_cache_write_tokens: report.total_cache_write_tokens,
+          total_calls: report.total_calls,
+          usage_missing_calls: report.usage_missing_calls,
           total_cost_usd: report.total_cost_usd,
           rows: report.rows,
         },
@@ -713,7 +721,7 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         ),
       ),
     }),
-    handler(params) {
+    async handler(params, ctx) {
       const result = devFinalizeWorkItem(params.id, {
         terminal_outcome: params.terminal_outcome as import("../types/domain.js").TerminalOutcome,
         next_action: params.next_action,
@@ -722,10 +730,11 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
           params.shift_left_findings as FinalizeWorkItemInput["shift_left_findings"],
       });
       if (!result.ok) return { ok: false, text: result.error };
+      const committed = await commitWorkItemArtifacts(params.id, ctx.getConfig(), process.cwd());
       return {
         ok: true,
-        text: `${params.id} finalised: ${params.terminal_outcome}`,
-        details: result.value,
+        text: `${params.id} finalised: ${params.terminal_outcome}${formatWorkItemArtifactsCommit(committed)}`,
+        details: { ...result.value, commit: committed },
       };
     },
   }),
@@ -738,7 +747,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     promptSnippet:
       "Summarise verification results — writes a human-readable verify.md, counts pass/fail/partial/not_verified statuses, lists gaps",
     parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
-    handler(params) {
+    async handler(params) {
+      const valid = await validateVerifyReport(params.id);
+      if (!valid.ok) return { ok: false, text: valid.error };
       const result = devVerifySummary(params.id);
       if (!result.ok) return { ok: false, text: result.error };
       return { ok: true, text: result.value.formatted, details: result.value };

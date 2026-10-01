@@ -64,7 +64,8 @@ review-security findings are always advisory (recorded, briefed, never gate).
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `on_task_done` | `true` | When a task reaches `done` (verify pass, or review-code with the verify loop disabled), stage task-scoped paths (`plan.tasks[].files`, changed files, `docs/dev/<ID>/`) ∩ `git status` and commit; logs a `<round>/commit` entry |
+| `on_task_done` | `true` | Every task that reaches `done` gets a commit: refresh `docs/dev/<ID>/trace.*`, stage task-scoped paths (`plan.tasks[].files[].path`, test files, changed files, `docs/dev/<ID>/`) ∩ `git status --untracked-files=all`, commit (empty commit when nothing remains); logs a `<round>/commit` entry. Done tasks without one are swept after every subagent result (core `processSubagentToolResult`, all hosts), so unblocked or failed-commit tasks are retried |
+| `on_finalize` | `true` | At closeout (`/dev finish`, `dev_finalize`): sweep uncommitted done tasks, refresh `trace.*` + `verify.md`, then commit `docs/dev/<ID>/` (`[<ID>] Closeout: …`) |
 
 # Other
 
