@@ -325,6 +325,85 @@
         }
       }
     },
+    "telemetry_topology": {
+      "type": "object",
+      "description": "Logging, metrics, tracing, and alerting requirements for this work item. Populate or justify in scope.out — never leave silent.",
+      "additionalProperties": false,
+      "properties": {
+        "log_events": {
+          "type": "array",
+          "description": "Structured log events this work item must emit.",
+          "items": {
+            "type": "object",
+            "required": ["event", "level"],
+            "additionalProperties": false,
+            "properties": {
+              "event": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable event name/message, e.g. 'auth.refresh.failed'."
+              },
+              "level": {
+                "enum": ["debug", "info", "warn", "error"]
+              },
+              "fields": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Structured fields attached to the event."
+              },
+              "pii_redaction": {
+                "type": "string",
+                "description": "Redaction/masking approach when any field overlaps security_topology.secrets or sensitive data. Required when applicable."
+              }
+            }
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics this work item must emit.",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "critical_path"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "enum": ["counter", "gauge", "histogram", "timer"]
+              },
+              "critical_path": {
+                "type": "boolean",
+                "description": "True when this metric covers a critical operation (per review-code's Observability dimension) — missing instrumentation here is a drift finding, not a style suggestion."
+              }
+            }
+          }
+        },
+        "trace_propagation": {
+          "type": "string",
+          "description": "Trace/correlation-id propagation strategy, or 'none' with justification."
+        },
+        "alerting": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["condition", "channel"],
+            "additionalProperties": false,
+            "properties": {
+              "condition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "channel": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
     "amendments": {
       "type": "array",
       "items": {

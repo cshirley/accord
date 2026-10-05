@@ -29,6 +29,7 @@ Orchestrator inlines:
 - When the public surface changes: `api_contract[]` entries whose `symbol` appears in the diff or task files
 - When populated: `deployment` (e.g. `dark_deploy`, rollout or feature-flag constraints)
 - Plan fields: `guidance`, `reuse_candidates`, the full task object (id, title, covers_ac, files[], steps[])
+- When populated: `telemetry_topology` (`log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`) — the contract for the Observability dimension below
 - `stub_files` (when present): unimplemented declarations phase-test created pre-impl. Any surviving `not implemented` body in these files is a **critical** Step drift finding; they count as in-scope for File drift.
 - `requirement_map` (harness pipeline): each requirement (`AC-n`) with the files changed for it (`changes[]`). Set each finding's `ac_id` from the file it concerns (use `also_affects` when the file serves several ACs).
 - `## Prior code findings to recheck (harness ledger)` (retry rounds): your earlier findings by **`F-nnn` id** with their history (phase-code's `fixed`/`disputed`/`wont_fix` responses, human notes). See **Retry rounds** below.
@@ -45,7 +46,7 @@ Schemas of truth: Injected into your brief by the ACCORD extension as a `## Sche
 | Performance | allocations, N+1, unindexed queries, unbounded loops, connection pool exhaustion |
 | Code quality | duplication, convention violations, readability, dead code |
 | Existing patterns / local consistency | when the diff introduces or replaces helpers, utils, error mapping, HTTP/client wrappers, or similar: run targeted `grep`/`find` for the same concern in-repo; prefer extend or compose over parallel implementations. Default `suggestion`; `warning` for a clear duplicate module or public API. Skip when **Reuse compliance** drift already covers the same symbol via `reuse_candidates` |
-| Observability | structured logging on error paths, metrics on critical operations, trace context propagation |
+| Observability | When `telemetry_topology` is present: every `log_events[]` entry and `metrics[]` entry emitted as specified; `critical_path: true` metrics missing from the diff are drift, not style. When `telemetry_topology` is absent or empty (standalone mode, or spec predates this field): fall back to judgment — structured logging on error paths, metrics on critical operations, trace context propagation |
 | API compatibility | breaking public API/signature changes without version or migration note |
 | Behavioral compatibility | same exported signature or route with changed semantics without version note or caller migration |
 | Migration safety | transactional migrations, idempotent backfills, rollback path for schema changes |
@@ -101,11 +102,12 @@ Key content expectations:
 Severity rules:
 - `critical` — data loss, correctness bug, ❌ drift on MUST AC or spec constraint
 - `warning` — missing error handling, ⚠️ drift, missing observability on critical path, behavioral compat without migration path, over-engineering with a concrete defect (see caps)
+- `critical` also applies when a `telemetry_topology.metrics[]` entry with `critical_path: true`, or a `telemetry_topology.log_events[]` entry tied to a MUST AC, is absent from the diff — this is AC coverage drift, not a style suggestion
 - `suggestion` — optional simplification, nit, docs gap on non-critical surface
 
 Severity caps (these prevent loops that phase-code cannot close):
 - **Pre-existing issues** the diff did not introduce or make worse → `suggestion` at most.
-- **Matters of taste** (Complexity, Code quality, Existing patterns, Docs, and Observability off the critical path) → `suggestion` unless there is a concrete defect (duplicate public API, dead code path that ships, swallowed error).
+- **Matters of taste** (Complexity, Code quality, Existing patterns, Docs, and Observability with no `telemetry_topology` entry to verify against) → `suggestion` unless there is a concrete defect (duplicate public API, dead code path that ships, swallowed error).
 - **Findings phase-code cannot fix without editing tests** (phase-code never edits tests) → `suggestion` with `category: "test"`. The test loop owns them.
 - **Spec contradictions** (the plan or spec requires something incorrect) → `suggestion` with `category: "spec"` and state the conflict in `issue`. Code retries won't resolve them; they need a decision.
 

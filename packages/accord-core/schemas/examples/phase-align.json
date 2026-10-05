@@ -22,6 +22,7 @@
         "Backward compat with existing mobile app sessions"
       ],
       "approach_direction": "",
+      "telemetry_and_observability": "",
       "open_questions": [
         "Deployment strategy — rolling or feature-flagged?",
         "Should we migrate existing localStorage tokens to httpOnly cookies?"
@@ -93,7 +94,8 @@
       "dimensions_remaining": [
         "infrastructure_and_deployment",
         "constraints",
-        "approach_direction"
+        "approach_direction",
+        "telemetry_and_observability"
       ],
       "markers_confirmed": 4,
       "markers_contested": 0,
@@ -147,6 +149,13 @@
         "status": "confirmed",
         "source": "user-round-2",
         "dimension": "infrastructure_and_deployment"
+      },
+      {
+        "id": "am-7",
+        "claim": "Refresh failures and rotation events must be logged with user_id redacted for SOC2 audit trail; on-call needs an alert on refresh error-rate spikes",
+        "status": "confirmed",
+        "source": "user-round-2",
+        "dimension": "telemetry_and_observability"
       }
     ],
     "convergence": {
@@ -159,7 +168,8 @@
         "infrastructure_and_deployment",
         "scale_and_performance",
         "constraints",
-        "approach_direction"
+        "approach_direction",
+        "telemetry_and_observability"
       ],
       "dimensions_remaining": [],
       "markers_confirmed": 6,

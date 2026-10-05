@@ -70,7 +70,7 @@ Each round follows a **reflect → probe → check** cycle:
 
 ## Coverage Dimensions
 
-The conversation should naturally cover these 9 dimensions (not as a checklist — organically through reflection and probing):
+The conversation should naturally cover these 10 dimensions (not as a checklist — organically through reflection and probing):
 
 | # | Dimension | What to understand |
 |---|---|---|
@@ -83,6 +83,7 @@ The conversation should naturally cover these 9 dimensions (not as a checklist �
 | 7 | Scale & Performance | Load expectations (current and projected), latency budgets, concurrency model, data volume and growth trajectory, peak traffic patterns, caching strategy, resource constraints |
 | 8 | Constraints | Timeline, budget, compatibility requirements, non-negotiable tech choices, team capacity/skills, regulatory deadlines |
 | 9 | Approach Direction | High-level strategy, key technical decisions, build vs buy vs extend, phasing/incremental delivery |
+| 10 | Telemetry & Observability | What needs to be observable in production (error rates, latency, business events), who consumes it (on-call, analytics, compliance audit trail), existing logging/metrics/tracing stack, alerting expectations |
 
 **Not all dimensions apply to every work item.** A docs change won't need Security & Data or Scale & Performance. When a dimension is clearly irrelevant, mark it `n/a` in the convergence tracking with a one-line justification. The user doesn't need to confirm irrelevant dimensions.
 
