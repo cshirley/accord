@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Pi extension providing **ACCORD**: an agentic contract workflow for the `/dev` command. It handles project configuration, schema validation, verification gating, usage tracking, and status bar updates via transparent event hooks so agents stay focused on their task.
+**ACCORD** is an agentic contract workflow (brief → spec → plan → verify) with a host-neutral core: run it inside Pi as the `/dev` command, headlessly via the **`accord` CLI**, or over stdio **MCP** (Cursor, etc.) — none of these require Pi. The Pi extension adds project configuration, schema validation, verification gating, usage tracking, and status bar updates via transparent event hooks so agents stay focused on their task; the CLI and MCP surfaces carry the same orchestration logic without it.
 
 > **ACCORD**: **Agentic Contract for Collaborative Objectives, Requirements, and Rigorous Delivery**
 > _Reach ACCORD before you build._
@@ -17,6 +17,7 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 - Persists every step as a validated artifact (`brief.md`, `spec.json`, `plan.json`, `verify.json`) so review and verification agents have something concrete to work against.
 - Runs preflight and post-step hooks (config guard, schema injection, gather/verify preflight, post-code verification, usage accounting) without the agent needing to know they exist.
 - Runs the same orchestration loop headlessly via the **`accord`** CLI (`packages/accord-cli`) — no Pi REPL required for `resume`, `finish`, workflow phases, `init`, or standalone `review`.
+- Spawns agents through a pluggable **harness** backend (`--harness pi|claude|cursor|exec`) — Pi is one option, not a dependency, for the actual implement/review/test work.
 
 ## Documentation
 
@@ -53,9 +54,9 @@ For the CI autopipeline (Jira-triggered, fully autonomous spec→PR), see the de
 - [`docs/ci/atlassian-automation.md`](docs/ci/atlassian-automation.md) — Jira trigger rule setup.
 - [`docs/ci/troubleshooting.md`](docs/ci/troubleshooting.md) — recurring review items + recovery flows.
 
-## Install Pi ([pi.dev](https://pi.dev/))
+## Install Pi ([pi.dev](https://pi.dev/)) — optional
 
-ACCORD is a [Pi](https://pi.dev/) package: the `/dev` command, hooks, and bundled skills run inside the **Pi coding agent** terminal app. Install Pi first, then add this repo (see [Quickstart](#quickstart) below).
+This section is only for the **`/dev`-in-Pi** entry point: the `/dev` command, hooks, and bundled skills run inside the **Pi coding agent** terminal app. If you only want the headless **`accord` CLI** or **`accord-mcp`** server, skip to [`docs/accord-cli.md`](docs/accord-cli.md) — neither needs Pi installed, and both can drive implementation work through the `claude` or `cursor` harness instead of `pi`. To use `/dev` itself, install Pi first, then add this repo (see [Quickstart](#quickstart) below).
 
 **Requires Pi ≥ 0.83.0** (`@earendil-works/pi-coding-agent` and peer packages). Upgrade with `npm install -g @earendil-works/pi-coding-agent@latest` or the [pi.dev installer](https://pi.dev/install.sh) if your CLI is older.
 
@@ -202,14 +203,15 @@ Or expose the same `dev_*` tools over stdio MCP without registering as a Pi exte
 ACCORD_CWD=/path/to/your/repo bun run mcp
 ```
 
-Headless orchestration without MCP or Pi:
+Headless orchestration without MCP or Pi — agents run via the `exec`, `claude`, or `cursor` harness instead:
 
 ```bash
 bun run accord init
-bun run accord resume YOUR-TICKET-1 --harness pi -y
+bun run accord config init --harness claude -y   # or: --harness exec / --harness cursor
+bun run accord resume YOUR-TICKET-1 -y
 ```
 
-See [`docs/accord-cli.md`](docs/accord-cli.md).
+`--harness pi` is only for driving Pi subagents from the CLI; it still requires Pi installed. See [`docs/accord-cli.md`](docs/accord-cli.md) for the full harness list and config.
 
 Inside a project that has the extension installed:
 

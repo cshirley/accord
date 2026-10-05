@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented here.
 
+## [Unreleased] — Host-agnostic `accord` CLI
+
+### Added
+
+- **`accord-cli` no longer hard-depends on Pi** — `--harness exec` (plus bundled `claude`/`cursor` exec presets) runs the full resume/finish/workflow-phase loop without `pi-accord` or a Pi install. `pi` remains an opt-in harness for driving Pi subagents from the CLI.
+- **`accord config init --harness <id>`** detects installed CLIs (`pi`, `claude`, `agent`) and writes `harness.backends[]` + per-tier model/thinking config to `~/.config/accord/accord.json` (host-neutral path; legacy `~/.config/pi/agent/accord.json` still read as a deprecated fallback).
+- **`accord-mcp`** extracted as its own package (`packages/accord-mcp/`) with zero Pi dependency; `ACCORD_MCP_HARNESS=pi|exec` lets MCP clients execute (not just preview) resume/finish via `accord-cli` harnesses.
+
+### Documentation
+
+- [`README.md`](README.md), [`docs/accord-cli.md`](docs/accord-cli.md), [`docs/concepts.md`](docs/concepts.md) (host feature matrix), [`docs/local-development.md`](docs/local-development.md) — clarified that Pi is one optional client, not a dependency, of the CLI/MCP surfaces; fixed a Quickstart example that passed `--harness pi` under a "without Pi" heading.
+- [`docs/plans/host-agnostic-plan.md`](docs/plans/host-agnostic-plan.md) — tracks remaining gaps (judgment LLM off Pi, asset/skill install without Pi's config layout, orchestration cleanup).
+
 ## [Unreleased] — Pi SDK 0.83 upgrade
 
 ### Added

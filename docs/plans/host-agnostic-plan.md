@@ -336,7 +336,7 @@ Update: [`accord-cli.md`](../accord-cli.md), [`concepts.md`](../concepts.md), [`
 ### Status
 
 - [x] 6a headless CI (`accord-ci` + `setup-accord`; contract tests in `packages/accord-ci/tests/`)
-- [ ] 6b docs sweep
+- [x] 6b docs sweep (`README.md`, `docs/accord-cli.md`, `docs/concepts.md` host feature matrix, `docs/local-development.md` Pi-free pointer, `CHANGELOG.md`, `okf/references/accord-cli.md`; `docs/hooks-and-tools.md` already correct)
 - [ ] 6c orchestration cleanup
 
 ---
