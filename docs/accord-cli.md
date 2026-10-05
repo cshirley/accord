@@ -180,6 +180,8 @@ A `phase-verify-acceptance` gap (`verdict: "gaps"`) is not a question — no `de
 | `pi` | `accord-cli/harnesses/pi-exec.ts` | `pi --mode json -p` via pi-subagent subprocess spawns |
 | `exec` | `accord-cli/harnesses/exec.ts` + exec presets | Subprocess template; claude/cursor/pi presets map frontmatter → CLI flags |
 
+`--harness <id>` accepts `pi`, `exec`, or any named id from `harness.backends[]` (e.g. `claude`, `cursor`) written by `accord config init` — each named backend resolves to `exec` under the hood with its own command template. The `exec` path has no Pi dependency; `pi` is just one selectable backend, not a requirement.
+
 Shared spawn path: `accord-cli/src/harnesses/spawn-pipeline.ts` (preflight → spawn → `processSubagentToolResult`).
 
 ## Pi extension as client

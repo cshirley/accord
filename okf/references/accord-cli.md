@@ -52,7 +52,7 @@ Naming trap: `accord plan resume X` = preview; `accord plan X` = spawn `phase-pl
 
 | Flag | Meaning |
 |------|---------|
-| `--harness <id>` | `pi`, `claude`, `cursor`, `exec` — see [Subagent spawning](/architecture/subagent-spawning.md) |
+| `--harness <id>` | `pi`, `exec`, or a named backend from `harness.backends[]` (`claude`, `cursor`, … written by `accord config init`) — see [Subagent spawning](/architecture/subagent-spawning.md) |
 | `--cwd <dir>` | Project root |
 | `--json` | Machine-readable output |
 | `-y`, `--yes` | Auto-confirm gather preflight |

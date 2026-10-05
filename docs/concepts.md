@@ -29,3 +29,18 @@ The codebase is organized around harness concepts first, then host integration:
 - **Adapters** contain host-specific glue: Pi (`packages/pi-accord/src/`) and stdio MCP (`packages/accord-mcp/`) — both expose the same `dev_*` tools from `accord-core`.
 
 See [`docs/pipeline.md`](pipeline.md) for the runtime command flow and pattern-by-pattern execution diagrams, and [`docs/file-structure.md`](file-structure.md) for the full directory tree. For the **target** harness-owned orchestration design (state machine in core, thin Pi adapter), see [`docs/harness-orchestration.md`](harness-orchestration.md). For the **implementation plan** (phased delivery), see [`docs/plans/harness-orchestration-implementation-plan.md`](plans/harness-orchestration-implementation-plan.md). For making CLI, MCP, and agent runtimes **Pi-optional**, see [`docs/plans/host-agnostic-plan.md`](plans/host-agnostic-plan.md).
+
+## Host feature matrix
+
+Pi is one client of the host-neutral core, not a dependency of it. What each entry point gives you:
+
+| Capability | Pi `/dev` | `accord` CLI | `accord-mcp` (stdio) |
+|---|---|---|---|
+| Orchestration, artifacts, Crucible verification | ✅ (via `accord-core`) | ✅ (same `accord-core`) | ✅ (same `accord-core`) |
+| Agent backend | `pi`, `exec` presets (`claude`, `cursor`, generic), or named `harness.backends[]` | same | same, when the MCP client wires a harness |
+| On-write schema validation, post-code verification, gather/verify preflight hooks | ✅ native lifecycle hooks | ✅ inline in `spawn-pipeline.ts` | ⚠️ client must wire equivalents — see [`hooks-and-tools.md`](hooks-and-tools.md) |
+| Orchestration judgment LLM | ✅ (configured model + credentials) | template-fallback only (no `runJudgment` host) | template-fallback only |
+| TUI (spawn widgets, dynamic tools, session transcript markers, review-queue preview) | ✅ | — | — |
+| Requires Pi installed | yes, by definition | no | no |
+
+See [`docs/plans/host-agnostic-plan.md`](plans/host-agnostic-plan.md) for what's still Pi-only and the phased plan to close the remaining gaps (judgment LLM off Pi, asset/skill install without Pi's config layout).
