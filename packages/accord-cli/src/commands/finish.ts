@@ -36,6 +36,9 @@ export async function runFinishCommand(
     cliNotify("error", result.closeout.error);
     return { exitCode: 1, closeoutOk: false };
   }
+  if (result.closeout?.ok && result.closeout.commit) {
+    cliNotify("info", result.closeout.commit);
+  }
   if (result.workflow_cost_formatted) {
     cliNotify("info", result.workflow_cost_formatted);
   }

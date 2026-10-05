@@ -9,18 +9,10 @@ import {
   runSubagentPrepareHook,
   runSubagentResultHook,
 } from "@clive.shirley/accord-core/harness/lifecycle-wiring.js";
-import {
-  TASK_DONE_AGENTS,
-  tryCommitOnTaskDone,
-} from "@clive.shirley/accord-core/orchestration/commit-on-task-done.js";
 import type { OrchestrationNotifyLevel } from "@clive.shirley/accord-core/orchestration/host.js";
 import type { SubagentSpawnResult } from "@clive.shirley/accord-core/orchestration/types.js";
 import { readPreparedSingleSubagentInput } from "@clive.shirley/accord-core/subagent/index.js";
-import {
-  extractTaskIdFromTaskText,
-  extractWorkItemId,
-  loadPricing,
-} from "@clive.shirley/accord-core/telemetry/usage.js";
+import { loadPricing } from "@clive.shirley/accord-core/telemetry/usage.js";
 import type { HarnessLifecycleHost } from "@clive.shirley/accord-core/types/harness-lifecycle.js";
 import type { HarnessMutableState } from "@clive.shirley/accord-core/types/host.js";
 
@@ -83,7 +75,7 @@ export async function runSpawnPipeline(
     return { exitCode: 1 };
   }
 
-  const { agent, task } = prepared;
+  const { agent } = prepared;
   notify("info", `${spawnLabel}: starting ${agent}…`);
   const singleResult = await executeSpawn(prepared);
 
@@ -111,23 +103,7 @@ export async function runSpawnPipeline(
     availableToolNames,
   });
 
-  if (TASK_DONE_AGENTS.has(agent) && singleResult.exitCode === 0) {
-    const workItemId = extractWorkItemId(task, { mustExist: true });
-    const taskId = extractTaskIdFromTaskText(task);
-    if (workItemId && taskId != null) {
-      const commitResult = await tryCommitOnTaskDone(
-        workItemId,
-        taskId,
-        state.devConfig,
-        options.cwd,
-      );
-      if (commitResult.ok && commitResult.hash) {
-        notify("info", `Task commit: ${commitResult.hash}`);
-      } else if (!commitResult.ok && commitResult.reason) {
-        notify("warning", `Task commit failed: ${commitResult.reason}`);
-      }
-    }
-  }
+  // Per-task commits happen in core `processSubagentToolResult` (done-task sweep).
 
   const exitLabel = singleResult.exitCode === 0 ? "ok" : `exit ${String(singleResult.exitCode)}`;
   if (append.trim()) {

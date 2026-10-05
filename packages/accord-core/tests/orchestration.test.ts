@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -1270,9 +1270,17 @@ describe("finish orchestration", () => {
           join("docs", "dev", "FIN-2", "verify.json"),
           `${JSON.stringify({
             schema_version: "1.0",
+            work_item_id: "FIN-2",
             verdict: "pass",
             date: "2026-01-01",
-            criteria: [{ ac_id: "AC-1", status: "pass" }],
+            criteria: [
+              {
+                ac_id: "AC-1",
+                status: "pass",
+                evidence: [{ type: "test", name: "ac1 passes", file: "a.test.ts", line: 1 }],
+              },
+            ],
+            summary: { pass: 1, fail: 0, partial: 0, not_verified: 0 },
           })}\n`,
           "utf8",
         );
@@ -1290,6 +1298,76 @@ describe("finish orchestration", () => {
       terminal_outcome?: string;
     };
     expect(wi.terminal_outcome).toBe("done");
+    expect(existsSync(join("docs", "dev", "FIN-2", "trace.json"))).toBe(true);
+    expect(readFileSync(join("docs", "dev", "FIN-2", "verify.md"), "utf8")).toContain(
+      "## Discrepancies (verify vs trace)",
+    );
+  });
+
+  test("runFinishOrchestrationFromResolution refuses to finalise a schema-invalid verify.json", async () => {
+    mkdirSync(join(tempCwd, "docs", "dev", "FIN-4"), { recursive: true });
+    writeFileSync(join("docs", "dev", "FIN-4", "spec.json"), "{}\n", "utf8");
+    writeFileSync(join("docs", "dev", "FIN-4", "plan.json"), "{}\n", "utf8");
+    writeFileSync(join("docs", "dev", "FIN-4", "brief.md"), "# b\n", "utf8");
+    writeWorkItem("FIN-4", {
+      schema_version: "1.0",
+      id: "FIN-4",
+      title: "t",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      phase: "implementing",
+      task_ids: [],
+      spec: "docs/dev/FIN-4/spec.json",
+      plan: "docs/dev/FIN-4/plan.json",
+      verify: null,
+      brief: "docs/dev/FIN-4/brief.md",
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    const resolution = resolveFinishOrchestration("FIN-4", minimalDevConfig());
+    const host = {
+      notify: () => {},
+      async spawnSubagent() {
+        // Drifted shape: extra top-level keys and a `code` evidence type.
+        writeFileSync(
+          join("docs", "dev", "FIN-4", "verify.json"),
+          `${JSON.stringify({
+            schema_version: "1.0",
+            id: "FIN-4",
+            work_item_id: "FIN-4",
+            spec: "docs/dev/FIN-4/spec.json",
+            verdict: "pass",
+            date: "2026-01-01",
+            criteria: [
+              {
+                ac_id: "AC-1",
+                status: "pass",
+                evidence: [{ type: "code", file: "a.ts", line: 1, description: "x" }],
+              },
+            ],
+            summary: { pass: 1, fail: 0, partial: 0, not_verified: 0 },
+          })}\n`,
+          "utf8",
+        );
+        return { exitCode: 0 };
+      },
+    };
+    const result = await runFinishOrchestrationFromResolution(
+      resolution,
+      "FIN-4",
+      minimalDevConfig(),
+      host,
+    );
+    expect(result.closeout?.ok).toBe(false);
+    expect(result.closeout?.ok === false ? result.closeout.error : "").toContain(
+      "fails verify-schema.json",
+    );
+    const wi = JSON.parse(readFileSync(join(".tasks", "FIN-4.json"), "utf8")) as {
+      terminal_outcome?: string;
+    };
+    expect(wi.terminal_outcome).toBeUndefined();
   });
 
   test("buildDevOrchestratePayload finish includes command and spawn resolution", () => {

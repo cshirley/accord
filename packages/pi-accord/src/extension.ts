@@ -24,6 +24,7 @@ import {
 import { loadDevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import { maybeAutoInstallAssets } from "@clive.shirley/accord-core/harness/asset-bootstrap.js";
 import { createLogger, resolveLogLevel, setLogLevel } from "@clive.shirley/accord-core/logging.js";
+import { devAnswer } from "@clive.shirley/accord-core/queries/answer-decision.js";
 import { devBlock } from "@clive.shirley/accord-core/queries/block-task.js";
 import { devTasks } from "@clive.shirley/accord-core/queries/dashboard.js";
 import { devDeviations } from "@clive.shirley/accord-core/queries/deviations.js";
@@ -315,6 +316,16 @@ export default function (pi: ExtensionAPI) {
         return;
       }
       displayDevQueryOutput(pi, ctx, "unblock", result.value.formatted);
+      return;
+    }
+
+    if (route.type === "known" && route.subcommand === "answer") {
+      const result = devAnswer(route.args);
+      if (!result.ok) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+      displayDevQueryOutput(pi, ctx, "answer", result.value.value.formatted);
       return;
     }
 

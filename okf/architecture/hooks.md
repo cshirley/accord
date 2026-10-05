@@ -37,7 +37,7 @@ scripts. **MCP does not run hooks** — add host hooks or CI steps for parity.
 | Config guard + brief inject | `tool_call` `subagent` | Block `requiresConfig` agents without config; set `agentFile`, `systemAppend` (project stack), `response` contract |
 | Gather preflight | `tool_call` `phase-gather` | Provider availability + playbook paths ([Providers](/architecture/providers.md)) |
 | Verify preflight | `tool_call` `phase-verify-*` | Spec/plan presence + staleness; run `verification_commands`; block if all fail; inject results |
-| Subagent result | `tool_result` `subagent` | Usage → `<ID>-usage.jsonl` + `cost_usd`; extract/validate packet; post-code verify for `verifyAfter` agents |
+| Subagent result | `tool_result` `subagent` | Usage → `<ID>-usage.jsonl` + `cost_usd` for every spawn (explicit `work_item_id:` first; task id from brief or in-flight spawn); extract/validate packet + returned artifact; post-code verify for `verifyAfter` agents; done-task commit sweep |
 | Pending-decision notify | `agent_settled` | Count pending decisions across work items; notify |
 | Session start | `session_start` | Load config, seed cost cache, dynamic tool set, restore status bar, asset bootstrap |
 | Asset bootstrap | `session_start` | Link bundled assets if missing/stale (`ACCORD_AUTO_INSTALL_ASSETS=0` opts out) |

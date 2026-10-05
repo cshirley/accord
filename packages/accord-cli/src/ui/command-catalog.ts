@@ -35,6 +35,12 @@ export const TOP_LEVEL_COMMANDS: CommandSpec[] = [
     needsWorkItem: true,
   },
   {
+    name: "answer",
+    summary: "Resolve pending decisions (no answers lists them)",
+    usage: 'answer <ID> [<decision-id> "answer"]… [--force]',
+    needsWorkItem: true,
+  },
+  {
     name: "block",
     summary: "Manually block a task",
     usage: "block <ID> <task> <reason>",

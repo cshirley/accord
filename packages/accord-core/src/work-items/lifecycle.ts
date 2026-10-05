@@ -3,6 +3,7 @@
  */
 
 import * as path from "node:path";
+import { writeWorkItemTrace } from "../artifacts/trace-artifact.js";
 import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
 import { createLogger } from "../logging.js";
 import {
@@ -171,6 +172,10 @@ export function devFinalizeWorkItem(
   wi.updated = timestamp;
 
   writeJson(workItemJsonPath(id), wi);
+
+  // Committed trace carries the outcome, decisions, deviations, and per-task evidence.
+  const traced = writeWorkItemTrace(id);
+  if (!traced.ok) log.warn(`trace artifact not written for ${id}: ${traced.error}`);
   return ok({ work_item: wi });
 }
 

@@ -32,7 +32,7 @@ Before `phase-gather` runs, checks availability of configured sources (Jira, Sla
 
 After any subagent completes:
 
-1. **Usage tracking** — extracts `work_item_id` from the task text, appends a line to `<ID>-usage.jsonl` with token counts and cost, updates the work item's `cost_usd`.
+1. **Usage tracking** — resolves `work_item_id` from the task text (an explicit `work_item_id:` wins; otherwise the first ID-shaped token with a `.tasks/` work item), appends a line to `<ID>-usage.jsonl` for **every** spawn — re-runs, failures and timeouts included; a spawn with no host usage falls back to the packet's self-reported `usage` or is logged as `usage_missing` — and updates the work item's `cost_usd`. Orchestration judgment LLM calls are logged too (`source: judgment`).
 2. **Return packet extraction** — prefers `parsedReturn` from programmatic `runSubagent`, else the last `\`\`\`json` block in the assistant message (`packages/accord-core/src/subagent/result/packet.ts`).
 3. **Return packet validation** — validates the packet against the agent's return schema from `packages/accord-core/src/agents/registry.ts`.
 4. **Post-code verification** — for agents with `verifyAfter: true` (currently `phase-code`), runs `type_check` and `test.command`. Type check failure is a hard gate (appended as error). Test failure is advisory.

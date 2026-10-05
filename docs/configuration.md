@@ -266,11 +266,12 @@ Example — run the full per-task loop (test → review → code → review) wit
 
 ## Per-task commit (`orchestration.commit`)
 
-When `on_task_done` is `false`, the Pi orchestration host skips per-task git commits. The default is **`true`**: after **review-code** marks a plan task `done`, the harness stages task-scoped paths and commits without interactive `/commit` skill confirmation.
+When `on_task_done` is `false`, the harness skips per-task git commits. The default is **`true`**: every plan task that reaches `done` gets an associated commit, without interactive `/commit` skill confirmation. The commit runs from the core subagent-result path (Pi, `accord` CLI, MCP hook), and done tasks without a commit are retried after every subagent result — including tasks finished by `accord unblock`.
 
 | Field | Type | Default | Meaning |
 |-------|------|---------|--------|
-| `on_task_done` | boolean | `true` | Stage task-scoped paths (`plan.tasks[].files`, `test_files`, `docs/dev/<ID>/`) intersected with `git status`, then `git commit`. Records a `harness_task_commit` event on the task file. Set `false` to disable auto-commit. |
+| `on_task_done` | boolean | `true` | Refresh `docs/dev/<ID>/trace.json`/`.md`, stage task-scoped paths (`plan.tasks[].files[].path`, test files, recorded changes, `docs/dev/<ID>/`) intersected with `git status --untracked-files=all`, then `git commit` (an empty commit when nothing remains). Records a `<round>/commit` log entry on the task file. Set `false` to disable auto-commit. |
+| `on_finalize` | boolean | `true` | At closeout, sweep uncommitted done tasks, refresh `trace.*` and `verify.md`, then commit `docs/dev/<ID>/` (verify, trace, workflow cost). Set `false` to leave closeout artifacts uncommitted. |
 
 Example — disable per-task commits (e.g. when you prefer manual `/commit`):
 

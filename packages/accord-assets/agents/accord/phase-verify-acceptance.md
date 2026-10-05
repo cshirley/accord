@@ -1,6 +1,6 @@
 ---
 name: phase-verify-acceptance
-description: "Map every spec acceptance criterion to evidence (test:line, code:line, lint rule) and persist docs/dev/<ID>/verify.json conforming to verify-schema.json. Marks pass / fail / partial / not_verified per AC; derives gap + suggested_action for anything short of pass. Runs the full verification.commands preflight before per-AC analysis, runs each cited test by name, greps for stubs, and exercises negative-path and env-startup ACs."
+description: "Map every spec acceptance criterion to evidence (test, file:line, lint rule, command) and persist docs/dev/<ID>/verify.json conforming to verify-schema.json. Marks pass / fail / partial / not_verified per AC; derives gap + suggested_action for anything short of pass. Runs the full verification.commands preflight before per-AC analysis, runs each cited test by name, greps for stubs, and exercises negative-path and env-startup ACs."
 tier: workhorse
 tools:
   read: true
@@ -65,7 +65,7 @@ For each entry in `spec.acceptance_criteria`:
 
 | AC type | Evidence strategy |
 | --- | --- |
-| `scenario` | Find the TC in `spec.verification.test_cases` whose `covers == AC.id`. If the TC carries a `test_name_glob`, run just that test using the project's test runner with its single-test flag (e.g. `vitest run -t "<glob>"`, `pytest -k "<glob>"`, `go test -run "<glob>"`, `cargo test --test "<glob>"`, `rspec -e "<glob>"`, `dotnet test --filter "<glob>"`) and cite the runner's pass line. Without a glob, fuzzy-match the TC scenario against test block names in the repo's test files via grep (using the project's `test.block_markers` patterns), pick the best match, run it, and cite `file:line` + runner line. |
+| `scenario` | Find the TC in `spec.verification.test_cases` whose `covers == AC.id`. If the TC carries a `test_name_glob`, run just that test using the project's test runner with its single-test flag (e.g. `vitest run -t "<glob>"`, `pytest -k "<glob>"`, `go test -run "<glob>"`, `cargo test --test "<glob>"`, `rspec -e "<glob>"`, `dotnet test --filter "<glob>"`) and cite the runner's pass line. Without a glob, find test blocks named with the work-item-qualified id first (`rg "<work_item_id>/AC-<n>"`, or the underscore form `<work_item_id>_ac_<n>` for frameworks without punctuation in names). Tests from other work items reuse the same bare `AC-<n>`, so never accept a bare-`AC-<n>` match from a different work item. Otherwise fuzzy-match the TC scenario against test block names in the repo's test files via grep (using the project's `test.block_markers` patterns), pick the best match, run it, and cite `file:line` + runner line. |
 | `constraint` | Read the implementation path; confirm the constraint is honoured. Cite `file:line`. Apply the stub-detection rule below. |
 | `architectural` | Verify the `enforcement` rule is active: if it names a lint rule, grep the lint config for it and confirm CI runs the linter; if it names a CI step, grep the workflow; cite `file:line`. |
 | `property` | Property-based test or audit output. If manual only, mark `not_verified`. |
@@ -114,9 +114,20 @@ Only run this when the AC is explicit about startup behaviour — do not apply i
 
 ## Step 4 — Write docs/dev/<ID>/verify.json
 
-Produce exactly the shape defined in the injected `verify-schema`. Key fields: `schema_version`, `id`, `work_item_id`, `spec`, `plan`, `date` (YYYY-MM-DD), `verdict` ("pass" | "gaps"), `criteria[]` (each with `ac_id`, `status`, `evidence[]`), `summary` (pass/fail/partial/not_verified counts).
+Produce exactly the shape defined in the injected `verify-schema`. Top-level fields are exactly `schema_version` (`"1.0"`), `work_item_id`, `date` (YYYY-MM-DD), `verdict` ("pass" | "gaps"), `criteria[]`, and `summary` (`pass` / `fail` / `partial` / `not_verified` integer counts). No other top-level keys — the schema rejects them (`additionalProperties: false`); spec/plan paths are tracked on the work item, not here.
 
-Evidence types: `test` (name + file + line), `code` (file + line + description), `manual` (description). Prefer `test` evidence — if the test wasn't run, it's not evidence.
+Each `criteria[]` entry: `ac_id` (`AC-n`), `status`, `evidence[]`, plus `gap` + `suggested_action` (required when status is `fail` or `partial`; `gap` also expected for `not_verified`). `pass` requires ≥1 evidence item.
+
+Evidence items are objects with `type` + `name`, and optional `file`, `line` (integer ≥1) or `line_range` (`"12-30"`), and `run_log` (runner output excerpt):
+
+| `type` | Use for | Typical fields |
+|--------|---------|----------------|
+| `test` | Named TC that ran green | `name` (test name), `file`, `line`, `run_log` (green runner line) |
+| `file` | Implementation code path | `name` (what it shows), `file`, `line` / `line_range` |
+| `lint_rule` | Lint/type rule enforcing the AC | `name` (rule id), `file` (config) |
+| `command` | Command result (preflight, env-startup check) | `name` (command), `run_log` (exit code + stderr head) |
+
+No other evidence types or keys. Prefer `test` evidence — if the test wasn't run, it's not evidence. Legacy free-form string evidence is accepted by the schema for old artifacts only; do not emit it.
 
 Write via the Edit tool — the PostToolUse hook validates against `verify-schema.json`. If it rejects, fix the shape before continuing.
 

@@ -16,7 +16,7 @@ import {
 } from "../subagent/result/packet.js";
 import { hasLogRef } from "../tasks/model.js";
 import { clearInFlight, markReturned, markSpawned, recordGeneric } from "../tasks/record.js";
-import { mutateTaskV2, sidecarName, writeTaskSidecar } from "../tasks/store.js";
+import { loadTaskV2, mutateTaskV2, sidecarName, writeTaskSidecar } from "../tasks/store.js";
 import { loadWorkItem } from "../work-items/io.js";
 import { resolvePrimaryTaskIdForMutation } from "./post-result/primary-task.js";
 
@@ -62,8 +62,17 @@ export function markTaskAgentSpawned(
   return ref;
 }
 
+export interface TaskAgentReturnAudit {
+  /** `false` = saved before (or after failed) schema validation; recovery will not apply it. */
+  validated?: boolean;
+  validationErrors?: string[];
+  droppedEvents?: unknown[];
+}
+
 /**
  * On return (before post-result): write the raw packet sidecar and mark `in_flight` returned.
+ * Called twice per return: once **before** schema validation (`validated: false`) so the raw
+ * packet survives any later failure, then again after validation (idempotent — same ref).
  * Returns the ref or null when the agent/work item is not on the task pipeline.
  */
 export function recordTaskAgentReturn(
@@ -71,6 +80,7 @@ export function recordTaskAgentReturn(
   agent: string,
   packet: unknown,
   analysis?: string,
+  audit: TaskAgentReturnAudit = {},
 ): string | null {
   if (!TASK_PIPELINE_AGENTS.has(agent)) return null;
   const taskId = onPipelinePhase(workItemId);
@@ -79,15 +89,97 @@ export function recordTaskAgentReturn(
   mutateTaskV2(workItemId, taskId, (task, at) => {
     const pinned = markReturned(task, agent, at);
     ref = pinned;
+    const body = {
+      agent,
+      ref: pinned,
+      at,
+      packet,
+      ...(analysis ? { analysis } : {}),
+      ...(audit.validated !== undefined ? { validated: audit.validated } : {}),
+      ...(audit.validationErrors?.length ? { validation_errors: audit.validationErrors } : {}),
+      ...(audit.droppedEvents?.length ? { dropped_events: audit.droppedEvents } : {}),
+    };
     writeTaskSidecar(
       workItemId,
       taskId,
       sidecarName(pinned, "json"),
-      `${JSON.stringify({ agent, ref: pinned, at, packet, ...(analysis ? { analysis } : {}) }, null, 2)}\n`,
+      `${JSON.stringify(body, null, 2)}\n`,
     );
     return true;
   });
   return ref;
+}
+
+/**
+ * Return packet failed schema validation: keep the raw sidecar (flagged `validated: false`),
+ * log the rejected run with its errors, and release `in_flight` so resume respawns the agent
+ * under a fresh ref. Returns the logged ref, or null when not on the task pipeline.
+ */
+export function recordTaskAgentInvalidReturn(
+  workItemId: string,
+  agent: string,
+  packet: unknown,
+  errors: string[],
+  analysis?: string,
+): string | null {
+  const ref = recordTaskAgentReturn(workItemId, agent, packet, analysis, {
+    validated: false,
+    validationErrors: errors,
+  });
+  if (!ref) return null;
+  const taskId = onPipelinePhase(workItemId);
+  if (taskId === null) return ref;
+  mutateTaskV2(workItemId, taskId, (task, at) => {
+    const inFlight = task.control.in_flight;
+    if (!inFlight || inFlight.agent !== agent || inFlight.ref !== ref) return false;
+    if (!hasLogRef(task, ref)) {
+      task.log.push({
+        ref,
+        at,
+        result: "invalid_packet",
+        note: `Return packet failed schema validation (${String(errors.length)} error(s)); raw packet kept in sidecar \`${sidecarName(ref, "json")}\`. Resume respawns ${agent}.`,
+        warnings: errors.slice(0, 20),
+      });
+    }
+    clearInFlight(task, agent);
+    if (task.control.status === "in_progress") task.control.status = "pending";
+    return true;
+  });
+  return ref;
+}
+
+/**
+ * Agent exited (or timed out) without a return packet: persist whatever text it produced next
+ * to the in-flight ref so the work is inspectable. `in_flight` is left as-is — resume respawns
+ * the same ref. Returns the sidecar name, or null when nothing was written.
+ */
+export function recordTaskAgentMissingReturn(
+  workItemId: string,
+  agent: string,
+  outputText: string,
+): string | null {
+  if (!TASK_PIPELINE_AGENTS.has(agent) || !outputText.trim()) return null;
+  const taskId = onPipelinePhase(workItemId);
+  if (taskId === null) return null;
+  const task = loadTaskV2(workItemId, taskId);
+  const inFlight = task?.control.in_flight;
+  if (!inFlight || inFlight.agent !== agent) return null;
+  const name = sidecarName(inFlight.ref, "no-packet.txt");
+  writeTaskSidecar(workItemId, taskId, name, outputText);
+  return name;
+}
+
+/** Attach harness warnings to an already-logged agent return (e.g. dropped events). */
+export function annotateTaskAgentReturn(workItemId: string, ref: string, warnings: string[]): void {
+  if (!warnings.length) return;
+  const taskId = onPipelinePhase(workItemId);
+  if (taskId === null) return;
+  mutateTaskV2(workItemId, taskId, (task) => {
+    const entry = task.log.find((candidate) => candidate.ref === ref);
+    if (!entry) return false;
+    entry.warnings = [...(entry.warnings ?? []), ...warnings];
+    return true;
+  });
 }
 
 /**

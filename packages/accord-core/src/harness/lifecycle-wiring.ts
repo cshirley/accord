@@ -16,7 +16,6 @@ import {
   validateHarnessArtifactWriteIfApplicable,
 } from "./artifact-write.js";
 import { applyHarnessCostSeed, seedHarnessSessionCostState } from "./session-start.js";
-import { prepareWorkflowStateBeforeSpawn } from "./workflow-state-spawn.js";
 
 export type WireHarnessLifecycleOptions = {
   host: HarnessLifecycleHost;
@@ -82,17 +81,9 @@ export async function runSubagentPrepareHook(
       confirm: options.host.confirm ?? (async () => true),
     },
   });
+  // `runSubagentToolPreflight` also pins the workflow `in_flight` state for task-pipeline agents.
   if (preflight.blockReason) {
     return { ok: false, reason: preflight.blockReason };
-  }
-
-  const workflowPrep = prepareWorkflowStateBeforeSpawn({
-    agent: spawn.agent,
-    task: spawn.task,
-    devConfig: options.devConfig,
-  });
-  if (!workflowPrep.ok) {
-    return { ok: false, reason: workflowPrep.reason };
   }
 
   return { ok: true };

@@ -176,10 +176,16 @@ export interface DevHarnessOrchestrationConfig {
    */
   commit?: {
     /**
-     * After **review-code** marks a task `done`, stage task-scoped files and commit
-     * without interactive confirmation (default: true; set `false` to disable).
+     * When a plan task reaches `done`, stage task-scoped files + `docs/dev/<ID>/trace.*` and
+     * commit without interactive confirmation (default: true; set `false` to disable). Done
+     * tasks without a commit are retried on every subagent result.
      */
     on_task_done?: boolean;
+    /**
+     * At finalize, commit `docs/dev/<ID>/` closeout artifacts (verify.json/md, trace.json/md,
+     * workflow-cost.json/md) after sweeping uncommitted done tasks (default: true).
+     */
+    on_finalize?: boolean;
   };
 }
 

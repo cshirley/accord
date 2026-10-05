@@ -5,13 +5,13 @@
       {
         "ac_id": "AC-1",
         "result": "pass",
-        "tests": ["auth-refresh.test.ts › AC-1 refresh returns 401 for expired token"],
+        "tests": ["auth-refresh.test.ts › ACCORD-1234/AC-1 refresh returns 401 for expired token"],
         "command": "bun test src/middleware"
       },
       {
         "ac_id": "AC-3",
         "result": "fail",
-        "tests": ["auth-refresh.test.ts › AC-3 refresh is rate limited"],
+        "tests": ["auth-refresh.test.ts › ACCORD-1234/AC-3 refresh is rate limited"],
         "command": "bun test src/middleware",
         "note": "Expected 429, received 200 on 6th request"
       }

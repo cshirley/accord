@@ -8,6 +8,10 @@ import {
   isOrchestrationJudgmentConfigured,
   ORCHESTRATION_JUDGMENT_SCHEMA_VERSION,
 } from "@clive.shirley/accord-core/orchestration/judgment.js";
+import {
+  appendUsageLine,
+  normalizeUsageCostFields,
+} from "@clive.shirley/accord-core/telemetry/usage.js";
 import type {
   AssistantMessage,
   TextContent,
@@ -43,6 +47,21 @@ function assistantTextBlocks(message: AssistantMessage): string {
     .map((block) => block.text)
     .join("\n")
     .trim();
+}
+
+/** Judgment LLM calls are billable harness work — log them beside subagent usage. */
+function recordJudgmentUsage(workItemId: string, assistant: AssistantMessage): void {
+  const usage = normalizeUsageCostFields(assistant.usage);
+  const billable = usage.input + usage.output + usage.cacheRead + usage.cacheWrite + usage.cost;
+  appendUsageLine(workItemId, {
+    at: new Date().toISOString(),
+    work_item_id: workItemId,
+    subagent_type: "orchestration-judgment",
+    model: assistant.model,
+    usage: { ...usage, turns: 1 },
+    source: "judgment",
+    ...(billable === 0 ? { usage_missing: true } : {}),
+  });
 }
 
 export async function runOrchestrationJudgment(
@@ -103,6 +122,7 @@ export async function runOrchestrationJudgment(
         ...(auth.headers ? { headers: auth.headers } : {}),
       },
     );
+    recordJudgmentUsage(request.workItemId, assistant);
     if (assistant.stopReason !== "stop" && assistant.stopReason !== "length") {
       ctx.ui.notify(
         `Orchestration judgment: model stopReason=${assistant.stopReason}${

@@ -37,6 +37,11 @@ Think like a malicious or lazy developer who has access to the tests and wants t
 
 If you can devise an adversarial implementation that passes every test, those tests are insufficient.
 
+**Plausibility calibrates severity.** Use the full adversarial toolkit to *find* gaps, then grade each one by how likely the wrong implementation is:
+
+- **Plausible mistake** — code a competent developer could write by accident (wrong boundary operator, `=== undefined` instead of blank check, truthy-presence flag check, missing side effect, happy-path-only error handling). Eligible for the AC-level severity in Check 1.
+- **Contrived** — code only a deliberately malicious developer would write (hardcoding a test's literal, special-casing an input nobody would think of). Cap at `warning` unless negating the AC outright leaves every test green (Check 3). `review-code` still reviews the real implementation post-impl — pre-impl review does not have to defend against sabotage.
+
 ## Modes and pipeline placement
 
 | Mode | When | Input shape |
@@ -100,7 +105,7 @@ The harness also runs a deterministic Check 0 on phase-test output and skips rev
 
 ### Stub skeletons (`stub_files`)
 
-`stub_files` lists unimplemented declarations phase-test created so the suite loads. In pre-impl they are **expected**, and a failure on their `not implemented` error counts as behaviour RED. Read each stub and flag **critical** if it contains any logic that could satisfy an assertion (branches, returned values, field writes, input reads) — that destroys the RED signal. Otherwise do not raise findings against stubs.
+`stub_files` lists unimplemented declarations phase-test created so the suite loads. In pre-impl they are **expected**, and a failure on their `not implemented` error counts as behaviour RED. The converse matters too: a test that **passes** against the stub (e.g. bare `toThrow()` on an error-path test — the stub's `not implemented` throw satisfies it) has no RED signal → treat as a Check 2 triviality at the AC's severity. Read each stub and flag **critical** if it contains any logic that could satisfy an assertion (branches, returned values, field writes, input reads) — that destroys the RED signal. Otherwise do not raise findings against stubs.
 
 ## Check 1 — Adversarial implementation analysis
 
@@ -109,11 +114,12 @@ For each AC in `covered_acs` (by `type`: `scenario`, `constraint`, `property`, `
 1. Read the criterion (`scenario`, `criterion`, or `enforcement` as applicable).
 2. Read all tests claiming to cover it (names, comments, or structure).
 3. **Devise an adversarial implementation** — simplest wrong code that makes tests pass while violating the criterion.
-4. If you can construct one → finding. **MUST** AC → `critical`; **SHOULD** → `warning`; **MAY** → `suggestion`.
+4. If you can construct one → finding. **MUST** AC → `critical`; **SHOULD** → `warning`; **MAY** → `suggestion` — subject to the plausibility cap in **Mindset** (contrived impls on a MUST AC → `warning`).
+5. **Group by input partition.** When several adversarial impls exploit the same untested input dimension of one AC (scheme variants, flag truthiness, blank shapes), emit **one** finding whose recommendation lists every case as a table — not one finding per case. One fix round must close the whole partition.
 
 **`property` ACs:** flag a single fixed example when the criterion implies breadth (property, fuzz, or many inputs).
 
-**`architectural` ACs:** if enforcement is lint/CI-only, flag tests that pretend to cover it weakly — recommend static enforcement, not a vacuous runtime test.
+**`architectural` ACs and runtime-enforced config** (coverage thresholds, lint rules, build/CI gates, startup wiring outside `task.files[]`): phase-test can pin the **declaration** (config value, placement) but cannot prove **enforcement** from a unit test. Once the declaration is pinned, raise the enforcement half as a `suggestion` with `category: "verify"` and a recommendation naming the command `phase-verify-task` should run — never a gating finding phase-test cannot close.
 
 Example:
 
@@ -171,6 +177,7 @@ Flag:
 - **`ac_covered` omits an AC that tests exist for** or **claims AC with no tests** → **warning** (traceability drift).
 - **TC in `test_cases` with no matching test** → **warning**; MUST TC → **critical**.
 - **Tests with no AC tag / comment** when traceability is required → **suggestion**.
+- **Unqualified AC/TC ids** in tests this work item added or changed (`AC-3` instead of `<work_item_id>/AC-3`, per phase-test **Test naming**) → **suggestion**, never gating. Don't flag other work items' existing tests.
 
 For each TC, if `tier` or `test_name_glob` is set: confirm the test lives in the right tier/path (e2e vs unit). Wrong tier → **warning** with adversarial impl (unit test pretends to be e2e).
 
@@ -242,19 +249,35 @@ For performance/scalability ACs: require an explicit perf test, benchmark step, 
 
 Missing → **critical** (MUST) / **warning** (SHOULD).
 
+## Round 1 is the exhaustive pass
+
+On the first review of a task (no ledger section), run **every** check against **every** test and AC before returning. Every gap you defer to a later round costs a full phase-test + review-test cycle. Do not stop at the first few criticals.
+
 ## Retry rounds (`rechecks[]`)
 
-When the ledger section is present, this is a re-review. Before new analysis, return **one `rechecks[]` entry per listed finding** — `{finding_id, outcome, note}`:
+When the ledger section is present, this is a re-review. Its job is to **confirm fixes**, not to restart the audit.
 
-1. `fixed` in history → verify in the test source that the fix is real: `verified`, or `reraised` with what is still missing (optionally a new `severity`).
-2. `disputed` → weigh the evidence: `dispute_upheld` when it cites the spec/code convincingly; otherwise `reraised` once with a direct rebuttal in `note`. Do not re-raise an unchanged dispute twice — say so in `analysis` so the human sees it at the retry cap.
+**Delta scope for new findings.** A new finding may be `warning`/`critical` only when it concerns (a) test code added or changed since the prior round (compare against `prior_round` / the finding history), or (b) a regression the fix introduced (a previously-passing assertion now contradicts another, a leaked mock, a newly vacuous check). A gap in code that round 1 already reviewed and left unchanged is a round-1 miss: record it as `suggestion` and say so in `analysis`. Exception: Check 3 — if negating a MUST AC still leaves every test green, raise it at `critical` regardless.
+
+Before new analysis, return **one `rechecks[]` entry per listed finding** — `{finding_id, outcome, note}`:
+
+1. `fixed` in history → check the fix against the **`Done when:`** condition in the finding's recommendation. Met → `verified`. Not met → `reraised`, quoting the unmet part of the condition. **Do not attack the remedy itself:** if the fix does what you asked, it is `verified` even if you can now imagine a cleverer adversary against the new test. Raise that as a new `suggestion`, unless it again leaves a MUST AC fully negatable. Never quietly re-raise with a different goal than the one originally stated. If your original recommendation was wrong or incomplete, re-raise by id with a corrected `Done when:`, say explicitly in `note` that the target changed, and keep it gating only if it is still a plausible MUST-AC gap. Otherwise downgrade it via the recheck `severity`.
+2. `disputed` → weigh the evidence: `dispute_upheld` when it cites the spec/code convincingly; otherwise `reraised` once with a direct rebuttal in `note`. Do not re-raise an unchanged dispute twice: the second time, use `dispute_upheld` with a note that the disagreement needs a human, downgrade it to `suggestion`, and flag it in `analysis`. A second retry round won't settle a disagreement over interpretation.
 3. `wont_fix` → `wont_fix_accepted` if the reason is sound (scope, spec, cost), else `reraised`.
 4. Still `open` (phase-test did not answer) → `verified` if the current tests resolve it, else `reraised`.
-5. Never open a new finding for the same root cause — re-raise by id. New findings are allowed for genuinely new gaps; do not move the goalposts on points already verified. Findings raised by `<round>/harness` or `<round>/phase-code` (test issues) are yours to recheck too.
+5. Never open a new finding for the same root cause — re-raise by id. New findings are allowed for genuinely new gaps (subject to **delta scope** above); do not move the goalposts on points already verified. Findings raised by `<round>/harness` or `<round>/phase-code` (test issues) are yours to recheck too.
 
 ## Actionability rule
 
 Every finding's `recommendation` must be something **phase-test** can do within its contract: add/strengthen a test, fix setup/fixtures, or add/adjust a Step 3 not-implemented stub. Do not recommend production logic, phase-code steps, or plan/spec edits as the fix — if the real problem is the spec (AC untestable, interface undefined), say so in `issue` and recommend phase-test escalate with `stuck`.
+
+**Every `warning`/`critical` recommendation ends with a `Done when:` clause** — a checkable acceptance condition you will recheck against next round (e.g. `Done when: an it.each over ['', ' ', '\t'] asserts {enabled:false} and createClient not called`). Give the concrete test sketch (inputs + expected assertion), not a direction ("strengthen the test"). Vague recommendations produce fixes that miss and get re-raised.
+
+## Before returning — consistency pass
+
+1. **Recommendations must be jointly satisfiable.** For each pair of gating recommendations, and each recommendation against existing passing assertions, confirm the same input is never required to produce two different outcomes. If two ACs genuinely conflict (e.g. one requires disabling on input X, another requires throwing on X), do not raise two criticals: raise one finding naming both ACs (`also_affects`), state the conflict in `issue`, and recommend phase-test escalate with `stuck`.
+2. **Merge root causes** across checks (a Check 2 triviality and a Check 3 negation on the same assertion are one finding).
+3. **Re-grade** each `critical` against the severity rules and the plausibility cap.
 
 ## Return packet
 
@@ -269,7 +292,7 @@ Key content expectations:
 
 Severity:
 
-- `critical` — Check 0 import-only or false `red_confirmed`; MUST AC adversarial impl; AC negation green; MUST TC untested; MUST side effect untested; spec contract violation on MUST scope; silent skip of MUST TC
+- `critical` — Check 0 import-only or false `red_confirmed`; plausible MUST AC adversarial impl; AC negation green; MUST TC untested; MUST side effect untested; spec contract violation on MUST scope; silent skip of MUST TC
 - `warning` — SHOULD AC gaps; scenario misalignment; mock-only integration for integration TC; order-dependent tests; `ac_covered` drift; existing_tests baseline mismatch
 - `suggestion` — MAY AC gaps; stronger assertion possible; missing AC comment tags; untested non-MUST branch
 
@@ -287,5 +310,5 @@ Severity:
 - Do not modify tests. Observe and attack only.
 - Do not re-run the suite. Use `test_output` from the brief.
 - Every finding must name the **adversarial implementation** it permits.
-- Pre-impl should be aggressive — last chance to strengthen tests before implementation.
+- Round 1 pre-impl should be aggressive and exhaustive, since it's the last chance to strengthen tests before implementation. Retry rounds should be conservative (see **Retry rounds**).
 - Findings without `file` + `line` may be downgraded by the harness — cite file:line whenever possible; for inventory gaps, cite the test file or AC id in `issue` and put the AC in `evidence`.

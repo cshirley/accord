@@ -21,7 +21,7 @@ sources:
 
 | Route | Subcommands |
 |-------|-------------|
-| Local (in extension, deterministic) | `help`, `tasks`, `retro`, `tag`, `rehydrate`, `init`, `spec-gaps`, `review`, `gaps`, `deviations`, `trace`, `block`, `unblock` |
+| Local (in extension, deterministic) | `help`, `tasks`, `retro`, `tag`, `rehydrate`, `init`, `spec-gaps`, `review`, `gaps`, `deviations`, `trace`, `block`, `unblock`, `answer` |
 | Core orchestrator (delegated to `accord-cli`) | `resume`, `finish`, `align`, `spec`, `plan`, `check`, `amend-spec` |
 | Conditional spawns | `gaps --tickets` → `phase-gaps`; `deviations review` → `review-deviation` |
 | Free text | `dev_intent` rules → optional bootstrap → resume if an ID is present, else in-session follow-up with `dev_*` tools |
@@ -45,6 +45,7 @@ sources:
 | `/dev spec-gaps <ID>` | 10-point spec checklist |
 | `/dev rehydrate <ID>` | Rebuild `.tasks/` state from `docs/dev/<ID>/` |
 | `/dev block <ID> <task> <reason>` | Force a task to `blocked` |
+| `/dev answer <ID> [<decision-id> "answer"]… [--force]` | Resolve pending `decisions[]` entries (no answers lists them); see [Answer pending decisions](/playbooks/answer-decisions.md) |
 | `/dev trace <ID> [--task n] [--open]` | Per-task trace: summary, requirements → findings → history, round log |
 | `/dev unblock <ID> [--task n] [--note\|--fixed\|--accept\|--waive F-n\|AC-n "reason"]… [--force "reason"]` | Decide blockers and unblock (interactive walk without flags); see [Per-task file](/references/task-file.md) |
 | `/dev retro` | Analyse sessions for shift-left improvements |

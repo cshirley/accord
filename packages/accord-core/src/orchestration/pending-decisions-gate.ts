@@ -45,7 +45,7 @@ function formatPendingDecisionsBlockMessage(
   }
   lines.push(
     "",
-    `Edit the matching entry in \`decisions[]\` (\`${wiPath}\`) \u2014 set \`"status": "resolved"\` and add \`"answer": "..."\` \u2014 then re-run \`accord resume ${workItemId}\` (or \`/dev resume ${workItemId}\`).`,
+    `Answer with \`accord answer ${workItemId} <decision-id> "answer"\` (or \`/dev answer\` in Pi; stored in \`decisions[]\` of \`${wiPath}\`), then re-run \`accord resume ${workItemId}\` (or \`/dev resume ${workItemId}\`).`,
     "",
     "To proceed anyway (the pending decision is unrelated to the next step): add `--allow-pending-decisions` to the resume command.",
   );

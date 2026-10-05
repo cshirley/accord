@@ -43,6 +43,11 @@ export const DEV_SUBCOMMANDS: { value: string; description: string }[] = [
     description: "Decide blockers (--note/--fixed/--accept/--waive F-n) and unblock a task",
   },
   {
+    value: "answer",
+    description:
+      'Resolve pending decisions[] (<ID> <decision-id> "answer"…; no answers lists them)',
+  },
+  {
     value: "block",
     description: "Force a task to blocked (manual override when the retry-cap loop hasn't tripped)",
   },

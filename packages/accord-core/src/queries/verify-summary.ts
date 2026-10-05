@@ -4,6 +4,15 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { renderRiskTable } from "../artifacts/render-trace-markdown.js";
+import {
+  traceJsonPath,
+  traceMarkdownPath,
+  type WorkItemTrace,
+  writeWorkItemTrace,
+} from "../artifacts/trace-artifact.js";
+import { validateArtifact } from "../artifacts/validation.js";
+import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
 import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, readJson } from "../work-items/io.js";
 
@@ -16,7 +25,148 @@ export interface VerifySummary {
   partial: number;
   not_verified: number;
   gaps: { ac_id: string; gap: string; suggested_action: string }[];
+  /** Mismatches between the agent's verify.json and the harness trace (empty when none). */
+  discrepancies: string[];
+  /** `docs/dev/<ID>/trace.json` when the trace was (re)written. */
+  trace_path: string | null;
   formatted: string;
+}
+
+const ACCEPTED_TRACE_STATUSES = new Set(["satisfied", "waived"]);
+
+/**
+ * Cross-check the independent acceptance verdict against the harness trace. Advisory: the
+ * discrepancies are surfaced in verify.md, they do not change the verdict.
+ */
+export function findVerifyTraceDiscrepancies(
+  criteria: unknown[],
+  trace: WorkItemTrace | null,
+): string[] {
+  if (!trace || trace.tasks.length === 0) return [];
+  const out: string[] = [];
+  const traceByAc = new Map(trace.acceptance.map((entry) => [entry.ac_id, entry]));
+  const verifyIds = new Set<string>();
+
+  for (const criterion of criteria) {
+    const row = criterion as Record<string, unknown>;
+    const acId = String(row.ac_id ?? row.id ?? "");
+    if (!acId) continue;
+    verifyIds.add(acId);
+    const traced = traceByAc.get(acId);
+    if (!traced) {
+      if (row.status === "pass") {
+        out.push(`${acId}: verify says pass, but no task requirement covers it in the trace.`);
+      }
+      continue;
+    }
+    if (row.status === "pass" && !ACCEPTED_TRACE_STATUSES.has(traced.status)) {
+      out.push(
+        `${acId}: verify says pass, but the trace status is \`${traced.status}\` (tasks ${traced.tasks.map((entry) => String(entry.task)).join(", ")}).`,
+      );
+    }
+  }
+  for (const entry of trace.acceptance) {
+    if (entry.ac_id.startsWith("AC-") && !verifyIds.has(entry.ac_id)) {
+      out.push(`${entry.ac_id}: covered by the trace but missing from verify.json.`);
+    }
+  }
+  for (const task of trace.tasks) {
+    if (task.status !== "done") {
+      out.push(`Task ${String(task.id)} is \`${task.status}\`, not done.`);
+    } else if (task.commits.length === 0) {
+      out.push(`Task ${String(task.id)} is done but has no harness commit recorded.`);
+    }
+  }
+  for (const risk of trace.accepted_risks) {
+    if (risk.kind !== "unresolved") continue;
+    if (!risk.advisory) {
+      out.push(
+        `Task ${String(risk.task_id)} ${risk.finding_id ?? risk.requirement}: gating finding still \`${risk.state ?? "open"}\` — ${oneLine(risk.issue)}`,
+      );
+    } else if (risk.severity === "critical") {
+      out.push(
+        `Task ${String(risk.task_id)} ${risk.finding_id ?? risk.requirement} (${risk.requirement}): critical advisory finding still \`${risk.state ?? "open"}\` — ${oneLine(risk.issue)}`,
+      );
+    }
+  }
+  return out;
+}
+
+function renderTraceSections(trace: WorkItemTrace | null, discrepancies: string[]): string[] {
+  if (!trace) return [];
+  const lines: string[] = [];
+
+  lines.push("## Tasks", "");
+  if (trace.tasks.length === 0) {
+    lines.push("_No task files._", "");
+  } else {
+    lines.push(
+      "| Task | Title | Status | Commits | Rounds T/C/V | Findings |",
+      "| ---: | --- | --- | --- | --- | ---: |",
+    );
+    for (const task of trace.tasks) {
+      lines.push(
+        `| ${String(task.id)} | ${oneLine(task.title).replace(/\|/g, "\\|")} | ${task.status} | ${task.commits.map((hash) => inlineCode(hash)).join(" ") || "—"} | ${String(task.rounds.T)}/${String(task.rounds.C)}/${String(task.rounds.V)} | ${String(task.findings.total)} |`,
+      );
+    }
+    lines.push("");
+  }
+
+  const accepted = trace.accepted_risks.filter(
+    (risk) => risk.kind !== "unresolved" || risk.severity !== "suggestion",
+  );
+  const minorCount = trace.accepted_risks.length - accepted.length;
+  lines.push("## Accepted risks and unresolved findings", "");
+  lines.push(...renderRiskTable(accepted));
+  if (minorCount > 0) {
+    lines.push(
+      `${String(minorCount)} unresolved suggestion-level advisor${minorCount === 1 ? "y" : "ies"} not shown — see the trace.`,
+      "",
+    );
+  }
+
+  const decided = trace.decisions;
+  const deviations = trace.deviations;
+  if (decided.length > 0 || deviations.length > 0) {
+    lines.push("## Decisions and deviations", "");
+    for (const decision of decided) {
+      lines.push(
+        `- Decision ${inlineCode(decision.id)} (${decision.status}): ${oneLine(decision.question)}${decision.answer ? ` → ${oneLine(decision.answer)}` : ""}`,
+      );
+    }
+    for (const deviation of deviations) {
+      lines.push(
+        `- Deviation, task ${String(deviation.task_id)} (${deviation.resolution ?? "pending"}): ${oneLine(deviation.description)}`,
+      );
+    }
+    lines.push("");
+  }
+
+  lines.push("## Discrepancies (verify vs trace)", "");
+  if (discrepancies.length === 0) {
+    lines.push("_None._", "");
+  } else {
+    for (const item of discrepancies) lines.push(`- ⚠ ${item}`);
+    lines.push("");
+  }
+  return lines;
+}
+
+function renderAcTrace(trace: WorkItemTrace | null, acId: string): string[] {
+  const entry = trace?.acceptance.find((candidate) => candidate.ac_id === acId);
+  if (!trace) return [];
+  if (!entry) return ["Implementation: no task requirement covers this AC in the trace.", ""];
+  const lines = [
+    `Implementation: task${entry.tasks.length === 1 ? "" : "s"} ${entry.tasks.map((taskEntry) => `${String(taskEntry.task)} (${taskEntry.status})`).join(", ")}`,
+  ];
+  if (entry.files.length > 0) {
+    lines.push(`- Files: ${entry.files.map((file) => inlineCode(file)).join(", ")}`);
+  }
+  lines.push(
+    `- Task verification: ${String(entry.tests.length)} test(s) checked${entry.verified ? "" : " — not all covering tasks verified"}`,
+  );
+  lines.push("");
+  return lines;
 }
 
 function inlineCode(value: unknown): string {
@@ -68,6 +218,8 @@ function renderMarkdownReport(
     notVerified: number;
     gaps: VerifySummary["gaps"];
   },
+  trace: WorkItemTrace | null = null,
+  discrepancies: string[] = [],
 ): string {
   const defaultBase = path.join("docs", "dev", id);
   const specJsonPath =
@@ -86,6 +238,12 @@ function renderMarkdownReport(
     ["Machine-readable verify", verifyPath],
     ["Workflow cost (JSON)", workflowCostJson],
     ["Workflow cost (readable)", path.join(path.dirname(workflowCostJson), "workflow-cost.md")],
+    ...(trace
+      ? [
+          ["Implementation trace (JSON)", traceJsonPath(id)],
+          ["Implementation trace (readable)", traceMarkdownPath(id)],
+        ]
+      : []),
   ];
 
   const lines: string[] = [
@@ -142,6 +300,7 @@ function renderMarkdownReport(
       );
       lines.push("");
     }
+    lines.push(...renderAcTrace(trace, acId));
   }
 
   if (summary.gaps.length > 0) {
@@ -153,10 +312,41 @@ function renderMarkdownReport(
     lines.push("");
   }
 
+  lines.push(...renderTraceSections(trace, discrepancies));
+
   lines.push(
     report.verdict === "pass" ? "Next: `/commit` then `/pr`." : `Next: \`/dev gaps ${id}\`.`,
   );
   return `${lines.join("\n").replace(/\n{3,}/g, "\n\n")}\n`;
+}
+
+/** First existing verify report path for the work item (work item field, then conventions). */
+export function resolveVerifyReportPath(id: string): string | null {
+  const wi = loadWorkItem(id);
+  const candidates = [
+    wi?.verify,
+    path.join("docs", "dev", id, "verify.json"),
+    path.join("docs", "verify", `${id}-verify.json`),
+  ].filter((p): p is string => Boolean(p));
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+/**
+ * Schema-validate the work item's verify.json. Subagents write it outside the host's
+ * write/edit hooks, so the harness must check it before rendering or finalizing.
+ */
+export async function validateVerifyReport(id: string): Promise<Result<{ verify_path: string }>> {
+  const verifyPath = resolveVerifyReportPath(id);
+  if (!verifyPath) return err(`Verify report not found for ${id}.`);
+  const result = await validateArtifact(verifyPath);
+  if (!result.valid) {
+    return err(
+      [`${verifyPath} fails verify-schema.json:`, ...result.errors.map((e) => `  • ${e}`)].join(
+        "\n",
+      ),
+    );
+  }
+  return ok({ verify_path: verifyPath });
 }
 
 export function devVerifySummary(id: string): Result<VerifySummary> {
@@ -227,17 +417,45 @@ export function devVerifySummary(id: string): Result<VerifySummary> {
       if (g.suggested_action) lines.push(`    → ${g.suggested_action}`);
     }
   }
+  // Refresh the harness trace beside verify.json so verify.md is the single review document.
+  let trace: WorkItemTrace | null = null;
+  let tracePath: string | null = null;
+  if (wi) {
+    // Keep the committed cost rollup current: verify re-runs (`/dev check`, repeated finish)
+    // are reported even when finalize does not run again.
+    devPersistWorkflowCost(id);
+    const written = writeWorkItemTrace(id);
+    if (written.ok) {
+      trace = written.value.trace;
+      tracePath = written.value.json_path;
+    }
+  }
+  const criteria = Array.isArray(report.criteria) ? (report.criteria as unknown[]) : [];
+  const discrepancies = findVerifyTraceDiscrepancies(criteria, trace);
+  if (discrepancies.length > 0) {
+    lines.push("\nDiscrepancies (verify vs trace):");
+    for (const item of discrepancies) lines.push(`  ⚠ ${item}`);
+  }
+
   const markdownPath = markdownPathFor(verifyPath);
   fs.mkdirSync(path.dirname(markdownPath), { recursive: true });
   fs.writeFileSync(
     markdownPath,
-    renderMarkdownReport(id, (wi ?? {}) as Record<string, unknown>, report, verifyPath, {
-      pass,
-      fail,
-      partial,
-      notVerified,
-      gaps,
-    }),
+    renderMarkdownReport(
+      id,
+      (wi ?? {}) as Record<string, unknown>,
+      report,
+      verifyPath,
+      {
+        pass,
+        fail,
+        partial,
+        notVerified,
+        gaps,
+      },
+      trace,
+      discrepancies,
+    ),
   );
 
   lines.push(`Markdown: ${markdownPath}`);
@@ -252,6 +470,8 @@ export function devVerifySummary(id: string): Result<VerifySummary> {
     partial,
     not_verified: notVerified,
     gaps,
+    discrepancies,
+    trace_path: tracePath,
     formatted: lines.join("\n"),
   });
 }

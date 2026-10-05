@@ -31,7 +31,7 @@ Orchestrator inlines:
 - Plan fields: `guidance`, `reuse_candidates`, the full task object (id, title, covers_ac, files[], steps[])
 - `stub_files` (when present): unimplemented declarations phase-test created pre-impl. Any surviving `not implemented` body in these files is a **critical** Step drift finding; they count as in-scope for File drift.
 - `requirement_map` (harness pipeline): each requirement (`AC-n`) with the files changed for it (`changes[]`). Set each finding's `ac_id` from the file it concerns (use `also_affects` when the file serves several ACs).
-- `## Prior code findings to recheck (harness ledger)` (retry rounds): your earlier findings by **`F-nnn` id** with their history (phase-code's `fixed`/`disputed`/`wont_fix` responses, human notes). Return **one `rechecks[]` entry per listed finding**: `{finding_id, outcome: verified|reraised|dispute_upheld|wont_fix_accepted, note}`. Re-raise by id — never open a new finding for the same root cause.
+- `## Prior code findings to recheck (harness ledger)` (retry rounds): your earlier findings by **`F-nnn` id** with their history (phase-code's `fixed`/`disputed`/`wont_fix` responses, human notes). See **Retry rounds** below.
 
 Schemas of truth: Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk.
 
@@ -71,20 +71,43 @@ Schemas of truth: Injected into your brief by the ACCORD extension as a `## Sche
 
 Mark each drift item: ✅ aligned, ⚠️ minor drift, ❌ significant drift.
 
+**Incidental files are not File drift.** Lockfiles, generated files, snapshots, and config wiring that a planned step obviously needs (dependency manifest for a planned dependency, test-runner config for a planned test script) are ✅ unless they change behaviour beyond what the step needs.
+
+## Retry rounds
+
+When the ledger section is present, your job is to **confirm fixes**, not to restart the review.
+
+Return **one `rechecks[]` entry per listed finding**: `{finding_id, outcome: verified|reraised|dispute_upheld|wont_fix_accepted, note}`.
+
+1. `fixed` → check against the **`Done when:`** condition in your recommendation. Met → `verified`, even if you would now phrase the fix differently. Not met → `reraised`, quoting the unmet part.
+2. `disputed` → `dispute_upheld` if the evidence (file:line, spec quote, trace) holds. Otherwise `reraised` once with a rebuttal. The second time an unchanged dispute comes back, uphold it, downgrade it to `suggestion`, and flag it in `analysis` for a human.
+3. `wont_fix` → `wont_fix_accepted` when the reason is scope, spec, or cost and the finding is not a correctness bug.
+4. Re-raise by id. Never open a new finding for the same root cause, and never change the goal of a finding you already raised.
+
+**Delta scope for new findings.** A new finding may be `warning`/`critical` only if it is in lines changed since the prior round, or is a regression the fix caused. Anything else that round 1 should have caught is a `suggestion`, unless it is a data-loss or correctness bug with a concrete failing input.
+
 ## Return packet
 
 Emit exactly one fenced ```json block last. Matches the injected `return: review` schema. See the injected examples for realistic payloads showing `clean` and `issues` verdicts.
 
 Key content expectations:
 - Each finding has: `severity` (critical/warning/suggestion), `file`, `line`, `issue` (one sentence), `evidence` (what you observed), `recommendation` (actionable fix).
+- Every `warning`/`critical` `recommendation` ends with a **`Done when:`** clause: the checkable condition you will verify next round.
+- `critical` correctness/reliability findings must include in `evidence` a **concrete failing input or execution trace** (inputs → path → wrong result). Without one, the finding is at most `warning`.
 - Harness pipeline: `ac_id` on every finding (from `requirement_map`), and `rechecks[]` on retry rounds.
 - Optional `category` (e.g. `correctness`, `performance`, `reliability`, `drift`, `observability`, `compatibility`, `consistency`) and `ref` (e.g. api_contract symbol when there is no file:line).
 - Empty `findings[]` with `verdict: "clean"` when code aligns with spec+plan.
 
 Severity rules:
 - `critical` — data loss, correctness bug, ❌ drift on MUST AC or spec constraint
-- `warning` — over-engineering, missing error handling, ⚠️ drift, missing observability on critical path, behavioral compat without migration path
+- `warning` — missing error handling, ⚠️ drift, missing observability on critical path, behavioral compat without migration path, over-engineering with a concrete defect (see caps)
 - `suggestion` — optional simplification, nit, docs gap on non-critical surface
+
+Severity caps (these prevent loops that phase-code cannot close):
+- **Pre-existing issues** the diff did not introduce or make worse → `suggestion` at most.
+- **Matters of taste** (Complexity, Code quality, Existing patterns, Docs, and Observability off the critical path) → `suggestion` unless there is a concrete defect (duplicate public API, dead code path that ships, swallowed error).
+- **Findings phase-code cannot fix without editing tests** (phase-code never edits tests) → `suggestion` with `category: "test"`. The test loop owns them.
+- **Spec contradictions** (the plan or spec requires something incorrect) → `suggestion` with `category: "spec"` and state the conflict in `issue`. Code retries won't resolve them; they need a decision.
 
 Findings without `file` + `line` (and without `ref`) are auto-downgraded to `suggestion` by `validate-return.mjs`. Cite file:line whenever possible.
 
@@ -103,4 +126,5 @@ Findings without `file` + `line` (and without `ref`) are auto-downgraded to `sug
 - Do not flag test coverage — `review-test` owns that.
 - Do not flag OWASP categories — `review-security` owns that.
 - **Existing patterns:** scope searches to symbols, paths, or concerns the diff introduces or replaces — not a repo-wide refactor audit. In harness mode, do not duplicate **Reuse compliance** for the same candidate.
+- Round 1 is the exhaustive pass: run every dimension before returning. Deferred findings cost a full phase-code + review-code cycle.
 - Keep the report short. A clean diff gets a short review: `{"verdict":"clean","findings":[]}`.

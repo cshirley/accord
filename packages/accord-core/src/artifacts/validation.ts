@@ -70,6 +70,7 @@ const SCHEMA_MAP: { match: RegExp; schema: string }[] = [
   { match: /(?:^|-)?plan\.json$/, schema: "plan-schema.json" },
   { match: /(?:^|-)?verify\.json$/, schema: "verify-schema.json" },
   { match: /(?:^|-)?workflow-cost\.json$/, schema: "workflow-cost-schema.json" },
+  { match: /(?:^|-)?trace\.json$/, schema: "trace-schema.json" },
   { match: /(?:^|-)?brief\.md$/, schema: "" }, // brief is markdown, no JSON schema
   { match: /-checkpoint\.json$/, schema: "checkpoint-schema.json" },
   { match: /-task-\d+\.json$/, schema: "task-schema.json" },
@@ -211,4 +212,41 @@ export async function validateReturn(agentType: string, data: unknown): Promise<
       `${e.instancePath || "/"} ${e.message}${e.params ? ` (${JSON.stringify(e.params)})` : ""}`,
   );
   return { valid: false, errors };
+}
+
+export interface ReturnValidationResult extends ValidationResult {
+  /** `events[]` entries removed because they failed the event schema. */
+  droppedEvents: unknown[];
+}
+
+const EVENT_ERROR_RE = /^\/events\/(\d+)(?:[/\s]|$)/;
+
+/**
+ * {@link validateReturn}, but one malformed `events[]` entry must not discard an otherwise
+ * valid packet: events whose index appears in a validation error are removed from `data`
+ * (mutated in place) and the packet is re-validated. The removed events are returned so the
+ * caller can record them.
+ */
+export async function validateReturnQuarantiningEvents(
+  agentType: string,
+  data: unknown,
+): Promise<ReturnValidationResult> {
+  const first = await validateReturn(agentType, data);
+  if (first.valid) return { ...first, droppedEvents: [] };
+  if (!data || typeof data !== "object") return { ...first, droppedEvents: [] };
+  const record = data as Record<string, unknown>;
+  if (!Array.isArray(record.events)) return { ...first, droppedEvents: [] };
+
+  const badIndices = new Set<number>();
+  for (const error of first.errors) {
+    const match = EVENT_ERROR_RE.exec(error);
+    if (match) badIndices.add(Number(match[1]));
+  }
+  if (badIndices.size === 0) return { ...first, droppedEvents: [] };
+
+  const events = record.events as unknown[];
+  const droppedEvents = events.filter((_, index) => badIndices.has(index));
+  record.events = events.filter((_, index) => !badIndices.has(index));
+  const second = await validateReturn(agentType, record);
+  return { ...second, droppedEvents };
 }

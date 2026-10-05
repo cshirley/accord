@@ -5,6 +5,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
+import { carryForwardUsageFromCommittedRollup } from "../artifacts/workflow-cost-artifact.js";
 import { createLogger } from "../logging.js";
 import { reconcileCoarsePhaseUntilStable } from "../orchestration/reconcile-coarse-phase.js";
 import { err, ok, type Result } from "../types/result.js";
@@ -196,6 +197,11 @@ export function rehydrateWorkItemFromArtifacts(
 
   const wiPath = workItemJsonPath(workItemId);
   writeJson(wiPath, wi);
+
+  const carried = carryForwardUsageFromCommittedRollup(workItemId);
+  if (carried > 0) {
+    log.info(`rehydrate: carried forward ${String(carried)} usage rollup row(s) for ${workItemId}`);
+  }
 
   let tasksBootstrapped = 0;
   if (ladder.bootstrapTasks && ladder.plan) {

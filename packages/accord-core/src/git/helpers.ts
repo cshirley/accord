@@ -64,13 +64,14 @@ export async function commitWithMessage(
   files: string[],
   message: string,
   signal?: AbortSignal,
+  options: { allowEmpty?: boolean } = {},
 ): Promise<{ hash: string }> {
   const root = await gitRoot(cwd, signal);
   for (const file of files) {
     await git(["add", "--", file], root, signal);
   }
   const staged = await git(["diff", "--staged", "--stat"], root, signal);
-  if (!staged.trim()) {
+  if (!staged.trim() && !options.allowEmpty) {
     throw new Error("Nothing staged. Files may be unchanged.");
   }
 
@@ -78,7 +79,9 @@ export async function commitWithMessage(
   const msgFile = join(dir, "message.txt");
   try {
     await writeFile(msgFile, message, "utf8");
-    await git(["commit", "-F", msgFile], root, signal);
+    const commitArgs = ["commit", "-F", msgFile];
+    if (options.allowEmpty && !staged.trim()) commitArgs.push("--allow-empty");
+    await git(commitArgs, root, signal);
   } finally {
     await unlink(msgFile).catch(() => {});
   }

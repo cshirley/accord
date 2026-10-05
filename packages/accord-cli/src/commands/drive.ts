@@ -176,8 +176,7 @@ export async function runDriveWorkflow(
         rounds: round,
         phase,
         exitCode: 2,
-        message:
-          "Agent is stuck — see decisions[] in the work item JSON, answer, then re-run `accord drive`.",
+        message: `Agent is stuck — list with \`accord answer ${workItemId}\`, answer with \`accord answer ${workItemId} <decision-id> "answer"\`, then re-run \`accord drive\`.`,
       };
     }
 

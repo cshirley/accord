@@ -62,6 +62,7 @@ export function buildGlobalAccordConfig(
       },
       commit: {
         on_task_done: true,
+        on_finalize: true,
       },
     },
     harness: {

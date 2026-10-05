@@ -57,7 +57,9 @@ If the brief contains a `## Open test findings (harness ledger)` section, this i
 
 1. Read `prior_round.test_files` and `prior_round.stub_files` from disk, and `prior_round.test_output`. That is the state the reviewer attacked.
 2. Read every finding's `evidence` and `recommendation`. Each one describes a concrete false-green, coverage gap, or non-executing test in the *existing* tests.
-3. Fix or extend the specific test(s) named in `finding.file`/`finding.line` per the `recommendation` — edit in place; do not rewrite everything from scratch and hope the same gaps don't recur.
+3. Fix or extend the specific test(s) named in `finding.file`/`finding.line` per the `recommendation` — edit in place; do not rewrite everything from scratch and hope the same gaps don't recur. **Satisfy the `Done when:` clause literally** — it is exactly what review-test rechecks.
+   - **Fix the pattern, not the instance.** After fixing a finding, grep your test files for the same weakness elsewhere (the same vacuous comparison, bare matcher, or missing partition in a sibling test) and fix every occurrence. Otherwise the reviewer re-raises it against the sibling next round.
+   - **Check that fixes don't contradict each other.** After editing, make sure no two tests require different outcomes for the same input shape. A fix for one AC that breaks another AC's table is the most common reason a finding gets re-raised.
 4. **Import-only / Check 0 findings** (`category: "import_only_red"`, or any finding citing `Cannot find module`, `Failed to resolve import`, missing export, etc.): these are fixed in **this** phase, by you, via Step 3 — create the unimplemented declaration for each named symbol. Never answer them by mocking the module under test, deleting/skip-ing the test, or deferring to phase-code.
 5. If a recommendation asks for something outside your contract (e.g. "phase-code should add X"), translate it into the in-contract fix (a Step 3 stub, a stronger assertion) — do not ignore it.
 6. Findings tagged `advisory` are below the retry gate — address them if cheap, but they don't block `red_confirmed`. Read each finding's history first: do not repeat a fix the reviewer already re-raised.
@@ -73,11 +75,50 @@ For each `tag: "test"` step in `steps[]`:
 3. For each AC in `covered_acs`:
    - Write at least one test whose assertion would **fail if the criterion were violated**.
    - Use specific assertions — not `toBeDefined()` / `toBeTruthy()` / `toHaveBeenCalled()` without args.
-   - Name or tag tests with the AC id (e.g. `// AC-3: rate limit enforced`) for traceability.
+   - Name tests with the **work-item-qualified** AC id: `<work_item_id>/AC-<n>` (e.g. `it("ACCORD-1234/AC-3 rate limit enforced")`, `def test_accord_1234_ac_3_rate_limit_enforced` where the framework forbids punctuation in names). See **Test naming** below.
 4. For each test case scenario:
    - Error scenarios must trigger errors.
    - Boundary scenarios must use boundary values.
    - Missing/empty input scenarios must pass missing/empty input.
+5. Apply the **Step 2a checklist** while writing, not afterwards.
+
+### Test naming
+
+AC ids restart at `AC-1` in every spec, so a bare `AC-3` in a test name is ambiguous once several work items have shipped. Qualify every AC or TC reference **in test source** with `work_item_id`, so a human can open `.tasks/<work_item_id>.json` or `docs/dev/<work_item_id>/` and resolve it:
+
+- **Test names:** `<work_item_id>/AC-<n> <behaviour>`. For a `describe`/class block that groups one AC, put the qualifier on the block (`describe("ACCORD-1234/AC-3 rate limiting")`); the `it` names inside don't need to repeat it. Table-driven cases inherit it from their block.
+- **Test cases:** `<work_item_id>/TC-<n>` when you cite a TC.
+- **Comments** citing an AC use the same form (`// ACCORD-1234/AC-3: ...`).
+- **Quick-fix:** name the regression test `<work_item_id> <behaviour>`. There is no AC number.
+- **Frameworks without punctuation in identifiers** (pytest function names, Go `TestXxx`): encode it as `accord_1234_ac_3` / `TestACCORD1234_AC3`. Also put the canonical `ACCORD-1234/AC-3` in a docstring, subtest name, or comment so `rg "ACCORD-1234/AC-3"` finds it.
+- **Existing tests:** don't rename tests that belong to other work items. When you edit a test this work item created earlier with a bare `AC-n`, qualify it.
+
+This applies to test source only. In the return packet, `ac_ids`, `tc_ids`, and `finding_id` stay bare (`AC-3`), because the harness keys requirements on those. `changes[].tests` lists the test names as written, i.e. qualified.
+
+## Step 2a — Write for the adversary (review-test's checklist)
+
+`review-test` next attacks your tests by building a wrong implementation that passes every test. Each gap it finds costs a full retry round, so close these gaps up front. For every covered AC:
+
+1. **Coverage.** Every AC in `task.covers_ac` / `covered_acs` has at least one test tagged with its id, including config, CI, and architectural ACs. Never silently drop an AC from `ac_ids`. If an AC truly can't be tested in this task, emit a `deviation` that says which task or verification command covers it.
+2. **Partition every input.** For each input the AC depends on (env var, argument, header, flag), test each class that applies:
+   - absent/`undefined`, empty `""`, whitespace-only
+   - the valid value(s)
+   - near-misses: casing, padding, a wrong scheme or prefix that looks similar, a valid substring in the wrong position
+   - invalid values
+
+   For string flags, cover `'true'` against `'false'`/`'0'`/`''`, so that mere presence is never treated as truthy. Use table-driven tests (`it.each` / parametrize). Pin both sides of every boundary, and for URL/scheme gates also pin "is X" against "is not Y".
+3. **Test inputs together, not only alone.** When two or more inputs interact (scheme × insecure flag × credentials present or absent), cover every combination the ACs talk about. Build a small **input → expected outcome** table across all covered ACs before writing. If two ACs demand different outcomes for the same input, that's a spec conflict: emit an `escalation` and return `stuck`. Don't let the tests quietly pick a side.
+4. **Negative and exclusive claims need tests that try to break them.** AC wording like "only", "no separate X", "never", "does not", or "unchanged" needs a test that actively tries the forbidden thing: set the flag the AC says doesn't exist, add the extra key. Use whole-shape assertions (exact key sets, `toEqual` on the full object, exact call arguments) instead of spot-checking named fields.
+5. **Error paths must fail against the stub for the right reason.** Your Step 3 stub throws `not implemented`. A bare `toThrow()` / `pytest.raises(Exception)` passes against that stub, so the test has no RED signal. Assert the specific error type and message (e.g. `toThrow(/AUTHORIZER_CACHE_REDIS_CREDENTIALS/)`).
+6. **Assert side effects positively, with arguments.** For every write, call, or emit the AC requires, assert it happened and with which arguments. Negative-only assertions (`not.toHaveBeenCalled`) let a no-op pass. Give mocked collaborators unique sentinel return values and assert they pass through: an implementation that builds a client and then throws it away must fail.
+7. **No vacuous assertions.** Avoid:
+   - Comparing two SUT values to each other (`a.x === b.x` is true when both are missing). Pin the exact expected value.
+   - Asserting on a literal the test itself built.
+   - Asserting options the real library ignores. Check the library's actual API (e.g. node-redis TLS lives at `socket.tls`, not top-level `tls`).
+   - Waiting on async events that the test's flush mechanism cannot actually deliver.
+8. **Exercise the production call shape.** Call default parameters (e.g. `process.env`) the way production will, not only with injected arguments. For time, timeouts, and retries, use fake timers and assert that a timeout counts as a failure.
+9. **Keep tests isolated and deterministic.** Restore every mock (`jest.doMock`, spies), env var, and global you touch. Avoid `Math.random` / `Date.now` in test data or names. Never call the SUT, or anything that can throw, in a `describe` body at collection time; put it inside `it`/`beforeEach`.
+10. **Config and architectural ACs.** Pin the declaration against how the tool actually behaves (read the tool's config-resolution source or docs to confirm the key takes effect where you put it, e.g. top-level vs per-project). Pin both the value and its placement. Actual enforcement belongs to `phase-verify-task`; say so in a test comment rather than writing a fake runtime test.
 
 ## Step 3 — Make the system under test loadable (stub skeleton)
 
@@ -105,7 +146,11 @@ Run the test command from `verification_commands` (the test-specific one). Recor
 - **Behaviour red (required):** tests loaded the system under test, executed, and failed on an assertion **or** on a Step 3 stub's "not implemented" error. This is the correct RED state — set `red_confirmed: true`.
 - **Import / resolution red (must be fixed before you finish — the harness enforces this):** The orchestrator scans `test_output` for resolution signatures; if any match, your round is bounced straight back to phase-test (consuming a retry slot) without a review-test pass. `Cannot find module`, `Failed to resolve import`, `MODULE_NOT_FOUND`, unresolved symbol, or a compile error from a missing production declaration. **Do not return this as your result.** Go back to Step 3, add the missing unimplemented declaration, and re-run. Only if you genuinely cannot declare it (see Step 3's escalation clause) may you finish with `red_confirmed: false` plus an `escalation` event explaining exactly which symbol could not be declared and why.
 - **Test-file error:** syntax error, wrong test framework API, bad fixture wiring in your own test code. Fix it before finishing — never hand a broken test file to review.
-- **Tests pass (unexpected):** The behaviour already exists. Emit a `deviation` event: `"test passed without impl — existing behaviour already satisfies AC-N"`. This may mean the task is partially redundant, or the test is trivially true. Continue — the review agent will catch trivially-true assertions.
+- **Tests pass (unexpected):** The behaviour already exists, or the test is trivially true. Investigate before continuing. If the passing test is an error-path test satisfied by the stub's `not implemented` throw, or makes a vacuous assertion (Step 2a items 5 and 7), fix it now. If existing production code genuinely satisfies the AC, emit a `deviation` event: `"test passed without impl — existing behaviour already satisfies AC-N"`.
+
+## Step 4a — Adversarial self-review (before returning)
+
+For each **MUST** AC, write down (in your reasoning, not the packet) one or two *plausible wrong implementations*, e.g. the wrong boundary operator, `=== undefined` instead of a blank check, a truthy-presence flag check, or a skipped side effect. Check that at least one test fails for each. Then mentally negate the AC: if every test would still pass, add the missing test. Also check that every behaviour-RED failure in `test_output` is failing for the reason the test intends. Re-run Step 4 if you changed anything.
 
 ## Step 5 — Deviations and escalations
 
@@ -134,7 +179,7 @@ Before returning `status: "done"`, self-check: every production import in your t
 - Do not write production logic. The only production-side artefact you may create is a Step 3 unimplemented declaration whose body throws "not implemented" — never a working body, a sentinel return, or a type definition carrying behaviour.
 - Do not "fix" a failing import by deleting the test, weakening the assertion, or mocking away the module you are supposed to be testing. Mocking **external boundaries** (network, DB, clock) is fine where the AC is pure logic; mocking the system under test is not.
 - Do not assume internal implementation details in assertions. Test observable behaviour (HTTP responses, return values, thrown errors, emitted events).
-- Do not add tests beyond what the spec's ACs and test cases require. Every test must trace to an AC.
+- Do not add tests beyond what the spec's ACs and test cases require. Every test must trace to an AC. (Step 2a partitions and combinations of a covered AC's inputs *are* required. They trace to that AC.)
 - Do not bypass hooks (`--no-verify`, `--no-gpg-sign`, etc.).
 
 ## Tools

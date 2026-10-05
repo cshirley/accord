@@ -169,7 +169,7 @@ When a phase agent returns `needs_input`, its questions are promoted into the wo
 { "id": "q1", "source": "spec", "status": "pending", "question": "...", "asked_at": "..." }
 ```
 
-To answer headlessly, edit the matching entry: set `"status": "resolved"` and add `"answer": "..."` (optionally `"resolved_at"`), then re-run `accord resume <ID>` (or the specific subcommand, e.g. `accord spec <ID>`). The checkpoint's `answered`/`pending` arrays (`.tasks/<ID>-checkpoint.json`) are a derived cache re-synced from `decisions[]` on the agent's next turn — editing `decisions[]` alone is sufficient. In Pi, `/dev review <ID>` gives an interactive equivalent.
+To answer headlessly, run `accord answer <ID>` to list pending entries, then `accord answer <ID> <decision-id> "answer" [<decision-id> "answer"]…` (sets `"status": "resolved"`, `"answer"`, `"resolved_at"` atomically; all-or-nothing; `--force` overwrites an existing answer). Then re-run `accord resume <ID>` (or the specific subcommand, e.g. `accord spec <ID>`). The checkpoint's `answered`/`pending` arrays (`.tasks/<ID>-checkpoint.json`) are a derived cache re-synced from `decisions[]` on the agent's next turn — editing `decisions[]` alone is sufficient. In Pi, `/dev answer` is identical; agents use the `dev_answer` tool.
 
 A `phase-verify-acceptance` gap (`verdict: "gaps"`) is not a question — no `decisions[]` entry is created. Fix the failing AC per `verify.json`'s per-criterion `summary` and rerun `accord check <ID>`.
 

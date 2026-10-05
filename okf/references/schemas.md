@@ -31,6 +31,7 @@ Location: `packages/accord-core/schemas/`.
 | `plan-schema.json` | `docs/dev/<ID>/plan.json` |
 | `verify-schema.json` | `docs/dev/<ID>/verify.json` |
 | `workflow-cost-schema.json` | `docs/dev/<ID>/workflow-cost.json` |
+| `trace-schema.json` | `docs/dev/<ID>/trace.json` |
 | `accord-schema.json` | `## Dev Harness` block |
 | `provider-schema.json` | Provider sidecars |
 | `orchestration-judgment-packet.json` | Bounded judgment output |

@@ -1,3 +1,4 @@
+export { runAnswerCommand } from "./answer.js";
 export { runBlockCommand } from "./block.js";
 export { runCompletionCommand } from "./completion.js";
 export { runConfigInitCommand } from "./config.js";

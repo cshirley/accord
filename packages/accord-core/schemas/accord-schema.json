@@ -468,7 +468,11 @@
           "properties": {
             "on_task_done": {
               "type": "boolean",
-              "description": "When false, skip per-task git commits after review-code. Default: true (commit task-scoped files when a plan task is marked done)."
+              "description": "When false, skip per-task git commits. Default: true — every plan task marked done gets a commit (task-scoped files + docs/dev/<ID>/trace.*; empty commit when nothing remains). Done tasks without a commit are retried on each subagent result."
+            },
+            "on_finalize": {
+              "type": "boolean",
+              "description": "When false, skip the closeout commit of docs/dev/<ID>/ (verify, trace, workflow cost) at finalize. Default: true."
             }
           }
         }

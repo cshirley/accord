@@ -24,7 +24,12 @@ import {
 import { devInitDetect } from "../config/init-detect.js";
 import { devInitWrite, type WriteTarget } from "../config/init-write.js";
 import type { DevHarnessConfig } from "../config/types.js";
+import {
+  commitWorkItemArtifacts,
+  formatWorkItemArtifactsCommit,
+} from "../orchestration/commit-on-task-done.js";
 import { buildDevOrchestratePayload, enrichDevOrchestratePayload } from "../orchestration/plan.js";
+import { answerDecisions, listPendingDecisions } from "../queries/answer-decision.js";
 import { devTasks } from "../queries/dashboard.js";
 import { devResumeState } from "../queries/resume-state.js";
 import { devRetro } from "../queries/retro.js";
@@ -33,7 +38,7 @@ import { devSpecGaps } from "../queries/spec-gaps.js";
 import { runSubagentSpawnPreflightCheck } from "../queries/subagent-preflight-shared.js";
 import { devTaskTrace } from "../queries/task-trace.js";
 import { unblockTask } from "../queries/unblock-task.js";
-import { devVerifySummary } from "../queries/verify-summary.js";
+import { devVerifySummary, validateVerifyReport } from "../queries/verify-summary.js";
 import { devWorkItemStatus } from "../queries/work-item-status.js";
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import {
@@ -509,6 +514,50 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
   }),
 
   defineTool({
+    name: "dev_answer",
+    label: "Answer Decisions",
+    description:
+      "Resolve pending work-item decisions[] (spec/plan questions, needs_input, stuck escalations) by id, or list them when no answers are given. Atomic, all-or-nothing.",
+    promptSnippet:
+      "Only on explicit user instruction — each answer must be the user's. Use instead of hand-editing .tasks/<ID>.json decisions[]. For task findings (F-n/AC-n) use dev_unblock.",
+    promptGuidelines: [
+      "Use dev_answer (not read/edit on .tasks/*.json) to resolve decisions[] entries such as phase-code-stuck-1.",
+    ],
+    parameters: Type.Object({
+      id: Type.String({ description: "Work item ID" }),
+      answers: Type.Optional(
+        Type.Array(
+          Type.Object({
+            decision_id: Type.String({
+              description: "decisions[].id, e.g. q1 or phase-code-stuck-1",
+            }),
+            answer: Type.String({ description: "Free-text answer" }),
+          }),
+          { description: "Omit to list pending decisions" },
+        ),
+      ),
+      force: Type.Optional(
+        Type.Boolean({ description: "Overwrite the answer of an already-resolved decision" }),
+      ),
+    }),
+    handler(params) {
+      const answers = params.answers ?? [];
+      if (answers.length === 0) {
+        const listed = listPendingDecisions(params.id);
+        if (!listed.ok) return { ok: false, text: listed.error };
+        return { ok: true, text: listed.value.formatted, details: listed.value };
+      }
+      const result = answerDecisions(
+        params.id,
+        answers.map((entry) => ({ id: entry.decision_id, answer: entry.answer })),
+        { force: params.force === true },
+      );
+      if (!result.ok) return { ok: false, text: result.error };
+      return { ok: true, text: result.value.formatted, details: result.value };
+    },
+  }),
+
+  defineTool({
     name: "dev_subagent_preflight",
     label: "Subagent Preflight",
     description:
@@ -550,6 +599,10 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
           work_item_id: report.work_item_id,
           total_input_tokens: report.total_input_tokens,
           total_output_tokens: report.total_output_tokens,
+          total_cache_read_tokens: report.total_cache_read_tokens,
+          total_cache_write_tokens: report.total_cache_write_tokens,
+          total_calls: report.total_calls,
+          usage_missing_calls: report.usage_missing_calls,
           total_cost_usd: report.total_cost_usd,
           rows: report.rows,
         },
@@ -668,7 +721,7 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
         ),
       ),
     }),
-    handler(params) {
+    async handler(params, ctx) {
       const result = devFinalizeWorkItem(params.id, {
         terminal_outcome: params.terminal_outcome as import("../types/domain.js").TerminalOutcome,
         next_action: params.next_action,
@@ -677,10 +730,11 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
           params.shift_left_findings as FinalizeWorkItemInput["shift_left_findings"],
       });
       if (!result.ok) return { ok: false, text: result.error };
+      const committed = await commitWorkItemArtifacts(params.id, ctx.getConfig(), process.cwd());
       return {
         ok: true,
-        text: `${params.id} finalised: ${params.terminal_outcome}`,
-        details: result.value,
+        text: `${params.id} finalised: ${params.terminal_outcome}${formatWorkItemArtifactsCommit(committed)}`,
+        details: { ...result.value, commit: committed },
       };
     },
   }),
@@ -693,7 +747,9 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     promptSnippet:
       "Summarise verification results — writes a human-readable verify.md, counts pass/fail/partial/not_verified statuses, lists gaps",
     parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
-    handler(params) {
+    async handler(params) {
+      const valid = await validateVerifyReport(params.id);
+      if (!valid.ok) return { ok: false, text: valid.error };
       const result = devVerifySummary(params.id);
       if (!result.ok) return { ok: false, text: result.error };
       return { ok: true, text: result.value.formatted, details: result.value };

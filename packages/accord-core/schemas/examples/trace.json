@@ -1,0 +1,180 @@
+[
+  {
+    "schema_version": "1.0",
+    "work_item_id": "TRACE-1",
+    "generated_at": "2026-01-02T00:00:00.000Z",
+    "pattern": "implement",
+    "outcome": {
+      "terminal_outcome": "done",
+      "completed_at": "2026-01-02T00:00:00.000Z",
+      "next_action": "/commit then open a PR",
+      "retro_summary": "Verdict: pass",
+      "shift_left_findings": []
+    },
+    "decisions": [
+      {
+        "id": "esc-TRACE-1-1-C2/phase-code#0",
+        "source": "escalation",
+        "status": "resolved",
+        "question": "Keep the legacy session cookie name?",
+        "answer": "No — rename to sid."
+      }
+    ],
+    "deviations": [
+      {
+        "task_id": 1,
+        "description": "Moved proration helper into src/a.ts",
+        "reason": "Avoid a circular import",
+        "resolution": "accepted"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 1,
+        "title": "login + proration",
+        "status": "done",
+        "commits": ["3f2c1ab"],
+        "rounds": {
+          "T": 3,
+          "C": 4,
+          "V": 2
+        },
+        "retries": {
+          "test_review": 1,
+          "code_review": 1,
+          "rgr": 1,
+          "verify": 1
+        },
+        "unblocks": 0,
+        "findings": {
+          "total": 6,
+          "by_state": {
+            "verified": 4,
+            "wont_fix_proposed": 1,
+            "open": 1
+          }
+        },
+        "human_actions": [],
+        "red_evidence": {
+          "ref": "T1/phase-test",
+          "excerpt": "FAIL tests/a.test.ts > login works\n  expected 200, received 401",
+          "truncated": false
+        },
+        "final_verification": {
+          "ref": "V2/phase-verify-task",
+          "excerpt": "bun test: 12 pass, 0 fail\ntsc --noEmit: clean",
+          "truncated": false
+        },
+        "requirements": [
+          {
+            "id": "AC-1",
+            "status": "satisfied",
+            "changes": [
+              {
+                "file": "tests/a.test.ts",
+                "action": "add",
+                "kind": "test"
+              },
+              {
+                "file": "src/auth/session.ts",
+                "action": "add",
+                "kind": "code"
+              }
+            ],
+            "verification": {
+              "by": "V2/phase-verify-task",
+              "result": "pass",
+              "test_count": 1
+            }
+          },
+          {
+            "id": "AC-2",
+            "status": "satisfied",
+            "changes": [
+              {
+                "file": "tests/a.test.ts",
+                "action": "add",
+                "kind": "test"
+              },
+              {
+                "file": "src/a.ts",
+                "action": "add",
+                "kind": "stub"
+              },
+              {
+                "file": "src/a.ts",
+                "action": "modify",
+                "kind": "code"
+              }
+            ],
+            "verification": {
+              "by": "V2/phase-verify-task",
+              "result": "pass",
+              "test_count": 1
+            }
+          }
+        ]
+      }
+    ],
+    "acceptance": [
+      {
+        "ac_id": "AC-1",
+        "text": "Then login succeeds",
+        "status": "satisfied",
+        "tasks": [
+          {
+            "task": 1,
+            "status": "satisfied"
+          }
+        ],
+        "files": ["tests/a.test.ts", "src/auth/session.ts"],
+        "tests": ["login works"],
+        "verified": true
+      },
+      {
+        "ac_id": "AC-2",
+        "text": "Then totals prorate",
+        "status": "satisfied",
+        "tasks": [
+          {
+            "task": 1,
+            "status": "satisfied"
+          }
+        ],
+        "files": ["tests/a.test.ts", "src/a.ts"],
+        "tests": ["prorates"],
+        "verified": true
+      }
+    ],
+    "accepted_risks": [
+      {
+        "kind": "unresolved",
+        "task_id": 1,
+        "requirement": "AC-1",
+        "finding_id": "F-003",
+        "state": "wont_fix_proposed",
+        "severity": "critical",
+        "advisory": true,
+        "issue": "A01 session not rotated",
+        "file": "src/auth/session.ts",
+        "raised": "C1/review-security",
+        "resolution": {
+          "by": "C2/phase-code",
+          "outcome": "wont_fix",
+          "note": "rotation handled by gateway"
+        }
+      },
+      {
+        "kind": "unresolved",
+        "task_id": 1,
+        "requirement": "AC-2",
+        "finding_id": "F-002",
+        "state": "open",
+        "severity": "warning",
+        "advisory": true,
+        "issue": "TC-2 fixture shares state",
+        "raised": "T1/review-test"
+      }
+    ]
+  }
+]

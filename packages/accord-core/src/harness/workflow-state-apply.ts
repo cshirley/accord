@@ -5,6 +5,7 @@
 import type { DevHarnessConfig } from "../config/index.js";
 import { runPostResultHandlerForAgent } from "../orchestration/post-result/registry.js";
 import {
+  annotateTaskAgentReturn,
   finalizeTaskAgentReturn,
   recordTaskAgentReturn,
 } from "../orchestration/task-agent-audit.js";
@@ -19,6 +20,8 @@ export type ApplyWorkflowStateInput = {
   subagentResult?: unknown;
   /** Pre-extracted analysis (recovery from sidecar). */
   analysis?: string;
+  /** `events[]` entries removed before validation (recorded on the sidecar + log entry). */
+  droppedEvents?: unknown[];
 };
 
 /**
@@ -34,7 +37,10 @@ export function applyWorkflowStateFromValidatedReturn(input: ApplyWorkflowStateI
       ? extractAnalysisFromSubagentResult(input.subagentResult)
       : undefined);
 
-  recordTaskAgentReturn(input.workItemId, input.agent, input.packet, analysis);
+  const ref = recordTaskAgentReturn(input.workItemId, input.agent, input.packet, analysis, {
+    validated: true,
+    ...(input.droppedEvents?.length ? { droppedEvents: input.droppedEvents } : {}),
+  });
 
   const footer = runPostResultHandlerForAgent(
     input.agent,
@@ -45,5 +51,10 @@ export function applyWorkflowStateFromValidatedReturn(input: ApplyWorkflowStateI
   );
 
   finalizeTaskAgentReturn(input.workItemId, input.agent, input.packet, analysis);
+  if (ref && input.droppedEvents?.length) {
+    annotateTaskAgentReturn(input.workItemId, ref, [
+      `${String(input.droppedEvents.length)} malformed event(s) dropped before validation — see sidecar dropped_events`,
+    ]);
+  }
   return footer;
 }
