@@ -20,6 +20,8 @@ When the brief has **no spec** (e.g. `/review` skill): review the diff only. Ski
 
 When `security_topology` is present: verify every new secret/env var in the diff uses the correct `tier` (`server-only` vs client-exposed).
 
+`telemetry_topology` is only ever inlined in the harness pipeline (never in standalone mode) — see the A09 row below for the cross-check it drives.
+
 ## Expected Input
 
 Orchestrator inlines:
@@ -27,6 +29,7 @@ Orchestrator inlines:
 - `git diff` + `git diff --name-only` (the changes to audit).
 - Spec `constraints` (security-relevant: auth model, rate limits, TLS, audit).
 - Spec `security_topology` when available (secret tiers, registry auth, required env vars).
+- Spec `telemetry_topology` when available (`log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`) — cross-check log fields against `security_topology.secrets` for PII/secret leakage.
 - Plan `task` object (for context on what the change claims to do).
 - `requirement_map` (harness pipeline): requirements (`AC-n`) with the files changed for each — set `ac_id` on findings when the file maps to one.
 - `## Prior security findings to recheck (advisory)` (retry rounds): your earlier findings by **`F-nnn` id**. Return `rechecks[]` `{finding_id, outcome: verified|reraised|dispute_upheld|wont_fix_accepted, note}` for each.
@@ -45,7 +48,7 @@ In the harness pipeline your findings are **advisory**: they are recorded under 
 | **A06 Vulnerable deps** | manifest/lockfile changes introducing known-vulnerable versions; unpinned CI actions |
 | **A07 Auth/ID failures** | missing rate limit on login, no MFA path, session fixation, JWT without exp/aud |
 | **A08 Software/Data integrity** | deserialising untrusted input, unsigned updates, prototype pollution |
-| **A09 Logging/monitoring gaps** | sensitive data in logs (token, password, PII), no audit on auth/payment, error stack to client |
+| **A09 Logging/monitoring gaps** | sensitive data in logs (token, password, PII), no audit on auth/payment, error stack to client. When `telemetry_topology` is present: cross-check every `log_events[].fields[]` entry against `security_topology.secrets[]` names and other sensitive/PII shapes — an overlap with absent or sentinel (`"none — no sensitive fields"`) `pii_redaction` is a finding (warning; critical if tied to a MUST AC) |
 | **A10 SSRF** | user-controlled URL fetched server-side without allowlist |
 | **Payment specifics** | card data logged, no idempotency key, currency mismatch, tax/discount computed client-side |
 | **Supply chain** | secrets in workflow files, `curl | bash`, typosquat package names, missing lockfile pin |

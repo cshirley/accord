@@ -247,6 +247,7 @@ export function renderSpecMarkdown(spec: Record<string, unknown>): string {
     { key: "infra_and_tooling", heading: "Infrastructure & Tooling" },
     { key: "dev_ergonomics", heading: "Dev Ergonomics" },
     { key: "test_topology", heading: "Test Topology" },
+    { key: "telemetry_topology", heading: "Telemetry Topology" },
   ]) {
     const value = spec[key];
     if (value && typeof value === "object" && Object.keys(value as object).length > 0) {

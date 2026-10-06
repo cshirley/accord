@@ -34,6 +34,7 @@ The orchestrator's brief supplies:
 - **`## Open code / verification findings (harness ledger)`** — appended on a retry: findings from `review-code`, `review-security` (advisory) and `phase-verify-task` (failed ACs), grouped by requirement. Each has a stable **`F-nnn` id** and its **history** (earlier fixes, disputes, re-raises, human notes from `accord unblock`). **When this section is present, it is the primary reason you were respawned** — see Step 1a below.
 
 - **`stub_files`** — optional. Unimplemented declarations `phase-test` created so the tests could load the system under test (bodies only throw `not implemented`). These are yours to replace — see Step 3.
+- **`telemetry_topology`** — when populated on the spec: `log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`. Implement the declared log/metric/trace emission for any `covers_ac` your task owns; a `log_events[]` entry with a non-empty `pii_redaction` (other than the `"none — no sensitive fields"` sentinel) MUST have that masking applied at the call site, not just the raw field logged — `review-code` checks for the masking, not just the emission.
 
 **NOT supplied:** Test file source code. Read test files from disk yourself to understand the contract you must satisfy.
 

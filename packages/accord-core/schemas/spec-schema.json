@@ -335,8 +335,15 @@
           "description": "Structured log events this work item must emit.",
           "items": {
             "type": "object",
-            "required": ["event", "level"],
+            "required": ["event", "level", "fields"],
             "additionalProperties": false,
+            "if": {
+              "properties": { "fields": { "minItems": 1 } },
+              "required": ["fields"]
+            },
+            "then": {
+              "required": ["pii_redaction"]
+            },
             "properties": {
               "event": {
                 "type": "string",
@@ -349,11 +356,12 @@
               "fields": {
                 "type": "array",
                 "items": { "type": "string" },
-                "description": "Structured fields attached to the event."
+                "description": "Structured fields attached to the event \u2014 declare every field even when empty. Any field that is user-identifying, authentication material, or payment data \u2014 not just env-var-shaped secrets \u2014 requires pii_redaction."
               },
               "pii_redaction": {
                 "type": "string",
-                "description": "Redaction/masking approach when any field overlaps security_topology.secrets or sensitive data. Required when applicable."
+                "minLength": 1,
+                "description": "Redaction/masking approach when any field is a secret, PII, or other sensitive data. Required whenever fields[] is non-empty \u2014 use 'none \u2014 no sensitive fields' when nothing needs masking, never leave absent. The sentinel is rejected by review-spec 7k if fields[] actually contains a secret/PII-shaped name."
               }
             }
           }
@@ -382,7 +390,8 @@
         },
         "trace_propagation": {
           "type": "string",
-          "description": "Trace/correlation-id propagation strategy, or 'none' with justification."
+          "not": { "pattern": "[hH][tT][tT][pP][sS]?://" },
+          "description": "Trace/correlation-id propagation strategy naming the inbound-trust boundary and outbound egress boundary (e.g. 'W3C traceparent on internal mesh calls only; stripped at the egress client for third-party APIs; inbound traceparent accepted but never trusted for authz'), or 'none' with justification. Never a credentialed collector URL \u2014 name the collector/env var instead."
         },
         "alerting": {
           "type": "array",
@@ -397,7 +406,9 @@
               },
               "channel": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "not": { "pattern": "[hH][tT][tT][pP][sS]?://" },
+                "description": "Logical destination name or env var holding the endpoint (e.g. '#oncall-auth', 'ALERT_WEBHOOK_URL') \u2014 never an inline webhook URL or routing key."
               }
             }
           }

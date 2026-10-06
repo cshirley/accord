@@ -28,8 +28,8 @@ Orchestrator inlines:
 - Spec fields: `constraints`, `resolved_questions`, `scope.in`, `scope.out`, `rejected_alternatives`, AC entries this task covers
 - When the public surface changes: `api_contract[]` entries whose `symbol` appears in the diff or task files
 - When populated: `deployment` (e.g. `dark_deploy`, rollout or feature-flag constraints)
-- Plan fields: `guidance`, `reuse_candidates`, the full task object (id, title, covers_ac, files[], steps[])
 - When populated: `telemetry_topology` (`log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`) — the contract for the Observability dimension below
+- Plan fields: `guidance`, `reuse_candidates`, the full task object (id, title, covers_ac, files[], steps[])
 - `stub_files` (when present): unimplemented declarations phase-test created pre-impl. Any surviving `not implemented` body in these files is a **critical** Step drift finding; they count as in-scope for File drift.
 - `requirement_map` (harness pipeline): each requirement (`AC-n`) with the files changed for it (`changes[]`). Set each finding's `ac_id` from the file it concerns (use `also_affects` when the file serves several ACs).
 - `## Prior code findings to recheck (harness ledger)` (retry rounds): your earlier findings by **`F-nnn` id** with their history (phase-code's `fixed`/`disputed`/`wont_fix` responses, human notes). See **Retry rounds** below.
@@ -46,7 +46,7 @@ Schemas of truth: Injected into your brief by the ACCORD extension as a `## Sche
 | Performance | allocations, N+1, unindexed queries, unbounded loops, connection pool exhaustion |
 | Code quality | duplication, convention violations, readability, dead code |
 | Existing patterns / local consistency | when the diff introduces or replaces helpers, utils, error mapping, HTTP/client wrappers, or similar: run targeted `grep`/`find` for the same concern in-repo; prefer extend or compose over parallel implementations. Default `suggestion`; `warning` for a clear duplicate module or public API. Skip when **Reuse compliance** drift already covers the same symbol via `reuse_candidates` |
-| Observability | When `telemetry_topology` is present: every `log_events[]` entry and `metrics[]` entry emitted as specified; `critical_path: true` metrics missing from the diff are drift, not style. When `telemetry_topology` is absent or empty (standalone mode, or spec predates this field): fall back to judgment — structured logging on error paths, metrics on critical operations, trace context propagation |
+| Observability | When `telemetry_topology` is present: every `log_events[]` entry and `metrics[]` entry emitted **and redacted** as specified (an event with a non-empty `pii_redaction` must have the diff apply that masking, not just emit the raw field); `critical_path: true` metrics missing from the diff are drift, not style. When `telemetry_topology` is absent or empty (standalone mode, or spec predates this field): fall back to judgment — structured logging on error paths, metrics on critical operations, trace context propagation |
 | API compatibility | breaking public API/signature changes without version or migration note |
 | Behavioral compatibility | same exported signature or route with changed semantics without version note or caller migration |
 | Migration safety | transactional migrations, idempotent backfills, rollback path for schema changes |

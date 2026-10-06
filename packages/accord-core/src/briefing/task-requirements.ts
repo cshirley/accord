@@ -92,6 +92,7 @@ export interface TaskRequirementsSlice {
   /** Requirement → changes map from the v2 task file (reviewers infer `ac_id` from it). */
   requirement_map?: Array<Record<string, unknown>>;
   security_topology?: unknown;
+  telemetry_topology?: unknown;
 }
 
 export function filterCoveredAcceptanceCriteria(
@@ -231,6 +232,9 @@ export function sliceTaskRequirements(
     ...(taskFile?.control.stub_files.length ? { stub_files: taskFile.control.stub_files } : {}),
     ...(taskFile ? { requirement_map: requirementMap(taskFile) } : {}),
     ...(spec.security_topology !== undefined ? { security_topology: spec.security_topology } : {}),
+    ...(spec.telemetry_topology !== undefined
+      ? { telemetry_topology: spec.telemetry_topology }
+      : {}),
   });
 }
 
@@ -417,6 +421,9 @@ function agentPayloadForSpawn(
     return {
       ...base,
       test_cases: slice.test_cases,
+      ...(slice.telemetry_topology !== undefined
+        ? { telemetry_topology: slice.telemetry_topology }
+        : {}),
       ...(isRetry
         ? {
             prior_round: {
@@ -435,6 +442,9 @@ function agentPayloadForSpawn(
       test_files: slice.test_files,
       ...(slice.stub_files?.length ? { stub_files: slice.stub_files } : {}),
       ...(slice.red_confirmed ? { red_confirmed: true } : {}),
+      ...(slice.telemetry_topology !== undefined
+        ? { telemetry_topology: slice.telemetry_topology }
+        : {}),
     };
   }
 
@@ -466,6 +476,9 @@ function agentPayloadForSpawn(
     return {
       ...base,
       security_topology: slice.security_topology,
+      ...(slice.telemetry_topology !== undefined
+        ? { telemetry_topology: slice.telemetry_topology }
+        : {}),
     };
   }
 
@@ -474,6 +487,9 @@ function agentPayloadForSpawn(
       ...base,
       test_files: slice.test_files,
       ...(slice.stub_files?.length ? { stub_files: slice.stub_files } : {}),
+      ...(slice.telemetry_topology !== undefined
+        ? { telemetry_topology: slice.telemetry_topology }
+        : {}),
     };
   }
 
