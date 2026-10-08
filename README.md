@@ -15,6 +15,30 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 
 ## What it does
 
+```mermaid
+flowchart LR
+  B["brief"] --> A["phase-align\n(interview)"]
+  A --> S["phase-spec"]
+  S --> RS{"review-spec"}
+  RS -->|issues| S
+  RS -->|clean| P["phase-plan"]
+  P --> RP{"review-plan"}
+  RP -->|issues| P
+  RP -->|clean| T
+  subgraph Crucible ["per-task RGR loop"]
+    T["phase-test"] --> C["phase-code"]
+    C -->|gating findings| T
+  end
+  T --> V["phase-verify-task\n(per-AC evidence)"]
+  V -->|AC fails| C
+  V -->|all pass| F["finalize\n+ verify.md"]
+```
+
+Each stage persists a schema-validated artifact (`brief.md` → `spec.json` → `plan.json` →
+`.tasks/` → `verify.json`); review agents gate the arrows backward. Full detail:
+[`okf/architecture/orchestration.md`](okf/architecture/orchestration.md) (resume loop) and
+[`okf/architecture/crucible-verification.md`](okf/architecture/crucible-verification.md) (RGR loop).
+
 - Takes a free-text request to `/dev` and routes it to the right pipeline (quick fix, full implement, investigate, infrastructure, analysis).
 - Persists every step as a validated artifact (`brief.md`, `spec.json`, `plan.json`, `verify.json`) so review and verification agents have something concrete to work against.
 - Runs preflight and post-step hooks (config guard, schema injection, gather/verify preflight, post-code verification, usage accounting) without the agent needing to know they exist.
