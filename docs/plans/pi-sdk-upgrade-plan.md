@@ -385,3 +385,30 @@ Resolve before Phase 2–3 land:
 | `createAgentSession` + `InMemorySessionStorage` | CI and subagent path intentionally use child `pi` processes |
 | `pi auth print-api-key` | CI credential export; separate from extension work |
 | `InlineExtension` typing | Package.json ergonomics only |
+
+---
+
+## Phase 6 — 0.83 → 1.1.0 bump
+
+**Objective:** Track Pi's jump to `1.1.0` (installed CLI); keep peers in lockstep.
+
+### Deliverables
+
+1. Bump `@earendil-works/{pi-agent-core,pi-ai,pi-coding-agent,pi-tui}` → `^1.1.0` in root and `packages/pi-{accord,git,integrations,subagent,thrift}/package.json`.
+2. Fix breaking type changes surfaced by `bun run check:types`:
+   - `ToolCall.arguments` / `AgentToolCallEventPart.arguments` narrowed from `Record<string, unknown>` to `pi-ai`'s `JsonObject` (recursive `JsonValue`, no `unknown`). Updated `packages/pi-subagent/src/events/handle.ts`, `packages/pi-subagent/src/progress/{activity-buffer,messages}.ts` to type/cast through `JsonObject` instead of `Record<string, unknown>`.
+   - `ToolRenderContext` gained required `durationMs` / `outputPad` fields. Updated `STUB_RENDER_CONTEXT` in `packages/pi-accord/src/subagent/chat-display.ts`.
+   - `execute-render.test.ts` passed an `ExtensionCommandContext`-shaped stub where `executeSubagentTool`'s 4th param is actually `ExtensionToolContext`; fixed the test's type annotation (no runtime change — both are structurally compatible stubs).
+3. `bun install` picked a stale `0.83.0` resolution from a cached `bun.lock` despite `^1.1.0` in `package.json`; deleting `bun.lock` and reinstalling resolved it to `1.1.0`.
+4. `bun run check` full green: 1138 tests, biome, schemas, assets, okf, types, bundle, runtime smoke.
+5. Incidental: `@biomejs/biome` resolved to `2.5.15` on reinstall; ran `biome migrate --write` to bump `biome.json`'s `$schema` and reformatted the two files biome's newer formatter flagged (`packages/pi-subagent/src/events/handle.ts`, `packages/accord-core/schemas/examples/phase-test.json`).
+6. Docs: `README.md`, `docs/local-development.md` now state Pi **≥ 1.1.0**.
+
+### Acceptance criteria
+
+- `bun run check` green on branch.
+- No remaining `^0.83.0` / `^0.83.x` Pi peer references in `package.json` files.
+
+### Status
+
+- [x] Complete — peers `^1.1.0`, `bun run check` green, docs note Pi ≥ 1.1.0.

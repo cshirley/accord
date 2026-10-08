@@ -1,4 +1,4 @@
-import type { Message } from "@earendil-works/pi-ai";
+import type { JsonObject, Message } from "@earendil-works/pi-ai";
 import { applyToolExecutionToMessages } from "./messages.js";
 import { extractToolOutputPreview, formatToolCall } from "./tool-format.js";
 import {
@@ -103,9 +103,7 @@ export class SubagentActivityBuffer {
     const tc = toolCall as Record<string, unknown>;
     const toolName = typeof tc.name === "string" ? tc.name : "tool";
     const toolArgs =
-      tc.arguments && typeof tc.arguments === "object"
-        ? (tc.arguments as Record<string, unknown>)
-        : {};
+      tc.arguments && typeof tc.arguments === "object" ? (tc.arguments as JsonObject) : {};
     const toolId = typeof tc.id === "string" ? tc.id : undefined;
 
     if (eventKind === "toolcall_start") {

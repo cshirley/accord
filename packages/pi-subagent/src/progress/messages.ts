@@ -1,11 +1,11 @@
-import type { Message } from "@earendil-works/pi-ai";
+import type { JsonObject, Message } from "@earendil-works/pi-ai";
 import type { DisplayItem } from "./types.js";
 
 /** Reflect a live tool_execution_* JSON event into messages for progress summaries. */
 export function applyToolExecutionToMessages(
   messages: Message[],
   toolName: string,
-  args: Record<string, unknown>,
+  args: JsonObject,
   toolCallId?: string,
 ): void {
   const id = toolCallId ?? `harness-${toolName}-${String(messages.length)}`;
@@ -43,12 +43,7 @@ export function mergeToolCallsFromAssistantMessage(messages: Message[], msg: Mes
     if (part.type !== "toolCall") {
       continue;
     }
-    applyToolExecutionToMessages(
-      messages,
-      part.name,
-      part.arguments as Record<string, unknown>,
-      part.id,
-    );
+    applyToolExecutionToMessages(messages, part.name, part.arguments, part.id);
   }
 }
 

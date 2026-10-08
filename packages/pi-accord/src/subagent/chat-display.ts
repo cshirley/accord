@@ -77,6 +77,8 @@ const STUB_RENDER_CONTEXT = {
   expanded: false,
   showImages: true,
   isError: false,
+  durationMs: 0,
+  outputPad: 0,
 };
 
 class OrchestratorSubagentChatRow extends Container {

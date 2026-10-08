@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, mock, test } from "bun:test";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionToolContext } from "@earendil-works/pi-coding-agent";
 import { discoverAgents } from "../src/agents.js";
 import { executeSubagentTool } from "../src/tool/execute.js";
 import { renderSubagentResult } from "../src/tool/render.js";
@@ -63,7 +63,7 @@ describe("executeSubagentTool output wiring", () => {
         cwd,
         hasUI: false,
         ui: { confirm: async () => true },
-      } as unknown as ExtensionCommandContext,
+      } as unknown as ExtensionToolContext,
     );
 
     const first = result.content[0];

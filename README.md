@@ -58,7 +58,7 @@ For the CI autopipeline (Jira-triggered, fully autonomous spec→PR), see the de
 
 This section is only for the **`/dev`-in-Pi** entry point: the `/dev` command, hooks, and bundled skills run inside the **Pi coding agent** terminal app. If you only want the headless **`accord` CLI** or **`accord-mcp`** server, skip to [`docs/accord-cli.md`](docs/accord-cli.md) — neither needs Pi installed, and both can drive implementation work through the `claude` or `cursor` harness instead of `pi`. To use `/dev` itself, install Pi first, then add this repo (see [Quickstart](#quickstart) below).
 
-**Requires Pi ≥ 0.83.0** (`@earendil-works/pi-coding-agent` and peer packages). Upgrade with `npm install -g @earendil-works/pi-coding-agent@latest` or the [pi.dev installer](https://pi.dev/install.sh) if your CLI is older.
+**Requires Pi ≥ 1.1.0** (`@earendil-works/pi-coding-agent` and peer packages). Upgrade with `npm install -g @earendil-works/pi-coding-agent@latest` or the [pi.dev installer](https://pi.dev/install.sh) if your CLI is older.
 
 **OpenRouter:** when routing OpenAI-compatible models through OpenRouter, set `compat.sessionAffinityFormat` to `"openrouter"` on those models in Pi `models.json` so session-affinity headers use `x-session-id` (Pi 0.83+). See Pi [models.md](https://github.com/earendil-works/pi-coding-agent/blob/main/docs/models.md#compat-fields).
 
