@@ -8,7 +8,10 @@
         "kind": "test",
         "ac_ids": ["AC-1", "AC-3"],
         "tc_ids": ["TC-1", "TC-3"],
-        "tests": ["ACCORD-1234/AC-1 refresh returns 401 for expired token", "ACCORD-1234/AC-3 refresh is rate limited"]
+        "tests": [
+          "ACCORD-1234/AC-1 refresh returns 401 for expired token",
+          "ACCORD-1234/AC-3 refresh is rate limited"
+        ]
       }
     ],
     "red_confirmed": true,
@@ -38,7 +41,10 @@
         "action": "modify",
         "kind": "test",
         "ac_ids": ["AC-2", "AC-4"],
-        "tests": ["ACCORD-1234/AC-2 prorates mid-cycle upgrade", "ACCORD-1234/AC-4 rejects negative seat delta"]
+        "tests": [
+          "ACCORD-1234/AC-2 prorates mid-cycle upgrade",
+          "ACCORD-1234/AC-4 rejects negative seat delta"
+        ]
       },
       {
         "file": "src/billing/proration.ts",

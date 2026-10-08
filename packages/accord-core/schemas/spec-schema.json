@@ -325,6 +325,96 @@
         }
       }
     },
+    "telemetry_topology": {
+      "type": "object",
+      "description": "Logging, metrics, tracing, and alerting requirements for this work item. Populate or justify in scope.out — never leave silent.",
+      "additionalProperties": false,
+      "properties": {
+        "log_events": {
+          "type": "array",
+          "description": "Structured log events this work item must emit.",
+          "items": {
+            "type": "object",
+            "required": ["event", "level", "fields"],
+            "additionalProperties": false,
+            "if": {
+              "properties": { "fields": { "minItems": 1 } },
+              "required": ["fields"]
+            },
+            "then": {
+              "required": ["pii_redaction"]
+            },
+            "properties": {
+              "event": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable event name/message, e.g. 'auth.refresh.failed'."
+              },
+              "level": {
+                "enum": ["debug", "info", "warn", "error"]
+              },
+              "fields": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Structured fields attached to the event \u2014 declare every field even when empty. Any field that is user-identifying, authentication material, or payment data \u2014 not just env-var-shaped secrets \u2014 requires pii_redaction."
+              },
+              "pii_redaction": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Redaction/masking approach when any field is a secret, PII, or other sensitive data. Required whenever fields[] is non-empty \u2014 use 'none \u2014 no sensitive fields' when nothing needs masking, never leave absent. The sentinel is rejected by review-spec 7k if fields[] actually contains a secret/PII-shaped name."
+              }
+            }
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics this work item must emit.",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "critical_path"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "enum": ["counter", "gauge", "histogram", "timer"]
+              },
+              "critical_path": {
+                "type": "boolean",
+                "description": "True when this metric covers a critical operation (per review-code's Observability dimension) — missing instrumentation here is a drift finding, not a style suggestion."
+              }
+            }
+          }
+        },
+        "trace_propagation": {
+          "type": "string",
+          "not": { "pattern": "[hH][tT][tT][pP][sS]?://" },
+          "description": "Trace/correlation-id propagation strategy naming the inbound-trust boundary and outbound egress boundary (e.g. 'W3C traceparent on internal mesh calls only; stripped at the egress client for third-party APIs; inbound traceparent accepted but never trusted for authz'), or 'none' with justification. Never a credentialed collector URL \u2014 name the collector/env var instead."
+        },
+        "alerting": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["condition", "channel"],
+            "additionalProperties": false,
+            "properties": {
+              "condition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "channel": {
+                "type": "string",
+                "minLength": 1,
+                "not": { "pattern": "[hH][tT][tT][pP][sS]?://" },
+                "description": "Logical destination name or env var holding the endpoint (e.g. '#oncall-auth', 'ALERT_WEBHOOK_URL') \u2014 never an inline webhook URL or routing key."
+              }
+            }
+          }
+        }
+      }
+    },
     "amendments": {
       "type": "array",
       "items": {

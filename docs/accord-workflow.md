@@ -404,7 +404,7 @@ The schema-validation, config-guard, and post-code-verification hooks are the st
 /dev tasks                   — dashboard: status, phase, cost per work item
 /dev deviations <ID>         — list/accept/revert deviations (review spawns review-deviation)
 /dev amend-spec <ID>         — core orchestrator: controlled spec amendment
-/dev spec-gaps <ID>          — 10-point spec checklist
+/dev spec-gaps <ID>          — 11-point spec checklist
 /dev retro                   — analyse harness sessions for shift-left improvements
 /dev tag                     — label session for usage analytics
 /dev help                    — list subcommands

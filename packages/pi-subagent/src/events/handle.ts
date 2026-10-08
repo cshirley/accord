@@ -2,7 +2,7 @@
  * Parse Pi JSON stream events from harness-spawned subagent processes.
  */
 
-import type { Message } from "@earendil-works/pi-ai";
+import type { JsonObject, Message } from "@earendil-works/pi-ai";
 import {
   applyToolExecutionToMessages,
   mergeToolCallsFromAssistantMessage,
@@ -75,7 +75,7 @@ export function handleSubagentJsonEvent(
         if (part.type !== "toolCall") {
           continue;
         }
-        activity.onToolStart(part.name, part.arguments as Record<string, unknown>);
+        activity.onToolStart(part.name, part.arguments as JsonObject);
       }
     }
     emitUpdate();
@@ -119,8 +119,7 @@ export function handleSubagentJsonEvent(
 
   if (eventType === "tool_execution_start") {
     const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
-    const toolArgs =
-      ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
+    const toolArgs = ev.args && typeof ev.args === "object" ? (ev.args as JsonObject) : {};
     const toolCallId = typeof ev.toolCallId === "string" ? ev.toolCallId : undefined;
     activity.onToolStart(toolName, toolArgs);
     onEvent?.({ type: "tool_start", toolName, args: toolArgs, toolCallId });
@@ -131,8 +130,7 @@ export function handleSubagentJsonEvent(
 
   if (eventType === "tool_execution_update") {
     const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
-    const toolArgs =
-      ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
+    const toolArgs = ev.args && typeof ev.args === "object" ? (ev.args as JsonObject) : {};
     activity.onToolUpdate(toolName, ev.partialResult);
     onEvent?.({ type: "tool_update", toolName, partialResult: ev.partialResult });
     applyToolExecutionToMessages(
@@ -147,8 +145,7 @@ export function handleSubagentJsonEvent(
 
   if (eventType === "tool_execution_end") {
     const toolName = typeof ev.toolName === "string" ? ev.toolName : "tool";
-    const toolArgs =
-      ev.args && typeof ev.args === "object" ? (ev.args as Record<string, unknown>) : {};
+    const toolArgs = ev.args && typeof ev.args === "object" ? (ev.args as JsonObject) : {};
     const toolCallId = typeof ev.toolCallId === "string" ? ev.toolCallId : undefined;
     const isError = ev.isError === true;
     activity.onToolEnd(toolName, toolArgs, isError);

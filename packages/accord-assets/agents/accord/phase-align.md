@@ -70,7 +70,7 @@ Each round follows a **reflect → probe → check** cycle:
 
 ## Coverage Dimensions
 
-The conversation should naturally cover these 9 dimensions (not as a checklist — organically through reflection and probing):
+The conversation should naturally cover these 10 dimensions (not as a checklist — organically through reflection and probing):
 
 | # | Dimension | What to understand |
 |---|---|---|
@@ -83,10 +83,11 @@ The conversation should naturally cover these 9 dimensions (not as a checklist �
 | 7 | Scale & Performance | Load expectations (current and projected), latency budgets, concurrency model, data volume and growth trajectory, peak traffic patterns, caching strategy, resource constraints |
 | 8 | Constraints | Timeline, budget, compatibility requirements, non-negotiable tech choices, team capacity/skills, regulatory deadlines |
 | 9 | Approach Direction | High-level strategy, key technical decisions, build vs buy vs extend, phasing/incremental delivery |
+| 10 | Telemetry & Observability | What needs to be observable in production (error rates, latency, business events), who consumes it (on-call, analytics, compliance audit trail), existing logging/metrics/tracing stack, alerting expectations |
 
 **Not all dimensions apply to every work item.** A docs change won't need Security & Data or Scale & Performance. When a dimension is clearly irrelevant, mark it `n/a` in the convergence tracking with a one-line justification. The user doesn't need to confirm irrelevant dimensions.
 
-On the first round, focus on dimensions 1–4 (problem, stakeholders, current state, desired outcome). Later rounds naturally progress to 5–9 as the nature of the work becomes clear.
+On the first round, focus on dimensions 1–4 (problem, stakeholders, current state, desired outcome). Later rounds naturally progress to 5–10 as the nature of the work becomes clear.
 
 ## Alignment Markers
 
@@ -269,6 +270,11 @@ peak patterns, caching strategy. Mark N/A with justification if irrelevant.>
 <High-level strategy agreed during alignment. Build/buy/extend. Phasing. Key technical decisions.
 Not a detailed design — a direction.
 When phasing or component boundaries are agreed, add one fenced mermaid diagram after the prose.>
+
+## Telemetry & Observability
+<What needs to be observable in production (error rates, latency, business events), who consumes it
+(on-call, analytics, compliance audit trail), existing logging/metrics/tracing stack, alerting expectations.
+Mark N/A with justification if irrelevant.>
 
 ## Open Questions
 <Anything contested or unaddressed. Bullet list. phase-spec will resolve these.>

@@ -42,7 +42,7 @@ sources:
 | `/dev deviations <ID>` | List / accept / revert / review plan deviations |
 | `/dev review [<ID>]` | Decision queue — answer pending questions in one pass |
 | `/dev tasks` | Dashboard: status, phase, cost per work item |
-| `/dev spec-gaps <ID>` | 10-point spec checklist |
+| `/dev spec-gaps <ID>` | 11-point spec checklist |
 | `/dev rehydrate <ID>` | Rebuild `.tasks/` state from `docs/dev/<ID>/` |
 | `/dev block <ID> <task> <reason>` | Force a task to `blocked` |
 | `/dev answer <ID> [<decision-id> "answer"]… [--force]` | Resolve pending `decisions[]` entries (no answers lists them); see [Answer pending decisions](/playbooks/answer-decisions.md) |

@@ -2,6 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> **Status: work in progress, not production-ready.** APIs, schemas, and CLI surfaces may change without notice. Use at your own risk; expect rough edges and breaking changes between commits.
+
 **ACCORD** is an agentic contract workflow (brief → spec → plan → verify) with a host-neutral core: run it inside Pi as the `/dev` command, headlessly via the **`accord` CLI**, or over stdio **MCP** (Cursor, etc.) — none of these require Pi. The Pi extension adds project configuration, schema validation, verification gating, usage tracking, and status bar updates via transparent event hooks so agents stay focused on their task; the CLI and MCP surfaces carry the same orchestration logic without it.
 
 > **ACCORD**: **Agentic Contract for Collaborative Objectives, Requirements, and Rigorous Delivery**
@@ -12,6 +14,30 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 > **Reach ACCORD. Enter the Crucible. Emerge with Oracles. Verify with Evidence.**
 
 ## What it does
+
+```mermaid
+flowchart LR
+  B["brief"] --> A["phase-align\n(interview)"]
+  A --> S["phase-spec"]
+  S --> RS{"review-spec"}
+  RS -->|issues| S
+  RS -->|clean| P["phase-plan"]
+  P --> RP{"review-plan"}
+  RP -->|issues| P
+  RP -->|clean| T
+  subgraph Crucible ["per-task RGR loop"]
+    T["phase-test"] --> C["phase-code"]
+    C -->|gating findings| T
+  end
+  T --> V["phase-verify-task\n(per-AC evidence)"]
+  V -->|AC fails| C
+  V -->|all pass| F["finalize\n+ verify.md"]
+```
+
+Each stage persists a schema-validated artifact (`brief.md` → `spec.json` → `plan.json` →
+`.tasks/` → `verify.json`); review agents gate the arrows backward. Full detail:
+[`okf/architecture/orchestration.md`](okf/architecture/orchestration.md) (resume loop) and
+[`okf/architecture/crucible-verification.md`](okf/architecture/crucible-verification.md) (RGR loop).
 
 - Takes a free-text request to `/dev` and routes it to the right pipeline (quick fix, full implement, investigate, infrastructure, analysis).
 - Persists every step as a validated artifact (`brief.md`, `spec.json`, `plan.json`, `verify.json`) so review and verification agents have something concrete to work against.
@@ -32,9 +58,9 @@ The adversarial spec/plan-to-test subsystem is named **Crucible** — _where int
 | [`docs/pipeline.md`](docs/pipeline.md)                   | …see the command flow and the per-pattern execution diagrams (standard, quick_fix, express, orchestrated, investigate, infra, analyse) plus pattern selection rules. |
 | [`docs/harness-orchestration.md`](docs/harness-orchestration.md) | …read the **target** design: workflow graph in core, deterministic routing, validation boundaries, thin Pi adapter, and phased migration off skill-driven orchestration. |
 | [`docs/plans/harness-orchestration-implementation-plan.md`](docs/plans/harness-orchestration-implementation-plan.md) | …follow the **build plan**: spikes, phases 1–7, acceptance criteria, feature flags, MCP options, and open decisions. |
-| [`docs/plans/pi-sdk-upgrade-plan.md`](docs/plans/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
+| [`docs/plans/pi-sdk-upgrade-plan.md`](docs/plans/pi-sdk-upgrade-plan.md) | …upgrade `@earendil-works/*` to 0.83.x then 1.1.0 and adopt Pi extension APIs (dynamic tools, scoped models, entry renderers, `agent_settled`). |
 | [`docs/plans/host-agnostic-plan.md`](docs/plans/host-agnostic-plan.md) | …make CLI, MCP, and agent runtimes Pi-optional (config paths, MCP extract, exec harness, hook parity). |
-| [`CHANGELOG.md`](CHANGELOG.md) | …see release notes for the Pi 0.83 upgrade (phases 0–5). |
+| [`CHANGELOG.md`](CHANGELOG.md) | …see release notes for the Pi 0.83 → 1.1.0 upgrade (phases 0–6). |
 | [`docs/artifacts.md`](docs/artifacts.md)                 | …know where work-item state and committed artifacts live on disk, plus the work-item-ID format.                                                                      |
 | [`docs/schemas.md`](docs/schemas.md)                     | …look up the JSON schema for any artifact or agent return packet.                                                                                                    |
 | [`docs/hooks-and-tools.md`](docs/hooks-and-tools.md)     | …trace what runs at each Pi lifecycle event and which `dev_*` tools the harness exposes (also over stdio MCP).                                                       |
@@ -58,7 +84,7 @@ For the CI autopipeline (Jira-triggered, fully autonomous spec→PR), see the de
 
 This section is only for the **`/dev`-in-Pi** entry point: the `/dev` command, hooks, and bundled skills run inside the **Pi coding agent** terminal app. If you only want the headless **`accord` CLI** or **`accord-mcp`** server, skip to [`docs/accord-cli.md`](docs/accord-cli.md) — neither needs Pi installed, and both can drive implementation work through the `claude` or `cursor` harness instead of `pi`. To use `/dev` itself, install Pi first, then add this repo (see [Quickstart](#quickstart) below).
 
-**Requires Pi ≥ 0.83.0** (`@earendil-works/pi-coding-agent` and peer packages). Upgrade with `npm install -g @earendil-works/pi-coding-agent@latest` or the [pi.dev installer](https://pi.dev/install.sh) if your CLI is older.
+**Requires Pi ≥ 1.1.0** (`@earendil-works/pi-coding-agent` and peer packages). Upgrade with `npm install -g @earendil-works/pi-coding-agent@latest` or the [pi.dev installer](https://pi.dev/install.sh) if your CLI is older.
 
 **OpenRouter:** when routing OpenAI-compatible models through OpenRouter, set `compat.sessionAffinityFormat` to `"openrouter"` on those models in Pi `models.json` so session-affinity headers use `x-session-id` (Pi 0.83+). See Pi [models.md](https://github.com/earendil-works/pi-coding-agent/blob/main/docs/models.md#compat-fields).
 
@@ -112,7 +138,7 @@ Use `pi list` to confirm Pi sees every entry.
 
 ### MCP servers used by bundled providers
 
-ACCORD’s bundled tracker/enrichment sidecars under [`packages/accord-assets/providers/`](assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
+ACCORD’s bundled tracker/enrichment sidecars under [`packages/accord-assets/providers/`](packages/accord-assets/providers/) list **optional** MCP tool names for gather. If **pi-mcp-adapter** (or any setup that exposes the same tool ids) is active, those names must resolve to real tools — which depends on the **server key** you give each server in `mcpServers` (the segment between `mcp__` and the next `__` in the id).
 
 | Provider                                      | `mcpTools` (from sidecars)                                                        | You typically configure…                                                                                                                                    |
 | --------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

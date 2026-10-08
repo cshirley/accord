@@ -1,5 +1,5 @@
 /**
- * Spec-gaps — 10-point checklist run deterministically against spec JSON.
+ * Spec-gaps — 11-point checklist run deterministically against spec JSON.
  */
 
 import * as fs from "node:fs";
@@ -50,26 +50,34 @@ export function devSpecGaps(id: string): Result<SpecGapsResult> {
   if (!spec) return err(`Spec not readable: ${specPath}`);
 
   const results: SpecGapResult[] = [];
-  const scopeOut = (
-    ((spec.scope as Record<string, unknown> | undefined)?.out as unknown[] | undefined) ?? []
-  ).map((e: unknown) =>
+  const scopeOutRaw =
+    ((spec.scope as Record<string, unknown> | undefined)?.out as unknown[] | undefined) ?? [];
+  const scopeOut = scopeOutRaw.map((e: unknown) =>
     typeof e === "string"
       ? e.toLowerCase()
       : String(
           (e as Record<string, unknown>).item || (e as Record<string, unknown>).reason || "",
         ).toLowerCase(),
   );
+  // Item-only (no reason fallback) for dimensions where a false out-of-scope match
+  // would silently drop a data-protection control (e.g. telemetry/redaction).
+  const scopeOutItemOnly = scopeOutRaw.map((e: unknown) =>
+    typeof e === "string"
+      ? e.toLowerCase()
+      : String((e as Record<string, unknown>).item || "").toLowerCase(),
+  );
   // Word-boundary match so e.g. keyword "ci" does not falsely match
   // "specific" or "explicit" inside a scope.out item.
-  const hasScope = (keyword: string) => {
+  const hasScope = (keyword: string, itemOnly = false) => {
     const re = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
-    return scopeOut.some((s: string) => re.test(s));
+    return (itemOnly ? scopeOutItemOnly : scopeOut).some((s: string) => re.test(s));
   };
 
   const infra = (spec.infra_and_tooling as Record<string, unknown> | undefined) ?? {};
   const security = (spec.security_topology as Record<string, unknown> | undefined) ?? {};
   const devErgo = (spec.dev_ergonomics as Record<string, unknown> | undefined) ?? {};
   const testTopo = (spec.test_topology as Record<string, unknown> | undefined) ?? {};
+  const telemetry = (spec.telemetry_topology as Record<string, unknown> | undefined) ?? {};
   const verification = (spec.verification as Record<string, unknown> | undefined) ?? {};
   const secrets = (security.secrets as unknown[] | undefined) ?? [];
   const commands = (verification.commands as string[] | undefined) ?? [];
@@ -367,6 +375,68 @@ export function devSpecGaps(id: string): Result<SpecGapsResult> {
       status: "violation",
       detail: "verification.commands lists e2e tool but no e2e-tier TC",
     });
+  }
+
+  // 11. Telemetry topology
+  const logEvents = (telemetry.log_events as unknown[] | undefined) ?? [];
+  const telemetryMetrics = (telemetry.metrics as unknown[] | undefined) ?? [];
+  const telemetryAlerting = (telemetry.alerting as unknown[] | undefined) ?? [];
+  const telemetryPopulated = Boolean(
+    logEvents.length ||
+      telemetryMetrics.length ||
+      telemetryAlerting.length ||
+      telemetry.trace_propagation,
+  );
+  const telemetryDetail = `${logEvents.length} log_events, ${telemetryMetrics.length} metrics, ${telemetryAlerting.length} alerting, trace: ${telemetry.trace_propagation ? "set" : "none"}`;
+  if (!telemetryPopulated && (hasScope("telemetry", true) || hasScope("observability", true))) {
+    results.push({
+      check: "Telemetry topology",
+      layer: "telemetry",
+      status: "out-of-scope",
+      detail: "scope.out entry",
+    });
+  } else if (!telemetryPopulated) {
+    results.push({
+      check: "Telemetry topology",
+      layer: "telemetry",
+      status: "silent",
+      detail: "telemetry_topology not populated",
+    });
+  } else {
+    // 11b. Telemetry-to-AC backing (critical_path metrics MUST have a backing architectural AC)
+    const criticalPathMetrics = telemetryMetrics.filter(
+      (m) => (m as Record<string, unknown>).critical_path === true,
+    );
+    const telemetryArchACs = ((spec.acceptance_criteria as unknown[] | undefined) ?? []).filter(
+      (ac) => (ac as Record<string, unknown>).type === "architectural",
+    );
+    const backedMetrics = criticalPathMetrics.filter((m) => {
+      const name = String((m as Record<string, unknown>).name || "");
+      return telemetryArchACs.some((ac) =>
+        new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(
+          String(
+            (ac as Record<string, unknown>).enforcement ||
+              (ac as Record<string, unknown>).criterion ||
+              "",
+          ),
+        ),
+      );
+    });
+    if (criticalPathMetrics.length === 0 || backedMetrics.length >= criticalPathMetrics.length) {
+      results.push({
+        check: "Telemetry topology",
+        layer: "telemetry",
+        status: "covered",
+        detail: telemetryDetail,
+      });
+    } else {
+      results.push({
+        check: "Telemetry topology",
+        layer: "telemetry",
+        status: "violation",
+        detail: `${criticalPathMetrics.length} critical_path metrics but only ${backedMetrics.length} backed by an architectural AC`,
+      });
+    }
   }
 
   const hasViolations = results.some((r) => r.status === "violation");

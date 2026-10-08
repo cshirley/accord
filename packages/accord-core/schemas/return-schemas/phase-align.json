@@ -21,6 +21,7 @@
         "scale_and_performance": { "type": "string" },
         "constraints": { "type": "array", "items": { "type": "string" } },
         "approach_direction": { "type": "string" },
+        "telemetry_and_observability": { "type": "string" },
         "open_questions": { "type": "array", "items": { "type": "string" } }
       }
     },
@@ -45,7 +46,8 @@
               "infrastructure_and_deployment",
               "scale_and_performance",
               "constraints",
-              "approach_direction"
+              "approach_direction",
+              "telemetry_and_observability"
             ]
           }
         }
@@ -81,7 +83,8 @@
               "infrastructure_and_deployment",
               "scale_and_performance",
               "constraints",
-              "approach_direction"
+              "approach_direction",
+              "telemetry_and_observability"
             ]
           }
         },
@@ -97,7 +100,8 @@
               "infrastructure_and_deployment",
               "scale_and_performance",
               "constraints",
-              "approach_direction"
+              "approach_direction",
+              "telemetry_and_observability"
             ]
           }
         },

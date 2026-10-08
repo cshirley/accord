@@ -1,5 +1,9 @@
 # Bundle Update Log
 
+## 2026-10-06
+
+* **Creation**: Telemetry/observability coverage closed from brief through code review. `phase-align.md` gains a 10th coverage dimension (`telemetry_and_observability`; `return-schemas/phase-align.json` + `examples/phase-align.json` updated). `phase-spec.md` gains topic 17 `telemetry_topology` (`log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`; new `spec-schema.json` property) \u2014 required items become an architectural AC or a justified `scope.out`, same as topics 13\u201316. `review-spec.md` 7b now includes `telemetry_topology` in the silent-omission check and gains 7j (metrics/log-events tied to `critical_path`/MUST ACs need a backing AC). `review-code.md`'s Observability dimension checks against `telemetry_topology` when present (AC-coverage drift, can reach `critical`) instead of pure judgment; falls back to the prior advisory behavior when the field is absent (standalone `/review`, or specs predating this change). Previously telemetry/logging requirements had no capture point before code review and could only be raised as a `suggestion`.
+
 ## 2026-10-01
 
 * **Update**: Committed implementation trace. `docs/dev/<ID>/trace.json` + `trace.md` (`trace-schema.json`, `packages/accord-core/src/artifacts/trace-artifact.ts`) project `.tasks/` into a reviewable record: per-AC implementation + verified tests, accepted/unresolved findings, decisions, deviations, task commits/rounds, first-RED and final-verify output excerpts. Written at task done, verify summary, and finalize. `verify.md` now merges the trace per AC and adds Tasks, Accepted risks, Decisions/deviations, and Discrepancies (verify vs trace) sections — the single review document. [Artifacts and state](/references/artifacts-and-state.md), [Schemas](/references/schemas.md), [Crucible verification](/architecture/crucible-verification.md) updated.

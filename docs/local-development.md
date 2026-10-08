@@ -4,7 +4,7 @@ How to make a checked-out copy of this repository run as your live `/dev` extens
 
 **Working on `accord-core` / `accord-cli` / `accord-mcp` only, without Pi?** Skip this page — `bun install`, then `bun run accord <command>` or `bun run mcp` from the repo root picks up local source directly; no Pi registration needed. See [`docs/accord-cli.md`](accord-cli.md). Everything below is specifically for the Pi `/dev` extension path.
 
-**Requires Pi ≥ 0.83.0** — peer dependencies target `@earendil-works/pi-coding-agent` **0.83.x**. Run `pi --version` (or `npm list -g @earendil-works/pi-coding-agent`) before registering this checkout; upgrade Pi if needed.
+**Requires Pi ≥ 1.1.0** — peer dependencies target `@earendil-works/pi-coding-agent` **1.1.x**. Run `pi --version` (or `npm list -g @earendil-works/pi-coding-agent`) before registering this checkout; upgrade Pi if needed.
 
 **Dynamic tools:** `ACCORD_DYNAMIC_TOOLS` defaults to on (core + phase bundles). Set `ACCORD_DYNAMIC_TOOLS=0` to expose every `dev_*` tool in the system prompt at all times (legacy behaviour).
 

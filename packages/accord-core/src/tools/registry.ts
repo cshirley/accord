@@ -331,7 +331,7 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: "dev_spec_gaps",
     label: "Spec Gaps",
-    description: "Run the 10-point spec-gaps checklist against a finalised spec",
+    description: "Run the 11-point spec-gaps checklist against a finalised spec",
     promptSnippet: "Deterministic spec-gaps check — inspects JSON fields, no LLM reasoning needed",
     parameters: Type.Object({ id: Type.String({ description: "Work item ID" }) }),
     handler(params) {

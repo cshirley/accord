@@ -36,6 +36,7 @@ The orchestrator's brief supplies:
 - **`requirement_map`** — this task's requirements (`AC-n`, text, test cases) with the files already changed for each (`changes[]`, `by` = the run that changed it).
 - **`## Open test findings (harness ledger)`** — appended on a retry. Grouped by requirement (AC): each finding has a stable **`F-nnn` id**, severity, file, recommendation, and its **history** (earlier fixes, disputes, re-raises, human notes from `accord unblock`). **When this section is present, it is the primary reason you were respawned** — see Step 1a below. Findings with `category: "import_only_red"` are raised by `<round>/harness` (deterministic Check 0 on your `test_output`), not by review-test. Human `note` entries are guidance — follow them.
 - **`prior_round`** — present on retries: `{test_files, stub_files, test_output}` from the previous round. These files already exist on disk — **edit them**, do not start over.
+- **`telemetry_topology`** — when populated on the spec: `log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`. For any `log_events[]` entry with a non-empty `pii_redaction` (other than the `"none — no sensitive fields"` sentinel) tied to an AC your task covers, assert the masking in a test — since `phase-code` never edits tests, this assertion is the only check that the redaction actually ships, not just the AC.
 
 ## Operating Rules
 
