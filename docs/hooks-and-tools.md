@@ -102,7 +102,7 @@ Bundles activate on `/dev` subcommands, bootstrap success, orchestration dispatc
 | `dev_checkpoint` | `packages/accord-core/src/work-items/checkpoint.ts` | Read/write/delete checkpoint for multi-turn phases |
 | `dev_review_queue` | `packages/accord-core/src/queries/review-queue.ts` | Pending decisions + deviations across all work items |
 | `dev_promote_events` | `packages/accord-core/src/work-items/lifecycle.ts` | Promote task events to work item (escalations → decisions, deviations → deviations) |
-| `dev_spec_gaps` | `packages/accord-core/src/queries/spec-gaps.ts` | 10-point checklist against spec JSON |
+| `dev_spec_gaps` | `packages/accord-core/src/queries/spec-gaps.ts` | 11-point checklist against spec JSON |
 | `dev_code_brief` | `packages/accord-core/src/briefing/code-brief.ts` | Assemble phase-code brief from spec + plan + task + brief |
 | `dev_resume_state` | `packages/accord-core/src/queries/resume-state.ts` | Phase + checkpoint presence for dispatch routing |
 | `dev_work_item_status` | `packages/accord-core/src/queries/work-item-status.ts` | Single work item: tasks, next resume agent, `/dev finish` nudge; rehydrates + reconciles coarse phase |
