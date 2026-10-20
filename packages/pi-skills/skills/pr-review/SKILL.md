@@ -41,7 +41,29 @@ State the base branch, shard count and skipped files to the user. Stop if it ret
 
 `details.tasks` holds one task per shard and agent, each with `agent`, `task`, `cwd` and `shard`.
 
-Run them as **single-agent `subagent` calls fired concurrently** (for example `Promise.allSettled` in `codemode`), at most 4 at a time, passing `agentFile` (`~/.config/pi/agent/agents/accord/<agent>.md`), `cwd` from the task, `model` from the task when it has one, and the task text unchanged. Do not use `subagent` `tasks[]` parallel mode: it returns only a one-line preview per agent, not the return packet.
+Run them as **single-agent `subagent` calls, keeping 4 in flight**: a rolling pool, not batches of 4. When a task finishes, start the next at once, so one slow task never idles the other slots. Pass `agentFile` (`~/.config/pi/agent/agents/accord/<agent>.md`), `cwd` from the task, `model` from the task when it has one, and the task text unchanged. Do not use `subagent` `tasks[]` parallel mode: it returns only a one-line preview per agent, not the return packet.
+
+In `codemode`, a pool is a few lines (results stay in task order; each task's failure is recorded, not thrown):
+
+```js
+const results = new Array(tasks.length);
+let next = 0;
+const worker = async () => {
+  while (next < tasks.length) {
+    const i = next++;
+    const t = tasks[i];
+    try {
+      const output = await tools.subagent({ agent: t.agent, agentFile: DIR + t.agent + ".md", task: t.task, cwd: t.cwd, model: t.model, thinking: "high", timeoutMs: 1500000 });
+      results[i] = { shard: t.shard, run: t.run, agent: t.agent, exitCode: 0, output };
+    } catch (e) {
+      results[i] = { shard: t.shard, run: t.run, agent: t.agent, exitCode: 1, output: "", stderr: String(e).slice(0, 300) };
+    }
+  }
+};
+await Promise.all(Array.from({ length: 4 }, worker));
+```
+
+Four is a convention, not a measured limit: it keeps machine load modest and stays clear of provider rate limits. Do not raise it without checking.
 
 The agents' own tier models fail on some providers (on github-copilot with `model_not_supported`; probably because the profile in `subagent.json` uses dashed ids such as `claude-sonnet-5-5` where Copilot lists dotted ones such as `claude-sonnet-5.5`, which has not been tested). So always pass a `model`: the task's, or else the session's own. Pass `thinking: "high"`. If a task's model is not available, say so, run that task with the session's model, and note the substitution in the summary.
 

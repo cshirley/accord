@@ -18,6 +18,9 @@ import gitCommitExecute from "./defs/git-commit-execute.js";
 import gitReviewContext from "./defs/git-review-context.js";
 import gitReviewTasks from "./defs/git-review-tasks.js";
 import gitWorktreeResolve from "./defs/git-worktree-resolve.js";
+import prReviewContext from "./defs/pr-review-context.js";
+import prReviewPost from "./defs/pr-review-post.js";
+import prReviewReport from "./defs/pr-review-report.js";
 import repoHarnessContext from "./defs/repo-harness-context.js";
 import repoVerify from "./defs/repo-verify.js";
 import { initGitDynamicTools } from "./dynamic-tools.js";
@@ -35,6 +38,9 @@ export default function gitExtension(pi: ExtensionAPI) {
     ghCiContext,
     gitReviewContext,
     gitReviewTasks,
+    prReviewContext,
+    prReviewPost,
+    prReviewReport,
     repoHarnessContext,
     repoVerify,
     gitWorktreeResolve,
