@@ -22,12 +22,7 @@
 
 import * as path from "node:path";
 
-const PRICING_PATH = path.join(
-  import.meta.dir,
-  "..",
-  "schemas",
-  "model-pricing.json",
-);
+const PRICING_PATH = path.join(import.meta.dir, "..", "schemas", "model-pricing.json");
 
 interface PricingEntry {
   input: number;
@@ -140,9 +135,7 @@ async function fetchPricing(file: PricingFile, addMissing: boolean, dryRun: bool
   }
 
   if (skipped.length > 0) {
-    console.log(
-      `Skipped (not in LiteLLM as direct anthropic rates): ${skipped.sort().join(", ")}`,
-    );
+    console.log(`Skipped (not in LiteLLM as direct anthropic rates): ${skipped.sort().join(", ")}`);
   }
 
   if (dryRun || changes.length === 0) return false;
@@ -181,7 +174,11 @@ async function main() {
   }
 
   if (args.fetch) {
-    const changed = await fetchPricing(file, Boolean(args["add-missing"]), Boolean(args["dry-run"]));
+    const changed = await fetchPricing(
+      file,
+      Boolean(args["add-missing"]),
+      Boolean(args["dry-run"]),
+    );
     if (!changed) return;
     file.updated = todayUtc();
     validate(file);
@@ -193,7 +190,7 @@ async function main() {
   const model = args.model;
   if (typeof model !== "string") {
     console.error(
-      "Usage: bun run update:model-pricing -- --model <id> --input <n> --output <n> [--notes \"...\"]",
+      'Usage: bun run update:model-pricing -- --model <id> --input <n> --output <n> [--notes "..."]',
     );
     console.error("       bun run update:model-pricing -- --model <id> --delete");
     console.error("       bun run update:model-pricing -- --list");
