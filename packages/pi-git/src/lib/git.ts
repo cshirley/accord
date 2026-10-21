@@ -28,7 +28,7 @@ export async function git(args: string[], cwd: string, signal?: AbortSignal): Pr
   const { stdout } = await execFile("git", args, {
     cwd,
     signal,
-    maxBuffer: 10 * 1024 * 1024,
+    maxBuffer: 64 * 1024 * 1024,
   });
   return stdout;
 }

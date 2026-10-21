@@ -36,7 +36,12 @@ export default defineTool<Params>({
   promptSnippet: "Prepare a PR for sharded review (worktree, shards, tasks)",
   params: {
     pr: { type: "string", description: "PR number or URL" },
-    max_shards: { type: "number", required: false, description: "Shard cap (default 4)" },
+    max_shards: {
+      type: "number",
+      required: false,
+      description:
+        "Shard count safety cap (default 24). The count is ceil(total / budget_kb), so the cap only bites on huge PRs.",
+    },
     budget_kb: {
       type: "number",
       required: false,

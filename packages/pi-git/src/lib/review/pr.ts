@@ -11,6 +11,8 @@ import {
   buildPendingReviewPayload,
   buildPrManifest,
   buildPrReviewTasks,
+  type DanglingHit,
+  danglingTerms,
   type PrFileDiff,
   type PrMeta,
   type PrReviewTask,
@@ -104,6 +106,70 @@ export function parsePrNumber(input: unknown): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
+/**
+ * `gh pr diff` refuses a diff over 20,000 lines (HTTP 406 "too_large"), which is exactly the PR
+ * that most needs a sharded review. Fall back to a local three-dot diff, which is what GitHub
+ * shows for a PR (merge-base to head), with rename detection.
+ */
+export async function fetchPrDiff(
+  root: string,
+  number: number,
+  base: string,
+  headOid: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  try {
+    return await gh(["pr", "diff", String(number)], root, signal);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/too_large|exceeded the maximum number of lines|HTTP 406/.test(msg)) throw err;
+  }
+  await git(["fetch", "origin", `pull/${String(number)}/head`], root, signal);
+  await git(["fetch", "origin", base], root, signal);
+  return git(
+    ["diff", "--no-color", "--no-ext-diff", "--find-renames", `origin/${base}...${headOid}`],
+    root,
+    signal,
+  );
+}
+
+const MAX_DANGLING_FILES = 200;
+const MAX_HITS_PER_FILE = 5;
+
+/**
+ * What in the head checkout still points at a deleted or renamed-away file. The risk in a delete
+ * is its dependants, not its old content, so this is the review of it. Deterministic and cheap.
+ */
+export async function findDanglingReferences(
+  checkout: string,
+  stubbed: PrShardPlan["stubbed"],
+  signal?: AbortSignal,
+): Promise<DanglingHit[]> {
+  const out: DanglingHit[] = [];
+  for (const f of stubbed.slice(0, MAX_DANGLING_FILES)) {
+    const terms = danglingTerms(f.oldPath);
+    const hits = new Set<string>();
+    const run = async (mode: "-F" | "-E", patterns: string[]): Promise<void> => {
+      try {
+        const res = await git(
+          ["grep", "-n", "-I", mode, ...patterns.flatMap((t) => ["-e", t]), "--", "."],
+          checkout,
+          signal,
+        );
+        for (const line of res.split("\n")) {
+          if (line.trim() && hits.size < MAX_HITS_PER_FILE) hits.add(line.slice(0, 200));
+        }
+      } catch {
+        // git grep exits 1 on no match
+      }
+    };
+    await run("-F", terms.fixed);
+    if (terms.regex) await run("-E", [terms.regex]);
+    out.push({ path: f.path, oldPath: f.oldPath, kind: f.kind, hits: [...hits] });
+  }
+  return out;
+}
+
 export async function runPrReviewContext(
   cwd: string,
   params: PrReviewContextParams,
@@ -131,7 +197,7 @@ export async function runPrReviewContext(
     return { text: `PR #${String(number)} is ${view.state}; nothing to review.`, isError: true };
   }
 
-  const raw = await gh(["pr", "diff", String(number)], root, signal);
+  const raw = await fetchPrDiff(root, number, view.baseRefName, view.headRefOid, signal);
   const files: PrFileDiff[] = splitDiffByFile(raw);
   if (files.length === 0)
     return { text: `PR #${String(number)} has an empty diff.`, isError: true };
@@ -161,7 +227,8 @@ export async function runPrReviewContext(
   const shardPaths = await writePrShardFiles(tempDir, files, plan);
   const manifestPath = join(tempDir, "manifest.md");
   const checkout = worktree ?? root;
-  await writeFile(manifestPath, buildPrManifest({ pr: view, plan, worktree: checkout }));
+  const dangling = await findDanglingReferences(checkout, plan.stubbed, signal);
+  await writeFile(manifestPath, buildPrManifest({ pr: view, plan, worktree: checkout, dangling }));
   const models = resolvePrReviewModels(params);
   const runCount = models ? models.length : clampRuns(params.runs);
   const tasks = buildPrReviewTasks({
@@ -209,13 +276,24 @@ export async function runPrReviewContext(
     ),
   );
 
+  const budgetKb = params.budget_kb ?? 60;
   const lines = [
     `PR #${String(number)} "${view.title}" (${view.isDraft ? "draft" : "ready"}), base ${view.baseRefName}, head ${view.headRefOid.slice(0, 9)}`,
     `${String(files.length)} files: ${String(plan.shards.reduce((n, s) => n + s.files.length, 0))} in ${String(plan.shards.length)} shard(s), ${String(plan.skipped.length)} generated skipped. Partition verified.`,
     ...plan.shards.map(
       (s) =>
-        `  shard ${String(s.index)}: ${String(s.files.length)} files, ${String(s.bytes)} bytes`,
+        `  shard ${String(s.index)}: ${String(s.files.length)} files, ${String(s.bytes)} bytes (review weight ${String(s.weight)})`,
     ),
+    ...(plan.overBudget.length
+      ? [
+          `WARNING: shard(s) ${plan.overBudget.join(", ")} exceed the ${String(Math.round(budgetKb))} KiB budget by over 25% (shard cap or an oversized file); review there is shallower. Raise max_shards or read those shards' findings with care.`,
+        ]
+      : []),
+    ...(plan.stubbed.length
+      ? [
+          `${String(plan.stubbed.length)} deleted/renamed file(s) shown as stubs; ${String(dangling.filter((d) => d.hits.length > 0).length)} still referenced (see manifest).`,
+        ]
+      : []),
     ...(plan.oversized.length ? [`Oversized (kept whole): ${plan.oversized.join(", ")}`] : []),
     `Worktree: ${worktree ?? "(none; reviewers read the shard files only)"}`,
     `Temp dir (delete when done): ${tempDir}`,

@@ -12,12 +12,16 @@ import {
   checkPrCoverage,
   DEFAULT_SHARD_BUDGET_BYTES,
   DEFAULT_SINGLE_SHARD_MAX_FILES,
+  danglingTerms,
   isGeneratedReviewFile,
+  likelyMoves,
   mergeFindingsByLocation,
   type PrFileDiff,
   planPrShards,
+  reviewDiffOf,
   splitDiffByFile,
   synthesizePrReviewReport,
+  weightOf,
   writePrShardFiles,
 } from "../src/review/pr.js";
 
@@ -81,7 +85,7 @@ describe("planPrShards", () => {
       ...["a", "b", "c"].map((n) => mkFile(`pkg/two/${n}.ts`, 30_000)),
       mkFile("pnpm-lock.yaml", 500_000),
     ];
-    const plan = planPrShards(files, { budgetBytes: 100_000, maxShards: 3 });
+    const plan = planPrShards(files, { budgetBytes: 200_000, maxShards: 3 });
     expect(plan.shards.length).toBeGreaterThan(1);
     expect(plan.shards.length).toBeLessThanOrEqual(3);
     expect(plan.skipped).toEqual(["pnpm-lock.yaml"]);
@@ -101,6 +105,21 @@ describe("planPrShards", () => {
     const plan = planPrShards(files, { budgetBytes: 80_000, maxShards: 2 });
     const shardOf = (p: string) => plan.shards.find((s) => s.files.includes(p))?.index;
     expect(shardOf("test/verify.test.ts")).toBe(shardOf("src/auth/verify.ts"));
+  });
+
+  test("shard count follows size: no cap at 4, shards stay near budget", () => {
+    // ~600 KB in one directory: previously 4 shards of ~150 KB.
+    const files = Array.from({ length: 30 }, (_, i) => mkFile(`big/f${String(i)}.ts`, 20_000));
+    const plan = planPrShards(files, { budgetBytes: 60 * 1024 });
+    expect(plan.shards.length).toBeGreaterThan(4);
+    expect(plan.overBudget).toEqual([]);
+    expect(() => assertShardPartition(files, plan)).not.toThrow();
+  });
+
+  test("a cap that forces shards over budget is reported", () => {
+    const files = Array.from({ length: 12 }, (_, i) => mkFile(`d${String(i)}/f.ts`, 50_000));
+    const plan = planPrShards(files, { budgetBytes: 60_000, maxShards: 2 });
+    expect(plan.overBudget.length).toBeGreaterThan(0);
   });
 
   test("same input gives the same shards", () => {
@@ -123,7 +142,7 @@ describe("planPrShards", () => {
 
 describe("assertShardPartition", () => {
   const files = [mkFile("a.ts"), mkFile("b.ts")];
-  const shard = (index: number, fs: string[]) => ({ index, files: fs, bytes: 0 });
+  const shard = (index: number, fs: string[]) => ({ index, files: fs, bytes: 0, weight: 0 });
   test("rejects a missing file", () => {
     expect(() =>
       assertShardPartition(files, { shards: [shard(1, ["a.ts"])], skipped: [], oversized: [] }),
@@ -662,5 +681,82 @@ describe("models per run", () => {
       totalRuns: 2,
     });
     expect(payload.comments[0]?.body).toContain("claude-opus-5.5, gpt-5.6-sol");
+  });
+});
+
+describe("deletes and renames", () => {
+  const deleted = `diff --git a/src/old/legacy.ts b/src/old/legacy.ts
+deleted file mode 100644
+--- a/src/old/legacy.ts
++++ /dev/null
+@@ -1,3 +0,0 @@
+-a
+-b
+-c
+`;
+  const renamed = `diff --git a/src/a.ts b/src/b.ts
+similarity index 100%
+rename from src/a.ts
+rename to src/b.ts
+`;
+  const edited = `diff --git a/src/x.ts b/src/x.ts
+--- a/src/x.ts
++++ b/src/x.ts
+@@ -1,2 +1,2 @@
+-${"r".repeat(1000)}
++${"n".repeat(1000)}
+`;
+
+  test("split classifies deleted, exact-rename and modified files", () => {
+    const [d, r, m] = splitDiffByFile(deleted + renamed + edited);
+    expect([d?.kind, d?.removed, d?.oldPath]).toEqual(["deleted", 3, "src/old/legacy.ts"]);
+    expect([r?.kind, r?.oldPath, r?.path]).toEqual(["renamed", "src/a.ts", "src/b.ts"]);
+    expect([m?.kind, m?.added, m?.removed]).toEqual(["modified", 1, 1]);
+  });
+
+  test("deletes and renames are stubbed; removed lines weigh a tenth", () => {
+    const [d, r, m] = splitDiffByFile(deleted + renamed + edited);
+    expect(reviewDiffOf(d as PrFileDiff)).toContain("content omitted");
+    expect(reviewDiffOf(r as PrFileDiff)).toContain("exact rename");
+    expect(reviewDiffOf(m as PrFileDiff)).toBe((m as PrFileDiff).diff);
+    const w = weightOf(m as PrFileDiff);
+    expect(w).toBeLessThan((m as PrFileDiff).bytes * 0.6);
+    expect(w).toBeGreaterThan(1000);
+  });
+
+  test("a delete-heavy PR gets few shards, and the partition still holds", () => {
+    const gone = Array.from({ length: 40 }, (_, i) => {
+      const body = Array.from({ length: 200 }, () => `-${"x".repeat(40)}`).join("\n");
+      const path = `old/f${String(i)}.ts`;
+      const diff = `diff --git a/${path} b/${path}\ndeleted file mode 100644\n--- a/${path}\n+++ /dev/null\n@@ -1,200 +0,0 @@\n${body}\n`;
+      return splitDiffByFile(diff)[0] as PrFileDiff;
+    });
+    const plan = planPrShards(gone);
+    expect(plan.shards.length).toBe(1);
+    expect(plan.stubbed).toHaveLength(40);
+    expect(() => assertShardPartition(gone, plan)).not.toThrow();
+  });
+
+  test("a deleted file whose name is added elsewhere is a likely move", () => {
+    const add = (p: string) =>
+      splitDiffByFile(
+        `diff --git a/${p} b/${p}\nnew file mode 100644\n--- /dev/null\n+++ b/${p}\n@@ -0,0 +1 @@\n+x\n`,
+      )[0] as PrFileDiff;
+    const [d] = splitDiffByFile(deleted);
+    const moves = likelyMoves([d as PrFileDiff, add("pkg/new/legacy.ts"), add("pkg/new/other.ts")]);
+    expect(moves.get("src/old/legacy.ts")).toEqual(["pkg/new/legacy.ts"]);
+  });
+
+  test("dangling terms: path, import tail, folder for index, none for generic stems", () => {
+    expect(danglingTerms("src/http/router.ts").fixed).toEqual(["src/http/router.ts"]);
+    expect(danglingTerms("src/http/router.ts").regex).toContain("router");
+    expect(danglingTerms("src/auth/index.ts").regex).toContain("auth");
+    expect(danglingTerms("src/utils.ts").regex).toBeNull();
+    const re = new RegExp(danglingTerms("src/access/roles.ts").regex as string);
+    expect(re.test(`import x from "../src/access/roles.ts";`)).toBe(true);
+    expect(re.test(`import "./themes/roles.css";`)).toBe(false);
+    expect(re.test(`get("/v1/tax/roles")`)).toBe(false);
+    expect(re.test("type R = P['roles'];")).toBe(false);
+    expect(re.test("| `roles.ts` | Each role |")).toBe(false);
   });
 });

@@ -22,7 +22,7 @@ Call `search_accord_tools` first if a tool is not active (`pr_review_context`, `
 
 ## Step 1: Prepare
 
-Call **`pr_review_context`** with `pr` (number or URL). Optional: `max_shards` (default 4), `budget_kb` (default 60), `single_shard_max_files` (default 20), `runs` (1 to 3, default 2), `models` (one per run, up to 3), `lens` (default true), `worktree: false`. A PR is one shard only when it is at most 20 files and 60 KiB; reviewers go less deeply on bigger diffs (a 127 KB PR reviewed whole missed findings that three shards caught), so raise these only for a quick look.
+Call **`pr_review_context`** with `pr` (number or URL). Optional: `max_shards` (safety cap, default 24), `budget_kb` (default 60), `single_shard_max_files` (default 20), `runs` (1 to 3, default 2), `models` (one per run, up to 3), `lens` (default true), `worktree: false`. A PR is one shard only when it is at most 20 files and 60 KiB; reviewers go less deeply on bigger diffs (a 127 KB PR reviewed whole missed findings that three shards caught), so raise these only for a quick look.
 
 **Runs and models.** Reviewer output varies from run to run, so every task is run twice by default and the results merged by location. On PR 449, one sonnet run found about 49% of the locations that three runs found, and two sonnet runs about 77%. Different models make different mistakes, so a mixed pair does better still: one opus run found more than any sonnet run (30 against about 23 of 62 warning-or-above locations), and opus plus one sonnet run found about 38, against about 33 for two sonnet runs.
 
@@ -32,6 +32,8 @@ Call **`pr_review_context`** with `pr` (number or URL). Optional: `max_shards` (
 - **Cost:** opus took about 230 s per task against about 145 s for sonnet, and costs about 1.7 times per token. Each posted comment says how many runs, and which models, reported it, so a finding from one run is visibly lower confidence.
 
 **Lens.** Each brief carries a per-agent lens (STRIDE for `review-security`; doc-versus-code and no finding cap for `review-code`; no-spec checks for `review-test`) and an explicit return shape. `lens: false` gives the bare briefs, for comparison.
+
+Shard count is `ceil(total / budget)`, so every shard stays near `budget_kb` however large the PR; a directory bigger than one budget is split by file (a source keeps its tests). If the cap or one huge file forces a shard over budget, the output says `WARNING: shard(s) N exceed ...`: treat findings there as shallower and say so in the summary.
 
 It reads the PR from its own base (so a stacked PR is reviewed against its parent), creates a detached head worktree beside the repo, splits the diff per file, skips generated files, groups files by directory with tests beside their source, and writes shard files and a manifest. It fails if the shard partition is not exact (every file in exactly one shard, bytes equal), if the PR is not open, or if the worktree path already exists. It never reuses or forces a path.
 

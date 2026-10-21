@@ -21,7 +21,125 @@ import {
 
 // ── Diff split ──────────────────────────────────────────────────────────────
 
-export type PrFileDiff = { path: string; diff: string; bytes: number };
+export type PrFileKind = "modified" | "deleted" | "renamed";
+
+export type PrFileDiff = {
+  path: string;
+  diff: string;
+  bytes: number;
+  /** Set by {@link splitDiffByFile}; absent (= modified) on hand-built entries. */
+  kind?: PrFileKind;
+  /** Previous path of a pure rename, or the deleted path. */
+  oldPath?: string;
+  added?: number;
+  removed?: number;
+};
+
+/** Removed lines are cheap to review: weight them at this fraction of an added line. */
+export const REMOVED_LINE_WEIGHT = 0.1;
+
+function classifyDiff(part: string): Pick<PrFileDiff, "kind" | "oldPath" | "added" | "removed"> {
+  let added = 0;
+  let removed = 0;
+  let inHunk = false;
+  for (const line of part.split("\n")) {
+    if (line.startsWith("@@")) inHunk = true;
+    else if (!inHunk) continue;
+    else if (line.startsWith("+")) added++;
+    else if (line.startsWith("-")) removed++;
+  }
+  const header = part.slice(0, part.search(/^@@/m) >= 0 ? part.search(/^@@/m) : part.length);
+  const from = /^rename from (.+)$/m.exec(header)?.[1];
+  if (/^deleted file mode/m.test(header)) {
+    const m = /^diff --git a\/(.+) b\//.exec(header);
+    return { kind: "deleted", ...(m?.[1] ? { oldPath: m[1] } : {}), added, removed };
+  }
+  if (from && /^similarity index 100%/m.test(header) && added === 0 && removed === 0) {
+    return { kind: "renamed", oldPath: from, added, removed };
+  }
+  return { kind: "modified", added, removed };
+}
+
+/**
+ * What a reviewer is shown for a file: the full diff, except a whole-file delete or an exact
+ * rename, where the content is unchanged or gone and reading it adds nothing. Those become a
+ * stub; the manifest lists what still refers to them.
+ */
+export function reviewDiffOf(f: PrFileDiff): string {
+  if (f.kind === "deleted")
+    return `diff --git a/${f.oldPath ?? f.path} b/${f.oldPath ?? f.path}\n[file deleted: ${String(f.removed ?? 0)} lines removed; content omitted. Check the manifest's dangling-reference list for what still points at it.]\n`;
+  if (f.kind === "renamed")
+    return `diff --git a/${f.oldPath ?? ""} b/${f.path}\n[exact rename from ${f.oldPath ?? "?"}; content unchanged and omitted.]\n`;
+  return f.diff;
+}
+
+/** Review effort of a file in bytes: removed lines count {@link REMOVED_LINE_WEIGHT}. */
+export function weightOf(f: PrFileDiff): number {
+  if (f.kind === "deleted" || f.kind === "renamed") return Buffer.byteLength(reviewDiffOf(f));
+  let n = 0;
+  let inHunk = false;
+  for (const line of f.diff.split("\n")) {
+    if (line.startsWith("@@")) inHunk = true;
+    const b = Buffer.byteLength(line) + 1;
+    n += inHunk && line.startsWith("-") ? b * REMOVED_LINE_WEIGHT : b;
+  }
+  return Math.ceil(n);
+}
+
+/**
+ * Search terms for what may still refer to a deleted or renamed-away file: the path without its
+ * extension, and the import-style tail (`/stem'`), using the folder for `index` files.
+ * Returns [] when the stem is too generic to search for.
+ */
+export function danglingTerms(oldPath: string): { fixed: string[]; regex: string | null } {
+  const noExt = oldPath.replace(/\.[^./]+$/, "");
+  const parts = noExt.split("/");
+  const stem = parts[parts.length - 1] ?? "";
+  const tail = stem === "index" && parts.length > 1 ? (parts[parts.length - 2] ?? stem) : stem;
+  const generic = new Set([
+    "index",
+    "types",
+    "utils",
+    "util",
+    "main",
+    "mod",
+    "constants",
+    "config",
+  ]);
+  const escaped = tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // An import specifier: a quoted relative or aliased path (starts with . @ or ~) ending in /stem, with no extension or a code one. Not css,
+  // not a bare word in quotes, not a backticked file name in prose.
+  return {
+    fixed: [oldPath],
+    regex:
+      tail.length >= 4 && !generic.has(tail)
+        ? `['"][.@~][^'" ]*/${escaped}(\\.(ts|tsx|js|jsx|mjs|cjs))?['"]`
+        : null,
+  };
+}
+
+/**
+ * Deleted files whose base name is added elsewhere in the same PR: probably moved, not removed,
+ * and below git's rename similarity so not reported as a rename. Maps deleted path to the added paths.
+ */
+export function likelyMoves(files: PrFileDiff[]): Map<string, string[]> {
+  const baseOf = (p: string): string => p.split("/").pop() ?? p;
+  const added = new Map<string, string[]>();
+  for (const f of files) {
+    if (f.kind === "deleted" || f.kind === "renamed" || (f.added ?? 0) === 0) continue;
+    if (!/^diff --git .*\nnew file mode/m.test(f.diff.slice(0, 400))) continue;
+    const list = added.get(baseOf(f.path)) ?? [];
+    list.push(f.path);
+    added.set(baseOf(f.path), list);
+  }
+  const out = new Map<string, string[]>();
+  for (const f of files) {
+    if (f.kind !== "deleted") continue;
+    const hit = added.get(baseOf(f.oldPath ?? f.path));
+    if (hit?.length) out.set(f.path, hit.slice(0, 3));
+  }
+  return out;
+}
 
 /** Splits a unified `git diff` / `gh pr diff` into one entry per file, in diff order. */
 export function splitDiffByFile(raw: string): PrFileDiff[] {
@@ -31,7 +149,7 @@ export function splitDiffByFile(raw: string): PrFileDiff[] {
     const header = part.split("\n", 1)[0] ?? "";
     const idx = header.lastIndexOf(" b/");
     const path = idx >= 0 ? header.slice(idx + 3) : header.slice("diff --git ".length);
-    files.push({ path, diff: part, bytes: Buffer.byteLength(part, "utf8") });
+    files.push({ path, diff: part, bytes: Buffer.byteLength(part, "utf8"), ...classifyDiff(part) });
   }
   return files;
 }
@@ -49,7 +167,10 @@ export function isGeneratedReviewFile(path: string): boolean {
 export type PrShard = {
   index: number; // 1-based
   files: string[];
+  /** Raw diff bytes. */
   bytes: number;
+  /** Review effort in bytes (removed lines discounted, deletes and renames stubbed). Packing and the budget use this. */
+  weight: number;
 };
 
 export type PrShardPlan = {
@@ -57,10 +178,23 @@ export type PrShardPlan = {
   skipped: string[];
   /** Files larger than the shard budget on their own (kept whole, in a shard alone or first). */
   oversized: string[];
+  /** Shard indexes whose weight exceeds the budget (the cap forced it, or one file is too big). */
+  overBudget: number[];
+  /** Whole-file deletes and exact renames: shown to reviewers as a stub, not their content. */
+  stubbed: {
+    path: string;
+    kind: "deleted" | "renamed";
+    oldPath: string;
+    movedTo?: string[] | undefined;
+  }[];
 };
 
 export type PlanShardsOptions = {
-  /** Shard count cap. Default 4. */
+  /**
+   * Shard count safety cap. Default {@link DEFAULT_MAX_SHARDS}. The count is normally
+   * `ceil(total / budget)`, so the cap only bites on very large PRs; shards then exceed the budget
+   * and are reported in `overBudget`.
+   */
   maxShards?: number;
   /** Target bytes per shard. Default {@link DEFAULT_SHARD_BUDGET_BYTES} (60 KiB). */
   budgetBytes?: number;
@@ -75,6 +209,9 @@ export type PlanShardsOptions = {
  */
 export const DEFAULT_SHARD_BUDGET_BYTES = 60 * 1024;
 export const DEFAULT_SINGLE_SHARD_MAX_FILES = 20;
+export const DEFAULT_MAX_SHARDS = 24;
+/** A shard is only flagged when it is this much over the budget; a few percent is not shallower review. */
+export const OVER_BUDGET_TOLERANCE = 1.25;
 
 const TEST_DIR = /(?:^|\/)(?:test|tests|__tests__|spec)\//;
 const TEST_FILE = /\.(?:test|spec)\.[a-z]+$/i;
@@ -105,15 +242,27 @@ export function groupFilesForShards(paths: string[]): Map<string, string[]> {
 }
 
 export function planPrShards(files: PrFileDiff[], options: PlanShardsOptions = {}): PrShardPlan {
-  const maxShards = Math.max(1, options.maxShards ?? 4);
+  const maxShards = Math.max(1, options.maxShards ?? DEFAULT_MAX_SHARDS);
   const budget = options.budgetBytes ?? DEFAULT_SHARD_BUDGET_BYTES;
   const singleMaxFiles = options.singleShardMaxFiles ?? DEFAULT_SINGLE_SHARD_MAX_FILES;
 
   const skipped = files.filter((f) => isGeneratedReviewFile(f.path)).map((f) => f.path);
   const reviewable = files.filter((f) => !isGeneratedReviewFile(f.path));
-  const bytesOf = new Map(reviewable.map((f) => [f.path, f.bytes]));
-  const total = reviewable.reduce((n, f) => n + f.bytes, 0);
-  const oversized = reviewable.filter((f) => f.bytes > budget).map((f) => f.path);
+  const weights = new Map(reviewable.map((f) => [f.path, weightOf(f)]));
+  const rawBytes = new Map(reviewable.map((f) => [f.path, f.bytes]));
+  const total = [...weights.values()].reduce((n, w) => n + w, 0);
+  const oversized = reviewable
+    .filter((f) => (weights.get(f.path) ?? 0) > budget)
+    .map((f) => f.path);
+  const moves = likelyMoves(reviewable);
+  const stubbed = reviewable
+    .filter((f) => f.kind === "deleted" || f.kind === "renamed")
+    .map((f) => ({
+      path: f.path,
+      kind: f.kind as "deleted" | "renamed",
+      oldPath: f.oldPath ?? f.path,
+      ...(moves.has(f.path) ? { movedTo: moves.get(f.path) } : {}),
+    }));
 
   const wanted =
     reviewable.length <= singleMaxFiles && total <= budget
@@ -124,31 +273,48 @@ export function planPrShards(files: PrFileDiff[], options: PlanShardsOptions = {
     index: i + 1,
     files: [],
     bytes: 0,
+    weight: 0,
   }));
 
+  const sumOf = (paths: string[]): number => paths.reduce((n, p) => n + (weights.get(p) ?? 0), 0);
+  const rawOf = (paths: string[]): number => paths.reduce((n, p) => n + (rawBytes.get(p) ?? 0), 0);
   const groups = [...groupFilesForShards(reviewable.map((f) => f.path)).entries()]
-    .map(([key, paths]) => ({
-      key,
-      paths,
-      bytes: paths.reduce((n, p) => n + (bytesOf.get(p) ?? 0), 0),
-    }))
-    // Largest first, then by key, so the same input always gives the same shards.
-    .sort((a, b) => b.bytes - a.bytes || a.key.localeCompare(b.key));
+    // A directory group bigger than one budget would swallow a shard: break it into units (a
+    // source with its tests stays one unit) that the packer below spreads across shards.
+    .flatMap(([key, paths]) => {
+      if (wanted === 1 || sumOf(paths) <= budget) return [{ key, paths }];
+      const byStem = new Map<string, string[]>();
+      for (const p of [...paths].sort()) {
+        const list = byStem.get(stemOf(p)) ?? [];
+        list.push(p);
+        byStem.set(stemOf(p), list);
+      }
+      return [...byStem.entries()].map(([stem, unit]) => ({ key: `${key}#${stem}`, paths: unit }));
+    })
+    .map(({ key, paths }) => ({ key, paths, weight: sumOf(paths), bytes: rawOf(paths) }))
+    // Heaviest first, then by key, so the same input always gives the same shards.
+    .sort((a, b) => b.weight - a.weight || a.key.localeCompare(b.key));
 
   for (const group of groups) {
-    const target = shards.reduce((min, s) => (s.bytes < min.bytes ? s : min));
+    const target = shards.reduce((min, s) => (s.weight < min.weight ? s : min));
     target.files.push(...group.paths);
     target.bytes += group.bytes;
+    target.weight += group.weight;
   }
 
   const plan: PrShardPlan = {
     shards: shards.filter((s) => s.files.length > 0),
     skipped,
     oversized,
+    overBudget: [],
+    stubbed,
   };
   plan.shards.forEach((s, i) => {
     s.index = i + 1;
   });
+  plan.overBudget = plan.shards
+    .filter((s) => s.weight > budget * OVER_BUDGET_TOLERANCE)
+    .map((s) => s.index);
   assertShardPartition(files, plan);
   return plan;
 }
@@ -157,7 +323,10 @@ export function planPrShards(files: PrFileDiff[], options: PlanShardsOptions = {
  * Every reviewable file is in exactly one shard, every skipped file is in none, and the bytes
  * add up. Throws with the offending paths: a review on a broken partition is not a review.
  */
-export function assertShardPartition(files: PrFileDiff[], plan: PrShardPlan): void {
+export function assertShardPartition(
+  files: PrFileDiff[],
+  plan: Pick<PrShardPlan, "shards" | "skipped"> & Partial<PrShardPlan>,
+): void {
   const skipped = new Set(plan.skipped);
   const expected = new Set(files.filter((f) => !skipped.has(f.path)).map((f) => f.path));
   const seen = new Map<string, number>();
@@ -195,7 +364,16 @@ export async function writePrShardFiles(
   for (const shard of plan.shards) {
     const path = join(dir, `shard-${String(shard.index)}.diff`);
     const head = `# shard ${String(shard.index)}/${String(plan.shards.length)} files: ${shard.files.join(", ")}\n\n`;
-    await writeFile(path, head + shard.files.map((p) => byPath.get(p)?.diff ?? "").join(""));
+    await writeFile(
+      path,
+      head +
+        shard.files
+          .map((p) => {
+            const f = byPath.get(p);
+            return f ? reviewDiffOf(f) : "";
+          })
+          .join(""),
+    );
     paths.push(path);
   }
   return paths;
@@ -211,10 +389,13 @@ export type PrMeta = {
   headRefOid: string;
 };
 
+export type DanglingHit = { path: string; oldPath: string; kind: string; hits: string[] };
+
 export function buildPrManifest(input: {
   pr: PrMeta;
   plan: PrShardPlan;
   worktree: string;
+  dangling?: DanglingHit[];
 }): string {
   const { pr, plan, worktree } = input;
   const lines = [
@@ -229,6 +410,24 @@ export function buildPrManifest(input: {
     lines.push("## PR description", body.length > 4000 ? `${body.slice(0, 4000)}…` : body, "");
   for (const shard of plan.shards) {
     lines.push(`## shard ${String(shard.index)}`, ...shard.files.map((f) => `- ${f}`), "");
+  }
+  if (plan.stubbed.length > 0) {
+    lines.push(
+      "## deleted and renamed files (content omitted from the shards)",
+      "Review what still refers to these, not their old content.",
+    );
+    for (const f of plan.stubbed) {
+      const d = input.dangling?.find((x) => x.path === f.path);
+      lines.push(
+        `- ${f.kind}: ${f.oldPath}${f.kind === "renamed" ? ` -> ${f.path}` : ""}${
+          f.movedTo?.length
+            ? ` (a file of this name is added at ${f.movedTo.join(", ")}: likely moved, check the old references)`
+            : ""
+        }${d === undefined ? "" : d.hits.length === 0 ? " (no remaining references found)" : ""}`,
+        ...(d?.hits.map((h) => `    still referenced: ${h}`) ?? []),
+      );
+    }
+    lines.push("");
   }
   if (plan.skipped.length > 0)
     lines.push("## skipped (generated)", ...plan.skipped.map((f) => `- ${f}`), "");
