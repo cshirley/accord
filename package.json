@@ -13,6 +13,7 @@
     "validate:schemas": "node packages/accord-core/schemas/examples/validate-examples.mjs",
     "validate:assets": "bun packages/accord-assets/scripts/validate-assets.ts && bun packages/pi-skills/scripts/validate-pi-skills.ts",
     "validate:okf": "bun scripts/validate-okf.ts",
+    "validate:ste": "bun scripts/validate-ste.ts",
     "install:assets": "bun packages/pi-accord/scripts/install-assets.ts",
     "install:assets:force": "bun packages/pi-accord/scripts/install-assets.ts --force",
     "install:shim": "bun packages/accord-cli/scripts/install-shim.ts",
@@ -28,7 +29,7 @@
     "check:runtime": "bun packages/pi-accord/scripts/runtime-smoke.ts",
     "mcp": "bun run packages/accord-mcp/src/server.ts",
     "accord": "bun packages/accord-cli/src/main.ts",
-    "check": "npm run test && npm run check:biome && npm run validate:schemas && npm run validate:assets && npm run validate:okf && npm run check:types && npm run check:bundle && npm run check:runtime",
+    "check": "npm run test && npm run check:biome && npm run validate:schemas && npm run validate:assets && npm run validate:okf && npm run validate:ste && npm run check:types && npm run check:bundle && npm run check:runtime",
     "smoke:act:self-test": "bun run packages/accord-ci/src/smoke-act.ts pull_request -W .github/workflows/test-autopipeline.yml",
     "smoke:act:autopipeline": "bun run packages/accord-ci/src/smoke-act.ts workflow_dispatch -W .github/workflows/autopipeline-smoke.yml --input ticket=DEMO-1 --input dry_run=true --secret-file .env.smoke",
     "smoke:gh:autopipeline": "bash scripts/smoke-gh-autopipeline.sh"
@@ -55,10 +56,10 @@
     "okf/"
   ],
   "peerDependencies": {
-    "@earendil-works/pi-agent-core": "^1.1.0",
-    "@earendil-works/pi-ai": "^1.1.0",
-    "@earendil-works/pi-coding-agent": "^1.1.0",
-    "@earendil-works/pi-tui": "^1.1.0",
+    "@earendil-works/pi-agent-core": "^1.3.0",
+    "@earendil-works/pi-ai": "^1.3.0",
+    "@earendil-works/pi-coding-agent": "^1.3.0",
+    "@earendil-works/pi-tui": "^1.3.0",
     "typebox": "^1.3.10"
   },
   "pi": {
@@ -74,8 +75,10 @@
       "./packages/pi-skills/skills/commit",
       "./packages/pi-skills/skills/crq-notify",
       "./packages/pi-skills/skills/pr",
+      "./packages/pi-skills/skills/pr-review",
       "./packages/pi-skills/skills/review",
       "./packages/pi-skills/skills/session-retro",
+      "./packages/pi-skills/skills/ste",
       "./packages/pi-skills/skills/verify",
       "./packages/pi-skills/skills/worktree"
     ],
@@ -88,8 +91,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
+    "@earendil-works/pi-agent-core": "^1.3.0",
+    "@earendil-works/pi-ai": "^1.3.0",
+    "@earendil-works/pi-coding-agent": "^1.3.0",
+    "@earendil-works/pi-tui": "^1.3.0",
     "ajv": "^8.20.0",
     "bun-types": "^1.4.2",
+    "typebox": "^1.3.10",
     "typescript": "^6.0.3",
     "yaml": "^2.9.1"
   }

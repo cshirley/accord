@@ -38,6 +38,7 @@ Or individually (matches `verification_commands`):
 | `bun run validate:schemas` | Return-schema examples |
 | `bun run validate:assets` | Agents ↔ registry ↔ schemas ↔ providers; skills ↔ `pi.skills` |
 | `bun run validate:okf` | This bundle: frontmatter, `sources` paths, links, index reachability |
+| `bun run validate:ste` | Prose marked `style: ste` follows the STE subset ([Write in STE](/playbooks/write-in-ste.md)) |
 | `bun run check:types` | `tsc --noEmit` |
 | `bun run check:bundle` | Bundle smoke build of `pi-accord` |
 | `bun run check:runtime` | Runtime smoke script |

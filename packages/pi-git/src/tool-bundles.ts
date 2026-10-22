@@ -7,7 +7,13 @@ export type GitToolBundle = "commit" | "pr" | "review" | "worktree" | "harness";
 export const GIT_TOOL_BUNDLES: Record<GitToolBundle, readonly string[]> = {
   commit: ["git_commit_context", "git_commit_execute"],
   pr: ["gh_pr_context", "gh_pr_submit", "gh_ci_context"],
-  review: ["git_review_context", "git_review_tasks"],
+  review: [
+    "git_review_context",
+    "git_review_tasks",
+    "pr_review_context",
+    "pr_review_report",
+    "pr_review_post",
+  ],
   worktree: [
     "wt_create",
     "wt_list",

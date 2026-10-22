@@ -9,3 +9,4 @@
 * [Add a language](/playbooks/add-a-language.md) - Stack detection + lang profile.
 * [Verify a change](/playbooks/verify-a-change.md) - Run the repo's verification suite before commit/PR.
 * [Adopt the autopipeline](/playbooks/adopt-autopipeline.md) - Jira ticket → PR in a consumer repo via GitHub Actions.
+* [Write in STE](/playbooks/write-in-ste.md) - Write procedures and warnings in ASD-STE100 and lint with `validate:ste`.

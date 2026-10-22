@@ -17,8 +17,10 @@
       "./skills/commit",
       "./skills/pr",
       "./skills/review",
+      "./skills/pr-review",
       "./skills/crq-notify",
       "./skills/session-retro",
+      "./skills/ste",
       "./skills/verify",
       "./skills/worktree"
     ]

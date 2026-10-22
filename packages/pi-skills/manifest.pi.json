@@ -8,8 +8,10 @@
       "commit",
       "crq-notify",
       "pr",
+      "pr-review",
       "review",
       "session-retro",
+      "ste",
       "verify",
       "worktree"
     ]
