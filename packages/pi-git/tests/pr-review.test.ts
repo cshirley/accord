@@ -5,9 +5,11 @@ import { join } from "node:path";
 import prReviewContextDef, { toContextParams } from "../src/defs/pr-review-context.js";
 import {
   defaultPrReviewModels,
+  parsePaginatedArray,
   parsePrNumber,
   resolvePrReviewModels,
   reviewAgentProvider,
+  rightLinesOfPatch,
   runPrReviewPost,
   runPrReviewReport,
 } from "../src/lib/review/pr.js";
@@ -255,6 +257,159 @@ describe("runPrReviewPost", () => {
       );
       expect(refused.isError).toBe(true);
       expect(refused.text).toContain("422");
+    });
+  });
+});
+
+describe("parsePaginatedArray", () => {
+  test("joins the pages gh prints back to back", () => {
+    expect(parsePaginatedArray<number>("[1,2]\n[3]")).toEqual([1, 2, 3]);
+    expect(parsePaginatedArray<number>("[1]")).toEqual([1]);
+  });
+});
+
+describe("rightLinesOfPatch", () => {
+  test("counts context and added lines on the right side only", () => {
+    const patch = "@@ -1,3 +1,4 @@\n a\n-old\n+new1\n+new2\n c\n\\ No newline at end of file";
+    expect([...rightLinesOfPatch(patch)]).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe("runPrReviewPost comment-batches", () => {
+  const many = Array.from({ length: 5 }, (_, i) => `+l${String(i)}`).join("\n");
+  const diff = `diff --git a/f.ts b/f.ts\n--- a/f.ts\n+++ b/f.ts\n@@ -0,0 +1,5 @@\n${many}\n`;
+  const patch = `@@ -0,0 +1,5 @@\n${many}`;
+
+  async function setup(run: (dir: string) => Promise<void>) {
+    const dir = await mkdtemp(join(tmpdir(), "pr-batch-"));
+    try {
+      await writeFile(
+        join(dir, "context.json"),
+        JSON.stringify({
+          pr: { number: 9, url: "u", baseRefName: "base", headRefOid: "sha1" },
+          repo_root: "/repo",
+        }),
+      );
+      await writeFile(
+        join(dir, "report.json"),
+        JSON.stringify({
+          findings: Array.from({ length: 5 }, (_, i) => ({
+            severity: "warning",
+            message: `f${String(i)}`,
+            file: "f.ts",
+            line: i + 1,
+            agent: "review-code",
+          })),
+        }),
+      );
+      await writeFile(join(dir, "pr.diff"), diff);
+      await run(dir);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+
+  const noSleep = async () => {};
+  const base = (posts: string[], failOn?: (n: number, body: string) => Error | null) => {
+    let n = 0;
+    return async (args: string[]) => {
+      if (args[0] === "pr") return JSON.stringify({ headRefOid: "sha1", state: "OPEN" });
+      if (args.includes("--paginate") && args.some((a) => a.endsWith("/files")))
+        return JSON.stringify([{ filename: "f.ts", patch }]);
+      if (args.includes("POST")) {
+        n += 1;
+        const sent = JSON.parse(
+          await readFile(args[args.indexOf("--input") + 1] as string, "utf8"),
+        );
+        const err = failOn?.(n, sent.body);
+        if (err) throw err;
+        expect(sent.event).toBe("COMMENT");
+        posts.push(`${String(sent.comments.length)}:${sent.body.slice(0, 30)}`);
+        return JSON.stringify({ id: 100 + n });
+      }
+      return JSON.stringify([]);
+    };
+  };
+
+  test("posts COMMENT reviews in batches, marker on each body", async () => {
+    await setup(async (dir) => {
+      const posts: string[] = [];
+      const out = await runPrReviewPost(
+        { temp_dir: dir, summary: "S", submit: "comment-batches", batch_size: 2 },
+        { gh: base(posts), sleep: noSleep },
+      );
+      expect(out.isError).toBeUndefined();
+      expect(posts.map((p) => p.split(":")[0])).toEqual(["2", "2", "1"]);
+      expect(out.text).toContain("3 COMMENT review(s) with 5 inline");
+    });
+  });
+
+  test("caps the batch size", async () => {
+    await setup(async (dir) => {
+      const posts: string[] = [];
+      await runPrReviewPost(
+        { temp_dir: dir, summary: "S", submit: "comment-batches", batch_size: 999 },
+        { gh: base(posts), sleep: noSleep },
+      );
+      expect(posts).toHaveLength(1);
+    });
+  });
+
+  test("a rate limit stops the run and says when to resume", async () => {
+    await setup(async (dir) => {
+      const posts: string[] = [];
+      const out = await runPrReviewPost(
+        { temp_dir: dir, summary: "S", submit: "comment-batches", batch_size: 2 },
+        {
+          gh: base(posts, (n) =>
+            n === 2 ? new Error("You have exceeded a secondary rate limit") : null,
+          ),
+          sleep: noSleep,
+        },
+      );
+      expect(out.isError).toBe(true);
+      expect(out.text).toContain("resume_from=2");
+      expect(out.text).toContain("20 minutes");
+      expect(posts).toHaveLength(1);
+    });
+  });
+
+  test("a 5xx after the review was created is found by its marker, not retried", async () => {
+    await setup(async (dir) => {
+      const sent: string[] = [];
+      const gh = async (args: string[]) => {
+        if (args[0] === "pr") return JSON.stringify({ headRefOid: "sha1", state: "OPEN" });
+        if (args.includes("--paginate") && args.some((a) => a.endsWith("/files")))
+          return JSON.stringify([{ filename: "f.ts", patch }]);
+        if (args.includes("POST")) {
+          sent.push(
+            JSON.parse(await readFile(args[args.indexOf("--input") + 1] as string, "utf8")).body,
+          );
+          throw new Error("HTTP 502");
+        }
+        return JSON.stringify([
+          { id: 7, state: "COMMENTED", body: `x ${sent[sent.length - 1] ?? ""}` },
+        ]);
+      };
+      const out = await runPrReviewPost(
+        { temp_dir: dir, summary: "S", submit: "comment-batches", batch_size: 25 },
+        { gh, sleep: noSleep },
+      );
+      expect(out.isError).toBeUndefined();
+      expect(sent).toHaveLength(1);
+    });
+  });
+
+  test("resume_from skips comments already posted", async () => {
+    await setup(async (dir) => {
+      const posts: string[] = [];
+      const gh = base(posts);
+      const out = await runPrReviewPost(
+        { temp_dir: dir, summary: "S", submit: "comment-batches", batch_size: 2, resume_from: 4 },
+        { gh, sleep: noSleep },
+      );
+      expect(out.isError).toBeUndefined();
+      expect(posts.map((p) => p.split(":")[0])).toEqual(["1"]);
     });
   });
 });

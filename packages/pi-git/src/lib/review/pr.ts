@@ -392,10 +392,58 @@ export interface PrReviewPostParams {
   extra_findings_json?: string;
   /** Build and return the payload without calling GitHub. */
   dry_run?: boolean;
+  /**
+   * `pending` (default) creates one draft the human submits. `comment-batches` SUBMITS the review
+   * as COMMENT reviews, `batch_size` inline comments each: use it only when the user asked for
+   * submitted reviews, and when one request is too big for GitHub (see the pr-review skill).
+   */
+  submit?: "pending" | "comment-batches";
+  /** Inline comments per review in `comment-batches` mode. Default 20; measured, see below. */
+  batch_size?: number;
+  /** Seconds between batches. Default 30. */
+  pause_seconds?: number;
+  /** Inline comments already posted by an earlier, interrupted run; skip this many. */
+  resume_from?: number;
 }
 
 export interface PrReviewPostDeps {
   gh: (args: string[], cwd: string, signal?: AbortSignal) => Promise<string>;
+  /** Injected in tests. */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+/**
+ * Batch size that worked in practice (PRs 463 and 465 of population-health, 2026-10-22): batches of
+ * 5 to 20 inline comments answered 200 in 3 to 6 s; batches of 40 and 52 answered 502 after about
+ * 10 s although GitHub had created the review. So 20 is the default and 25 the cap, and a 5xx
+ * is never retried blind: look for the review first.
+ */
+export const DEFAULT_REVIEW_BATCH_SIZE = 20;
+export const MAX_REVIEW_BATCH_SIZE = 25;
+export const DEFAULT_BATCH_PAUSE_SECONDS = 30;
+
+/** `gh api --paginate` prints one JSON array per page, back to back; join them. */
+export function parsePaginatedArray<T>(raw: string): T[] {
+  return JSON.parse(raw.trim().replace(/\]\s*\[/g, ",")) as T[];
+}
+
+const RATE_LIMIT = /secondary rate limit|rate limit/i;
+
+/** Right-side line numbers in a GitHub `patch` string, as GitHub itself resolves inline comments. */
+export function rightLinesOfPatch(patch: string): Set<number> {
+  const lines = new Set<number>();
+  let line = 0;
+  for (const l of patch.split("\n")) {
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)/.exec(l);
+    if (hunk) {
+      line = Number(hunk[1]);
+      continue;
+    }
+    if (l.startsWith("-") || l.startsWith("\\")) continue;
+    lines.add(line);
+    line += 1;
+  }
+  return lines;
 }
 
 /**
@@ -466,6 +514,9 @@ export async function runPrReviewPost(
     };
   }
 
+  if (params.submit === "comment-batches")
+    return postCommentBatches(params, deps, ctx, payload, unanchored, signal);
+
   const inputPath = join(params.temp_dir, "review.json");
   await writeFile(inputPath, JSON.stringify(payload));
   let created: { id?: number; state?: string; html_url?: string };
@@ -528,6 +579,159 @@ async function findPendingReviewWithBody(
       ),
     ) as { id?: number; state?: string; html_url?: string; body?: string }[];
     return listed.find((r) => r.state === "PENDING" && r.body === body) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+interface ReviewPayloadShape {
+  commit_id: string;
+  body: string;
+  comments: { path: string; line: number; side: string; body: string }[];
+}
+
+/**
+ * Submits the review as COMMENT reviews in small batches. Why: GitHub rejected or timed out one
+ * request carrying 68 to 122 inline comments on a PR with a diff over 20,000 lines. Findings:
+ *  - after a secondary rate limit, retrying keeps the block alive; waiting 20 minutes with no
+ *    request cleared it, and every request then succeeded;
+ *  - batches of 40 and 52 returned 502 after about 10 s but the review existed, so a retry would
+ *    duplicate it; batches of 20 or fewer took 3 to 6 s and returned 200.
+ * So: check every comment line against GitHub's own file patches first (a locally built diff
+ * disagreed on 12 of 190 lines), post at most `batch_size` comments per review with a pause between
+ * them, tag each body with a batch marker so a 5xx can be checked rather than retried, and stop at
+ * the first rate limit instead of retrying.
+ */
+async function postCommentBatches(
+  params: PrReviewPostParams,
+  deps: PrReviewPostDeps,
+  ctx: { pr: PrMeta & { url: string }; repo_root: string },
+  payload: ReviewPayloadShape,
+  unanchored: unknown[],
+  signal?: AbortSignal,
+): Promise<{ text: string; details?: unknown; isError?: boolean }> {
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const size = Math.max(
+    1,
+    Math.min(MAX_REVIEW_BATCH_SIZE, Math.floor(params.batch_size ?? DEFAULT_REVIEW_BATCH_SIZE)),
+  );
+  const pause = Math.max(0, params.pause_seconds ?? DEFAULT_BATCH_PAUSE_SECONDS) * 1000;
+  const number = String(ctx.pr.number);
+
+  // Keep only comments GitHub can resolve; the rest go into the first review's body.
+  let comments = payload.comments;
+  let body = payload.body;
+  try {
+    const listed = parsePaginatedArray<{ filename: string; patch?: string }>(
+      await deps.gh(
+        ["api", "--paginate", `repos/{owner}/{repo}/pulls/${number}/files`],
+        ctx.repo_root,
+        signal,
+      ),
+    );
+    const lines = new Map(
+      listed
+        .filter((f) => f.patch !== undefined)
+        .map((f) => [f.filename, rightLinesOfPatch(f.patch ?? "")]),
+    );
+    const moved = comments.filter((c) => !lines.get(c.path)?.has(c.line));
+    comments = comments.filter((c) => lines.get(c.path)?.has(c.line));
+    if (moved.length > 0)
+      body += `\n\n### More findings (line not resolvable by GitHub)\n${moved
+        .map(
+          (c) =>
+            `\n- \`${c.path}:${String(c.line)}\` ${c.body.split("\n\n")[0]?.replace(/\n/g, " ") ?? ""}`,
+        )
+        .join("")}`;
+  } catch {
+    // No file list (for example a paginated array GitHub would not serve): post as built.
+  }
+
+  const start = Math.max(0, Math.floor(params.resume_from ?? 0));
+  const todo = comments.slice(start);
+  const posted: { id?: number; comments: number }[] = [];
+  let part = start === 0 ? 0 : 1;
+  for (let i = 0; i < Math.max(todo.length, start === 0 ? 1 : 0); i += size) {
+    part += 1;
+    const batch = todo.slice(i, i + size);
+    const marker = `[batch ${String(part)}]`;
+    const first = part === 1;
+    const text = first
+      ? `${body}\n\n_Posted in several reviews because GitHub rejects one large request for a PR this size. ${marker}_`
+      : `Continuation of the review above, comments ${String(start + i + 1)}-${String(start + i + batch.length)} of ${String(comments.length)}. ${marker}`;
+    const input = join(params.temp_dir, `review-batch-${String(part)}.json`);
+    await writeFile(
+      input,
+      JSON.stringify({
+        commit_id: payload.commit_id,
+        event: "COMMENT",
+        body: text,
+        comments: batch,
+      }),
+    );
+    let created: { id?: number } | null = null;
+    try {
+      created = JSON.parse(
+        await deps.gh(
+          [
+            "api",
+            `repos/{owner}/{repo}/pulls/${number}/reviews`,
+            "--method",
+            "POST",
+            "--input",
+            input,
+          ],
+          ctx.repo_root,
+          signal,
+        ),
+      ) as { id?: number };
+    } catch (error) {
+      const message = (error as Error).message;
+      if (RATE_LIMIT.test(message)) {
+        return {
+          text: `GitHub rate-limited the request after ${String(start + posted.reduce((n, p) => n + p.comments, 0))} of ${String(comments.length)} inline comments. Do not retry for at least 20 minutes (retries keep the block alive), then call again with resume_from=${String(start + posted.reduce((n, p) => n + p.comments, 0))}.`,
+          isError: true,
+          details: { posted, resume_from: start + posted.reduce((n, p) => n + p.comments, 0) },
+        };
+      }
+      // A 5xx or timeout can arrive after GitHub created the review: look before giving up.
+      const found = await findSubmittedReviewWithMarker(deps, ctx, marker, signal);
+      if (found === null) {
+        return {
+          text: `Batch ${String(part)} failed: ${message}. Nothing was found on GitHub for it; resume_from=${String(start + posted.reduce((n, p) => n + p.comments, 0))}.`,
+          isError: true,
+          details: { posted, resume_from: start + posted.reduce((n, p) => n + p.comments, 0) },
+        };
+      }
+      created = found;
+    }
+    posted.push({
+      ...(created.id === undefined ? {} : { id: created.id }),
+      comments: batch.length,
+    });
+    if (i + size < todo.length) await sleep(pause);
+  }
+  return {
+    text: `Submitted ${String(posted.length)} COMMENT review(s) with ${String(posted.reduce((n, p) => n + p.comments, 0))} inline comment(s) (batches of up to ${String(size)}); ${String(unanchored.length)} finding(s) in the first body. ${ctx.pr.url}`,
+    details: { posted, unanchored: unanchored.length },
+  };
+}
+
+async function findSubmittedReviewWithMarker(
+  deps: PrReviewPostDeps,
+  ctx: { pr: { number: number }; repo_root: string },
+  marker: string,
+  signal?: AbortSignal,
+): Promise<{ id?: number } | null> {
+  try {
+    const listed = parsePaginatedArray<{ id?: number; body?: string }>(
+      await deps.gh(
+        ["api", "--paginate", `repos/{owner}/{repo}/pulls/${String(ctx.pr.number)}/reviews`],
+        ctx.repo_root,
+        signal,
+      ),
+    );
+    return listed.find((r) => (r.body ?? "").includes(marker)) ?? null;
   } catch {
     return null;
   }

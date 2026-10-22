@@ -6,6 +6,10 @@ type Params = {
   summary: string;
   extra_findings_json?: string;
   dry_run?: boolean;
+  submit?: "pending" | "comment-batches";
+  batch_size?: number;
+  pause_seconds?: number;
+  resume_from?: number;
 };
 
 export default defineTool<Params>({
@@ -27,6 +31,27 @@ export default defineTool<Params>({
       type: "boolean",
       required: false,
       description: "Return the payload without calling GitHub",
+    },
+    submit: {
+      type: "string",
+      required: false,
+      description:
+        "pending (default): one draft the human submits. comment-batches: SUBMITS COMMENT reviews, batch_size inline comments each. Only when the user asked for submitted reviews.",
+    },
+    batch_size: {
+      type: "number",
+      required: false,
+      description: "Inline comments per review for comment-batches. Default 20, max 25.",
+    },
+    pause_seconds: {
+      type: "number",
+      required: false,
+      description: "Seconds between batches. Default 30.",
+    },
+    resume_from: {
+      type: "number",
+      required: false,
+      description: "Inline comments already posted by an interrupted run; skip this many.",
     },
   },
   progress: "Creating pending review…",

@@ -93,6 +93,19 @@ Give the user the URL it returns and tell them to open the PR, choose "Finish yo
 
 Tone: state what was read and what was not. Do not claim a clean review for files that were skipped or missed.
 
+## Step 4b: Submit large reviews as batched COMMENT reviews
+
+Use this only when the user asked for **submitted** comment reviews, or when GitHub will not take the pending review in one request. Call `pr_review_post` with `submit: "comment-batches"`. It posts several COMMENT reviews, 20 inline comments each, 30 seconds apart. It is the only mode that submits; the user must have asked for it.
+
+What was measured (PRs 463 and 465 of population-health, 2026-10-22, 68 and 112 comments):
+
+- **Batches of 5, 10, 15 and 20** comments returned 200 in 3 to 6 seconds, every time.
+- **Batches of 40 and 52** returned 502 after about 10 seconds, but GitHub had created the review. A blind retry would post it twice. The tool looks for the batch marker in the user's reviews before it reports a failure.
+- **The first failures were not about size.** After a burst of attempts GitHub returned "secondary rate limit" even for a 5-comment batch. Four spaced retries did not clear it. Twenty minutes with no request did, and then every batch succeeded. So on a rate limit the tool stops and tells you to wait at least 20 minutes, then call again with `resume_from` set to the number of inline comments already posted. Never loop on retries.
+- **Line check.** The tool lists the PR's files from GitHub (`pulls/N/files`) and keeps only comments whose line is in GitHub's own patch. A locally built diff disagreed with GitHub on 12 of 190 lines, and one such line makes GitHub refuse the whole review with 422. Comments it cannot place go into the first review's body. A file with no `patch` (the diff is too large) has no inline comments.
+
+Do not raise `batch_size` above 25. Check each posted batch on GitHub if a run ends with an error.
+
 ## Cleanup
 
 When done, success or failure: `git worktree remove <details.worktree>` (read any refusal; never force) and delete `details.temp_dir`.
@@ -101,5 +114,8 @@ When done, success or failure: `git worktree remove <details.worktree>` (read an
 
 - No spec or plan: reviewers infer intent from the diff, the PR body and the manifest.
 - Sharding proves a valid partition and coverage, not that related files were read together. The cross-shard pass reduces that gap; it does not close it.
+- `pr_review_context` runs `gh pr view` in the current directory's repository, so run it from inside the repo that owns the PR.
+- Review agents are read-only (no `write`): collect each agent's returned text and save it from the caller, do not ask the agent to write a file.
+- GitHub can answer `secondary rate limit` after a burst of review requests. Waiting 20 minutes cleared it; retrying did not. See Step 4b.
 - Agent failures such as `model_not_supported` look like empty results in parallel mode. Check each result for an error before treating a shard as clean.
 - Tests are not run by default. `review-test` then judges the tests by reading them.
