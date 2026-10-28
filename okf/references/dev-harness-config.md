@@ -38,6 +38,8 @@ hook in Pi.
 |-----|---------|
 | `schema_version` | `"1.0"` |
 | `language`, `detect_file` | Stack + marker file |
+| `knowledge` | Proposed feature knowledge layer: [Knowledge configuration](/references/knowledge-config.md) |
+| `stack` | Proposed evidence stack: [Stack configuration](/references/stack-config.md) |
 | `test` | `{ command, file_pattern }` — post-code advisory test run |
 | `type_check` | Post-code **hard gate** command |
 | `lint`, `format` | Commands (or `null`) |
