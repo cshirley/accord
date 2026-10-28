@@ -268,6 +268,166 @@
         }
       }
     },
+    "knowledge": {
+      "type": "object",
+      "description": "Feature knowledge layer (PROPOSED, not yet read by the harness): living capability-keyed docs beside the ticket-keyed change record docs/dev/<ID>/. See okf/references/knowledge-config.md.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Turn the feature knowledge layer on. Default: false."
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Directory of feature docs and generated index. Default: docs/features."
+        },
+        "impact_analysis": {
+          "type": "boolean",
+          "description": "At align/spec, list impacted features in the contract PR. Default: true."
+        },
+        "drift_check": {
+          "type": "string",
+          "enum": ["off", "warn", "block"],
+          "description": "A change touching a feature's anchors must update its doc or declare no change. Default: warn."
+        },
+        "max_acs_per_feature": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "validate:features asks for a split above this. Default: 12."
+        }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "description": "Evidence stack (PROPOSED, not yet read by the harness): split a work item into a contract PR, size-bounded task PRs, and a closeout PR, with typed red/green/review commits. See okf/architecture/evidence-stack.md.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Turn the evidence stack on. Default: false (single branch, one PR)."
+        },
+        "provider": {
+          "type": "string",
+          "enum": ["git", "gh", "graphite", "spr"],
+          "description": "Stack tool used to branch, restack, retarget, and submit PRs. Default: gh."
+        },
+        "commits": {
+          "type": "string",
+          "enum": ["task", "phase"],
+          "description": "Commit granularity. task = one commit per done task (current behaviour). phase = one orchestrator-made commit per phase completion (including adversarial reviews and verify) with loop and round Accord-* trailers, plus state and the final evidence. Default: task."
+        },
+        "merge_strategy": {
+          "type": "string",
+          "enum": ["rebase", "merge", "squash"],
+          "description": "How task PRs land so evidence commits stay reachable. Squash is safe when evidence.asset is true. Default: rebase."
+        },
+        "evidence": {
+          "type": "object",
+          "description": "Evidence asset written as the final commit of each task PR.",
+          "additionalProperties": false,
+          "properties": {
+            "asset": {
+              "type": "boolean",
+              "description": "Write docs/dev/<ID>/evidence/task-<N>.{md,json} in a final evidence(task-<N>) commit. Survives squash-merge. Default: true."
+            },
+            "include_diffs": {
+              "type": "boolean",
+              "description": "Include review-to-fix patches and red/green output excerpts in the asset. Default: true."
+            }
+          }
+        },
+        "state": {
+          "type": "object",
+          "description": "Where harness task state is persisted per typed commit.",
+          "additionalProperties": false,
+          "properties": {
+            "persist": {
+              "type": "string",
+              "enum": ["tree", "notes", "none"],
+              "description": "tree = commit redacted per-task state under state.path with each typed commit; the final evidence(task-<N>) commit deletes it. notes = git notes under refs/notes/accord/<ID>. none = local .tasks/ only. Default: tree."
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Directory template for committed state (<path>/task-<N>/); {id} is the work item ID. Visible beside the other docs/dev/<ID>/ artifacts; must not be gitignored. Default: docs/dev/{id}/state."
+            },
+            "redact": {
+              "type": "boolean",
+              "description": "Redact secrets and raw packets before commit. Default: true."
+            },
+            "max_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Max bytes of state per task snapshot. Default: 262144."
+            }
+          }
+        },
+        "sizing": {
+          "type": "object",
+          "description": "Budgets used by computeStack(plan, config) to split and merge plan tasks into PRs.",
+          "additionalProperties": false,
+          "properties": {
+            "max_pr_lines": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Max changed lines per PR, excluding tests, generated files, and lockfiles. Default: 400."
+            },
+            "min_pr_lines": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Floor below which a task merges into a same-concern neighbour (unless refactor, schema, or flag). Default: 30."
+            },
+            "max_files": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Max files changed per PR. Default: 10."
+            },
+            "max_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Max length of a dependency chain. Max open PRs in a dependency chain. Chains that cannot fit split into milestone work items. Default: 6."
+            },
+            "overrun_factor": {
+              "type": "number",
+              "minimum": 1,
+              "description": "Actual/estimated size ratio above which the harness raises a re-plan-or-accept decision. Default: 1.5."
+            },
+            "split_on": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["package", "concern", "refactor", "interface"]
+              },
+              "description": "Boundaries that flag a task for re-plan (tasks are never split automatically). Default: all four."
+            },
+            "merge_small_same_concern": {
+              "type": "boolean",
+              "description": "Merge adjacent same-concern tasks that fit the budget. Default: true."
+            }
+          }
+        },
+        "contract": {
+          "type": "object",
+          "description": "Contract PR (brief, spec, plan) and its lock.",
+          "additionalProperties": false,
+          "properties": {
+            "lock": {
+              "type": "boolean",
+              "description": "Write docs/dev/<ID>/contract.lock.json (sha256 of brief, spec, plan) and fail guards when locked files change without an amendment. Default: true."
+            },
+            "tag": {
+              "type": "boolean",
+              "description": "Tag the contract commit accord/<ID>/contract. Default: true."
+            }
+          }
+        },
+        "require_flag": {
+          "type": "boolean",
+          "description": "Every non-final task must leave the feature unreachable; the last task enables it. Default: true."
+        }
+      }
+    },
     "orchestration": {
       "type": "object",
       "description": "Deterministic harness behaviour overrides (Phase 3+).",
@@ -377,6 +537,17 @@
                 "max_lifetime_retries": {
                   "type": "integer",
                   "minimum": 0
+                }
+              }
+            },
+            "review_security": {
+              "type": "object",
+              "description": "PROPOSED, not yet read by the harness. Gating override for **review-security** (runs in the code loop before review-code). advisory = never gates (current behaviour); block, warn, none as for the other loops. Fixes use the code_review retry counter. Schema default: advisory. With stack.enabled true the effective default is warn. See okf/references/stack-config.md.",
+              "additionalProperties": false,
+              "properties": {
+                "severity_gate": {
+                  "type": "string",
+                  "enum": ["advisory", "none", "warn", "block"]
                 }
               }
             },
