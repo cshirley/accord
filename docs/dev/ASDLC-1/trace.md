@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T16:47:38.290Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T17:14:41.603Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -13,8 +13,8 @@
 | 4 | [infra] accord/evidence check runner and workflow | done | `fd02108` | 2/1/1 | 21 (verified 9, reraised 1, wont_fix_accepted 1, open 10) | 0 |
 | 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | `2194f4d` | 2/1/1 | 13 (verified 10, open 3) | 0 |
 | 6 | [commit-evidence] Commit guard and content redaction | done | `619a27f` | 2/1/1 | 21 (verified 8, reraised 3, open 8, wont_fix_accepted 2) | 0 |
-| 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | — | 5/3/1 | 28 (waived 1, verified 22, wont_fix_accepted 1, reraised 3, open 1) | 0 |
-| 8 | [commit-evidence] Evidence timeline from git trailers | pending | — | 0/0/0 | 0 | 0 |
+| 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | `dfcd785` | 5/3/1 | 28 (waived 1, verified 22, wont_fix_accepted 1, reraised 3, open 1) | 0 |
+| 8 | [commit-evidence] Evidence timeline from git trailers | done | — | 3/1/1 | 16 (verified 10, reraised 1, open 5) | 0 |
 | 9 | [commit-evidence] accord evidence CLI command | pending | — | 0/0/0 | 0 | 0 |
 | 10 | [commit-evidence] OKF docs and docs validation test | pending | — | 0/0/0 | 0 | 0 |
 | 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | pending | — | 0/0/0 | 0 | 0 |
@@ -109,7 +109,12 @@
 
 > Then a timeline is rendered from git trailers only (ref, outcome, counts, tokens, cost) and the tsv columns match the documented awk extraction
 
-- Tasks: 8 (pending), 9 (pending)
+- Tasks: 8 (satisfied), 9 (pending)
+- Files: `packages/accord-core/tests/evidence-timeline.test.ts`, `packages/accord-core/src/evidence/timeline.ts`
+- Tests verified (3):
+  - evidence-timeline.test.ts: 17/17 pass (ASDLC-1/AC-4 readTimeline, renderers, trailer-only selection, tsv/awk column agreement)
+  - bun run check:types
+  - bun test (full suite)
 
 ### AC-5 — pending (not verified)
 
@@ -375,6 +380,12 @@
 | 7 | AC-1 | F-025 | unresolved (advisory) | reraised | suggestion | Commit ref comes from latestLogFor(task, agent), not from the packet just applied, so a no-op handler reuses the previous round's ref. | packages/accord-core/src/subagent/result/process.ts:59 | reraised by C3/review-code — Dispute does not hold: handlers do not always append a log entry. phase-test.ts:102-106 returns a guard no-op with `packet NOT applied`, and applyStuckPostResult (stuck.ts) writes only decisions[]. In both, latestLogFor(task, agent) returns the previous round's ref, so a stuck C2 phase-code commits as C1/phase-code and an unapplied phase-test packet commits under the old T ref. Skip the commit, or use a ref newly claimed for this packet. Done when: a stuck packet or guard no-op yields no commit or a non-duplicate ref. |
 | 7 | AC-3 | F-020 | unresolved (advisory) | open | suggestion | The temp repo created in beforeEach still applies the developer's global core.excludesFile. The F-019 rename to .env.production avoids this machine's ignore list, but a global ignore with `.env*` or `.env.*` (GitHub's Node.gitignore template uses `.env.*`) hides .env.production. Then `expect(leftover).toContain('.env.production')` at line 455 fails because of environment, not behaviour. | packages/accord-core/tests/phase-commits.test.ts:84 |  |
 | 7 | AC-3 | F-022 | unresolved (advisory) | reraised | suggestion | PhaseCommitResult.respawn is dropped by commitPhaseResult, so a guard-rejected test edit that phase-code did not report never respawns phase-test. | packages/accord-core/src/subagent/result/process.ts:71 | reraised by C3/review-code — Respawn is surfaced in the process.ts:71 note, but the note only says `phase-test respawn required (RGR)`; the Done-when's alternative requires naming the rejected test path too. PhaseCommitResult carries only `respawn`, not guarded.rejected. Add `rejected?: string[]` to the result and list the paths in the note. |
+| 8 | AC-4 | F-010 | unresolved (advisory) | reraised | suggestion | The fixture trailers are minimal compared with the real section 3.2e trailer, and every trailer block holds only one Accord line. Three wrong implementations pass all tests: (a) counts built from every integer key outside identity, tokens and cost (real trailers would leak open_crit, files, spawns, ms and retry into counts; tokens would gain cache_r/cache_w); (b) `%(trailers:valueonly,unfold)` without key=Accord, which drops any commit that also carries Signed-off-by or Co-authored-by; (c) no `unfold`, which drops folded trailers. This is a round-1 miss in unchanged fixture design, so it stays a suggestion. | packages/accord-core/tests/evidence-timeline.test.ts:357 | reraised by T3/review-test — The literal Done-when (toEqual on three full rows) is met. Re-raised with a clarified target because the requested 'section 3.2e trailer verbatim' was not used: the fixture has cache_r/cache_w instead of tok_cache_r/tok_cache_w (line 602), so the tokens-leak adversary named in the original issue survives. Also missing: open_warn, findings/ac lists, harness, usage. Kept at suggestion (non-gating): the tsv/md output carries only tok_in/tok_out, so AC-4 is not violated. |
+| 8 | AC-4 | F-012 | unresolved (advisory) | open | warning | Any `git log` failure is swallowed and returned as an empty timeline, so a real failure looks like 'no evidence'. | packages/accord-core/src/evidence/timeline.ts:95 |  |
+| 8 | AC-4 | F-013 | unresolved (advisory) | open | warning | `toRow` coerces missing required trailer keys into the strings 'undefined' and the number NaN instead of rejecting the commit. | packages/accord-core/src/evidence/timeline.ts:70 |  |
+| 8 | AC-4 | F-014 | unresolved (advisory) | open | suggestion | Relative imports omit the `.js` extension; every other accord-core src file includes it. | packages/accord-core/src/evidence/timeline.ts:1 |  |
+| 8 | AC-4 | F-015 | unresolved (advisory) | open | suggestion | Every call scans and formats trailers for the entire history of HEAD, then filters by id in JS. | packages/accord-core/src/evidence/timeline.ts:91 |  |
+| 8 | AC-4 | F-016 | unresolved (advisory) | open | suggestion | Markdown cells are not escaped, so a `\|` in a trailer value breaks the table. | packages/accord-core/src/evidence/timeline.ts:115 |  |
 
 ## Decisions
 
@@ -387,6 +398,7 @@ _None._
 - Task 4 (accepted): Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files — Test requires an okf concept listing the evidence check as a source and describing accord/evidence
 - Task 6 (accepted): Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented. — Spec names only rule/respawn/rejected; shape and per-type scopes inferred.
 - Task 6 (accepted): redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution. — Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.
+- Task 8 (pending): Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'. — Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.
 
 ## Evidence by task
 
@@ -526,6 +538,27 @@ targeted bun test: 40 pass, 0 fail. Preflight: bun test exit 0; check:types, che
 ```
 
 ### Task 8: [commit-evidence] Evidence timeline from git trailers
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-4 renderers > renderTimelineTsv matches expected text
+error: not implemented: renderTimelineTsv
+(fail) ASDLC-1/AC-4 renderers > renderTimelineMarkdown matches expected text
+error: not implemented: readTimeline
+ ... (12 tests: error: not implemented: readTimeline; 1 test: error: not implemented: renderTimelineTsv)
+
+ 0 pass
+ 13 fail
+ 2 expect() calls
+Ran 13 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+evidence-timeline.test.ts: 17 pass, 0 fail. Preflight: bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle and check:runtime exit 0. check:biome exit 1: format diff in docs/dev/ASDLC-1/trace.json; lint useOptionalChain in packages/accord-core/scripts/update-model-pricing.ts:84.
+```
 
 ### Task 9: [commit-evidence] accord evidence CLI command
 

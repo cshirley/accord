@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T16:47:38.290Z",
+  "generated_at": "2026-10-29T17:14:41.603Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -41,6 +41,12 @@
       "description": "redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution.",
       "reason": "Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.",
       "resolution": "accepted"
+    },
+    {
+      "task_id": 8,
+      "description": "Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'.",
+      "reason": "Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.",
+      "resolution": null
     }
   ],
   "tasks": [
@@ -575,7 +581,9 @@
       "id": 7,
       "title": "[commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "dfcd785"
+      ],
       "rounds": {
         "T": 5,
         "C": 3,
@@ -796,33 +804,66 @@
     {
       "id": 8,
       "title": "[commit-evidence] Evidence timeline from git trailers",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 3,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 2,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 16,
+        "by_state": {
+          "verified": 10,
+          "reraised": 1,
+          "open": 5
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-4 renderers > renderTimelineTsv matches expected text\nerror: not implemented: renderTimelineTsv\n(fail) ASDLC-1/AC-4 renderers > renderTimelineMarkdown matches expected text\nerror: not implemented: readTimeline\n ... (12 tests: error: not implemented: readTimeline; 1 test: error: not implemented: renderTimelineTsv)\n\n 0 pass\n 13 fail\n 2 expect() calls\nRan 13 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "evidence-timeline.test.ts: 17 pass, 0 fail. Preflight: bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle and check:runtime exit 0. check:biome exit 1: format diff in docs/dev/ASDLC-1/trace.json; lint useOptionalChain in packages/accord-core/scripts/update-model-pricing.ts:84.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-4",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/evidence-timeline.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/timeline.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/timeline.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/evidence-timeline.test.ts"
+          }
         }
       ]
     },
@@ -2658,15 +2699,22 @@
       "tasks": [
         {
           "task": 8,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 9,
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/evidence-timeline.test.ts",
+        "packages/accord-core/src/evidence/timeline.ts"
+      ],
+      "tests": [
+        "evidence-timeline.test.ts: 17/17 pass (ASDLC-1/AC-4 readTimeline, renderers, trailer-only selection, tsv/awk column agreement)",
+        "bun run check:types",
+        "bun test (full suite)"
+      ],
       "verified": false
     },
     {
@@ -4184,6 +4232,89 @@
         "outcome": "reraised",
         "note": "Respawn is surfaced in the process.ts:71 note, but the note only says `phase-test respawn required (RGR)`; the Done-when's alternative requires naming the rejected test path too. PhaseCommitResult carries only `respawn`, not guarded.rejected. Add `rejected?: string[]` to the result and list the paths in the note."
       }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 8,
+      "requirement": "AC-4",
+      "finding_id": "F-010",
+      "state": "reraised",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The fixture trailers are minimal compared with the real section 3.2e trailer, and every trailer block holds only one Accord line. Three wrong implementations pass all tests: (a) counts built from every integer key outside identity, tokens and cost (real trailers would leak open_crit, files, spawns, ms and retry into counts; tokens would gain cache_r/cache_w); (b) `%(trailers:valueonly,unfold)` without key=Accord, which drops any commit that also carries Signed-off-by or Co-authored-by; (c) no `unfold`, which drops folded trailers. This is a round-1 miss in unchanged fixture design, so it stays a suggestion.",
+      "file": "packages/accord-core/tests/evidence-timeline.test.ts",
+      "line": 357,
+      "raised": "T2/review-test",
+      "resolution": {
+        "by": "T3/review-test",
+        "outcome": "reraised",
+        "note": "The literal Done-when (toEqual on three full rows) is met. Re-raised with a clarified target because the requested 'section 3.2e trailer verbatim' was not used: the fixture has cache_r/cache_w instead of tok_cache_r/tok_cache_w (line 602), so the tokens-leak adversary named in the original issue survives. Also missing: open_warn, findings/ac lists, harness, usage. Kept at suggestion (non-gating): the tsv/md output carries only tok_in/tok_out, so AC-4 is not violated."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 8,
+      "requirement": "AC-4",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Any `git log` failure is swallowed and returned as an empty timeline, so a real failure looks like 'no evidence'.",
+      "file": "packages/accord-core/src/evidence/timeline.ts",
+      "line": 95,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 8,
+      "requirement": "AC-4",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`toRow` coerces missing required trailer keys into the strings 'undefined' and the number NaN instead of rejecting the commit.",
+      "file": "packages/accord-core/src/evidence/timeline.ts",
+      "line": 70,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 8,
+      "requirement": "AC-4",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Relative imports omit the `.js` extension; every other accord-core src file includes it.",
+      "file": "packages/accord-core/src/evidence/timeline.ts",
+      "line": 1,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 8,
+      "requirement": "AC-4",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every call scans and formats trailers for the entire history of HEAD, then filters by id in JS.",
+      "file": "packages/accord-core/src/evidence/timeline.ts",
+      "line": 91,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 8,
+      "requirement": "AC-4",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Markdown cells are not escaped, so a `|` in a trailer value breaks the table.",
+      "file": "packages/accord-core/src/evidence/timeline.ts",
+      "line": 115,
+      "raised": "C1/review-code"
     }
   ]
 }
