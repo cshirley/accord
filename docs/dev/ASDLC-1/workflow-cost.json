@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T15:11:49.017Z",
+  "generated_at": "2026-10-29T16:47:38.511Z",
   "source_usage_file": ".tasks/ASDLC-1-usage.jsonl",
   "summary": {
-    "total_input_tokens": 528000,
-    "total_output_tokens": 105200,
+    "total_input_tokens": 856000,
+    "total_output_tokens": 158000,
     "total_cache_read_tokens": 0,
     "total_cache_write_tokens": 0,
-    "total_calls": 46,
-    "usage_missing_calls": 19,
+    "total_calls": 62,
+    "usage_missing_calls": 26,
     "carried_forward": false,
-    "total_cost_usd": 3.162000000000001
+    "total_cost_usd": 4.9380000000000015
   },
   "rows": [
     {
@@ -384,6 +384,66 @@
       "cache_read_tokens": 0,
       "cache_write_tokens": 0,
       "usage_missing_calls": 2,
+      "cost_usd": 0
+    },
+    {
+      "scope": "Task 7",
+      "agent": "phase-code",
+      "task_id": 7,
+      "calls": 3,
+      "input_tokens": 109000,
+      "output_tokens": 14900,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.5505
+    },
+    {
+      "scope": "Task 7",
+      "agent": "phase-test",
+      "task_id": 7,
+      "calls": 5,
+      "input_tokens": 210000,
+      "output_tokens": 37000,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 0,
+      "cost_usd": 1.185
+    },
+    {
+      "scope": "Task 7",
+      "agent": "phase-verify-task",
+      "task_id": 7,
+      "calls": 1,
+      "input_tokens": 9000,
+      "output_tokens": 900,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.0405
+    },
+    {
+      "scope": "Task 7",
+      "agent": "review-code",
+      "task_id": 7,
+      "calls": 2,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 2,
+      "cost_usd": 0
+    },
+    {
+      "scope": "Task 7",
+      "agent": "review-test",
+      "task_id": 7,
+      "calls": 5,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 5,
       "cost_usd": 0
     }
   ]
