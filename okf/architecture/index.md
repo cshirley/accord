@@ -7,4 +7,5 @@
 * [Agents](/architecture/agents.md) - Phase and review agents, registry, tiers, scope matrix.
 * [Providers](/architecture/providers.md) - Tracker and enrichment playbooks + connectivity sidecars used by phase-gather.
 * [Crucible verification](/architecture/crucible-verification.md) - Test-first loop, adversarial review, post-code gate, acceptance verification.
+* [Evidence stack](/architecture/evidence-stack.md) - Proposed: contract PR, size-bounded task PRs, typed red/green/review commits, closeout PR.
 * [Tool surface](/architecture/tool-surface.md) - `dev_*` tools, dynamic activation bundles, MCP parity.
