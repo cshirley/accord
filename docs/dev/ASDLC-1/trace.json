@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T12:36:57.864Z",
+  "generated_at": "2026-10-29T13:16:52.088Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -11,13 +11,22 @@
     "shift_left_findings": []
   },
   "decisions": [],
-  "deviations": [],
+  "deviations": [
+    {
+      "task_id": 2,
+      "description": "layering.test.ts import-boundary tests pass without impl",
+      "reason": "accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations",
+      "resolution": null
+    }
+  ],
   "tasks": [
     {
       "id": 1,
       "title": "[flags] Stack and knowledge switch resolver with default-off values",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "0e9ed2e"
+      ],
       "rounds": {
         "T": 1,
         "C": 1,
@@ -85,33 +94,98 @@
     {
       "id": 2,
       "title": "[infra] Temp git repo, fake gh helpers and import-boundary test",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 4,
+        "C": 4,
+        "V": 1
       },
       "retries": {
         "test_review": 0,
         "code_review": 0,
-        "rgr": 0,
+        "rgr": 3,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 21,
+        "by_state": {
+          "verified": 15,
+          "wont_fix_accepted": 1,
+          "waived": 2,
+          "open": 3
+        }
       },
-      "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "human_actions": [
+        {
+          "ref": "C4/unblock",
+          "at": "2026-10-29T13:12:24.936Z",
+          "note": "waive F-012; waive F-013 — all blockers resolved"
+        }
+      ],
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-28 fake gh helper > ... error: not implemented: installFakeGh (x5)\n(fail) ASDLC-1/AC-28 temp git repo helper > ... error: not implemented: createTempGitRepo (x5)\n\n 17 pass\n 10 fail\n 17 expect() calls\nRan 27 tests across 2 files.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "task tests: 52 pass, 0 fail (2 files). check:types, check:bundle and check:biome (1 warning) passed. Preflight: bun test, biome, validate:schemas/assets/okf/ste, check:types, check:bundle and check:runtime all exit 0.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-28",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/helpers-git.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/tests/layering.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/tests/helpers/temp-git-repo.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/tests/helpers/fake-gh.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/tests/helpers/temp-git-repo.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/tests/helpers/fake-gh.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/tests/helpers/temp-git-repo.ts",
+              "action": "add",
+              "kind": "fixture"
+            },
+            {
+              "file": "packages/accord-core/tests/helpers/fake-gh.ts",
+              "action": "add",
+              "kind": "fixture"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/helpers-git.test.ts packages/accord-core/tests/layering.test.ts; bun run check:types; bun run check:bundle; bun run check:biome"
+          }
         }
       ]
     },
@@ -2583,7 +2657,7 @@
       "tasks": [
         {
           "task": 2,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 9,
@@ -2602,8 +2676,18 @@
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/helpers-git.test.ts",
+        "packages/accord-core/tests/layering.test.ts",
+        "packages/accord-core/tests/helpers/temp-git-repo.ts",
+        "packages/accord-core/tests/helpers/fake-gh.ts"
+      ],
+      "tests": [
+        "packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*",
+        "packages/accord-core/tests/helpers-git.test.ts › ASDLC-1/AC-28 (temp git repo and fake gh)",
+        "bun run check:types",
+        "bun run check:bundle"
+      ],
       "verified": false
     },
     {
@@ -2891,6 +2975,99 @@
       "file": "packages/accord-core/src/config/stack-flags.ts",
       "line": 31,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 2,
+      "requirement": "AC-28",
+      "finding_id": "F-010",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "TC-29 also requires check:types and check:bundle on the change; unit test cannot prove them, and neither command actually enforces the core→Pi boundary",
+      "file": "packages/accord-core/tests/layering.test.ts",
+      "line": 38,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "A unit test cannot run check:types or check:bundle. phase-verify-task runs `bun run check:types && bun run check:bundle && bun test packages/accord-core/tests/layering.test.ts`."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 2,
+      "requirement": "AC-28",
+      "finding_id": "F-012",
+      "state": "waived",
+      "severity": "critical",
+      "advisory": false,
+      "issue": "phase-code modified test file packages/accord-core/tests/helpers/temp-git-repo.ts (tests are owned by phase-test)",
+      "file": "packages/accord-core/tests/helpers/temp-git-repo.ts",
+      "raised": "C1/phase-code",
+      "resolution": {
+        "by": "C4/unblock",
+        "outcome": "waived",
+        "note": "Plan task 2 deliverable: phase-code implements stub helpers under tests/helpers/ (plan.json files list). Ownership guard false positive; 52 tests pass",
+        "actor": "human"
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 2,
+      "requirement": "AC-28",
+      "finding_id": "F-013",
+      "state": "waived",
+      "severity": "critical",
+      "advisory": false,
+      "issue": "phase-code modified test file packages/accord-core/tests/helpers/fake-gh.ts (tests are owned by phase-test)",
+      "file": "packages/accord-core/tests/helpers/fake-gh.ts",
+      "raised": "C1/phase-code",
+      "resolution": {
+        "by": "C4/unblock",
+        "outcome": "waived",
+        "note": "Same as F-012 (fake-gh.ts helper implementation is the planned phase-code deliverable)",
+        "actor": "human"
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 2,
+      "requirement": "AC-28",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Shebang embeds `process.execPath` unquoted; a Bun path containing a space, or longer than the kernel shebang limit, makes the fake `gh` fail to exec.",
+      "file": "packages/accord-core/tests/helpers/fake-gh.ts",
+      "line": 37,
+      "raised": "C4/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 2,
+      "requirement": "AC-28",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Monkey-patching of Bun.spawn/spawnSync restores correctly only in LIFO order, and PATH is restored to a snapshot.",
+      "file": "packages/accord-core/tests/helpers/fake-gh.ts",
+      "line": 60,
+      "raised": "C4/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 2,
+      "requirement": "AC-28",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Temp dir leaks if `git init` or `git config` throws, and `GIT_CONFIG_COUNT`/`GIT_CONFIG_PARAMETERS`/`GIT_TEMPLATE_DIR` from the host env are not scrubbed.",
+      "file": "packages/accord-core/tests/helpers/temp-git-repo.ts",
+      "line": 37,
+      "raised": "C4/review-code"
     }
   ]
 }
