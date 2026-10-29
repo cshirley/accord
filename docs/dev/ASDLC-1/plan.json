@@ -1,0 +1,2362 @@
+{
+  "schema_version": "1.0",
+  "work_item_id": "ASDLC-1",
+  "spec": "docs/dev/ASDLC-1/spec.json",
+  "guidance": [
+    {
+      "directive": "Reuse severityMeetsGate (packages/accord-core/src/tasks/model.ts) as-is for every severity threshold decision (security gate, drift gate); do not write a second comparator.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "Read and write every new JSON artifact (contract.lock.json, evidence/task-<N>.json, state/task-<N>/task.json, features index.json) through readJson/writeJson/mutateJson in packages/accord-core/src/work-items/io.ts.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "Emit all stack.* telemetry through createLogger in packages/accord-core/src/logging.ts via the stack event catalogue (task 3); no direct console calls and no new logging library.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "Extend advisoryAll in packages/accord-core/src/tasks/record.ts and applyReviewSecurityPostResult in packages/accord-core/src/orchestration/post-result/review-security.ts in place for the security gate; no new loop kind, round prefix or retry counter.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "STATE.md is exactly renderTaskTrace() output (packages/accord-core/src/tasks/render.ts); compose with it, never a new state format.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "Whenever spec.json changes through contract-amend or features[] edits, call syncSpecMarkdownFromJson (packages/accord-core/src/artifacts/spec-markdown.ts) so spec.md stays in sync.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "Register new JSON artifact schemas by extending SCHEMA_MAP in packages/accord-core/src/artifacts/validation.ts; register new dev_* tools by extending ACCORD_TOOLS in packages/accord-core/src/tools/registry.ts (accord-mcp and pi-accord pick them up automatically).",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "New CLI verbs (accord evidence, accord stack, accord feature) extend the accord-cli parse/dispatch pattern (packages/accord-cli/src/cli.ts, dispatch.ts, commands/*.ts) as thin adapters over accord-core functions.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "New CI checks and CI-driven mode extend packages/accord-ci/src (bun entry scripts called from .github/workflows), reusing lib/env.ts and the existing cost-cap pattern in parse-phase-result.ts.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "Compose closeout with commitWorkItemArtifacts (packages/accord-core/src/orchestration/commit-on-task-done.ts) instead of a parallel closeout commit path.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "accord-core cannot import pi-git: git_commit_execute and gh_pr_submit are used as-is by humans and hosts to land each task PR; harness commits inside accord-core use packages/accord-core/src/git/helpers.ts (commitWithMessage, git).",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "scripts/validate-okf.ts is a partial match only: copy its CLI shape (exit codes, message format) for scripts/validate-features.ts but keep feature validation logic in accord-core/src/knowledge/.",
+      "source": "reuse-scan"
+    },
+    {
+      "directive": "Layout: add new accord-core dirs src/commit/, src/evidence/, src/stack/, src/state/, src/contract/, src/knowledge/ (evidence-stack plan section 7); do not merge them into orchestration/ or artifacts/.",
+      "source": "engineer",
+      "question": "q_guidance_1"
+    },
+    {
+      "directive": "Orchestrator commits use packages/accord-core/src/git/helpers.ts; the gh StackProvider calls the gh CLI directly from accord-core behind the StackProvider port. No host port for git or gh.",
+      "source": "engineer",
+      "question": "q_guidance_2"
+    },
+    {
+      "directive": "No in-flight work in orchestration/post-result/*, tasks/record.ts, commit-on-task-done.ts, accord-ci or runtime-smoke (engineer confirmed); edit them freely within task scope.",
+      "source": "engineer",
+      "question": "q_guidance_3"
+    },
+    {
+      "directive": "Per-phase commits live in a new module src/commit/phase-commit.ts; leave tryCommitOnTaskDone untouched (AC-26). Security gate extends applyReviewSecurityPostResult in place and reuses severityMeetsGate.",
+      "source": "engineer",
+      "question": "q_guidance_4"
+    },
+    {
+      "directive": "am-9, am-10 and am-11 stay proposed and ship as configurable defaults. Enabling stack.enabled / knowledge.enabled in this repository's own accord.json is a follow-up outside ASDLC-1 and is not a plan task.",
+      "source": "engineer",
+      "question": "q_guidance_5"
+    },
+    {
+      "directive": "Do not use Separate S loop for review-security — Needs new LoopKind, round prefix, counter and schema pattern; gating inside the existing C round reuses the code_review counter",
+      "source": "spec-rejected-alternative"
+    },
+    {
+      "directive": "Do not use One commit per task (today's behaviour) as the evidence unit — Hides the red, green, review and fix process; kept as stack.commits: task",
+      "source": "spec-rejected-alternative"
+    },
+    {
+      "directive": "Do not use Hidden .accord-state directory for tree state — Humans cannot find or read it; visible docs/dev/<ID>/state/ with STATE.md is used",
+      "source": "spec-rejected-alternative"
+    },
+    {
+      "directive": "Do not use Git notes as the default state store — Not visible in the GitHub UI and not resumable by a plain checkout; kept as the notes option",
+      "source": "spec-rejected-alternative"
+    },
+    {
+      "directive": "Do not use Move docs/dev/<ID>/ to capability keys — Breaks rehydrate, trace and CI paths; a second living layer docs/features/ is added instead",
+      "source": "spec-rejected-alternative"
+    },
+    {
+      "directive": "Do not use Harness splits oversized tasks into several PRs or uses fractional task ids — Complicates schemas and evidence naming; the plan agent re-plans smaller integer-id tasks",
+      "source": "spec-rejected-alternative"
+    },
+    {
+      "directive": "Do not use graphite or spr as the first stack provider — gh is available everywhere; other providers come later behind the port",
+      "source": "spec-rejected-alternative"
+    },
+    {
+      "directive": "Codegen/schema wiring: inherit repo default — JSON schemas in packages/accord-core/schemas/ are hand-edited with examples under schemas/examples/; no generator and no lifecycle hook; bun run validate:schemas and validate:assets check alignment.",
+      "source": "convention"
+    },
+    {
+      "directive": "Template loading: inherit repo default — markdown outputs (evidence asset, PR brief, stack map, stack table, feature index.md, STATE.md) are TypeScript string renderers like src/artifacts/render-*.ts; no template files and no fs-loaded templates.",
+      "source": "convention"
+    },
+    {
+      "directive": "Client form/state persistence: not applicable — no browser UI; harness state stays in .tasks/ and the committed docs/dev/<ID>/state/ snapshot.",
+      "source": "convention"
+    },
+    {
+      "directive": "Build-system target naming: inherit repo default — root package.json scripts named validate:<name> backed by scripts/validate-<name>.ts (e.g. validate:okf, validate:ste); validate:features follows it and is added to AGENTS.md Dev Harness verification_commands and lint only in the PR that adds the script.",
+      "source": "convention"
+    },
+    {
+      "directive": "E2E auth strategy: not applicable, matching spec.test_topology.storage_state_strategy — e2e tests use temp git repos and a fake gh binary; no browser and no storage state.",
+      "source": "convention"
+    },
+    {
+      "directive": "Governance scaffolding: none delivered by ASDLC-1 (no Dependabot, PR template, CODEOWNERS or issue auto-link changes); the accord/evidence status check is a CI workflow, not governance scaffolding.",
+      "source": "convention"
+    }
+  ],
+  "reuse_candidates": [
+    {
+      "symbol": "tryCommitOnTaskDone",
+      "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+      "fit": "compose with"
+    },
+    {
+      "symbol": "commitWorkItemArtifacts",
+      "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+      "fit": "compose with"
+    },
+    {
+      "symbol": "severityMeetsGate",
+      "file": "packages/accord-core/src/tasks/model.ts",
+      "fit": "use as-is"
+    },
+    {
+      "symbol": "advisoryAll",
+      "file": "packages/accord-core/src/tasks/record.ts",
+      "fit": "extend"
+    },
+    {
+      "symbol": "renderTaskTrace",
+      "file": "packages/accord-core/src/tasks/render.ts",
+      "fit": "compose with"
+    },
+    {
+      "symbol": "syncSpecMarkdownFromJson",
+      "file": "packages/accord-core/src/artifacts/spec-markdown.ts",
+      "fit": "compose with"
+    },
+    {
+      "symbol": "readJson/writeJson/mutateJson",
+      "file": "packages/accord-core/src/work-items/io.ts",
+      "fit": "use as-is"
+    },
+    {
+      "symbol": "createLogger",
+      "file": "packages/accord-core/src/logging.ts",
+      "fit": "use as-is"
+    },
+    {
+      "symbol": "SCHEMA_MAP",
+      "file": "packages/accord-core/src/artifacts/validation.ts",
+      "fit": "extend"
+    },
+    {
+      "symbol": "ACCORD_TOOLS",
+      "file": "packages/accord-core/src/tools/registry.ts",
+      "fit": "extend"
+    },
+    {
+      "symbol": "git_commit_execute",
+      "file": "packages/pi-git/src/defs/git-commit-execute.ts",
+      "fit": "use as-is"
+    },
+    {
+      "symbol": "gh_pr_submit",
+      "file": "packages/pi-git/src/defs/gh-pr-submit.ts",
+      "fit": "use as-is"
+    },
+    {
+      "symbol": "applyReviewSecurityPostResult",
+      "file": "packages/accord-core/src/orchestration/post-result/review-security.ts",
+      "fit": "extend"
+    },
+    {
+      "symbol": "accord-cli commands",
+      "file": "packages/accord-cli/src/commands/index.ts",
+      "fit": "extend"
+    },
+    {
+      "symbol": "accord-ci src",
+      "file": "packages/accord-ci/src",
+      "fit": "extend"
+    },
+    {
+      "symbol": "validate-okf",
+      "file": "scripts/validate-okf.ts",
+      "fit": "partial match only"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "[flags] Stack and knowledge switch resolver with default-off values",
+      "covers_ac": ["AC-26"],
+      "challenge": true,
+      "files": [
+        {
+          "path": "packages/accord-core/src/config/types.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/config/stack-flags.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-flags.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-flags.test.ts (ASDLC-1/AC-26): with no stack/knowledge keys, resolveStackConfig returns enabled false, commits \"task\", provider gh, state {persist tree, path docs/dev/{id}/state, redact true, max_bytes 262144}, sizing defaults (400/30/10/6/1.5) and resolveKnowledgeConfig returns enabled false, root docs/features, drift_check warn, max_acs_per_feature 12; stack.commits \"phase\" is honoured independently of stack.enabled; resolveReviewSecurityGate returns \"advisory\" when unset and stack disabled, \"warn\" when unset and stack enabled, and the explicit value otherwise."
+        },
+        {
+          "tag": "impl",
+          "description": "config/types.ts: add typed DevHarnessConfig.stack, DevHarnessConfig.knowledge and orchestration.review_loop.review_security mirroring the existing accord-schema.json keys. stack-flags.ts: pure resolvers resolveStackConfig, resolveKnowledgeConfig, resolveReviewSecurityGate filling every default, so later tasks gate on one function. This is the dark-deploy guard every later task sits behind."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-flags.test.ts`, `bun run check:types`, `bun run check:bundle`, `bun run check:runtime`, `bun run check:biome` (biome config inherited unchanged). Land via git_commit_execute and gh_pr_submit."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "[infra] Temp git repo, fake gh helpers and import-boundary test",
+      "covers_ac": ["AC-28"],
+      "challenge": true,
+      "files": [
+        {
+          "path": "packages/accord-core/tests/helpers/temp-git-repo.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/helpers/fake-gh.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/helpers-git.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/layering.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "helpers-git.test.ts: createTempGitRepo() makes an isolated repo with a fixed author and main branch, commitFiles() returns the sha and cleanup removes it; installFakeGh() puts a recording gh binary first on PATH, replays canned JSON per argv pattern and exposes the call log; no network access is possible."
+        },
+        {
+          "tag": "test",
+          "description": "layering.test.ts (ASDLC-1/AC-28, ASDLC-1/TC-29): scan every packages/accord-core/src/**/*.ts import specifier and fail if any resolves to @earendil-works/* or packages/pi-* (pi-git, pi-accord, pi-subagent, ...)."
+        },
+        {
+          "tag": "impl",
+          "description": "Implement the helpers per spec.dev_ergonomics.seed_strategy (golden fixtures, temp git repos, fake gh binary, no network) and spec.test_topology (tests under packages/<pkg>/tests, e2e under tests/e2e/). No coverage gate is added (spec.infra_and_tooling.coverage_threshold none). accord-cli and accord-ci tests import these helpers by relative path."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/helpers-git.test.ts packages/accord-core/tests/layering.test.ts`, `bun run check:types`, `bun run check:bundle`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "[telemetry] Stack event catalogue and emitter on the shared logger",
+      "covers_ac": ["AC-29"],
+      "challenge": false,
+      "files": [
+        {
+          "path": "packages/accord-core/src/telemetry/stack-events.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-telemetry.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-telemetry.test.ts (ASDLC-1/AC-29, ASDLC-1/TC-30): capture stderr with ACCORD_LOG_LEVEL=debug; emitStackEvent emits stack.commit.created (info), stack.guard.rejected (warn), stack.state.snapshot (debug), stack.overrun.detected (warn), stack.ci.alert (error) with exactly the declared field names from spec.telemetry_topology; unknown fields and missing fields throw; stack.state.snapshot rejects non-numeric values for file_count, bytes and redactions (counts only, never content)."
+        },
+        {
+          "tag": "impl",
+          "description": "stack-events.ts: STACK_EVENTS catalogue (name, level, fields) and emitStackEvent(event, fields, logger = createLogger(\"stack\")) that formats `<event> key=value ...` through the shared logger. No metrics (spec scope.out); trace propagation is the id= and ref= trailer keys."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-telemetry.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "[infra] accord/evidence check runner and workflow",
+      "covers_ac": ["AC-31"],
+      "challenge": true,
+      "files": [
+        {
+          "path": ".github/workflows/accord-evidence.yml",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/src/evidence-check.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "docs/ci/pre-merge-smoke.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "evidence-check-runner.test.ts: runEvidenceCheck(rules, ctx) with zero rules passes; a failing rule yields exit 1 and a `accord/evidence: <rule>: <message>` line; rules receive {base, head} shas and evaluate base..head; results serialise to the commit-status payload {context: \"accord/evidence\", state, description}."
+        },
+        {
+          "tag": "impl",
+          "description": "evidence-check.ts: rule registry and bun entry point (rules are added by later tasks). accord-evidence.yml: on pull_request to main (checkout with fetch-depth: 0; head is github.event.pull_request.head.sha, not the refs/pull/N/merge sha) and push to main (head is github.sha), run the script over base..head and post one commit status to the head sha with context accord/evidence via `gh api .../statuses` using GITHUB_TOKEN (statuses: write only); no new secret. Document the new required workflow in docs/ci/pre-merge-smoke.md (spec.infra_and_tooling.required_workflows) and append a dated okf/log.md entry. Extends accord-ci src with a new entry script beside dispatch.ts and gate-*.ts."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-ci/tests/evidence-check-runner.test.ts`, `bun run check:types`, `bun run check:biome`, `bun run validate:okf`; grep the workflow to confirm no secret other than GITHUB_TOKEN is referenced and nothing echoes it; `grep -n 'fetch-depth: 0' .github/workflows/accord-evidence.yml` and `grep -n 'pull_request.head.sha' .github/workflows/accord-evidence.yml` each find a match"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "[commit-evidence] Commit grammar: Accord trailer build, parse, validate",
+      "covers_ac": ["AC-2"],
+      "challenge": true,
+      "files": [
+        {
+          "path": "packages/accord-core/src/commit/commit-grammar.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/commit-grammar.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/fixtures/commit-grammar/messages.golden.txt",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/fixtures/commit-grammar/awk-extract.golden.txt",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "commit-grammar.test.ts (ASDLC-1/AC-2, ASDLC-1/TC-2): golden messages for T1/phase-test, T1/review-test, C1/review-security, V1/phase-verify-task, state(task-2) and evidence(task-2): buildCommitMessage output equals the golden; parseAccordTrailer round-trips; trailer is one line of key=value with no spaces in values; missing required key (v id task seq ref agent loop round outcome) fails validation; crit+warn+sugg not equal to staged findings count fails; t_pass/t_fail not equal to recorded test counts fails; unknown x_ keys are kept but ignored; subject matches the documented subject regex."
+        },
+        {
+          "tag": "test",
+          "description": "Same file: commit the golden messages into a temp repo (task 2 helper), run the documented `git log --format='%H%x09%(trailers:key=Accord,valueonly,unfold)' | awk ...` extraction and compare with awk-extract.golden.txt and with parseAccordTrailer sums (ASDLC-1/AC-2)."
+        },
+        {
+          "tag": "impl",
+          "description": "commit-grammar.ts: AccordTrailer type (v=1 key groups from plan section 3.2e), buildSubject, buildCommitMessage, parseAccordTrailer, validateTrailer(trailer, {findingsCount, testCounts}), parseSubject. Integers only for counts; absent keys omitted, never null."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/commit-grammar.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ],
+      "depends_on": [2]
+    },
+    {
+      "id": 6,
+      "title": "[commit-evidence] Commit guard and content redaction",
+      "covers_ac": ["AC-3", "AC-29"],
+      "challenge": true,
+      "depends_on": [3, 5],
+      "files": [
+        {
+          "path": "packages/accord-core/src/commit/commit-guard.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/commit-guard.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/state/redact.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/redact.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "commit-guard.test.ts (ASDLC-1/AC-3, ASDLC-1/TC-3): table over commit types (phase-test, review-test, phase-code, review-code, review-security, phase-verify-task, state, evidence) and candidate paths; review commits keep only docs/dev/<ID>/reviews/** and docs/dev/<ID>/state/**; phase-code with a test path returns {rejected:[path], rule: \"code-touches-test\", respawn: \"phase-test\"}; out-of-scope paths are dropped from the staged set; trailer count mismatch rejects with rule \"trailer-counts\"."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-29): each rejection emits stack.guard.rejected at warn with work_item_id, ref, rule, path."
+        },
+        {
+          "tag": "test",
+          "description": "redact.test.ts (ASDLC-1/AC-12): seeded inputs built at runtime (GitHub/OpenAI/Anthropic/AWS-style tokens, Bearer headers, KEY=value assignments whose names match (SECRET|TOKEN|KEY|PASSWORD|CREDENTIAL|PRIVATE), values of environment variables whose names match (SECRET|TOKEN|KEY|PASSWORD|CREDENTIAL|PRIVATE) and are at least 8 characters long (other env values such as '1', 'true' or '/bin/zsh' are never masked, so output is identical on any machine), /Users/<name>/ and /home/<name>/ paths) are all masked by redactText and counted; redaction is idempotent; benign text is unchanged."
+        },
+        {
+          "tag": "impl",
+          "description": "commit-guard.ts: guardStagedPaths(commitType, workItemId, paths, testFilePattern) using the Dev Harness test.file_pattern, plus guardTrailer via validateTrailer from task 5; emits through emitStackEvent."
+        },
+        {
+          "tag": "impl",
+          "description": "state/redact.ts: pure redactText(text) returning {value, redactions}; created here so every later writer of content that enters git history (review findings, evidence asset, state snapshots) shares one redactor."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/commit-guard.test.ts packages/accord-core/tests/redact.test.ts`, `bun run check:types`, `bun run check:biome`; review-security reviews this task (secrets entering git history cannot be rewritten); `grep -rEn 'ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}' packages/accord-core/tests` returns no match (seed secrets are built at runtime, never committed as full tokens)."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "[commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase",
+      "covers_ac": ["AC-1", "AC-3", "AC-26", "AC-27", "AC-29"],
+      "challenge": true,
+      "depends_on": [1, 2, 3, 6],
+      "files": [
+        {
+          "path": "packages/accord-core/src/commit/phase-commit.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/subagent/result/process.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/phase-commits.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/append-only.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/pi-accord/scripts/runtime-smoke.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "phase-commits.test.ts (ASDLC-1/AC-1, ASDLC-1/TC-1): temp repo, stack.commits \"phase\", drive a fake task through phase-test, review-test, phase-code, review-security, review-code, phase-verify-task; assert one commit per phase in order, subjects carry T1/phase-test, C1/review-security, V1/phase-verify-task refs, each review commit contains docs/dev/<ID>/reviews/task-<N>/<round>-<agent>.md with the findings before the next phase commit, every commit has a valid Accord trailer, a secret seeded at runtime into a finding's evidence text is masked in the committed review markdown (ASDLC-1/AC-12), and a commit made during a spawn without a trailer is reported (rule agent-commit) instead of accepted."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-3, ASDLC-1/AC-29): a phase-code result that touched a test file is committed without the test path, the task is routed back to phase-test via the existing RGR respawn, and stack.commit.created is emitted at info with work_item_id, ref, outcome, sha for each commit. With stack.commits unset, no phase commit is made and commitDoneTasks still runs (ASDLC-1/AC-26)."
+        },
+        {
+          "tag": "test",
+          "description": "append-only.test.ts (ASDLC-1/AC-27, ASDLC-1/TC-28): a failed review round then a retry only appends commits (every earlier sha stays an ancestor of HEAD); no git invocation from phase-commit uses --amend, --force, reset or rebase (spy on git helper args)."
+        },
+        {
+          "tag": "test",
+          "description": "runtime-smoke.ts (ASDLC-1/AC-26, ASDLC-1/TC-27): extend the smoke script to run a default-config task flow in a temp repo (task 2 helper); assert the per-task on_task_done commit still happens and none of docs/dev/<ID>/state/, evidence/, reviews/, contract.lock.json or docs/features/ is created."
+        },
+        {
+          "tag": "impl",
+          "description": "phase-commit.ts: tryCommitPhase(workItemId, taskId, ref, agent, packet, devConfig, cwd) writes review findings markdown (passed through redactText from src/state/redact.ts), collects candidate files (reusing exported pathMatchesCandidate), runs guardStagedPaths, builds message via buildCommitMessage with usage-log token and cost sums, commits with commitWithMessage from git/helpers.ts, emits stack.commit.created. process.ts: when resolveStackConfig().commits === \"phase\" call tryCommitPhase after each phase post-result and skip the commitDoneTasks sweep (the evidence commit closes the task in task 13); tryCommitOnTaskDone stays untouched."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/phase-commits.test.ts packages/accord-core/tests/append-only.test.ts packages/accord-core/tests/commit-on-task-done.test.ts`, `bun run check:types`, `bun run check:bundle`, `bun run check:runtime`, `bun run check:biome`; `grep -rEn 'ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}' packages/accord-core/tests` returns no match (seed secrets are built at runtime, never committed as full tokens)."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "[commit-evidence] Evidence timeline from git trailers",
+      "covers_ac": ["AC-4"],
+      "challenge": false,
+      "depends_on": [2, 5],
+      "files": [
+        {
+          "path": "packages/accord-core/src/evidence/timeline.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/evidence-timeline.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "evidence-timeline.test.ts (ASDLC-1/AC-4): over a temp repo with a known typed-commit sequence, readTimeline(workItemId, {task}) returns rows (ref, outcome, counts, tokens, cost) built only from trailers (no .tasks/ read); renderTimelineMarkdown and renderTimelineTsv match expected text; tsv columns equal the documented awk extraction columns; commits without an Accord trailer are skipped."
+        },
+        {
+          "tag": "impl",
+          "description": "timeline.ts: readTimeline via git log --format with %(trailers:key=Accord,valueonly,unfold) and parseAccordTrailer; renderers for md and tsv; optional task-<N> filter."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/evidence-timeline.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "[commit-evidence] accord evidence CLI command",
+      "covers_ac": ["AC-4", "AC-28"],
+      "challenge": true,
+      "depends_on": [2, 8],
+      "files": [
+        {
+          "path": "packages/accord-cli/src/cli.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-cli/src/dispatch.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-cli/src/commands/evidence.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-cli/tests/evidence-cli.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "evidence-cli.test.ts (ASDLC-1/AC-4, ASDLC-1/TC-4): `accord evidence <ID>`, `accord evidence <ID> task-2` and `--format tsv` over a fixture temp repo print output equal to inline golden md and tsv text; unknown format exits non-zero with a clear message."
+        },
+        {
+          "tag": "impl",
+          "description": "cli.ts parses `evidence <ID> [task-<N>] [--format md|tsv]`; dispatch.ts routes to commands/evidence.ts, a thin adapter over readTimeline and the renderers (no logic in the adapter, ASDLC-1/AC-28). Extends accord-cli commands (commands/evidence.ts beside the existing commands)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-cli/tests/evidence-cli.test.ts packages/accord-cli/tests/no-pi-dep.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "[commit-evidence] OKF docs and docs validation test",
+      "covers_ac": ["AC-31"],
+      "challenge": true,
+      "depends_on": [7, 9],
+      "files": [
+        {
+          "path": "okf/references/commit-format.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/architecture/evidence-stack.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/accord-cli.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/docs-validation.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "docs-validation.test.ts (ASDLC-1/AC-31, ASDLC-1/TC-32): spawn `bun run validate:okf` and `bun run validate:ste` and assert exit 0; assert okf/log.md has a dated entry naming ASDLC-1."
+        },
+        {
+          "tag": "impl",
+          "description": "Document the implemented commit grammar, guard and stack.commits phase mode (commit-format.md, evidence-stack.md), the `accord evidence` command (accord-cli.md); append a dated okf/log.md entry. Procedure text in style: ste files follows ASD-STE100."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/docs-validation.test.ts`, `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`. Land via git_commit_execute and gh_pr_submit."
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "[evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled",
+      "covers_ac": ["AC-6", "AC-30"],
+      "challenge": true,
+      "depends_on": [1, 10],
+      "files": [
+        {
+          "path": "packages/accord-core/src/evidence/qualify-ac.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/artifacts/trace-artifact.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/schemas/trace-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/queries/verify-summary.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/qualified-ac-refs.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "qualified-ac-refs.test.ts (ASDLC-1/AC-6, ASDLC-1/TC-6): qualifyAcRef(\"ASDLC-1\",\"AC-3\") is \"ASDLC-1/AC-3\"; findBareAcRefs(text) finds bare AC-<n>/TC-<n> outside an `ac=` trailer value; a trace.json generated with stack.enabled for a fixture work item has acceptance[].ac_id values all qualified and contains no bare ref."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-26): with stack.enabled unset, trace.json output is byte-identical to the pre-change output (bare ac_id); a legacy bare trace.json still validates; verify-summary normalises bare and qualified ids so a qualified trace with a bare verify.json yields no 'no task requirement covers it' warning and the reverse check still fires for a missing requirement; the verify.md AC trace section (renderAcTrace exact-match lookup) renders qualified trace ids against a bare verify.json without 'no task requirement covers this AC'."
+        },
+        {
+          "tag": "impl",
+          "description": "qualify-ac.ts: qualifyAcRef, qualifyTcRef, findBareAcRefs, normalizeAcId. trace-artifact.ts writes qualified acceptance[].ac_id only when resolveStackConfig().enabled. trace-schema.json widens the acceptance[].ac_id pattern to accept qualified and legacy bare ids. queries/verify-summary.ts keys its trace lookups (including renderAcTrace) by normalizeAcId."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/qualified-ac-refs.test.ts packages/accord-core/tests/trace-artifact.test.ts`, `bun run validate:schemas`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "[evidence-asset] Evidence asset writer (task-<N>.md and .json)",
+      "covers_ac": ["AC-5", "AC-6"],
+      "challenge": true,
+      "depends_on": [2, 6, 8, 11],
+      "files": [
+        {
+          "path": "packages/accord-core/src/evidence/asset.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/evidence-asset.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/evidence/lines.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "evidence-asset.test.ts (ASDLC-1/AC-5, ASDLC-1/TC-5): from a temp repo with typed commits, buildEvidenceAsset(workItemId, [taskId]) yields json (roll-up per loop: rounds, findings, responses, tests red to green, tokens, cost; planned vs actual size from measureActualLines: net production and test lines counted separately, excluding generated files, lockfiles, state/, reviews/ and evidence/) and md (red and green excerpts, findings, review-to-fix patches from git diff review..next phase excluding reviews/ and state/); a merged PR (task 2,3) writes one asset per task; output is byte-identical across two runs; a squash-merge simulation keeps the asset files."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-6): every AC/TC reference in the md and json is \"ASDLC-1/AC-<n>\" (findBareAcRefs returns none)."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-12): red and green output excerpts and review-to-fix patches seeded with runtime-built secrets, Bearer headers and /Users/<name>/ paths are masked in both the md and json (redactText); asset size is capped by stack.state.max_bytes."
+        },
+        {
+          "tag": "impl",
+          "description": "lines.ts: measureActualLines (git diff --numstat, the single definition of actual size, reused by the overrun check in task 39 and trace.json). asset.ts: pure function of commits, trailers and review files (TypeScript string renderers, writeJson for the json); passes every excerpt and patch through redactText from src/state/redact.ts; respects stack.evidence.include_diffs."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/evidence-asset.test.ts`, `bun run check:types`, `bun run check:biome`, then `grep -rEn 'ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}' packages/accord-core/tests` returns no match (seed secrets are built at runtime, never committed as full tokens). review-security reviews this task (secrets entering git history cannot be rewritten)."
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "[evidence-asset] Final evidence(task-<N>) commit",
+      "covers_ac": ["AC-5", "AC-27", "AC-29"],
+      "challenge": true,
+      "depends_on": [7, 12],
+      "files": [
+        {
+          "path": "packages/accord-core/src/commit/evidence-commit.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/subagent/result/process.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/evidence-commit.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/commit/hooks.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "evidence-commit.test.ts (ASDLC-1/AC-5): in phase mode a done task gets a final commit with subject evidence(task-<N>) (evidence(task-<N>,<M>) for a merged group) whose staged paths are only docs/dev/<ID>/evidence/** and docs/dev/<ID>/state/**, writes the asset, removes docs/dev/<ID>/state/task-<N>/ when present, carries outcome=done roll-up trailer keys, emits stack.commit.created (ASDLC-1/AC-29), appends a harness commit log entry (refActor commit, result committed) for the evidence sha so commitDoneTasks skips the task and the trace shows it committed, and is idempotent on rerun (no second evidence commit, no amend: ASDLC-1/AC-27)."
+        },
+        {
+          "tag": "impl",
+          "description": "evidence-commit.ts: commitTaskEvidence(workItemId, taskIds, devConfig, cwd) using buildEvidenceAsset, appending the commit log entry via the existing appendLog, guardStagedPaths(\"evidence\") and commitWithMessage. process.ts: in phase mode call it for tasks reaching done instead of the per-task commit, with taskIds from resolvePrGroup(taskId), a registry in commit/hooks.ts (registerPrGroupResolver; the same file also defines registerCloseoutBranchHook, read by the closeout task and registered by the branch task, so neither depends on a later task) that defaults to [taskId]; the stack service (task 29) registers a resolver backed by computeStack when its module loads (accord-core's src/index.ts imports the service, so headless and CI runs register it without tools/registry.ts) so a merged PR gets evidence(task-<N>,<M>) when its last task is done."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/evidence-commit.test.ts packages/accord-core/tests/phase-commits.test.ts`, `bun run check:types`, `bun run check:bundle`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "[evidence-asset] OKF docs for the evidence asset",
+      "covers_ac": ["AC-31"],
+      "challenge": false,
+      "depends_on": [13],
+      "files": [
+        {
+          "path": "okf/architecture/evidence-stack.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/artifacts-and-state.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "Document evidence/task-<N>.{md,json}, the evidence(task-<N>) commit, qualified <ID>/AC-<n> refs (incl. trace.json) and squash survival; append a dated okf/log.md entry (ASD-STE100 for style: ste text)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "[security-gate] review-security gating inside the C loop",
+      "covers_ac": ["AC-7", "AC-8", "AC-26"],
+      "challenge": true,
+      "depends_on": [1],
+      "files": [
+        {
+          "path": "packages/accord-core/src/tasks/record.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/orchestration/post-result/review-security.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/review-security-gate.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/review-security-gate-stack.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "review-security-gate.test.ts (ASDLC-1/AC-7, ASDLC-1/TC-7): severity_gate unset and stack.enabled false: critical, warning and suggestion findings are all advisory, no retry is consumed and the task advances to review-code exactly as today."
+        },
+        {
+          "tag": "test",
+          "description": "review-security-gate-stack.test.ts (ASDLC-1/AC-8, ASDLC-1/TC-8): table over {stack.enabled true + unset => warn, block, warn, none}: findings at or above the gate are gating, suggestions stay advisory under warn and block; after review-code the next C round goes to phase-code with security and code findings together; review-code re-reviews that fix; at the code_review retry cap the task blocks for a human."
+        },
+        {
+          "tag": "impl",
+          "description": "record.ts: advisoryAll is true only when the effective gate (resolveReviewSecurityGate from task 1) is \"advisory\"; otherwise pass the gate to applyReviewFindings (severityMeetsGate decides). review-security.ts (applyReviewSecurityPostResult): pass the resolved gate and print gating vs advisory counts; still always advance to review-code; fix rounds use the existing code_review counter."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/review-security-gate.test.ts packages/accord-core/tests/review-security-gate-stack.test.ts packages/accord-core/tests/loop-caps.test.ts`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "[security-gate] Route open or disputed gating security findings back to review-security",
+      "covers_ac": ["AC-8"],
+      "challenge": true,
+      "depends_on": [15],
+      "files": [
+        {
+          "path": "packages/accord-core/src/orchestration/review-paths.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/orchestration/post-result/phase-code.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/review-security-routing.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "review-security-routing.test.ts (ASDLC-1/AC-8, ASDLC-1/TC-8), driven through applyPhaseCodePostResult: with a gating severity_gate and open or disputed gating review-security findings, the next phase after phase-code is review-security even when the fix touches no security-sensitive path; review-security then rechecks and closes or reopens its own findings, and review-code never implicitly closes them; a disputed gating security finding cannot loop to the code_review retry cap unseen; with the default advisory gate routing is unchanged (ASDLC-1/AC-26)."
+        },
+        {
+          "tag": "impl",
+          "description": "review-paths.ts: nextPhaseAfterPhaseCode(filesChanged, {testIssuesEmitted, openGatingSecurityFindings}). post-result/phase-code.ts: pass the task's open or disputed gating review-security findings (from the task file, severity gate from resolveReviewSecurityGate) into it."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/review-security-routing.test.ts packages/accord-core/tests/review-security-gate-stack.test.ts packages/accord-core/tests/loop-caps.test.ts`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "[security-gate] Schema description and OKF docs",
+      "covers_ac": ["AC-30", "AC-31"],
+      "challenge": true,
+      "depends_on": [15],
+      "files": [
+        {
+          "path": "packages/accord-core/schemas/accord-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/orchestration-policy.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/stack-config.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "Mark orchestration.review_loop.review_security as read by the harness (drop PROPOSED, keep schema default advisory); document the gate in orchestration-policy.md and stack-config.md; append okf/log.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:schemas`, `bun run validate:assets`, `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "[contract-lock] contract.lock.json writer, verifier and schema",
+      "covers_ac": ["AC-9", "AC-30"],
+      "challenge": true,
+      "depends_on": [1, 2],
+      "files": [
+        {
+          "path": "packages/accord-core/src/contract/lock.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/schemas/contract-lock-schema.json",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/artifacts/validation.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/contract-lock.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "contract-lock.test.ts (ASDLC-1/AC-9, ASDLC-1/TC-9): writeContractLock records sha256 of brief.md, spec.json and plan.json plus the sha of the commit preceding the lock commit; verifyContractLock hashes plan.json with guidance[] removed (canonical JSON; accepted-deviation and as-built records are appended to guidance after PR0), so an edit that changes only plan.guidance reports unchanged while an edit to a task or AC reports changed; verifyContractLock also reports unchanged, and names each changed file after an edit; state/** (including state/work-item.json, which closeout deletes) is not locked; contract.lock.json validates via SCHEMA_MAP; isAmendOpen(id) is true only when the marker docs/dev/<ID>/state/contract-amend.open holds the nonce stored in the orchestrator-owned session file .tasks/<ID>-amend.json; a marker without or with a wrong nonce is not open."
+        },
+        {
+          "tag": "impl",
+          "description": "lock.ts: writeContractLock / verifyContractLock / lockedPaths (brief.md, spec.json, plan.json) / amendMarkerPath / isAmendOpen using node:crypto and writeJson; the marker holds a random nonce and isAmendOpen requires it to equal the nonce in the orchestrator-owned session file .tasks/<ID>-amend.json (not trusted alone: verifyAfterSpawn in the post-spawn task also requires the returning agent to be phase-spec or phase-plan inside an orchestrator-opened session). plan.json is hashed with guidance[] removed. contract-lock-schema.json hand-edited with required fields; SCHEMA_MAP entry for contract.lock.json."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/contract-lock.test.ts`, `bun run validate:schemas`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "[contract-lock] PR0 contract commit, tag and contract-amend",
+      "covers_ac": ["AC-9", "AC-27"],
+      "challenge": true,
+      "depends_on": [18],
+      "files": [
+        {
+          "path": "packages/accord-core/src/contract/pr0.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/contract/amend.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/contract-pr0.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/contract-amend.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/subagent/result/process.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "contract-pr0.test.ts (ASDLC-1/AC-9): with stack.enabled and an implement or greenfield work item, approval builds a commit containing docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json, tags it accord/<ID>/contract (non-forced; an existing tag is left as is: ASDLC-1/AC-27); buildContractPr0 runs only when contract.lock.json is absent and no amend is open (a plan post-result during an amend never writes a second lock commit); quick_fix and stack.enabled false produce no PR0 (ASDLC-1/AC-26); the PR0 commit and tag exist before the next spawn is dispatched and a commit or tag error is surfaced to the orchestrator, never swallowed; pre-lock hooks registered with registerPreLockHook run before writeContractLock so the lock always matches the final files."
+        },
+        {
+          "tag": "test",
+          "description": "contract-amend.test.ts (ASDLC-1/AC-9): applyContractAmend with diff, reason and affected ACs updates the locked files, rewrites contract.lock.json, appends an amendment record, calls syncSpecMarkdownFromJson, and records the task ids covering those ACs as stale_task_ids in the amendment record (task 22 blocks them) and clears the amend marker, and commits through commitWithMessage as an orchestrator amend commit with Accord trailer outcome=amend that touches only the locked files, contract.lock.json and state/**; an amend without a reason is rejected."
+        },
+        {
+          "tag": "impl",
+          "description": "pr0.ts: async buildContractPr0 using writeContractLock and commitWithMessage plus `git tag`, running registered pre-lock hooks first (registerPreLockHook). amend.ts: applyContractAmend (amend commit with trailer outcome=amend). subagent/result/process.ts (already async): after the plan post-result, when resolveStackConfig().enabled, contract.lock is configured, contract.lock.json is absent and no amend is open, await buildContractPr0; the synchronous post-result handlers are not changed."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/contract-pr0.test.ts packages/accord-core/tests/contract-amend.test.ts`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "[contract-lock] Pre-write lock guard in the tool_call hook",
+      "covers_ac": ["AC-9", "AC-31"],
+      "challenge": true,
+      "depends_on": [18, 19],
+      "files": [
+        {
+          "path": "packages/accord-core/src/contract/lock-guard.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/contract-lock-guard.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "okf/architecture/hooks.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        },
+        {
+          "path": "packages/pi-accord/src/pi-hook-listeners.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "contract-lock-guard.test.ts (ASDLC-1/AC-9): with contract.lock.json present, contractLockToolCallBlock for a write or edit of brief.md (non-JSON), spec.json, plan.json, contract.lock.json or docs/dev/<ID>/state/contract-amend.open returns a block reason naming contract-amend before the write happens; while an amend is open (valid nonce) brief.md, spec.json and plan.json pass but contract.lock.json and the marker stay blocked (they are orchestrator-only writes); without a lock file every write passes (ASDLC-1/AC-26); other files and other tools are untouched."
+        },
+        {
+          "tag": "impl",
+          "description": "lock-guard.ts: contractLockToolCallBlock(toolName, input, cwd) returns a block reason or null (path normalisation through normalizeHarnessRelativePath). pi-accord pi-hook-listeners.ts: in the existing tool_call listener, for write and edit call it and return { block: true, reason } so the write never happens (the existing post-write .json validation in artifact-write.ts is unchanged). This pre-write hook covers sessions that load the extension; the post-spawn verification in the next task is the guarantee when a hook is absent. Document in okf/architecture/hooks.md and append okf/log.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/contract-lock-guard.test.ts`, `bun run check:types`, `bun run validate:okf`, `bun run check:biome`. review-security reviews this task (lock guard / CI secret surface), `bun run check:bundle`, `bun run check:runtime` (the pi-accord hook listener changed)"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "title": "[contract-lock] Post-spawn lock verification, restore and amend-only commits",
+      "covers_ac": ["AC-9"],
+      "challenge": true,
+      "depends_on": [6, 18, 19, 20],
+      "files": [
+        {
+          "path": "packages/accord-core/src/contract/lock-verify.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/subagent/result/process.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/commit/commit-guard.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/contract/lock.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/contract-lock-restore.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "contract-lock-restore.test.ts (ASDLC-1/AC-9, ASDLC-1/TC-9): after a spawn that wrote brief.md, spec.json, plan.json or contract.lock.json outside an open amend, verifyAfterSpawn restores those files from the PR0 commit (git checkout of the locked paths from HEAD or the accord/<ID>/contract tag), emits stack.guard.rejected with rule locked-file-written, and the blocked content does not stay on disk; writes made while an amend is open (valid nonce) are kept."
+        },
+        {
+          "tag": "test",
+          "description": "Same file: a marker without the matching nonce is deleted and changes nothing; locked-file writes are kept only when the returning agent is phase-spec or phase-plan inside an orchestrator-opened session and are restored for any other agent even when marker and nonce match; plan.json changes that touch only guidance[] (acceptDeviation, review-deviation as-built entries) are kept; guardStagedPaths drops locked files and contract.lock.json from every commit type except an outcome=amend commit, which may touch only locked files, the lock and state/**; a forged lock with a matching hash set and a hand-written amendment record is not accepted by verifyContractLock (the amendment must come from an outcome=amend commit)."
+        },
+        {
+          "tag": "impl",
+          "description": "lock-verify.ts: verifyAfterSpawn(workItemId, cwd) using verifyContractLock plus git restore. subagent/result/process.ts: call it after every subagent result when contract.lock.json exists. commit-guard.ts: rule locked-path for non-amend commits. lock.ts: verifyContractLock reports an amendment as valid only when the amendment record's commit trailer is outcome=amend."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/contract-lock-restore.test.ts packages/accord-core/tests/contract-lock-guard.test.ts packages/accord-core/tests/commit-guard.test.ts`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`. review-security reviews this task (lock bypass and forgery surface)."
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "[contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks",
+      "covers_ac": ["AC-9", "AC-31"],
+      "challenge": true,
+      "depends_on": [18, 19, 20, 21],
+      "files": [
+        {
+          "path": "packages/accord-core/src/contract/amend-session.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/orchestration/resolve/subcommand.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/contract-amend-session.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/subagent/result/process.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "contract-amend-session.test.ts (ASDLC-1/AC-9, ASDLC-1/TC-9): with contract.lock.json present and stack.enabled, `/dev amend-spec <reason> [--replan]` copies the locked spec.json and plan.json to .tasks/<ID>-amend/, writes the nonce marker docs/dev/<ID>/state/contract-amend.open (orchestrator-written) and stores the nonce, reason and replan flag in the orchestrator-owned session file .tasks/<ID>-amend.json, the lock guard then lets phase-spec write spec.json and, with --replan, phase-plan write plan.json (the amend stays open through both), and on the last amended phase done the orchestrator (subagent/result/process.ts, async) derives the affected ACs from the diff between the snapshot and the new files, calls applyContractAmend with the reason from the command argument (one outcome=amend commit), rewrites the lock and clears the marker; an amend with no reason argument is refused before the marker is written."
+        },
+        {
+          "tag": "test",
+          "description": "Same file: on stuck in any amended phase the marker is cleared and the snapshot removed; on needs_input it stays open until done, stuck or `/dev amend-spec --cancel`; an amend without --replan resets the coarse phase to implementing after phase-spec done so phase-plan is not spawned, and with --replan the amend stays open until phase-plan done; exactly one commit (outcome=amend) is made per amend and buildContractPr0 does not run during it; tasks whose covered ACs changed are set blocked with blocker 'stale after contract-amend' through the existing blocked mechanism (no new task-schema field) and resume only after `/dev unblock`; without stack.enabled or a lock file amend-spec behaves exactly as today (ASDLC-1/AC-26)."
+        },
+        {
+          "tag": "impl",
+          "description": "amend-session.ts: openAmend (snapshot, nonce, marker)/closeAmend/cancelAmend using amendMarkerPath from lock.ts, plus affectedAcsFromSpecDiff over the snapshot. subcommand.ts: parse the reason and --replan arguments and route amend-spec through openAmend when a lock exists. subagent/result/process.ts (async, not the synchronous post-result handlers): after phase-spec or phase-plan done call applyContractAmend with the derived ACs and reason, on stuck call closeAmend. CI-driven amendments are out of scope for this work item. Append an okf/log.md entry for the amend-spec routing."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/contract-amend-session.test.ts packages/accord-core/tests/contract-lock-guard.test.ts packages/accord-core/tests/contract-amend.test.ts`, `bun run validate:okf`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`. review-security reviews this task (lock guard bypass surface)."
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "[contract-lock] Contract-lock rule in the accord/evidence CI check",
+      "covers_ac": ["AC-9", "AC-31"],
+      "challenge": true,
+      "depends_on": [4, 18],
+      "files": [
+        {
+          "path": "packages/accord-ci/src/checks/contract-lock.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/src/evidence-check.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-ci/tests/contract-lock-check.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "docs/ci/pre-merge-smoke.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "contract-lock-check.test.ts (ASDLC-1/AC-9, ASDLC-1/TC-10): temp repo PR diff that edits a locked file without a contract-amend fails the rule; the same edit passes only when it arrives in an orchestrator amend commit (Accord trailer outcome=amend touching only locked files, contract.lock.json and state/**); a forged lock with matching hashes and a hand-written amendment record but no amend commit fails; only commits after the lock commit (the lock records the preceding sha) are checked and trailers are read only in base..head, with the lock and amendment records already on the base branch trusted: a non-amend commit after the lock that touches a locked file fails, PR0's own PR (which adds the locked files and the lock) passes, a squash-merged amend PR passes on later PRs, and the accord/<ID>/contract tag is informational and never required on main; repos without contract.lock.json pass."
+        },
+        {
+          "tag": "impl",
+          "description": "checks/contract-lock.ts: rule calling verifyContractLock over the PR head; register in evidence-check.ts. Update docs/ci/pre-merge-smoke.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-ci/tests/contract-lock-check.test.ts packages/accord-ci/tests/evidence-check-runner.test.ts`, `bun run check:types`, `bun run check:biome`. review-security reviews this task (lock guard / CI secret surface)."
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "title": "[contract-lock] OKF docs for contract PR0 and amendment",
+      "covers_ac": ["AC-31"],
+      "challenge": true,
+      "depends_on": [19, 20, 22, 23],
+      "files": [
+        {
+          "path": "okf/architecture/evidence-stack.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/artifacts-and-state.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/dev-command.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "Document PR0, contract.lock.json, the accord/<ID>/contract tag and /dev amend-spec as contract-amend; append okf/log.md (ASD-STE100 for style: ste)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "title": "[stack-compute] Plan schema fields, phase-plan prompt and alignment test",
+      "covers_ac": ["AC-10", "AC-30", "AC-31"],
+      "challenge": true,
+      "depends_on": [14, 24],
+      "files": [
+        {
+          "path": "packages/accord-core/schemas/plan-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-assets/agents/accord/phase-plan.md",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/alignment.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "okf/references/schemas.md",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/orchestration/resolve/interview-task.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "alignment.test.ts (ASDLC-1/AC-30, ASDLC-1/TC-31): run validate:schemas and validate:assets and assert exit 0; a plan with est_lines, concern, flag, kind (feature|refactor|schema|interface|enable) validates; an unknown kind fails; a temp copy of manifest.json with an agent missing from registry.ts makes validate:assets fail."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-26): the phase-plan task text built by interview-task.ts contains no stack planning section and no stack_enabled marker with stack.enabled unset, and contains both when it is true."
+        },
+        {
+          "tag": "impl",
+          "description": "plan-schema.json: optional est_lines (integer >= 0), concern (string), flag (string), kind (enum) on tasks; depends_on already exists. phase-plan.md: a section 'Stack planning (only when the task text says stack_enabled: true)' instructing vertical slices, concern tags, est_lines estimates and challenge for tasks above stack.sizing budgets. orchestration/resolve/interview-task.ts adds `stack_enabled: true` and the sizing budgets to the phase-plan task text only when resolveStackConfig().enabled, so planning is unchanged by default (ASDLC-1/AC-26). Document in okf/references/schemas.md; the okf/log.md entry is appended in task 32."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/alignment.test.ts`, `bun run validate:schemas`, `bun run validate:assets`, `bun run validate:okf`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "title": "[stack-compute] computeStack: deterministic pack, flag and order",
+      "covers_ac": ["AC-10"],
+      "challenge": true,
+      "depends_on": [1, 25],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/types.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/stack/compute-stack.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/compute-stack.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/fixtures/stack/compute-stack.golden.json",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "compute-stack.test.ts (ASDLC-1/AC-10, ASDLC-1/TC-11): golden fixture plan: two runs give byte-identical JSON; adjacent same-concern tasks below min_pr_lines merge within max_pr_lines; refactor/schema/flag tasks are not merged; a task above max_pr_lines or max_files is flagged for re-plan and never split; independent tasks are siblings; topological order on depends_on; PR count equals 2 plus packed groups; PR0 is first and closeout is the last PR in the list."
+        },
+        {
+          "tag": "impl",
+          "description": "types.ts: StackPlan, PrGroup, StackFlag. compute-stack.ts: pure computeStack(plan, sizing) with pass A (flag) and pass B (merge) per evidence-stack plan section 4.2, stable sort by task id."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/compute-stack.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "title": "[stack-compute] PR brief, stack map, stack table and report renderers",
+      "covers_ac": ["AC-6", "AC-11"],
+      "challenge": false,
+      "depends_on": [5, 11, 12, 26],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/render.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-render.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-render.test.ts (ASDLC-1/AC-11): renderPrBrief puts the sha-pinned contract link first, then ACs with proving tests, the one-line process summary, accepted risks and reading order; renderStackMap lists position, PR links and AC coverage; renderStackTable has PR, Tasks, Concern, ACs, Est. LOC, Depends on; renderStackReport rolls up rows per loop (rounds, findings, tests, tokens, cost) from trailers. Every AC ref is ASDLC-1/AC-<n> (ASDLC-1/AC-6, findBareAcRefs empty)."
+        },
+        {
+          "tag": "impl",
+          "description": "render.ts: TypeScript string renderers over computeStack output, evidence assets and parseAccordTrailer; uses qualifyAcRef."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-render.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "title": "[stack-compute] StackProvider port and gh provider",
+      "covers_ac": ["AC-11"],
+      "challenge": true,
+      "depends_on": [2, 27],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/provider.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/stack/gh-provider.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-provider-gh.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-provider-gh.test.ts (ASDLC-1/AC-11, ASDLC-1/TC-12): with the fake gh binary, createOrUpdatePr creates then edits the same PR with the brief body; upsertStackMapComment edits the existing marker comment in place; setEvidenceStatus posts one commit status with context accord/evidence and never replaces an existing failure status for the same sha (a local submit cannot overwrite a CI failure); the port also has ensureBranch/pushBranch (non-force); listPrs maps provider state; resolveStackProvider(\"graphite\") throws a clear unsupported-provider error; gh stderr and token values never appear in thrown messages."
+        },
+        {
+          "tag": "impl",
+          "description": "provider.ts: StackProvider port (createOrUpdatePr, upsertStackMapComment, setEvidenceStatus, listPrs, ensureBranch, pushBranch, retarget reserved for task 41) and resolveStackProvider. gh-provider.ts: execFile(\"gh\", ...) with argument arrays (no shell), relying on the engineer's gh auth login; no token handling in accord-core; pushBranch never passes --force. The CI workflow (task 4) is the authority for accord/evidence; setEvidenceStatus only upgrades a missing or pending status."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-provider-gh.test.ts`, `bun run check:types`, `bun run check:bundle`, then `grep -rEn 'GH_TOKEN|GITHUB_TOKEN|process\\.env' packages/accord-core/src/stack/` returns no match (the provider relies on gh auth and handles no token), `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "title": "[stack-compute] Stack service and dev_stack_* MCP tools",
+      "covers_ac": ["AC-11", "AC-28"],
+      "challenge": true,
+      "depends_on": [28],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/service.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/tools/registry.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-service.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/index.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-service.test.ts (ASDLC-1/AC-11): stackShow returns the computed table; stackSync refreshes PR numbers and states from the provider; stackSubmit creates or updates every PR with brief, map comment and accord/evidence status; stackReport renders the per-PR roll-up; dev_stack, dev_stack_sync, dev_stack_submit, dev_stack_report in ACCORD_TOOLS return the same text as the service; with stack.enabled false each returns a clear disabled message."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-11): the service registers its computeStack-backed resolver with registerPrGroupResolver when src/index.ts is imported, without importing tools/registry.ts, so a headless run and a CI-driven run get evidence(task-<N>,<M>) for a merged group when its last task is done; stackSubmit pushes each branch without force; stack submit never overwrites a failing accord/evidence status."
+        },
+        {
+          "tag": "impl",
+          "description": "service.ts: stackShow/stackSync/stackSubmit/stackReport composing readPlan (readJson of docs/dev/<ID>/plan.json), resolveStackConfig, computeStack, renderers and resolveStackProvider; registers registerPrGroupResolver on load. src/index.ts: import the service for its registration side effect. registry.ts: add the four dev_stack_* tools (MCP and Pi adapters pick them up). The per-PR branch lifecycle is the next task."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-service.test.ts packages/accord-mcp/tests`, `bun run check:types`, `bun run check:bundle`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "title": "[stack-compute] Per-PR branch lifecycle in the spawn preflight",
+      "covers_ac": ["AC-11"],
+      "challenge": true,
+      "depends_on": [29],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/branches.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/subagent/preflight-runner.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-branches.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-branches.test.ts (ASDLC-1/AC-11): only when stack.enabled, runSubagentToolPreflight for agent phase-test on the first task of a PR group awaits ensureTaskBranch, which creates stack/<ID>/pr-<n> from the PR0 branch while PR0 is unmerged and from main afterwards (from the parent branch only for a depends_on chain) with no force and no amend, so the committed brief, spec, plan and lock stay in the working tree; a dirty tree returns a blockReason (decision) instead of switching; a sibling task's phase-test sees none of the previous group's files; nothing happens when stack.enabled is false, even with stack.commits phase; the read-only status query never switches branches."
+        },
+        {
+          "tag": "test",
+          "description": "Same file: ensureCloseoutBranch switches to stack/<ID>/closeout from fetched origin/main, refusing with a decision while task PRs are unmerged (provider state); it is registered with registerCloseoutBranchHook (defined in commit/hooks.ts, task 13) at module load and runs before any closeout artifact write."
+        },
+        {
+          "tag": "impl",
+          "description": "branches.ts: ensureTaskBranch/ensureCloseoutBranch/branchFor (namespaces stack/<ID>/pr-<n> and stack/<ID>/closeout, distinct from the CI-driven accord/<ID>/* trigger namespace) using git/helpers.ts (no force). subagent/preflight-runner.ts: in the async runSubagentToolPreflight, when stack is enabled and the agent is phase-test for the first task of its group, await ensureTaskBranch and return a blockReason on a dirty tree."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-branches.test.ts packages/accord-core/tests/stack-service.test.ts`, `bun run check:types`, `bun run check:bundle`, `bun run check:runtime`, `bun run check:biome`. review-security reviews this task (git side effects driven by plan data)."
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "title": "[stack-compute] accord stack CLI command",
+      "covers_ac": ["AC-11", "AC-28", "AC-31"],
+      "challenge": true,
+      "depends_on": [29],
+      "files": [
+        {
+          "path": "packages/accord-cli/src/cli.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-cli/src/dispatch.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-cli/src/commands/stack.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-cli/tests/stack-cli.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "okf/references/accord-cli.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-cli.test.ts (ASDLC-1/AC-11): `accord stack <ID>`, `accord stack sync <ID>`, `accord stack submit <ID>`, `accord stack report <ID>` print the same output as the matching dev_stack_* tool over a fixture plan with the fake gh binary."
+        },
+        {
+          "tag": "impl",
+          "description": "cli.ts/dispatch.ts route `stack`; commands/stack.ts is a thin adapter over stack/service.ts (ASDLC-1/AC-28). Document in okf/references/accord-cli.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-cli/tests/stack-cli.test.ts packages/accord-cli/tests/no-pi-dep.test.ts`, `bun run check:types`, `bun run validate:okf`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "title": "[stack-compute] Schema description and OKF docs for the stack",
+      "covers_ac": ["AC-30", "AC-31"],
+      "challenge": true,
+      "depends_on": [31],
+      "files": [
+        {
+          "path": "packages/accord-core/schemas/accord-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "okf/architecture/evidence-stack.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/architecture/tool-surface.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/stack-config.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "accord-schema.json: stack description states the keys are read by the harness and default off (default values unchanged). Document computeStack, the StackProvider port, dev_stack_* tools and sizing keys; append okf/log.md (also recording the plan-schema fields and conditional phase-plan prompt from task 25)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:schemas`, `bun run validate:assets`, `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "title": "[tree-state] State size cap and task-file redaction",
+      "covers_ac": ["AC-12"],
+      "challenge": true,
+      "depends_on": [10, 14],
+      "files": [
+        {
+          "path": "packages/accord-core/src/state/redact.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/state-redact.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "state-redact.test.ts (ASDLC-1/AC-12): seeded task files with prompt and transcript fields and raw packets, built from runtime-generated secrets: every one is removed or masked and counted (redactText itself is covered by task 6); output above stack.state.max_bytes is truncated with a marker; redaction is idempotent; benign text is unchanged."
+        },
+        {
+          "tag": "impl",
+          "description": "redact.ts (created in task 6): add redactTaskFile (drops prompt/transcript fields and raw packets), capBytes; returns {value, redactions}. Pure, no I/O."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/state-redact.test.ts`, `bun run check:types`, `bun run check:biome`; review-security reviews this task (secrets entering git history cannot be rewritten); `grep -rEn 'ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}' packages/accord-core/tests` returns no match (seed secrets are built at runtime, never committed as full tokens)."
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "title": "[tree-state] State snapshot writer staged with every typed commit",
+      "covers_ac": ["AC-12", "AC-29"],
+      "challenge": true,
+      "depends_on": [7, 13, 33],
+      "files": [
+        {
+          "path": "packages/accord-core/src/state/snapshot.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/commit/phase-commit.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/state-snapshot.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "state-snapshot.test.ts (ASDLC-1/AC-12, ASDLC-1/TC-13): with persist tree and redact true, each phase commit stages docs/dev/<ID>/state/task-<N>/STATE.md (equal to renderTaskTrace of the redacted task) and task.json that validates against task-schema.json with in_flight null and a reset owner_nonce; test output excerpts are redacted and capped; no <round>-<agent>.json raw packet is staged; with redact false no state is written; the evidence commit leaves no state/task-<N>/."
+        },
+        {
+          "tag": "test",
+          "description": "Same file (ASDLC-1/AC-29): stack.state.snapshot is emitted at debug with work_item_id, task, file_count, bytes, redactions as counts only (no content)."
+        },
+        {
+          "tag": "impl",
+          "description": "snapshot.ts: writeStateSnapshot(workItemId, taskId, devConfig) composing renderTaskTrace, redactTaskFile and writeJson; phase-commit.ts adds the snapshot paths to every phase and state commit when resolveStackConfig().state.persist is tree."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/state-snapshot.test.ts packages/accord-core/tests/phase-commits.test.ts`, `bun run check:types`, `bun run check:biome`; state-snapshot.test.ts also asserts the snapshot files it writes contain no `(SECRET|TOKEN|KEY|PASSWORD|CREDENTIAL|PRIVATE)=` assignment and no /Users/<name>/ or /home/<name>/ path (the assertion runs in the test, over the generated files)."
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "title": "[tree-state] Stateless resume from committed state",
+      "covers_ac": ["AC-13"],
+      "challenge": true,
+      "depends_on": [34],
+      "files": [
+        {
+          "path": "packages/accord-core/src/state/restore.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/work-items/rehydrate.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/work-items/artifact-discovery.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/e2e/state-resume.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "e2e/state-resume.test.ts (ASDLC-1/AC-13, ASDLC-1/TC-14): record a fixture run with typed commits; for each typed commit before the evidence commit, clone fresh, check out that sha, delete .tasks/, resume; assert the next ref equals the original run, findings come from the tree (no review spawn), and the asset regenerated from the last pre-deletion commit is byte-identical to the committed asset."
+        },
+        {
+          "tag": "impl",
+          "description": "restore.ts: rebuild .tasks/<ID>-task-<N>.json and work item from docs/dev/<ID>/state/ and other artifacts. rehydrate.ts: use it when .tasks/ is missing and state/ exists. artifact-discovery.ts: skip state/ for artifact discovery."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/e2e/state-resume.test.ts packages/accord-core/tests/rehydrate.test.ts`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "title": "[tree-state] Closeout commit builds artifacts then removes state",
+      "covers_ac": ["AC-15"],
+      "challenge": true,
+      "depends_on": [34],
+      "files": [
+        {
+          "path": "packages/accord-core/src/state/closeout.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/closeout.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "closeout.test.ts (ASDLC-1/AC-15, ASDLC-1/TC-16): with all task PRs done, the closeout commit builds verify.*, trace.* and workflow-cost.* first, writes the in-tree squash-proof marker docs/dev/<ID>/evidence/closeout.json, then deletes the remaining docs/dev/<ID>/state/ incl. work-item.json (order asserted via file mtimes and commit content) and carries an Accord trailer outcome=closeout; both existing callers (runner finalize and the dev_finalize tool) reach it because both call commitWorkItemArtifacts; when stack.enabled, commitWorkItemArtifacts first requires a clean tree and awaits the registered closeout branch hook (registerCloseoutBranchHook from commit/hooks.ts, default none) before any artifact write, so a branch switch never runs over dirty verify or trace files; stack disabled keeps today's closeout (ASDLC-1/AC-26); with stack.enabled and orchestration.commit.on_finalize false, finalize is refused with a clear message instead of silently leaving state/ in place."
+        },
+        {
+          "tag": "impl",
+          "description": "closeout.ts: prepareCloseout (no import of commit-on-task-done.ts, so no cycle) removes docs/dev/<ID>/state/ after trace.*, verify.* and workflow-cost.* are built, writes evidence/closeout.json and returns the Accord outcome=closeout trailer; the closeout branch hook is read from commit/hooks.ts (task 13). commit-on-task-done.ts: commitWorkItemArtifacts (shared by runner.ts finalize and the dev_finalize tool in tools/registry.ts) when stack.enabled checks the tree is clean and awaits the closeout branch hook at the very start, then calls prepareCloseout as a one-way pre-stage hook before resolveStagedFiles so removal lands in the same commit; tryCommitOnTaskDone stays untouched."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/closeout.test.ts`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "title": "[tree-state] Leftover-state rule in the accord/evidence check",
+      "covers_ac": ["AC-14", "AC-31"],
+      "challenge": true,
+      "depends_on": [4, 36],
+      "files": [
+        {
+          "path": "packages/accord-ci/src/checks/leftover-state.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/src/evidence-check.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-ci/tests/evidence-check.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "docs/ci/pre-merge-smoke.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "evidence-check.test.ts (ASDLC-1/AC-14, ASDLC-1/TC-15): PR head with state/work-item.json and in-flight task state passes; a PR head with state/task-<N> after evidence(task-<N>) fails; main with an open work item (state/ present, no closeout marker) passes, including with stack.enabled and stack.commits task where trace.json is already committed per task; main with a closed-out work item (docs/dev/<ID>/evidence/closeout.json present, or a commit with Accord trailer outcome=closeout) that still has any docs/dev/<ID>/state/ fails; main after closeout passes; a squash-merge simulation that drops the trailer is still detected through closeout.json."
+        },
+        {
+          "tag": "impl",
+          "description": "checks/leftover-state.ts reads the evidence commits from git log and treats a work item as closed out when docs/dev/<ID>/evidence/closeout.json exists (survives squash) or a commit with Accord trailer outcome=closeout exists on main (trace.json is not a signal: per-task commits already stage it); register in evidence-check.ts; update docs/ci/pre-merge-smoke.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-ci/tests/evidence-check.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "title": "[tree-state] OKF docs for committed state and closeout",
+      "covers_ac": ["AC-31"],
+      "challenge": true,
+      "depends_on": [35, 37],
+      "files": [
+        {
+          "path": "okf/references/artifacts-and-state.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/architecture/evidence-stack.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/stack-config.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "Document docs/dev/<ID>/state/, redaction rules, resume from a fresh clone and the closeout order; append okf/log.md (ASD-STE100 for style: ste)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "title": "[trunk-hardening] Overrun measurement and re-plan decision",
+      "covers_ac": ["AC-16", "AC-29", "AC-30"],
+      "challenge": true,
+      "depends_on": [32, 38],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/overrun.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/artifacts/trace-artifact.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/schemas/trace-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/overrun-decision.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/subagent/result/process.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "overrun-decision.test.ts (ASDLC-1/AC-16, ASDLC-1/TC-17): checkOverrun uses measureActualLines from task 12 (net production and test lines separately, excluding generated files, lockfiles, state/, reviews/ and evidence/) so the evidence asset and trace.json report the same numbers; above overrun_factor x est_lines after GREEN a decisions[] entry offers re-plan via contract-amend or accept with reason; at or below no decision; answering the decision with re-plan drives `/dev amend-spec <reason> --replan` end to end (AC-16 through the amend session of task 22); trace.json records est_lines, act_prod_lines, act_test_lines per task; stack.overrun.detected is emitted at warn with work_item_id, task, est_lines, act_lines (ASDLC-1/AC-29)."
+        },
+        {
+          "tag": "impl",
+          "description": "overrun.ts: async checkOverrun built on measureActualLines from task 12. subagent/result/process.ts (async): after GREEN when stack.enabled and est_lines present, await checkOverrun; the synchronous post-result handlers are not changed. trace-artifact.ts and trace-schema.json: optional size block per task (validate:schemas)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/overrun-decision.test.ts packages/accord-core/tests/trace-artifact.test.ts`, `bun run validate:schemas`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "title": "[trunk-hardening] Open-PR depth cap and flag validation",
+      "covers_ac": ["AC-17"],
+      "challenge": true,
+      "depends_on": [32, 38],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/depth.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/stack/service.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-depth.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-depth.test.ts (ASDLC-1/AC-17, ASDLC-1/TC-18): a chain of 8 tasks with max_depth 6 opens at most 6 PRs; PR 7 becomes openable only after PR 1 merges; with require_flag true, validation fails when a non-final task lacks flag or a task other than the last has kind enable; the last task flips the flag."
+        },
+        {
+          "tag": "impl",
+          "description": "depth.ts: openablePrs(stack, mergedPrs, maxDepth) and validateFlags(plan, requireFlag). service.ts stackSubmit only opens openable PRs and reports flag violations."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-depth.test.ts packages/accord-core/tests/stack-service.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "title": "[trunk-hardening] Bottom-up merge: retarget next PR by merging main",
+      "covers_ac": ["AC-17", "AC-27"],
+      "challenge": true,
+      "depends_on": [40],
+      "files": [
+        {
+          "path": "packages/accord-core/src/stack/merge-bottom-up.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/stack/provider.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/stack/gh-provider.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/stack-depth.test.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "stack-depth.test.ts (ASDLC-1/AC-17, ASDLC-1/AC-27): after a base PR merges, advanceStack merges main into the next branch with a merge commit, pushes without force, retargets the PR base to main via the fake gh, and opens the next queued PR; no git call uses rebase, --force or --force-with-lease; with a squash-merged base (fixture: base PR squashed onto main, child modified a file the base added) the plain merge reports add/add and advanceStack resolves it by the rule: paths where main equals the base PR head keep the child's version, the merge commit is made and pushed without force, and a path where main differs from the base PR head stops the advance and raises a decisions[] entry; rebase-merged and merge-commit bases merge cleanly."
+        },
+        {
+          "tag": "impl",
+          "description": "merge-bottom-up.ts: advanceStack(workItemId) runs `git merge main --no-commit`, and on conflicts applies the squash add/add rule (compare git show main:<path> with the base PR head blob; keep the child's version on equality, otherwise abort the merge and raise a decision), then commits the merge. It never rebases, amends or force-pushes. provider.ts: retarget(pr, base). gh-provider.ts: `gh pr edit --base main`."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/stack-depth.test.ts packages/accord-core/tests/stack-provider-gh.test.ts`, `bun run check:types`, `bun run check:bundle`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "title": "[trunk-hardening] OKF docs for depth cap, merge order and overrun",
+      "covers_ac": ["AC-31"],
+      "challenge": true,
+      "depends_on": [39, 41],
+      "files": [
+        {
+          "path": "okf/architecture/evidence-stack.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/orchestration-policy.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/playbooks/answer-decisions.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "Document max_depth, require_flag, bottom-up merge with merge-main retarget, and the overrun decision options; append okf/log.md (ASD-STE100 for the playbook)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "title": "[feature-knowledge] Feature doc schema, parser and index generator",
+      "covers_ac": ["AC-18", "AC-30"],
+      "challenge": true,
+      "depends_on": [24, 32],
+      "files": [
+        {
+          "path": "packages/accord-core/schemas/feature-schema.json",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/knowledge/feature-doc.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/knowledge/index-gen.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/feature-docs.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/fixtures/features/",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "feature-docs.test.ts (ASDLC-1/AC-18, ASDLC-1/TC-19): over the fixture feature tree this task adds under packages/accord-core/tests/fixtures/features (a valid doc, a broken anchor, an AC without a test, an oversized feature), validateFeatures passes a valid doc; reports a broken anchor, a broken link, an AC without a test, a test reference that does not resolve, and a feature above max_acs_per_feature; generateFeatureIndex regenerates index.md and index.json byte-identically."
+        },
+        {
+          "tag": "impl",
+          "description": "feature-schema.json: OKF frontmatter (id, type, title, description, tags, status, owners, acs, anchors, depends_on, related, supersedes, changes). feature-doc.ts: parse and validate. index-gen.ts: index.md and index.json."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/feature-docs.test.ts`, `bun run validate:schemas`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "title": "[feature-knowledge] validate:features script and Dev Harness entry",
+      "covers_ac": ["AC-18", "AC-31"],
+      "challenge": true,
+      "depends_on": [43],
+      "files": [
+        {
+          "path": "scripts/validate-features.ts",
+          "action": "add"
+        },
+        {
+          "path": "package.json",
+          "action": "modify"
+        },
+        {
+          "path": "AGENTS.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/playbooks/verify-a-change.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "Run `bun scripts/validate-features.ts --root packages/accord-core/tests/fixtures/features` against the task 43 fixtures and expect a non-zero exit naming each defect (ASDLC-1/AC-18); on this repo with no knowledge.root it exits 0."
+        },
+        {
+          "tag": "impl",
+          "description": "scripts/validate-features.ts: thin CLI over validateFeatures and generateFeatureIndex (CLI shape from scripts/validate-okf.ts). package.json: validate:features script and add it to check. AGENTS.md Dev Harness: add `bun run validate:features` to lint and verification_commands in this same PR. Document in verify-a-change.md and okf/log.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:features`, `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`, `bun test`."
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "title": "[feature-knowledge] spec features[] and PR0 impact analysis",
+      "covers_ac": ["AC-19", "AC-30"],
+      "challenge": true,
+      "depends_on": [19, 43],
+      "files": [
+        {
+          "path": "packages/accord-core/schemas/spec-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/knowledge/impact.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/contract/pr0.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/feature-impact.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "feature-impact.test.ts (ASDLC-1/AC-19, ASDLC-1/TC-20): with knowledge.enabled, plan.files intersecting a feature's anchors.code yields an Impacted features table row with relation (new, extends, modifies, deprecates, depends_on); depends_on and related features are traversed; an overlap and a contradicting AC each become a decisions[] entry; knowledge disabled yields no table; verifyContractLock reports unchanged right after buildContractPr0 with knowledge enabled (features[] is written before the lock)."
+        },
+        {
+          "tag": "impl",
+          "description": "spec-schema.json: optional features[] {slug, relation, delta}. impact.ts: analyseImpact(plan, index). pr0.ts: register a pre-lock hook (registerPreLockHook, task 19) that writes features[] and the Impacted features table, calls syncSpecMarkdownFromJson, and pushes decisions[], so all of it happens before writeContractLock."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/feature-impact.test.ts packages/accord-core/tests/contract-pr0.test.ts`, `bun run validate:schemas`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "title": "[feature-knowledge] Closeout feature-doc update and drift check",
+      "covers_ac": ["AC-20"],
+      "challenge": true,
+      "depends_on": [43],
+      "files": [
+        {
+          "path": "packages/accord-core/src/knowledge/closeout-update.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/knowledge/drift.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/tests/feature-drift.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "feature-drift.test.ts (ASDLC-1/AC-20, ASDLC-1/TC-21): closeout on a change touching anchored files applies the AC delta, appends changes[] {work_item, pr, evidence, contract sha}, records <ID>/AC-<n> to feature AC id mapping, and lists in acs[].tests the tests whose names carry the qualified id; the closeout commit contains the updated docs/features files (the hook returns the paths it wrote and commitWorkItemArtifacts adds them to its staged candidates, beyond docs/dev/<ID>/); checkDrift in off passes, warn reports, block fails when the doc was neither updated nor declared unchanged."
+        },
+        {
+          "tag": "impl",
+          "description": "closeout-update.ts and drift.ts (severity via knowledge.drift_check). commit-on-task-done.ts: commitWorkItemArtifacts (shared by runner.ts finalize and the dev_finalize tool) runs runKnowledgeCloseoutUpdate (returning the paths it wrote under knowledge.root) as a one-way pre-stage hook before the closeout commit when knowledge.enabled, independent of stack.enabled and of task 36, so both entry points update feature docs; tryCommitOnTaskDone stays untouched."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/feature-drift.test.ts`, `bun run check:types`, `bun run check:runtime`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "title": "[feature-knowledge] Review invariants and CI drift rule",
+      "covers_ac": ["AC-22", "AC-31"],
+      "challenge": true,
+      "depends_on": [4, 45, 46],
+      "files": [
+        {
+          "path": "packages/accord-core/src/briefing/task-requirements.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-ci/src/checks/feature-drift.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/src/evidence-check.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "docs/ci/pre-merge-smoke.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "feature-drift-ci.test.ts (ASDLC-1/AC-22, ASDLC-1/TC-23): with knowledge.enabled, the review-code/review-security/review-test brief includes impacted feature docs as invariants with an instruction that a regression against an existing feature AC is a finding; the CI rule fails a non-harness PR that touches anchored files without a doc change or no-change declaration and passes with either; knowledge disabled adds nothing."
+        },
+        {
+          "tag": "impl",
+          "description": "task-requirements.ts: append an Impacted features section to review briefs. checks/feature-drift.ts: rule over the PR diff calling checkDrift; register in evidence-check.ts; update docs/ci/pre-merge-smoke.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-ci/tests/feature-drift-ci.test.ts packages/accord-core/tests/task-requirements.test.ts`, `bun run check:types`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "title": "[feature-knowledge] Feature find/impact query and dev_feature_* tools",
+      "covers_ac": ["AC-21"],
+      "challenge": true,
+      "depends_on": [45],
+      "files": [
+        {
+          "path": "packages/accord-core/src/knowledge/query.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/src/tools/registry.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/tests/feature-query.test.ts",
+          "action": "add"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "feature-query.test.ts (ASDLC-1/AC-21): findFeatures(query|path) reads only index.json first, then the feature doc, then change records, then evidence (progressive disclosure order asserted); impactFor(<ID>) returns the impacted features; dev_feature_find and dev_feature_impact return the same results."
+        },
+        {
+          "tag": "impl",
+          "description": "query.ts: findFeatures, impactFor, initFeatures (creates knowledge.root with an empty index; no repo scan). registry.ts: dev_feature_find, dev_feature_impact."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-core/tests/feature-query.test.ts`, `bun run check:types`, `bun run check:bundle`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "title": "[feature-knowledge] accord feature CLI command",
+      "covers_ac": ["AC-21", "AC-28", "AC-31"],
+      "challenge": true,
+      "depends_on": [48],
+      "files": [
+        {
+          "path": "packages/accord-cli/src/cli.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-cli/src/dispatch.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-cli/src/commands/feature.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-cli/tests/feature-cli.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "okf/references/accord-cli.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "feature-cli.test.ts (ASDLC-1/AC-21, ASDLC-1/TC-22): `accord feature find <query>`, `accord feature find <path>`, `accord feature impact <ID>` and `accord feature init` over a fixture index match the dev_feature_* tool output (CLI and MCP parity)."
+        },
+        {
+          "tag": "impl",
+          "description": "cli.ts/dispatch.ts route `feature`; commands/feature.ts is a thin adapter over knowledge/query.ts (ASDLC-1/AC-28). Document in okf/references/accord-cli.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-cli/tests/feature-cli.test.ts`, `bun run check:types`, `bun run validate:okf`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "title": "[feature-knowledge] Schema description and OKF docs for feature knowledge",
+      "covers_ac": ["AC-30", "AC-31"],
+      "challenge": true,
+      "depends_on": [44, 47, 49],
+      "files": [
+        {
+          "path": "packages/accord-core/schemas/accord-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/knowledge-config.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/architecture/tool-surface.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "accord-schema.json: knowledge description states the keys are read by the harness and default off; spec-schema feature field description likewise. Document docs/features, impact analysis, drift check and dev_feature_* tools; append okf/log.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:schemas`, `bun run validate:assets`, `bun run validate:okf`, `bun run validate:ste`, `bun run validate:features`, `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "title": "[ci-driven-mode] Startup push-token check and cost cap key",
+      "covers_ac": ["AC-25", "AC-30", "AC-31"],
+      "challenge": true,
+      "depends_on": [24, 32, 38, 42],
+      "files": [
+        {
+          "path": "packages/accord-ci/src/ci-driven/startup.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-core/schemas/accord-schema.json",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-core/src/config/types.ts",
+          "action": "modify"
+        },
+        {
+          "path": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "docs/ci/pre-merge-smoke.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "ci-driven-startup.test.ts (ASDLC-1/AC-25, ASDLC-1/TC-26): running the CI-driven entry point without ACCORD_CI_PUSH_TOKEN exits non-zero with `MISSING_REQUIRED_SECRET: ACCORD_CI_PUSH_TOKEN` (the error accord-ci/src/lib/env.ts requireEnv already throws) before any git or gh call (spy asserts zero calls); with it set startup proceeds; the token value never appears in stdout, stderr or logs; stack.ci.cost_cap_usd validates as a positive number and is unset by default."
+        },
+        {
+          "tag": "impl",
+          "description": "startup.ts: assertCiDrivenEnv() reusing accord-ci/src/lib/env.ts; no env-validation library (spec.infra_and_tooling.env_validation is an explicit opt-out). accord-schema.json and config/types.ts: stack.ci.cost_cap_usd. Document the server-only secret (owner cshirley, 90-day rotation) in docs/ci/pre-merge-smoke.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-ci/tests/ci-driven-startup.test.ts`, `bun run validate:schemas`, `bun run check:types`, `bun run check:bundle`, then `grep -rEn 'console\\.(log|error|warn).*ACCORD_CI_PUSH_TOKEN|echo .*ACCORD_CI_PUSH_TOKEN' packages/accord-ci/src .github/workflows` returns no match and `grep -rln ACCORD_CI_PUSH_TOKEN packages` lists only accord-ci files (the token stays server-side), `bun run check:biome`."
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "title": "[ci-driven-mode] CI builds PR0 from brief and spec",
+      "covers_ac": ["AC-23", "AC-31"],
+      "challenge": true,
+      "depends_on": [51],
+      "files": [
+        {
+          "path": "packages/accord-ci/src/ci-driven/pr0.ts",
+          "action": "add"
+        },
+        {
+          "path": ".github/workflows/accord-driven.yml",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+          "action": "add"
+        },
+        {
+          "path": "docs/ci/pre-merge-smoke.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "e2e/ci-driven-pr0.test.ts (ASDLC-1/AC-23, ASDLC-1/TC-24): dry-run on a fixture branch accord/<ID>/x that adds only brief.md and spec.json: the run spawns phase-plan (exec harness fake), commits plan.json and the computeStack table to PR0, and stops at the human gate with no local session; a branch that adds other files does not trigger, and with stack.enabled false (or a stack/<ID>/pr-<n> local branch) the workflow ends green without running."
+        },
+        {
+          "tag": "impl",
+          "description": "pr0.ts: detect trigger, run plan, commit and push with ACCORD_CI_PUSH_TOKEN. accord-driven.yml: on push to accord/*/** (the CI-driven namespace; local stack branches use stack/<ID>/pr-<n>), a first job step reads accord.json and ends the job green unless stack.enabled is true and the branch adds only brief.md and spec.json, then the startup check; token only from secrets.ACCORD_CI_PUSH_TOKEN and never echoed. Update docs/ci/pre-merge-smoke.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts`, `bun run check:types`, `bun run check:biome`; grep accord-driven.yml to confirm ACCORD_CI_PUSH_TOKEN is only referenced as `${{ secrets.ACCORD_CI_PUSH_TOKEN }}` in env and never in run echo. review-security reviews this task (lock guard / CI secret surface)."
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "title": "[ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert",
+      "covers_ac": ["AC-24", "AC-27", "AC-31"],
+      "challenge": true,
+      "depends_on": [52],
+      "files": [
+        {
+          "path": "packages/accord-ci/src/ci-driven/resume.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/src/ci-driven/alert.ts",
+          "action": "add"
+        },
+        {
+          "path": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+          "action": "add"
+        },
+        {
+          "path": ".github/workflows/accord-driven.yml",
+          "action": "modify"
+        },
+        {
+          "path": "docs/ci/pre-merge-smoke.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "test",
+          "description": "ci-driven-resume.test.ts (ASDLC-1/AC-24, ASDLC-1/TC-25): a workflow-level dry run selects the resume job after PR0 merges (push to main touching docs/dev/*/contract.lock.json, or a gate comment `/accord approve` or `/accord unblock` by an authorised user on the PR) and ends green without running when stack.enabled is false or the work item has no committed state; after PR0 merges, interrupt at each typed commit and rerun: the job resumes from the last typed commit and produces the same next ref with no history rewrite (ASDLC-1/AC-27); a second concurrent run for the same <ID> is refused by the lock; PR0 approval, blocked task and closeout gates are read from PR comments or commits; exceeding stack.ci.cost_cap_usd stops the run, emits stack.ci.alert at error with work_item_id and condition, and posts one PR comment via the push token; a failed gate raises the same alert; unset cap means no cap."
+        },
+        {
+          "tag": "impl",
+          "description": "resume.ts: resumeFromTree via state restore; lock per <ID>; gate readers; the cost cap uses checkCostCap/CostCapOpts from accord-ci parse-phase-result.ts with stack.ci.cost_cap_usd. alert.ts: emitStackEvent(stack.ci.alert) plus PR comment through gh with the existing push token. accord-driven.yml: add the post-PR0 triggers (push to main touching docs/dev/*/contract.lock.json; issue_comment gate commands) each behind the same stack.enabled entry check as the PR0 trigger, plus concurrency group accord-<ID>, cancel-in-progress false. Update docs/ci/pre-merge-smoke.md."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun test packages/accord-ci/tests/ci-driven-resume.test.ts packages/accord-ci/tests/cost-cap.test.ts`, `bun run check:types`, `bun run check:biome`, `grep -rEn 'console\\.(log|error|warn).*PUSH_TOKEN|echo .*ACCORD_CI_PUSH_TOKEN' packages/accord-ci/src/ci-driven .github/workflows/accord-driven.yml` returns no match. review-security reviews this task (lock guard / CI secret surface)."
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "title": "[ci-driven-mode] OKF and CI docs for CI-driven mode",
+      "covers_ac": ["AC-31"],
+      "challenge": true,
+      "depends_on": [53],
+      "files": [
+        {
+          "path": "okf/playbooks/adopt-autopipeline.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/environment-variables.md",
+          "action": "modify"
+        },
+        {
+          "path": "docs/ci/autopipeline.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/log.md",
+          "action": "modify"
+        }
+      ],
+      "steps": [
+        {
+          "tag": "impl",
+          "description": "Document CI-driven mode trigger, gates, cost cap, alert channel (#accord-ci-alerts via PR comment) and ACCORD_CI_PUSH_TOKEN (required, server-only, 90-day rotation); append okf/log.md (ASD-STE100 for the playbook)."
+        },
+        {
+          "tag": "verify",
+          "description": "Run `bun run validate:okf`, `bun run validate:ste`, `bun run check:biome`, then the full `bun test`. Land via git_commit_execute and gh_pr_submit."
+        }
+      ]
+    }
+  ]
+}

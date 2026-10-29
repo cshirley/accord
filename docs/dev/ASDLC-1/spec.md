@@ -75,7 +75,7 @@ Then findings at or above the gate severity gate the round (block: critical; war
 
 Given implement or greenfield work with stack.enabled
 When the contract is approved
-Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each plus the sha of the commit preceding the lock commit, and the lock commit is tagged accord/<ID>/contract (the tag is informational; the lock file is the durable record and survives squash)
+Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each of brief.md, spec.json and plan.json (state/work-item.json is not locked because closeout deletes it) plus the sha of the commit preceding the lock commit, and the lock commit is tagged accord/<ID>/contract (the tag is informational; the lock file is the durable record and survives squash)
 And an edit to a locked file without a contract-amend fails the hook and the CI check, while a contract-amend PR with diff, reason and affected ACs passes and marks downstream tasks stale
 
 ### AC-10 (MUST, scenario)
@@ -125,7 +125,7 @@ Then a decisions[] entry is raised with the options to re-plan through contract-
 Given a depends_on chain longer than stack.sizing.max_depth and require_flag true
 When the stack is submitted
 Then at most max_depth PRs of the chain are open, the next opens after its base merges, every non-final task PR leaves main green with the feature unreachable behind a flag, and only the last task flips the flag
-And PRs merge bottom-up: after a base PR merges, the next PR in the chain is retargeted to main by merging main into it (no rebase, no force-push, so evidence stays append-only)
+And PRs merge bottom-up: after a base PR merges, the next PR in the chain is retargeted to main by merging main into it (no rebase, no force-push, so evidence stays append-only). When the base PR was squash-merged, main holds its changes as one new commit while the child branch still holds the original base commits, so a file the child changed after the base added it is an add/add conflict on a plain merge. Resolution rule: for each conflicted path, if main's content equals the base PR head's content the child's version is kept (the child's changes sit on top of identical content); any other conflict stops the advance and raises a decisions[] entry, never a silent resolution.
 
 ### AC-18 (MUST, scenario)
 
@@ -276,7 +276,7 @@ Each feature MUST update the affected okf/ concepts and append a dated entry to 
 - **TC-17** → AC-16, unit
   - Measure actual lines (production plus test, generated and lockfiles excluded); assert decision raised above 1.5x, the log event and the trace entry
 - **TC-18** → AC-17, integration
-  - Chain of 8 tasks with depth 6; assert open-PR cap, order of opening, retargeting after base merge, and flag handling in plan validation
+  - Chain of 8 tasks with depth 6; assert open-PR cap, order of opening, retargeting after base merge, and flag handling in plan validation; squash-merged base with a child that changed a base-added file (add/add resolved by the rule), a differing conflict raising a decision, and rebase or merge-commit bases merging cleanly
 - **TC-19** → AC-18, unit
   - Call the validate:features validator and the index generator (introduced by the feature-knowledge feature, so not yet in verification.commands) over a fixture feature tree: valid, broken anchor, AC without test, oversized feature; index files regenerated
 - **TC-20** → AC-19, unit
@@ -360,6 +360,7 @@ Each feature MUST update the affected okf/ concepts and append a dated entry to 
 - **How does the planner detect oversized tasks before code exists?** — From est_lines, files and the split_on boundaries in the plan; the plan agent adds a challenge for tasks above budget, and the post-GREEN overrun decision catches estimates that were wrong.
 - **What is the granularity of a feature in docs/features and when does it split?** — A feature is a capability, not a file; validate:features asks for a split above max_acs_per_feature (default 12).
 - **How are ACs identified once many work items exist?** — AC ids stay local to the work item. Every reference outside the spec uses <work_item_id>/AC-<n> (tests already do, per phase-test). Each AC may carry an optional feature slug, and closeout maps <ID>/AC-<n> to the feature AC id in docs/features; the feature doc lists the tests. The feature slug is not put in test names, because features are renamed and split while tests rarely move.
+- **Does the contract lock hash state/work-item.json?** — No. The lock covers brief.md, spec.json and plan.json. state/work-item.json is part of PR0 but transient: closeout deletes it, so locking it would conflict with the closeout state removal.
 - **What is the work item id?** — ASDLC-1: the schemas require ids to end in digits, so FEAT-ASDLC was renamed.
 - **One spec for all features?** — Yes: all nine features are in this spec, delivered as stacked PRs per feature in dependency order. Delivery units are features, not numbered phases, because phase already means a harness agent step.
 
