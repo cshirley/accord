@@ -1,9 +1,9 @@
 ---
 type: Reference
 title: Commit message format
-description: Proposed orchestrator commit message - human subject, human body, and one machine-readable `Accord:` trailer of key=value pairs for grep and awk reporting.
-tags: [commits, trailers, reporting, awk, evidence, cost, proposed]
-status: proposed
+description: Orchestrator commit message - human subject, human body, and one machine-readable `Accord:` trailer of key=value pairs for grep and awk reporting.
+tags: [commits, trailers, reporting, awk, evidence, cost, implemented]
+status: implemented
 generated: { by: agent:pi, at: 2026-10-02T00:00:00Z }
 sources:
   - id: plan
@@ -12,9 +12,15 @@ sources:
   - id: accord-schema
     resource: /packages/accord-core/schemas/accord-schema.json
     title: Dev Harness config schema (stack.commits)
+  - id: commit-grammar
+    resource: /packages/accord-core/src/commit/commit-grammar.ts
+    title: Commit subject and trailer grammar
+  - id: commit-guard
+    resource: /packages/accord-core/src/commit/commit-guard.ts
+    title: Commit guard
 ---
 
-**Proposed.** Used when `stack.commits` is `phase` ([Stack configuration](/references/stack-config.md), [Evidence stack](/architecture/evidence-stack.md)). Full text and extraction script: plan section 3.2e.
+**Implemented.** Used when `stack.commits` is `phase` ([Stack configuration](/references/stack-config.md), [Evidence stack](/architecture/evidence-stack.md)). Full text and extraction script: plan section 3.2e.
 
 # Shape
 
@@ -48,3 +54,15 @@ Extensions use an `x_` prefix; consumers ignore unknown keys; `v` changes only f
 # Reporting
 
 `accord stack report` renders a per-PR and per-stack roll-up table from the trailers. `accord evidence <ID> --format tsv` exports columns for `awk`. The roll-up is also written to `docs/dev/<ID>/evidence/task-<N>.json`, so it survives squash-merge.
+
+# Commit guard
+
+The orchestrator stages paths and the guard rejects a path that breaks a rule. Each rejection logs `stack.guard.rejected` with the rule id.
+
+* `code-touches-test` — a code commit must not touch test files. The orchestrator drops the path and respawns `phase-test`.
+* `reviews-only` — a `review-test`, `review-code` or `review-security` commit can touch only `reviews/**` and `state/**`.
+* `state-only` — a `phase-verify-task` or `state` commit can touch only `state/**`.
+* `evidence-only` — an `evidence` commit can touch only `evidence/**` and `state/**`.
+* `trailer-counts` — the trailer counts must agree with the findings in the commit. The orchestrator corrects the counts.
+* `trailer-invalid` — the trailer does not parse. The commit is rejected.
+* `agent-commit` — an agent made a commit. Only the orchestrator can commit.

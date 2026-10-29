@@ -1,5 +1,9 @@
 # Bundle Update Log
 
+## 2026-10-30
+
+* **Update**: ASDLC-1 commit-evidence: [Commit message format](/references/commit-format.md) (commit guard rules), [Evidence stack](/architecture/evidence-stack.md) (`stack.commits` phase mode) and [accord CLI](/references/accord-cli.md) (`accord evidence`) now describe the implemented behaviour.
+
 ## 2026-10-29
 
 * **Creation**: `accord/evidence` check runner (`packages/accord-ci/src/evidence-check.ts`) and required workflow `.github/workflows/accord-evidence.yml`: posts commit status `accord/evidence` over base..head with `GITHUB_TOKEN` only. Documented in [Monorepo packages](/architecture/monorepo-packages.md) and `docs/ci/pre-merge-smoke.md`.
