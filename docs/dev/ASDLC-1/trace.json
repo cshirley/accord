@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T17:14:41.603Z",
+  "generated_at": "2026-10-29T17:26:50.928Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -46,6 +46,12 @@
       "task_id": 8,
       "description": "Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'.",
       "reason": "Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.",
+      "resolution": null
+    },
+    {
+      "task_id": 9,
+      "description": "Exported runEvidenceCommand from commands/index.ts (not in task.files)",
+      "reason": "dispatch.ts imports commands via the index barrel",
       "resolution": null
     }
   ],
@@ -805,7 +811,9 @@
       "id": 8,
       "title": "[commit-evidence] Evidence timeline from git trailers",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "2a2e877"
+      ],
       "rounds": {
         "T": 3,
         "C": 1,
@@ -870,12 +878,12 @@
     {
       "id": 9,
       "title": "[commit-evidence] accord evidence CLI command",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 1,
+        "C": 1,
+        "V": 1
       },
       "retries": {
         "test_review": 0,
@@ -885,24 +893,91 @@
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 11,
+        "by_state": {
+          "open": 11
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-4 accord evidence > ASDLC-1/TC-4 default format is md ...\n(fail) ... --format md equals the default output\n(fail) ... --format tsv prints header plus one tab-separated line per commit\n(fail) ... task-2 filters to that task (md)\n(fail) ... task-2 with --format tsv filters to that task\n(fail) ... --format may precede the task selector\n(fail) ... tsv columns match the documented awk extraction\n(fail) ... unknown format exits non-zero naming the format and the valid values\n(fail) ... work item id is required\n  Expected substring or pattern: /evidence requires a work item id/\n  Received: \"Unknown command \\\"evidence\\\". Run accord --help.\\n\"\n(fail) ASDLC-1/AC-28 ... delegates to accord-core timeline and renderers\n  Received: \"export function runEvidenceCommand(... throw new Error(\\\"not implemented: runEvidenceCommand\\\") ...\"\n(pass) ASDLC-1/AC-28 adapter does not shell out to git or parse trailers itself\n 1 pass\n 10 fail",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "evidence-cli + no-pi-dep: 12 pass, 0 fail. Preflight: bun test, validate:schemas/assets/okf/ste, check:types, check:bundle, check:runtime all exit 0. check:biome exit 1: format of docs/dev/ASDLC-1/trace.json and lint at packages/accord-core/scripts/update-model-pricing.ts:84; `biome check packages/accord-cli` clean.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-4",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/evidence.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/evidence.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/cli.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/dispatch.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/index.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-cli/tests/evidence-cli.test.ts packages/accord-cli/tests/no-pi-dep.test.ts"
+          }
         },
         {
           "id": "AC-28",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/evidence.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/evidence.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-cli/tests/evidence-cli.test.ts packages/accord-cli/tests/no-pi-dep.test.ts && bun run check:types && bun run check:bundle"
+          }
         }
       ]
     },
@@ -2695,7 +2770,7 @@
     {
       "ac_id": "AC-4",
       "text": "Then a timeline is rendered from git trailers only (ref, outcome, counts, tokens, cost) and the tsv columns match the documented awk extraction",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 8,
@@ -2703,19 +2778,29 @@
         },
         {
           "task": 9,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
         "packages/accord-core/tests/evidence-timeline.test.ts",
-        "packages/accord-core/src/evidence/timeline.ts"
+        "packages/accord-core/src/evidence/timeline.ts",
+        "packages/accord-cli/tests/evidence-cli.test.ts",
+        "packages/accord-cli/src/commands/evidence.ts",
+        "packages/accord-cli/src/cli.ts",
+        "packages/accord-cli/src/dispatch.ts",
+        "packages/accord-cli/src/commands/index.ts"
       ],
       "tests": [
         "evidence-timeline.test.ts: 17/17 pass (ASDLC-1/AC-4 readTimeline, renderers, trailer-only selection, tsv/awk column agreement)",
         "bun run check:types",
-        "bun test (full suite)"
+        "bun test (full suite)",
+        "evidence-cli.test.ts › ASDLC-1/TC-4 default format is md",
+        "evidence-cli.test.ts › ASDLC-1/TC-4 --format tsv prints header plus one tab-separated line per commit",
+        "evidence-cli.test.ts › ASDLC-1/TC-4 task-2 filters to that task (md)",
+        "evidence-cli.test.ts › ASDLC-1/TC-4 tsv columns match the documented awk extraction (sum usd_u by task)",
+        "evidence-cli.test.ts › ASDLC-1/TC-4 unknown format exits non-zero naming the format and the valid values"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-5",
@@ -3172,7 +3257,7 @@
         },
         {
           "task": 9,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 29,
@@ -3191,13 +3276,18 @@
         "packages/accord-core/tests/helpers-git.test.ts",
         "packages/accord-core/tests/layering.test.ts",
         "packages/accord-core/tests/helpers/temp-git-repo.ts",
-        "packages/accord-core/tests/helpers/fake-gh.ts"
+        "packages/accord-core/tests/helpers/fake-gh.ts",
+        "packages/accord-cli/tests/evidence-cli.test.ts",
+        "packages/accord-cli/src/commands/evidence.ts"
       ],
       "tests": [
         "packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*",
         "packages/accord-core/tests/helpers-git.test.ts › ASDLC-1/AC-28 (temp git repo and fake gh)",
         "bun run check:types",
-        "bun run check:bundle"
+        "bun run check:bundle",
+        "evidence-cli.test.ts › ASDLC-1/AC-28 commands/evidence.ts delegates to accord-core timeline and renderers",
+        "evidence-cli.test.ts › ASDLC-1/AC-28 adapter does not shell out to git or parse trailers itself",
+        "no-pi-dep.test.ts › does not depend on pi-accord or pi-subagent"
       ],
       "verified": false
     },
@@ -4314,6 +4404,149 @@
       "issue": "Markdown cells are not escaped, so a `|` in a trailer value breaks the table.",
       "file": "packages/accord-core/src/evidence/timeline.ts",
       "line": 115,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-001",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Only one invalid format value ('xml') is tested. Missing or empty --format values are untested, so an implementation that defaults them to md passes.",
+      "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+      "line": 267,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-002",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Task-selector and work-item-id parsing is the adapter's only real logic, and only valid single-digit selectors are tested. Bad selectors and stray positional arguments silently produce wrong output.",
+      "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+      "line": 231,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-003",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The fixture's commit order (task-2, task-2, task-3) is the same as sorting by task. The 'in commit order' claim does not tell a timeline apart from a task-sorted table.",
+      "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+      "line": 161,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-004",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The 'documented awk extraction' test simulates awk in JS and compares against fixed totals that repeat the golden. It never runs awk or compares against the documented `git log --format='%H%x09%(trailers:key=Accord,valueonly,unfold)' | awk` extraction.",
+      "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+      "line": 249,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`spawnSync` has no timeout, and the child process environment is not isolated from the user's git configuration.",
+      "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+      "line": 208,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "console.log appends a second newline to renderer output that already ends in \\n, so tsv/md output ends with a blank line.",
+      "file": "packages/accord-cli/src/commands/evidence.ts",
+      "line": 36,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The global `--json` flag is accepted but silently ignored (`_options` is unused), so output is not JSON.",
+      "file": "packages/accord-cli/src/commands/evidence.ts",
+      "line": 12,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-4",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`evidence` is not registered in TOP_LEVEL_COMMANDS, so it is missing from help, shell completion and interactive mode, unlike `trace` and `unblock`.",
+      "file": "packages/accord-cli/src/ui/command-catalog.ts",
+      "line": 25,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-28",
+      "finding_id": "F-005",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The AC-28 source-text checks are loose. `toContain(symbol)` passes when the names appear only in a comment, and the deny list misses other ways to run git. Contrived bypasses only.",
+      "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+      "line": 288,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-28",
+      "finding_id": "F-006",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The task's verify step runs check:types and check:biome but not check:bundle or the accord-core import-boundary test. AC-28 enforcement names check:types, check:bundle and an import-boundary test.",
+      "file": "packages/accord-core/tests/layering.test.ts",
+      "line": 1,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 9,
+      "requirement": "AC-28",
+      "finding_id": "F-009",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Flag and selector parsing plus format validation live in the adapter, but the plan step puts `evidence <ID> [task-<N>] [--format md|tsv]` parsing in cli.ts and says the adapter has no logic.",
+      "file": "packages/accord-cli/src/commands/evidence.ts",
+      "line": 14,
       "raised": "C1/review-code"
     }
   ]

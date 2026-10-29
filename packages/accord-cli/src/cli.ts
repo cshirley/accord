@@ -65,6 +65,7 @@ export type ParsedCli =
       args: string[];
       options: GlobalOptions;
     }
+  | { kind: "evidence"; workItemId: string; args: string[]; options: GlobalOptions }
   | { kind: "trace"; workItemId: string; args: string[]; options: GlobalOptions }
   | { kind: "task-reseed"; workItemId: string; args: string[]; options: GlobalOptions }
   | { kind: "answer"; workItemId: string; args: string[]; options: GlobalOptions }
@@ -340,6 +341,14 @@ export function parseCli(argv: string[]): ParsedCli {
       args: tail.slice(1),
       options: flags,
     };
+  }
+
+  if (command === "evidence") {
+    const workItemId = tail[0];
+    if (!workItemId) {
+      return { kind: "error", message: "evidence requires a work item id" };
+    }
+    return { kind: "evidence", workItemId, args: tail.slice(1), options: flags };
   }
 
   if (command === "trace") {
