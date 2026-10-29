@@ -120,6 +120,10 @@ export interface DevHarnessOrchestrationConfig {
       max_retries?: number;
       max_lifetime_retries?: number;
     };
+    /** Gate for review-security. Schema default `advisory`; effective default `warn` when stack enabled. */
+    review_security?: {
+      severity_gate?: "advisory" | "none" | "warn" | "block";
+    };
   };
   /**
    * **phase-verify-task** after review-code for every implementation task. A failing AC raises a
@@ -189,6 +193,39 @@ export interface DevHarnessOrchestrationConfig {
   };
 }
 
+export interface DevHarnessStackConfig {
+  enabled?: boolean;
+  provider?: "git" | "gh" | "graphite" | "spr";
+  commits?: "task" | "phase";
+  merge_strategy?: "rebase" | "merge" | "squash";
+  evidence?: { asset?: boolean; include_diffs?: boolean };
+  state?: {
+    persist?: "tree" | "notes" | "none";
+    path?: string;
+    redact?: boolean;
+    max_bytes?: number;
+  };
+  sizing?: {
+    max_pr_lines?: number;
+    min_pr_lines?: number;
+    max_files?: number;
+    max_depth?: number;
+    overrun_factor?: number;
+    split_on?: Array<"package" | "concern" | "refactor" | "interface">;
+    merge_small_same_concern?: boolean;
+  };
+  contract?: { lock?: boolean; tag?: boolean };
+  require_flag?: boolean;
+}
+
+export interface DevHarnessKnowledgeConfig {
+  enabled?: boolean;
+  root?: string;
+  impact_analysis?: boolean;
+  drift_check?: "off" | "warn" | "block";
+  max_acs_per_feature?: number;
+}
+
 export interface DevHarnessConfig {
   schema_version: "1.0";
   language: string;
@@ -224,6 +261,8 @@ export interface DevHarnessConfig {
   log_level?: "debug" | "info" | "warn" | "error" | "silent";
   orchestration?: DevHarnessOrchestrationConfig;
   harness?: DevHarnessHarnessConfig;
+  stack?: DevHarnessStackConfig;
+  knowledge?: DevHarnessKnowledgeConfig;
 }
 
 export interface ContextSourceConfig {

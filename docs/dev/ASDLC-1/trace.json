@@ -1,0 +1,2896 @@
+{
+  "schema_version": "1.0",
+  "work_item_id": "ASDLC-1",
+  "generated_at": "2026-10-29T12:36:57.864Z",
+  "pattern": "implement",
+  "outcome": {
+    "terminal_outcome": null,
+    "completed_at": null,
+    "next_action": null,
+    "retro_summary": null,
+    "shift_left_findings": []
+  },
+  "decisions": [],
+  "deviations": [],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "[flags] Stack and knowledge switch resolver with default-off values",
+      "status": "done",
+      "commits": [],
+      "rounds": {
+        "T": 1,
+        "C": 1,
+        "V": 1
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 8,
+        "by_state": {
+          "open": 8
+        }
+      },
+      "human_actions": [],
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "error: not implemented: resolveReviewSecurityGate\n(fail) ASDLC-1/AC-26 resolveReviewSecurityGate > ASDLC-1/AC-26 explicit block wins with stack key absent\n\n 0 pass\n 35 fail\nRan 35 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "stack-flags.test.ts: 35 pass, 0 fail. Preflight: bun test, check:biome, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime all exit 0.",
+        "truncated": false
+      },
+      "requirements": [
+        {
+          "id": "AC-26",
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-flags.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/config/stack-flags.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/config/types.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/config/stack-flags.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/stack-flags.test.ts"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "[infra] Temp git repo, fake gh helpers and import-boundary test",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-28",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "[telemetry] Stack event catalogue and emitter on the shared logger",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-29",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "[infra] accord/evidence check runner and workflow",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "[commit-evidence] Commit grammar: Accord trailer build, parse, validate",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-2",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "[commit-evidence] Commit guard and content redaction",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-3",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-29",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "[commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-1",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-3",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-26",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-27",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-29",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "[commit-evidence] Evidence timeline from git trailers",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-4",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "[commit-evidence] accord evidence CLI command",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-4",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-28",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "[commit-evidence] OKF docs and docs validation test",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "[evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-6",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "[evidence-asset] Evidence asset writer (task-<N>.md and .json)",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-5",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-6",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "[evidence-asset] Final evidence(task-<N>) commit",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-5",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-27",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-29",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "[evidence-asset] OKF docs for the evidence asset",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "[security-gate] review-security gating inside the C loop",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-7",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-8",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-26",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "[security-gate] Route open or disputed gating security findings back to review-security",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-8",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "[security-gate] Schema description and OKF docs",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "[contract-lock] contract.lock.json writer, verifier and schema",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-9",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "[contract-lock] PR0 contract commit, tag and contract-amend",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-9",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-27",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "[contract-lock] Pre-write lock guard in the tool_call hook",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-9",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "title": "[contract-lock] Post-spawn lock verification, restore and amend-only commits",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-9",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "[contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-9",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "[contract-lock] Contract-lock rule in the accord/evidence CI check",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-9",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "title": "[contract-lock] OKF docs for contract PR0 and amendment",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "title": "[stack-compute] Plan schema fields, phase-plan prompt and alignment test",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-10",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "title": "[stack-compute] computeStack: deterministic pack, flag and order",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-10",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "title": "[stack-compute] PR brief, stack map, stack table and report renderers",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-6",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-11",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "title": "[stack-compute] StackProvider port and gh provider",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-11",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "title": "[stack-compute] Stack service and dev_stack_* MCP tools",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-11",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-28",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "title": "[stack-compute] Per-PR branch lifecycle in the spawn preflight",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-11",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "title": "[stack-compute] accord stack CLI command",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-11",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-28",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "title": "[stack-compute] Schema description and OKF docs for the stack",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "title": "[tree-state] State size cap and task-file redaction",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-12",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "title": "[tree-state] State snapshot writer staged with every typed commit",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-12",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-29",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "title": "[tree-state] Stateless resume from committed state",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-13",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "title": "[tree-state] Closeout commit builds artifacts then removes state",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-15",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "title": "[tree-state] Leftover-state rule in the accord/evidence check",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-14",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "title": "[tree-state] OKF docs for committed state and closeout",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "title": "[trunk-hardening] Overrun measurement and re-plan decision",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-16",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-29",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "title": "[trunk-hardening] Open-PR depth cap and flag validation",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-17",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "title": "[trunk-hardening] Bottom-up merge: retarget next PR by merging main",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-17",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-27",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "title": "[trunk-hardening] OKF docs for depth cap, merge order and overrun",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "title": "[feature-knowledge] Feature doc schema, parser and index generator",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-18",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "title": "[feature-knowledge] validate:features script and Dev Harness entry",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-18",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "title": "[feature-knowledge] spec features[] and PR0 impact analysis",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-19",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "title": "[feature-knowledge] Closeout feature-doc update and drift check",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-20",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "title": "[feature-knowledge] Review invariants and CI drift rule",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-22",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "title": "[feature-knowledge] Feature find/impact query and dev_feature_* tools",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-21",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "title": "[feature-knowledge] accord feature CLI command",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-21",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-28",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "title": "[feature-knowledge] Schema description and OKF docs for feature knowledge",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "title": "[ci-driven-mode] Startup push-token check and cost cap key",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-25",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-30",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "title": "[ci-driven-mode] CI builds PR0 from brief and spec",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-23",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "title": "[ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-24",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-27",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        },
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "title": "[ci-driven-mode] OKF and CI docs for CI-driven mode",
+      "status": "pending",
+      "commits": [],
+      "rounds": {
+        "T": 0,
+        "C": 0,
+        "V": 0
+      },
+      "retries": {
+        "test_review": 0,
+        "code_review": 0,
+        "rgr": 0,
+        "verify": 0
+      },
+      "unblocks": 0,
+      "findings": {
+        "total": 0,
+        "by_state": {}
+      },
+      "human_actions": [],
+      "red_evidence": null,
+      "final_verification": null,
+      "requirements": [
+        {
+          "id": "AC-31",
+          "status": "pending",
+          "changes": [],
+          "verification": null
+        }
+      ]
+    }
+  ],
+  "acceptance": [
+    {
+      "ac_id": "AC-1",
+      "text": "Then the orchestrator makes one commit per phase completion, each subject names its ref (T1/phase-test, C1/review-security, V1/phase-verify-task), agents never commit, and each review commit holds its findings before …",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 7,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-2",
+      "text": "Then it is one line of key=value pairs, required keys are present, counts equal the staged findings and tests, unknown x_ keys are ignored, and the documented awk extraction over git log returns the same values",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 5,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-3",
+      "text": "Then the out-of-scope path is not committed, a stack.guard.rejected log event is emitted, and a test edit respawns phase-test",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 6,
+          "status": "pending"
+        },
+        {
+          "task": 7,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-4",
+      "text": "Then a timeline is rendered from git trailers only (ref, outcome, counts, tokens, cost) and the tsv columns match the documented awk extraction",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 8,
+          "status": "pending"
+        },
+        {
+          "task": 9,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-5",
+      "text": "Then it is evidence(task-<N>) (evidence(task-<N>,<M>) for a merged PR), writes docs/dev/<ID>/evidence/task-<N>.{md,json} per task from commits and trailers (red and green excerpts, findings, review-to-fix patches, pla…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 12,
+          "status": "pending"
+        },
+        {
+          "task": 13,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-6",
+      "text": "Every AC or TC reference outside spec.json (evidence asset .md and .json, trace.json, the PR brief and the stack map) MUST be work-item-qualified as <work_item_id>/AC-<n>, never a bare AC-<n>, so it resolves once many…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 11,
+          "status": "pending"
+        },
+        {
+          "task": 12,
+          "status": "pending"
+        },
+        {
+          "task": 27,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-7",
+      "text": "Then they stay advisory exactly as today and no round is gated",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 15,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-8",
+      "text": "Then findings at or above the gate severity gate the round (block: critical; warn: critical and warning; none: any), suggestions stay advisory under warn and block, the next C round phase-code fixes security and code …",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 15,
+          "status": "pending"
+        },
+        {
+          "task": 16,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-9",
+      "text": "Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each of brief.md, spec.json and plan.json (state/work-item.json is not locked because closeout…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 18,
+          "status": "pending"
+        },
+        {
+          "task": 19,
+          "status": "pending"
+        },
+        {
+          "task": 20,
+          "status": "pending"
+        },
+        {
+          "task": 21,
+          "status": "pending"
+        },
+        {
+          "task": 22,
+          "status": "pending"
+        },
+        {
+          "task": 23,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-10",
+      "text": "Then the output is byte-identical, adjacent same-concern tasks below min_pr_lines merge within the budget, a task above max_pr_lines or max_files is flagged for re-plan and never split, independent tasks are siblings,…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 25,
+          "status": "pending"
+        },
+        {
+          "task": 26,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-11",
+      "text": "Then PRs are created or updated with a stack map comment and a generated PR brief (contract link first, ACs and proving tests, process summary, reading order), one accord/evidence status check replaces bot comments, a…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 27,
+          "status": "pending"
+        },
+        {
+          "task": 28,
+          "status": "pending"
+        },
+        {
+          "task": 29,
+          "status": "pending"
+        },
+        {
+          "task": 30,
+          "status": "pending"
+        },
+        {
+          "task": 31,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-12",
+      "text": "Then docs/dev/<ID>/state/task-<N>/ in the same commit holds STATE.md (the accord trace rendering) and a redacted task.json valid against task-schema.json with in_flight null, test output is redacted (secrets and token…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 33,
+          "status": "pending"
+        },
+        {
+          "task": 34,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-13",
+      "text": "Then state is rebuilt from docs/dev/<ID>/state/ and the other artifacts, the next ref is the same as in the original run, findings are read from the tree with no review re-run, and the evidence asset regenerated from …",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 35,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-14",
+      "text": "Then it passes while the work item is open (state/work-item.json from PR0 and in-flight task state are allowed on PR heads before their evidence commit), and it fails if docs/dev/<ID>/state/task-* remains at a PR head…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 37,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-15",
+      "text": "Then verify.*, trace.* and workflow-cost.* are built, the remaining docs/dev/<ID>/state/ (including work-item.json) is deleted after they are built, and the closeout PR is the last PR of the stack",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 36,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-16",
+      "text": "Then a decisions[] entry is raised with the options to re-plan through contract-amend or accept with a reason, a stack.overrun.detected log event is emitted, and planned vs actual size (production and test lines separ…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 39,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-17",
+      "text": "Then at most max_depth PRs of the chain are open, the next opens after its base merges, every non-final task PR leaves main green with the feature unreachable behind a flag, and only the last task flips the flag",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 40,
+          "status": "pending"
+        },
+        {
+          "task": 41,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-18",
+      "text": "Then index.md and index.json are regenerated, links, anchors and test references resolve, every feature AC has a test, and a feature above max_acs_per_feature is reported",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 43,
+          "status": "pending"
+        },
+        {
+          "task": 44,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-19",
+      "text": "Then an Impacted features table lists the feature with its relation (new, extends, modifies, deprecates, depends_on), depends_on and related traversal is included, and overlaps or contradicting ACs become decisions[]",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 45,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-20",
+      "text": "Then the feature doc is updated with the AC delta and a changes[] entry linking the work item, PR, evidence and contract sha, the mapping from each work-item AC (<ID>/AC-<n>) to its feature AC id is recorded, the feat…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 46,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-21",
+      "text": "Then results come from index.json (index, then feature, then change record, then evidence) and the same logic is available as dev_feature_* MCP tools",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 48,
+          "status": "pending"
+        },
+        {
+          "task": 49,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-22",
+      "text": "Then review agents receive the impacted feature docs as invariants and a regression against an existing feature AC is a finding, and the same drift check runs in CI so a manual edit cannot invalidate a feature doc unn…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 47,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-23",
+      "text": "Then it commits plan.json and the proposed stack table to PR0 and stops at the human gate, with no local session",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 52,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-24",
+      "text": "Then it resumes idempotently from the last typed commit, one concurrency lock per <ID> prevents parallel runs, gates (PR0 approval, blocked task, closeout) are signalled by PR comments or commits, and the per-work-ite…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 53,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-25",
+      "text": "CI-driven mode treat ACCORD_CI_PUSH_TOKEN (a GitHub App token or PAT) as a required env var with no default, and MUST fail to start, before any step, when it is absent, because commits made with GITHUB_TOKEN do not tr…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 51,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-26",
+      "text": "With stack.enabled and knowledge.enabled unset or false and stack.commits unset or \"task\", the existing single-branch, single-PR flow, per-task commits (orchestration.commit.on_task_done), and review-security advisory…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 1,
+          "status": "satisfied"
+        },
+        {
+          "task": 7,
+          "status": "pending"
+        },
+        {
+          "task": 15,
+          "status": "pending"
+        }
+      ],
+      "files": [
+        "packages/accord-core/tests/stack-flags.test.ts",
+        "packages/accord-core/src/config/stack-flags.ts",
+        "packages/accord-core/src/config/types.ts"
+      ],
+      "tests": [
+        "packages/accord-core/tests/stack-flags.test.ts: ASDLC-1/AC-26 resolveStackConfig defaults, resolveKnowledgeConfig defaults, resolveReviewSecurityGate (35 pass)",
+        "bun test (full suite, exit 0)",
+        "bun run check:runtime (TC-27 runtime smoke, exit 0)",
+        "bun run check:types, check:bundle, check:biome, validate:schemas, validate:assets, validate:okf, validate:ste (all exit 0)"
+      ],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-27",
+      "text": "Evidence commits are append-only: the harness MUST NOT amend or force-push them, and a failed round adds commits and never rewrites them",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 7,
+          "status": "pending"
+        },
+        {
+          "task": 13,
+          "status": "pending"
+        },
+        {
+          "task": 19,
+          "status": "pending"
+        },
+        {
+          "task": 41,
+          "status": "pending"
+        },
+        {
+          "task": 53,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-28",
+      "text": "Orchestration and domain logic (commit grammar, computeStack, evidence, state, feature knowledge) MUST live in packages/accord-core; pi-accord, accord-cli and accord-mcp stay thin adapters and Pi APIs never enter acco…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 2,
+          "status": "pending"
+        },
+        {
+          "task": 9,
+          "status": "pending"
+        },
+        {
+          "task": 29,
+          "status": "pending"
+        },
+        {
+          "task": 31,
+          "status": "pending"
+        },
+        {
+          "task": 49,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-29",
+      "text": "The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 3,
+          "status": "pending"
+        },
+        {
+          "task": 6,
+          "status": "pending"
+        },
+        {
+          "task": 7,
+          "status": "pending"
+        },
+        {
+          "task": 13,
+          "status": "pending"
+        },
+        {
+          "task": 34,
+          "status": "pending"
+        },
+        {
+          "task": 39,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-30",
+      "text": "New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 11,
+          "status": "pending"
+        },
+        {
+          "task": 17,
+          "status": "pending"
+        },
+        {
+          "task": 18,
+          "status": "pending"
+        },
+        {
+          "task": 25,
+          "status": "pending"
+        },
+        {
+          "task": 32,
+          "status": "pending"
+        },
+        {
+          "task": 39,
+          "status": "pending"
+        },
+        {
+          "task": 43,
+          "status": "pending"
+        },
+        {
+          "task": 45,
+          "status": "pending"
+        },
+        {
+          "task": 50,
+          "status": "pending"
+        },
+        {
+          "task": 51,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    },
+    {
+      "ac_id": "AC-31",
+      "text": "Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…",
+      "status": "pending",
+      "tasks": [
+        {
+          "task": 4,
+          "status": "pending"
+        },
+        {
+          "task": 10,
+          "status": "pending"
+        },
+        {
+          "task": 14,
+          "status": "pending"
+        },
+        {
+          "task": 17,
+          "status": "pending"
+        },
+        {
+          "task": 20,
+          "status": "pending"
+        },
+        {
+          "task": 22,
+          "status": "pending"
+        },
+        {
+          "task": 23,
+          "status": "pending"
+        },
+        {
+          "task": 24,
+          "status": "pending"
+        },
+        {
+          "task": 25,
+          "status": "pending"
+        },
+        {
+          "task": 31,
+          "status": "pending"
+        },
+        {
+          "task": 32,
+          "status": "pending"
+        },
+        {
+          "task": 37,
+          "status": "pending"
+        },
+        {
+          "task": 38,
+          "status": "pending"
+        },
+        {
+          "task": 42,
+          "status": "pending"
+        },
+        {
+          "task": 44,
+          "status": "pending"
+        },
+        {
+          "task": 47,
+          "status": "pending"
+        },
+        {
+          "task": 49,
+          "status": "pending"
+        },
+        {
+          "task": 50,
+          "status": "pending"
+        },
+        {
+          "task": 51,
+          "status": "pending"
+        },
+        {
+          "task": 52,
+          "status": "pending"
+        },
+        {
+          "task": 53,
+          "status": "pending"
+        },
+        {
+          "task": 54,
+          "status": "pending"
+        }
+      ],
+      "files": [],
+      "tests": [],
+      "verified": false
+    }
+  ],
+  "accepted_risks": [
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-001",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The required config/types.ts change (typed DevHarnessConfig.stack, .knowledge and orchestration.review_loop.review_security) is not checked by anything. Every fixture is cast with `as unknown as DevHarnessConfig`, every result is cast to Record<string, unknown>, and the stub returns `unknown`.",
+      "file": "packages/accord-core/tests/stack-flags.test.ts",
+      "line": 16,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-002",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The default assertions do not match the impl step's 'filling every default'. (a) The sizing toEqual (lines 34, 42, 62, 105) uses only 5 keys, so a correct resolver that also fills the schema defaults split_on and merge_small_same_concern fails. Phase-code cannot edit tests, so this causes an RGR respawn. (b) The other defaults are never asserted: top-level merge_strategy, evidence, contract and require_flag, plus knowledge.impact_analysis. The null-config tests (lines 45, 133) check only enabled/commits, and an undefined config (allowed by the signature) is never tested.",
+      "file": "packages/accord-core/tests/stack-flags.test.ts",
+      "line": 19,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-003",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The switch inputs are tested only with valid literal values. loadDevHarnessConfig (config/agents-md.ts parseAndValidateConfig) does not check stack or knowledge against accord-schema.json, so non-boolean or out-of-enum values reach the resolver. The dark-deploy guard can then turn the stack on, or change the security gate, when the user meant off.",
+      "file": "packages/accord-core/tests/stack-flags.test.ts",
+      "line": 51,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-004",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Overwritten shared defaults go undetected because of test order. Every default state/sizing assertion runs before the partial-override test (line 88). After it, nothing re-resolves defaults and checks state or sizing. The input-mutation test (line 108) uses an input with no nested state or sizing object, and nothing checks that returned objects are fresh.",
+      "file": "packages/accord-core/tests/stack-flags.test.ts",
+      "line": 88,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-005",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Knowledge defaults are not checked when a partial knowledge object is present. The drift_check test.each asserts only drift_check, and there is no `knowledge: {}` test. A resolver that returns the user object as-is passes every knowledge test.",
+      "file": "packages/accord-core/tests/stack-flags.test.ts",
+      "line": 159,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-006",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The 'stack enabled means warn' default is tested only with an orchestration.review_loop object present. A stack-enabled config with no orchestration key is not tested. Neither is the case where knowledge.enabled alone must not change the gate.",
+      "file": "packages/accord-core/tests/stack-flags.test.ts",
+      "line": 194,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "TC-27 (e2e regression: harness suite plus runtime-smoke with defaults produce no stack or knowledge files) has no test in this task. The plan assigns it to a later task that extends packages/pi-accord/scripts/runtime-smoke.ts (plan.json:500). Task 1 adds no consumers of the flags, so no files can be produced yet.",
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 1,
+      "requirement": "AC-26",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Resolvers leave other documented schema defaults unfilled, so later tasks will re-implement them.",
+      "file": "packages/accord-core/src/config/stack-flags.ts",
+      "line": 31,
+      "raised": "C1/review-code"
+    }
+  ]
+}
