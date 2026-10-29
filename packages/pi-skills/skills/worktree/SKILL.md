@@ -37,8 +37,34 @@ Two patterns in this environment:
 1. `git_worktree_resolve` with ticket id.
 2. Use returned `path` as session cwd, or `wt_exec` / `repo_verify` with `worktree` — **avoid** long `cd` chains in bash.
 
+## Pin the worktree (do this before the first edit)
+
+Whenever the user names a ticket, branch or worktree, or the cwd is under `.worktrees/`, pin one root
+and state it in your next message:
+
+```
+Worktree: <absolute path>   Branch: <branch>   Ticket: <id or none>
+```
+
+1. Resolve it: `git_worktree_resolve`, or `scripts/wt-guard.sh find <ticket>` (path relative to this skill).
+2. Inspect it: `scripts/wt-guard.sh where <path>` — shows `kind=linked-worktree|main-checkout` and all sibling worktrees.
+3. **Stop and ask** if any of these hold:
+   - `kind=main-checkout` while a worktree matching the named ticket or branch exists.
+   - More than one worktree matches the query.
+   - The user named a worktree and you are not in it.
+4. Before each batch of edits, writes or commands that take paths, check them:
+   `scripts/wt-guard.sh inside <pinned-root> <path>...` — exit 1 lists the offenders. Do not edit
+   them. Tell the user, and either switch the pin (with their confirmation) or fix the path.
+5. Subagent tasks: pass the pinned path as `cwd` and name it in the brief.
+6. Re-state the pin after context compaction or when switching tickets.
+
+The pin is per task. A second ticket gets its own worktree; never reuse one for another ticket.
+Host-neutral: the script needs only `git` and `bash`; `git_worktree_resolve` and `wt_*` are optional.
+
 ## Rules
 
+- All edits, tests and git commands for a ticket target its pinned worktree. Never fall back to the main checkout without telling the user.
+- When `wt_remove` or `work remove` fails, report the exact error and `wt_status` output. Do not retry blindly or delete the directory by hand.
 - Do not delete worktrees (`wt_remove`) without user confirmation if dirty.
 - `wt_merge` only when user wants land + cleanup.
 - For specced multi-phase delivery with `/dev`, install the full ACCORD package separately; this skill does not require it.
