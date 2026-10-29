@@ -45,6 +45,7 @@ Requires AGENTS.md with a `## Dev Harness` block (`accord init --write` creates 
 | `gaps`, `spec-gaps`, `deviations`, `rehydrate`, `retro`, `tag` | Same as `/dev` equivalents |
 | `init [--json] [--write [--target local\|root\|root_replace\|link_only]]` | Stack detect + AGENTS.md write |
 | `config init [--write] [--force] [--harness <id>] [-y]` | Generate `~/.config/accord/accord.json` |
+| `evidence <ID> [task-<N>] [--format md\|tsv]` | Print the commit timeline of a work item or one task, from the `Accord:` trailers (default `md`) |
 | `review [--json]` | Standalone diff review (`review-code`, `review-security`, optional `review-test`) |
 
 Naming trap: `accord plan resume X` = preview; `accord plan X` = spawn `phase-plan`.

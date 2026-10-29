@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: Evidence stack
-description: Proposed delivery shape - contract PR, size-bounded task PRs, one commit per phase with loop and round, and a closeout PR - so git history becomes the evidence log.
+description: Delivery shape - contract PR, size-bounded task PRs, one commit per phase with loop and round, and a closeout PR - so git history becomes the evidence log.
 tags: [stack, pr, commits, evidence, trunk-based, contract, sizing]
 status: proposed
 generated: { by: agent:pi, at: 2026-10-02T00:00:00Z }
@@ -15,9 +15,12 @@ sources:
   - id: policy
     resource: /packages/accord-core/src/orchestration/policy.ts
     title: Policy defaults
+  - id: phase-commit
+    resource: /packages/accord-core/src/commit/phase-commit.ts
+    title: Per-phase orchestrator commit
 ---
 
-**Proposed, not yet implemented.** Today a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
+**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The other features stay proposed. Without it, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
 
 # Shape
 

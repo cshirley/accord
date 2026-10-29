@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T17:26:50.928Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T17:43:59.641Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -15,8 +15,8 @@
 | 6 | [commit-evidence] Commit guard and content redaction | done | `619a27f` | 2/1/1 | 21 (verified 8, reraised 3, open 8, wont_fix_accepted 2) | 0 |
 | 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | `dfcd785` | 5/3/1 | 28 (waived 1, verified 22, wont_fix_accepted 1, reraised 3, open 1) | 0 |
 | 8 | [commit-evidence] Evidence timeline from git trailers | done | `2a2e877` | 3/1/1 | 16 (verified 10, reraised 1, open 5) | 0 |
-| 9 | [commit-evidence] accord evidence CLI command | done | — | 1/1/1 | 11 (open 11) | 0 |
-| 10 | [commit-evidence] OKF docs and docs validation test | pending | — | 0/0/0 | 0 | 0 |
+| 9 | [commit-evidence] accord evidence CLI command | done | `831cf8e` | 1/1/1 | 11 (open 11) | 0 |
+| 10 | [commit-evidence] OKF docs and docs validation test | done | — | 2/1/1 | 13 (verified 5, wont_fix_accepted 1, open 7) | 0 |
 | 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | pending | — | 0/0/0 | 0 | 0 |
 | 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | pending | — | 0/0/0 | 0 | 0 |
 | 13 | [evidence-asset] Final evidence(task-<N>) commit | pending | — | 0/0/0 | 0 | 0 |
@@ -318,14 +318,22 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (pending), 14 (pending), 17 (pending), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`
-- Tests verified (5):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (pending), 17 (pending), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`
+- Tests verified (13):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
   - bun run check:types
   - grep fetch-depth: 0 / pull_request.head.sha / secrets in accord-evidence.yml
+  - docs-validation.test.ts › ASDLC-1/AC-31 validate:okf exits 0
+  - docs-validation.test.ts › ASDLC-1/AC-31 validate:ste exits 0
+  - docs-validation.test.ts › ASDLC-1/AC-31 check:biome exits 0
+  - docs-validation.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry naming ASDLC-1, the evidence command and the updated concepts
+  - docs-validation.test.ts › ASDLC-1/AC-31 accord-cli.md has an evidence Commands row with real syntax
+  - docs-validation.test.ts › ASDLC-1/AC-31 evidence-stack.md documents the implemented stack.commits phase mode
+  - docs-validation.test.ts › ASDLC-1/AC-31 commit-format.md is bound to the implemented commit code
+  - bun run check:biome
 
 ## Accepted risks and unresolved findings
 
@@ -405,6 +413,14 @@
 | 9 | AC-28 | F-005 | unresolved (advisory) | open | suggestion | The AC-28 source-text checks are loose. `toContain(symbol)` passes when the names appear only in a comment, and the deny list misses other ways to run git. Contrived bypasses only. | packages/accord-cli/tests/evidence-cli.test.ts:288 |  |
 | 9 | AC-28 | F-006 | unresolved (advisory) | open | suggestion | The task's verify step runs check:types and check:biome but not check:bundle or the accord-core import-boundary test. AC-28 enforcement names check:types, check:bundle and an import-boundary test. | packages/accord-core/tests/layering.test.ts:1 |  |
 | 9 | AC-28 | F-009 | unresolved (advisory) | open | suggestion | Flag and selector parsing plus format validation live in the adapter, but the plan step puts `evidence <ID> [task-<N>] [--format md\|tsv]` parsing in cli.ts and says the adapter has no logic. | packages/accord-cli/src/commands/evidence.ts:14 |  |
+| 10 | AC-31 | F-006 | accepted (advisory) | wont_fix_accepted | suggestion | Two AC-31 clauses are not exercised by this test: 'changes under packages/accord-ci/ also update docs/ci/pre-merge-smoke.md' and 'style: ste procedure text follows ASD-STE100'. None of this task's four docs is marked style: ste, so validate:ste only re-checks okf/playbooks/write-in-ste.md. | packages/accord-core/tests/docs-validation.test.ts:29 | wont_fix_accepted by T2/review-test — The reason is sound. This task changes no packages/accord-ci/ path, a merge-base diff test is fragile in shallow clones, and the pairing is a phase-verify-task check (`git diff --name-only main...HEAD`). |
+| 10 | AC-31 | F-007 | unresolved (advisory) | open | suggestion | The commit-format.md rule-id loop checks four guard rules. commit-guard.ts also emits state-only, evidence-only and trailer-invalid, so a doc that leaves out the verify, state and evidence path rules still passes. | packages/accord-core/tests/docs-validation.test.ts:81 |  |
+| 10 | AC-31 | F-008 | unresolved (advisory) | open | warning | Reporting section presents `accord stack report` and the `evidence/task-<N>.json` roll-up as available under an 'Implemented' banner, but neither exists. | okf/references/commit-format.md:56 |  |
+| 10 | AC-31 | F-009 | unresolved (advisory) | open | warning | Guard rule descriptions do not match the implementation: `trailer-counts` is not corrected; counts are checked against findings, not 'staged files'; `agent-commit` is log-only; `code-touches-test` only returns a respawn note. | okf/references/commit-format.md:66 |  |
+| 10 | AC-31 | F-010 | unresolved (advisory) | open | warning | Concept still says the `stack` key is proposed and 'The harness does not read it yet', now false for `stack.commits`. | okf/references/stack-config.md:20 |  |
+| 10 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | Shape and Keys describe output the orchestrator does not emit, under `status: implemented`. | okf/references/commit-format.md:30 |  |
+| 10 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Commit grammar paragraph repeats the evidence-commit description and contradicts commit-format.md on verify scope. | okf/architecture/evidence-stack.md:38 |  |
+| 10 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | `evidence` is documented as a command but is not in TOP_LEVEL_COMMANDS, so help and completion omit it; docs/accord-cli.md, the cited source of accord-cli.md, does not mention it either. | packages/accord-cli/src/ui/command-catalog.ts:76 |  |
 
 ## Decisions
 
@@ -610,6 +626,25 @@ evidence-cli + no-pi-dep: 12 pass, 0 fail. Preflight: bun test, validate:schemas
 ```
 
 ### Task 10: [commit-evidence] OKF docs and docs validation test
+
+RED evidence (`T1/phase-test`):
+
+```text
+(pass) validate:okf exits 0
+(pass) validate:ste exits 0
+(fail) okf/log.md has a dated entry naming ASDLC-1 and the evidence command
+(fail) accord-cli.md documents `accord evidence` - Expected to contain: "accord evidence"
+(fail) evidence-stack.md documents the stack.commits phase mode - Expected to contain: "stack.commits"
+(pass) commit-format.md documents the commit guard
+ 3 pass
+ 3 fail
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+docs-validation.test.ts: 7 pass, 0 fail. Preflight: bun test, check:biome, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle and check:runtime all exit 0. okf/log.md line 5 holds the ASDLC-1 commit-evidence entry.
+```
 
 ### Task 11: [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled
 

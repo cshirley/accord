@@ -1,5 +1,9 @@
 # Bundle Update Log
 
+## 2026-10-30
+
+* **Update**: ASDLC-1 commit-evidence: [Commit message format](/references/commit-format.md) (commit guard rules), [Evidence stack](/architecture/evidence-stack.md) (`stack.commits` phase mode) and [accord CLI](/references/accord-cli.md) (`accord evidence`) now describe the implemented behaviour.
+
 ## 2026-10-29
 
 * **Addition**: `accord bootstrap <ID> <title…>` and `accord bootstrap --adhoc <title…>` (`packages/accord-cli/src/commands/bootstrap.ts` parses and prints; logic in `packages/accord-core/src/work-items/bootstrap.ts`); synthetic `ADHOC-<YYYYMMDD><NN>` work item ids (`packages/accord-core/src/work-items/synthetic.ts`). Orchestrator re-runs `phase-align` without `phase-gather` when a synthetic id returns `needs_gather` (`orchestration/spawn-followup.ts`). Updated [accord CLI](/references/accord-cli.md).
