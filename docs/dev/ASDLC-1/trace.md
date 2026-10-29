@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T15:11:48.940Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T16:47:38.290Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -12,8 +12,8 @@
 | 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | `fcd446c` | 1/1/1 | 9 (open 9) | 0 |
 | 4 | [infra] accord/evidence check runner and workflow | done | `fd02108` | 2/1/1 | 21 (verified 9, reraised 1, wont_fix_accepted 1, open 10) | 0 |
 | 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | `2194f4d` | 2/1/1 | 13 (verified 10, open 3) | 0 |
-| 6 | [commit-evidence] Commit guard and content redaction | done | — | 2/1/1 | 21 (verified 8, reraised 3, open 8, wont_fix_accepted 2) | 0 |
-| 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | pending | — | 0/0/0 | 0 | 0 |
+| 6 | [commit-evidence] Commit guard and content redaction | done | `619a27f` | 2/1/1 | 21 (verified 8, reraised 3, open 8, wont_fix_accepted 2) | 0 |
+| 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | — | 5/3/1 | 28 (waived 1, verified 22, wont_fix_accepted 1, reraised 3, open 1) | 0 |
 | 8 | [commit-evidence] Evidence timeline from git trailers | pending | — | 0/0/0 | 0 | 0 |
 | 9 | [commit-evidence] accord evidence CLI command | pending | — | 0/0/0 | 0 | 0 |
 | 10 | [commit-evidence] OKF docs and docs validation test | pending | — | 0/0/0 | 0 | 0 |
@@ -64,11 +64,16 @@
 
 ## Acceptance criteria
 
-### AC-1 — pending (not verified)
+### AC-1 — satisfied
 
 > Then the orchestrator makes one commit per phase completion, each subject names its ref (T1/phase-test, C1/review-security, V1/phase-verify-task), agents never commit, and each review commit holds its findings before …
 
-- Tasks: 7 (pending)
+- Tasks: 7 (satisfied)
+- Files: `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/src/subagent/result/process.ts`
+- Tests verified (3):
+  - phase-commits.test.ts › ASDLC-1/AC-1 one orchestrator commit per phase, in order, with ref subjects, trailers and review findings
+  - ASDLC-1/AC-1 a commit made during a spawn without a trailer is reported as agent-commit, not accepted
+  - ASDLC-1/AC-12 secret in finding evidence is masked in the committed review markdown
 
 ### AC-2 — satisfied
 
@@ -86,17 +91,19 @@
   - ASDLC-1/AC-2 unknown x_ keys are ignored by validation and by counts
   - ASDLC-1/AC-2 awk extraction equals awk-extract.golden.txt and parseAccordTrailer sums
 
-### AC-3 — pending (not verified)
+### AC-3 — satisfied
 
 > Then the out-of-scope path is not committed, a stack.guard.rejected log event is emitted, and a test edit respawns phase-test
 
-- Tasks: 6 (satisfied), 7 (pending)
-- Files: `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/tests/redact.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/src/state/redact.ts`
-- Tests verified (4):
+- Tasks: 6 (satisfied), 7 (satisfied)
+- Files: `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/tests/redact.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/src/state/redact.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/src/subagent/result/process.ts`
+- Tests verified (6):
   - commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — review commits keep only reviews/** and state/**
   - commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — code loop
   - commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — state and evidence commits
   - commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts
+  - ASDLC-1/AC-3 phase-code result touching a test file: test path not committed, rejection logged, phase-test respawn requested
+  - ASDLC-1/AC-3 phase mode: test edit by phase-code respawns phase-test (RGR)
 
 ### AC-4 — pending (not verified)
 
@@ -234,19 +241,27 @@
 
 > With stack.enabled and knowledge.enabled unset or false and stack.commits unset or "task", the existing single-branch, single-PR flow, per-task commits (orchestration.commit.on_task_done), and review-security advisory…
 
-- Tasks: 1 (satisfied), 7 (pending), 15 (pending)
-- Files: `packages/accord-core/tests/stack-flags.test.ts`, `packages/accord-core/src/config/stack-flags.ts`, `packages/accord-core/src/config/types.ts`
-- Tests verified (4):
+- Tasks: 1 (satisfied), 7 (satisfied), 15 (pending)
+- Files: `packages/accord-core/tests/stack-flags.test.ts`, `packages/accord-core/src/config/stack-flags.ts`, `packages/accord-core/src/config/types.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/pi-accord/scripts/runtime-smoke.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/src/subagent/result/process.ts`, `okf/architecture/orchestration.md`, `okf/references/orchestration-policy.md`, `okf/log.md`
+- Tests verified (8):
   - packages/accord-core/tests/stack-flags.test.ts: ASDLC-1/AC-26 resolveStackConfig defaults, resolveKnowledgeConfig defaults, resolveReviewSecurityGate (35 pass)
   - bun test (full suite, exit 0)
   - bun run check:runtime (TC-27 runtime smoke, exit 0)
   - bun run check:types, check:bundle, check:biome, validate:schemas, validate:assets, validate:okf, validate:ste (all exit 0)
+  - ASDLC-1/AC-26 default config rows: no phase commit, tree and index untouched, no stack.* log
+  - ASDLC-1/AC-26 stack.commits unset/task/no config: done task still gets the per-task commit
+  - commit-on-task-done.test.ts
+  - bun run check:runtime
 
 ### AC-27 — pending (not verified)
 
 > Evidence commits are append-only: the harness MUST NOT amend or force-push them, and a failed round adds commits and never rewrites them
 
-- Tasks: 7 (pending), 13 (pending), 19 (pending), 41 (pending), 53 (pending)
+- Tasks: 7 (satisfied), 13 (pending), 19 (pending), 41 (pending), 53 (pending)
+- Files: `packages/accord-core/tests/append-only.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`
+- Tests verified (2):
+  - append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD
+  - an unchanged tree never rewrites the previous commit (no amend on empty round)
 
 ### AC-28 — pending (not verified)
 
@@ -264,9 +279,9 @@
 
 > The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…
 
-- Tasks: 3 (satisfied), 6 (satisfied), 7 (pending), 13 (pending), 34 (pending), 39 (pending)
-- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`
-- Tests verified (10):
+- Tasks: 3 (satisfied), 6 (satisfied), 7 (satisfied), 13 (pending), 34 (pending), 39 (pending)
+- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`
+- Tests verified (12):
   - packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields
   - ASDLC-1/AC-29 <event> catalogue entry declares exact level and fields
   - ASDLC-1/AC-29 <event> rejects an unknown field
@@ -277,6 +292,8 @@
   - bunx biome check (task files)
   - commit-guard.test.ts › ASDLC-1/AC-29 guard rejection telemetry
   - commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts > ASDLC-1/AC-29 trailer rejection emits stack.guard.rejected at warn
+  - phase-commits.test.ts › ASDLC-1/AC-29 emits info stack.commit.created with work_item_id, ref, outcome and sha for each commit
+  - ASDLC-1/AC-3 rejection logged (stack.guard.rejected)
 
 ### AC-30 — pending (not verified)
 
@@ -352,6 +369,12 @@
 | 6 | AC-29 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | The telemetry tests pin `ref=phase-code` (the commit type) in the `ref` field. The stack event catalogue, the trailer path and AC-1 use the round ref (for example 'review-C1' or 'C1/phase-code'), so path-guard rejections cannot be correlated to a round. | packages/accord-core/tests/commit-guard.test.ts:182 | wont_fix_accepted by T2/review-test — Sound: the task signature guardStagedPaths(commitType, workItemId, paths, pattern) has no round ref; a round-ref argument can come later. |
 | 6 | AC-29 | F-013 | accepted (advisory) | wont_fix_accepted | suggestion | The '[accord:stack:warn]' prefix assertion would also pass for a direct console.error call with a hand-formatted prefix, which bypasses emitStackEvent and the catalogue's field validation. Proving emission goes through logging.ts is an enforcement check, not a unit assertion. | packages/accord-core/tests/commit-guard.test.ts:175 | wont_fix_accepted by T2/review-test — This is an enforcement check for phase-verify-task (grep for no console. and for emitStackEvent in commit-guard.ts), not a unit assertion. |
 | 6 | _task | F-021 | unresolved (advisory) | open | suggestion | isTestPath recompiles the glob for every staged path, and an unbalanced `{` in test.file_pattern produces an invalid RegExp that throws a raw SyntaxError. | packages/accord-core/src/commit/commit-guard.ts:68 |  |
+| 7 | AC-1 | F-002 | accepted | waived | critical | Orchestrator wiring is untested. Every test calls tryCommitPhase directly with a test-supplied ref. Nothing drives processSubagentToolResult, so: (a) process.ts never calling tryCommitPhase, (b) a wrong ref derivation (e.g. always T1), (c) commitDoneTasks still sweeping in phase mode (sweeps the guard-rejected test file into a '[ID] Task 7:' commit), and (d) a truthy gate `if (devConfig.stack?.commits) skipSweep` that drops per-task commits for commits:"task" (AC-26) all leave every test green. runtime-smoke.ts:110 calls tryCommitOnTaskDone directly, which is untouched by design, so it cannot detect a regression in process.ts. | packages/accord-core/tests/phase-commits.test.ts:121 | waived by human — Wiring test gap after 3 review-test rounds; later rounds were nitpicking test mechanics. Proceed to phase-code; code review (C loop) must verify process.ts wiring and AC-26 per-task commits unchanged |
+| 7 | AC-1 | F-023 | accepted (advisory) | wont_fix_accepted | warning | agent-commit reporting is anchored on the latest prior trailered commit, so it never fires for the first phase of a task branch and misreports any human commit between phases. | packages/accord-core/src/commit/phase-commit.ts:142 | wont_fix_accepted by C3/review-code — Detection gap limited to the first phase on a branch with no prior trailered commit; nothing is rewritten or lost. A baseline needs a new persisted task-control field, out of scope for task 7. Add a one-line comment on reportAgentCommits that detection anchors on the latest trailered commit. |
+| 7 | AC-1 | F-024 | unresolved (advisory) | reraised | warning | In phase mode a missing task_id, missing ref, or a recovered packet silently produces no commit, and the done-task sweep is also disabled, so that phase's changes are never committed. | packages/accord-core/src/subagent/result/process.ts:559 | reraised by C3/review-code — Two Done-when parts remain unmet. (1) The missing task/ref skip uses log.warn, silent at the default `error` level, with no contentAppend notice, so the orchestrator never sees the skip. (2) The recovered-packet path (process.ts:500 -> recover-task-packet.ts recoverReturnedInFlight) re-applies state with no phase commit, and the sweep is disabled in phase mode, so that phase's files and review markdown are never committed. Done when: skipped commits append a visible `Phase commit skipped (<ref>)` line to the result, and the recovered-packet path makes its phase commit (or the done-task sweep runs as fallback for done tasks with no phase commit). |
+| 7 | AC-1 | F-025 | unresolved (advisory) | reraised | suggestion | Commit ref comes from latestLogFor(task, agent), not from the packet just applied, so a no-op handler reuses the previous round's ref. | packages/accord-core/src/subagent/result/process.ts:59 | reraised by C3/review-code — Dispute does not hold: handlers do not always append a log entry. phase-test.ts:102-106 returns a guard no-op with `packet NOT applied`, and applyStuckPostResult (stuck.ts) writes only decisions[]. In both, latestLogFor(task, agent) returns the previous round's ref, so a stuck C2 phase-code commits as C1/phase-code and an unapplied phase-test packet commits under the old T ref. Skip the commit, or use a ref newly claimed for this packet. Done when: a stuck packet or guard no-op yields no commit or a non-duplicate ref. |
+| 7 | AC-3 | F-020 | unresolved (advisory) | open | suggestion | The temp repo created in beforeEach still applies the developer's global core.excludesFile. The F-019 rename to .env.production avoids this machine's ignore list, but a global ignore with `.env*` or `.env.*` (GitHub's Node.gitignore template uses `.env.*`) hides .env.production. Then `expect(leftover).toContain('.env.production')` at line 455 fails because of environment, not behaviour. | packages/accord-core/tests/phase-commits.test.ts:84 |  |
+| 7 | AC-3 | F-022 | unresolved (advisory) | reraised | suggestion | PhaseCommitResult.respawn is dropped by commitPhaseResult, so a guard-rejected test edit that phase-code did not report never respawns phase-test. | packages/accord-core/src/subagent/result/process.ts:71 | reraised by C3/review-code — Respawn is surfaced in the process.ts:71 note, but the note only says `phase-test respawn required (RGR)`; the Done-when's alternative requires naming the rejected test path too. PhaseCommitResult carries only `respawn`, not guarded.rejected. Add `rejected?: string[]` to the result and list the paths in the note. |
 
 ## Decisions
 
@@ -359,11 +382,11 @@ _None._
 
 ## Deviations
 
-- Task 2 (pending): layering.test.ts import-boundary tests pass without impl — accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations
-- Task 4 (pending): Added a test requiring an okf concept to list the evidence-check script or workflow as a source and mention accord/evidence. — F-005: the AC-31 clause 'update the affected okf/ concepts'. The natural file, okf/architecture/monorepo-packages.md, is not in task.files[]; the implementer must edit it, or another okf concept.
-- Task 4 (pending): Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files — Test requires an okf concept listing the evidence check as a source and describing accord/evidence
-- Task 6 (pending): Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented. — Spec names only rule/respawn/rejected; shape and per-type scopes inferred.
-- Task 6 (pending): redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution. — Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.
+- Task 2 (accepted): layering.test.ts import-boundary tests pass without impl — accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations
+- Task 4 (accepted): Added a test requiring an okf concept to list the evidence-check script or workflow as a source and mention accord/evidence. — F-005: the AC-31 clause 'update the affected okf/ concepts'. The natural file, okf/architecture/monorepo-packages.md, is not in task.files[]; the implementer must edit it, or another okf concept.
+- Task 4 (accepted): Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files — Test requires an okf concept listing the evidence check as a source and describing accord/evidence
+- Task 6 (accepted): Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented. — Spec names only rule/respawn/rejected; shape and per-type scopes inferred.
+- Task 6 (accepted): redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution. — Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.
 
 ## Evidence by task
 
@@ -487,6 +510,20 @@ Final verification (`V1/phase-verify-task`):
 ```
 
 ### Task 7: [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase
+
+- Human action `T4/unblock`: waive F-002 — all blockers resolved
+
+RED evidence (`T1/phase-test`):
+
+```text
+tests/phase-commits.test.ts + tests/append-only.test.ts: 0 pass, 12 fail. Each failure: error: not implemented: tryCommitPhase (at src/commit/phase-commit.ts:21). runtime-smoke.ts: error: not implemented: tryCommitPhase.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+targeted bun test: 40 pass, 0 fail. Preflight: bun test exit 0; check:types, check:bundle, check:runtime, validate:* exit 0. Secret grep over packages/accord-core/tests: no match. check:biome repo-wide exit 1 only for docs/dev/ASDLC-1/trace.json formatting (harness-written artifact) and packages/accord-core/scripts/update-model-pricing.ts:84 useOptionalChain (pre-existing, untouched by task). biome on all task-touched files: clean.
+```
 
 ### Task 8: [commit-evidence] Evidence timeline from git trailers
 

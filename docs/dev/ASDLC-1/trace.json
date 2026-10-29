@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T15:11:48.940Z",
+  "generated_at": "2026-10-29T16:47:38.290Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -16,31 +16,31 @@
       "task_id": 2,
       "description": "layering.test.ts import-boundary tests pass without impl",
       "reason": "accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 4,
       "description": "Added a test requiring an okf concept to list the evidence-check script or workflow as a source and mention accord/evidence.",
       "reason": "F-005: the AC-31 clause 'update the affected okf/ concepts'. The natural file, okf/architecture/monorepo-packages.md, is not in task.files[]; the implementer must edit it, or another okf concept.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 4,
       "description": "Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files",
       "reason": "Test requires an okf concept listing the evidence check as a source and describing accord/evidence",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 6,
       "description": "Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented.",
       "reason": "Spec names only rule/respawn/rejected; shape and per-type scopes inferred.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 6,
       "description": "redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution.",
       "reason": "Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.",
-      "resolution": null
+      "resolution": "accepted"
     }
   ],
   "tasks": [
@@ -451,7 +451,9 @@
       "id": 6,
       "title": "[commit-evidence] Commit guard and content redaction",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "619a27f"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -572,57 +574,222 @@
     {
       "id": 7,
       "title": "[commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 5,
+        "C": 3,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
-        "code_review": 0,
-        "rgr": 0,
+        "test_review": 3,
+        "code_review": 1,
+        "rgr": 1,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 28,
+        "by_state": {
+          "waived": 1,
+          "verified": 22,
+          "wont_fix_accepted": 1,
+          "reraised": 3,
+          "open": 1
+        }
       },
-      "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "human_actions": [
+        {
+          "ref": "T4/unblock",
+          "at": "2026-10-29T16:25:14.398Z",
+          "note": "waive F-002 — all blockers resolved"
+        }
+      ],
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "tests/phase-commits.test.ts + tests/append-only.test.ts: 0 pass, 12 fail. Each failure: error: not implemented: tryCommitPhase (at src/commit/phase-commit.ts:21). runtime-smoke.ts: error: not implemented: tryCommitPhase.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "targeted bun test: 40 pass, 0 fail. Preflight: bun test exit 0; check:types, check:bundle, check:runtime, validate:* exit 0. Secret grep over packages/accord-core/tests: no match. check:biome repo-wide exit 1 only for docs/dev/ASDLC-1/trace.json formatting (harness-written artifact) and packages/accord-core/scripts/update-model-pricing.ts:84 useOptionalChain (pre-existing, untouched by task). biome on all task-touched files: clean.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-1",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/phase-commits.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/result/process.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/phase-commits.test.ts packages/accord-core/tests/append-only.test.ts packages/accord-core/tests/commit-on-task-done.test.ts"
+          }
         },
         {
           "id": "AC-3",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/phase-commits.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/result/process.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/phase-commits.test.ts"
+          }
         },
         {
           "id": "AC-26",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/phase-commits.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/pi-accord/scripts/runtime-smoke.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/result/process.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "okf/architecture/orchestration.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/orchestration-policy.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test ...; bun run check:runtime"
+          }
         },
         {
           "id": "AC-27",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/append-only.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/append-only.test.ts"
+          }
         },
         {
           "id": "AC-29",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/phase-commits.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-guard.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/phase-commits.test.ts"
+          }
         }
       ]
     },
@@ -2404,16 +2571,24 @@
     {
       "ac_id": "AC-1",
       "text": "Then the orchestrator makes one commit per phase completion, each subject names its ref (T1/phase-test, C1/review-security, V1/phase-verify-task), agents never commit, and each review commit holds its findings before …",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 7,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-core/tests/phase-commits.test.ts",
+        "packages/accord-core/src/commit/phase-commit.ts",
+        "packages/accord-core/src/subagent/result/process.ts"
+      ],
+      "tests": [
+        "phase-commits.test.ts › ASDLC-1/AC-1 one orchestrator commit per phase, in order, with ref subjects, trailers and review findings",
+        "ASDLC-1/AC-1 a commit made during a spawn without a trailer is reported as agent-commit, not accepted",
+        "ASDLC-1/AC-12 secret in finding evidence is masked in the committed review markdown"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-2",
@@ -2446,7 +2621,7 @@
     {
       "ac_id": "AC-3",
       "text": "Then the out-of-scope path is not committed, a stack.guard.rejected log event is emitted, and a test edit respawns phase-test",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 6,
@@ -2454,22 +2629,27 @@
         },
         {
           "task": 7,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
         "packages/accord-core/tests/commit-guard.test.ts",
         "packages/accord-core/tests/redact.test.ts",
         "packages/accord-core/src/commit/commit-guard.ts",
-        "packages/accord-core/src/state/redact.ts"
+        "packages/accord-core/src/state/redact.ts",
+        "packages/accord-core/tests/phase-commits.test.ts",
+        "packages/accord-core/src/commit/phase-commit.ts",
+        "packages/accord-core/src/subagent/result/process.ts"
       ],
       "tests": [
         "commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — review commits keep only reviews/** and state/**",
         "commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — code loop",
         "commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — state and evidence commits",
-        "commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts"
+        "commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts",
+        "ASDLC-1/AC-3 phase-code result touching a test file: test path not committed, rejection logged, phase-test respawn requested",
+        "ASDLC-1/AC-3 phase mode: test edit by phase-code respawns phase-test (RGR)"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-4",
@@ -2866,7 +3046,7 @@
         },
         {
           "task": 7,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 15,
@@ -2876,13 +3056,24 @@
       "files": [
         "packages/accord-core/tests/stack-flags.test.ts",
         "packages/accord-core/src/config/stack-flags.ts",
-        "packages/accord-core/src/config/types.ts"
+        "packages/accord-core/src/config/types.ts",
+        "packages/accord-core/tests/phase-commits.test.ts",
+        "packages/pi-accord/scripts/runtime-smoke.ts",
+        "packages/accord-core/src/commit/phase-commit.ts",
+        "packages/accord-core/src/subagent/result/process.ts",
+        "okf/architecture/orchestration.md",
+        "okf/references/orchestration-policy.md",
+        "okf/log.md"
       ],
       "tests": [
         "packages/accord-core/tests/stack-flags.test.ts: ASDLC-1/AC-26 resolveStackConfig defaults, resolveKnowledgeConfig defaults, resolveReviewSecurityGate (35 pass)",
         "bun test (full suite, exit 0)",
         "bun run check:runtime (TC-27 runtime smoke, exit 0)",
-        "bun run check:types, check:bundle, check:biome, validate:schemas, validate:assets, validate:okf, validate:ste (all exit 0)"
+        "bun run check:types, check:bundle, check:biome, validate:schemas, validate:assets, validate:okf, validate:ste (all exit 0)",
+        "ASDLC-1/AC-26 default config rows: no phase commit, tree and index untouched, no stack.* log",
+        "ASDLC-1/AC-26 stack.commits unset/task/no config: done task still gets the per-task commit",
+        "commit-on-task-done.test.ts",
+        "bun run check:runtime"
       ],
       "verified": false
     },
@@ -2893,7 +3084,7 @@
       "tasks": [
         {
           "task": 7,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 13,
@@ -2912,8 +3103,14 @@
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/append-only.test.ts",
+        "packages/accord-core/src/commit/phase-commit.ts"
+      ],
+      "tests": [
+        "append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD",
+        "an unchanged tree never rewrites the previous commit (no amend on empty round)"
+      ],
       "verified": false
     },
     {
@@ -2971,7 +3168,7 @@
         },
         {
           "task": 7,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 13,
@@ -2990,7 +3187,9 @@
         "packages/accord-core/tests/stack-telemetry.test.ts",
         "packages/accord-core/src/telemetry/stack-events.ts",
         "packages/accord-core/tests/commit-guard.test.ts",
-        "packages/accord-core/src/commit/commit-guard.ts"
+        "packages/accord-core/src/commit/commit-guard.ts",
+        "packages/accord-core/tests/phase-commits.test.ts",
+        "packages/accord-core/src/commit/phase-commit.ts"
       ],
       "tests": [
         "packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields",
@@ -3002,7 +3201,9 @@
         "bun run check:types",
         "bunx biome check (task files)",
         "commit-guard.test.ts › ASDLC-1/AC-29 guard rejection telemetry",
-        "commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts > ASDLC-1/AC-29 trailer rejection emits stack.guard.rejected at warn"
+        "commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts > ASDLC-1/AC-29 trailer rejection emits stack.guard.rejected at warn",
+        "phase-commits.test.ts › ASDLC-1/AC-29 emits info stack.commit.created with work_item_id, ref, outcome and sha for each commit",
+        "ASDLC-1/AC-3 rejection logged (stack.guard.rejected)"
       ],
       "verified": false
     },
@@ -3879,6 +4080,110 @@
       "file": "packages/accord-core/src/commit/commit-guard.ts",
       "line": 68,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 7,
+      "requirement": "AC-1",
+      "finding_id": "F-002",
+      "state": "waived",
+      "severity": "critical",
+      "advisory": false,
+      "issue": "Orchestrator wiring is untested. Every test calls tryCommitPhase directly with a test-supplied ref. Nothing drives processSubagentToolResult, so: (a) process.ts never calling tryCommitPhase, (b) a wrong ref derivation (e.g. always T1), (c) commitDoneTasks still sweeping in phase mode (sweeps the guard-rejected test file into a '[ID] Task 7:' commit), and (d) a truthy gate `if (devConfig.stack?.commits) skipSweep` that drops per-task commits for commits:\"task\" (AC-26) all leave every test green. runtime-smoke.ts:110 calls tryCommitOnTaskDone directly, which is untouched by design, so it cannot detect a regression in process.ts.",
+      "file": "packages/accord-core/tests/phase-commits.test.ts",
+      "line": 121,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T4/unblock",
+        "outcome": "waived",
+        "note": "Wiring test gap after 3 review-test rounds; later rounds were nitpicking test mechanics. Proceed to phase-code; code review (C loop) must verify process.ts wiring and AC-26 per-task commits unchanged",
+        "actor": "human"
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 7,
+      "requirement": "AC-1",
+      "finding_id": "F-023",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "agent-commit reporting is anchored on the latest prior trailered commit, so it never fires for the first phase of a task branch and misreports any human commit between phases.",
+      "file": "packages/accord-core/src/commit/phase-commit.ts",
+      "line": 142,
+      "raised": "C2/review-code",
+      "resolution": {
+        "by": "C3/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Detection gap limited to the first phase on a branch with no prior trailered commit; nothing is rewritten or lost. A baseline needs a new persisted task-control field, out of scope for task 7. Add a one-line comment on reportAgentCommits that detection anchors on the latest trailered commit."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 7,
+      "requirement": "AC-1",
+      "finding_id": "F-024",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "In phase mode a missing task_id, missing ref, or a recovered packet silently produces no commit, and the done-task sweep is also disabled, so that phase's changes are never committed.",
+      "file": "packages/accord-core/src/subagent/result/process.ts",
+      "line": 559,
+      "raised": "C2/review-code",
+      "resolution": {
+        "by": "C3/review-code",
+        "outcome": "reraised",
+        "note": "Two Done-when parts remain unmet. (1) The missing task/ref skip uses log.warn, silent at the default `error` level, with no contentAppend notice, so the orchestrator never sees the skip. (2) The recovered-packet path (process.ts:500 -> recover-task-packet.ts recoverReturnedInFlight) re-applies state with no phase commit, and the sweep is disabled in phase mode, so that phase's files and review markdown are never committed. Done when: skipped commits append a visible `Phase commit skipped (<ref>)` line to the result, and the recovered-packet path makes its phase commit (or the done-task sweep runs as fallback for done tasks with no phase commit)."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 7,
+      "requirement": "AC-1",
+      "finding_id": "F-025",
+      "state": "reraised",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Commit ref comes from latestLogFor(task, agent), not from the packet just applied, so a no-op handler reuses the previous round's ref.",
+      "file": "packages/accord-core/src/subagent/result/process.ts",
+      "line": 59,
+      "raised": "C2/review-code",
+      "resolution": {
+        "by": "C3/review-code",
+        "outcome": "reraised",
+        "note": "Dispute does not hold: handlers do not always append a log entry. phase-test.ts:102-106 returns a guard no-op with `packet NOT applied`, and applyStuckPostResult (stuck.ts) writes only decisions[]. In both, latestLogFor(task, agent) returns the previous round's ref, so a stuck C2 phase-code commits as C1/phase-code and an unapplied phase-test packet commits under the old T ref. Skip the commit, or use a ref newly claimed for this packet. Done when: a stuck packet or guard no-op yields no commit or a non-duplicate ref."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 7,
+      "requirement": "AC-3",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The temp repo created in beforeEach still applies the developer's global core.excludesFile. The F-019 rename to .env.production avoids this machine's ignore list, but a global ignore with `.env*` or `.env.*` (GitHub's Node.gitignore template uses `.env.*`) hides .env.production. Then `expect(leftover).toContain('.env.production')` at line 455 fails because of environment, not behaviour.",
+      "file": "packages/accord-core/tests/phase-commits.test.ts",
+      "line": 84,
+      "raised": "T5/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 7,
+      "requirement": "AC-3",
+      "finding_id": "F-022",
+      "state": "reraised",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "PhaseCommitResult.respawn is dropped by commitPhaseResult, so a guard-rejected test edit that phase-code did not report never respawns phase-test.",
+      "file": "packages/accord-core/src/subagent/result/process.ts",
+      "line": 71,
+      "raised": "C2/review-code",
+      "resolution": {
+        "by": "C3/review-code",
+        "outcome": "reraised",
+        "note": "Respawn is surfaced in the process.ts:71 note, but the note only says `phase-test respawn required (RGR)`; the Done-when's alternative requires naming the rejected test path too. PhaseCommitResult carries only `respawn`, not guarded.rejected. Add `rejected?: string[]` to the result and list the paths in the note."
+      }
     }
   ]
 }

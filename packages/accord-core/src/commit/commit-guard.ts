@@ -85,6 +85,7 @@ export function guardStagedPaths(
   workItemId: string,
   paths: string[],
   testFilePattern: string,
+  ref?: string,
 ): GuardResult {
   let rule: string;
   let allowed: (path: string) => boolean;
@@ -108,7 +109,7 @@ export function guardStagedPaths(
     if (allowed(path)) kept.push(path);
     else rejected.push(path);
   }
-  for (const path of rejected) reject(workItemId, commitType, rule, path);
+  for (const path of rejected) reject(workItemId, ref ?? commitType, rule, path);
   if (rejected.length === 0) return { kept, rejected };
   return respawn ? { kept, rejected, rule, respawn } : { kept, rejected, rule };
 }

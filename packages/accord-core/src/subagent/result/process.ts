@@ -6,6 +6,8 @@ import { existsSync } from "node:fs";
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
 import { listWorkItemTaskIds } from "../../artifacts/trace-artifact.js";
 import { validateArtifact, validateReturnQuarantiningEvents } from "../../artifacts/validation.js";
+import { tryCommitPhase } from "../../commit/phase-commit.js";
+import { resolveStackConfig } from "../../config/stack-flags.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
 import { commitDoneTasks, formatDoneTaskCommits } from "../../orchestration/commit-on-task-done.js";
@@ -21,6 +23,7 @@ import {
   recordTaskAgentMissingReturn,
   recordTaskAgentReturn,
 } from "../../orchestration/task-agent-audit.js";
+import { latestLogFor } from "../../tasks/model.js";
 import { loadTaskV2 } from "../../tasks/store.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
 import {
@@ -43,6 +46,51 @@ import {
 } from "./packet.js";
 
 const log = createLogger("subagent");
+
+async function commitPhaseResult(
+  workItemId: string,
+  agentName: string,
+  taskId: number | null,
+  packet: Record<string, unknown>,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (taskId == null) {
+    log.warn(`phase commit skipped for ${workItemId}: no task_id for ${agentName}`);
+    return "";
+  }
+  const task = loadTaskV2(workItemId, taskId);
+  const ref = task ? latestLogFor(task, agentName)?.ref : undefined;
+  if (!ref) {
+    log.warn(
+      `phase commit skipped for ${workItemId} task ${String(taskId)}: no ref for ${agentName}`,
+    );
+    return "";
+  }
+  try {
+    const result = await tryCommitPhase(
+      workItemId,
+      taskId,
+      ref,
+      agentName,
+      packet,
+      devConfig,
+      process.cwd(),
+    );
+    if (result.ok && result.hash) {
+      const respawnNote = result.respawn
+        ? `\n\n**Guard rejected test edits:** ${result.respawn} respawn required (RGR).`
+        : "";
+      return `\n\n**Phase commit:** \`${result.hash}\` (${ref})${respawnNote}`;
+    }
+    if (!result.ok)
+      return `\n\n**Phase commit failed** (${ref}): ${result.reason ?? "unknown error"}`;
+  } catch (e) {
+    log.warn(
+      `phase commit failed for ${workItemId}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+  return "";
+}
 
 const COARSE_PHASE_AGENTS = new Set(["phase-align", "phase-spec", "phase-plan"]);
 
@@ -417,6 +465,15 @@ export async function processSubagentToolResult(
           subagentResult: result,
           ...(validation.droppedEvents.length ? { droppedEvents: validation.droppedEvents } : {}),
         });
+        if (resolveStackConfig(state.devConfig).commits === "phase") {
+          contentAppend += await commitPhaseResult(
+            workItemId,
+            agentName,
+            extractTaskIdFromTaskText(task),
+            packet as Record<string, unknown>,
+            state.devConfig,
+          );
+        }
       }
     } else if (
       !packet &&
@@ -508,9 +565,11 @@ export async function processSubagentToolResult(
     state.sessionCost = total;
   }
 
+  const stackCommitsPhase = resolveStackConfig(state.devConfig).commits === "phase";
   // Every task that reached `done` gets a commit: sweep after the batch so tasks finished by
   // this result, by a human unblock, or whose earlier commit failed are all committed.
   for (const touchedId of touchedWorkItems) {
+    if (stackCommitsPhase) continue;
     try {
       contentAppend += formatDoneTaskCommits(
         await commitDoneTasks(touchedId, state.devConfig, process.cwd()),
