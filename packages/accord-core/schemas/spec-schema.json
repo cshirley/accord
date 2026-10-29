@@ -54,6 +54,11 @@
           },
           "type": {
             "enum": ["scenario", "constraint", "architectural", "property"]
+          },
+          "feature": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+            "description": "Optional (PROPOSED, not yet read by the harness): slug of the feature this AC belongs to. AC ids are local to the work item; closeout maps '<work_item_id>/AC-<n>' to the feature AC id in docs/features. Omit for cross-cutting ACs."
           }
         },
         "oneOf": [
