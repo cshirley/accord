@@ -6,6 +6,8 @@ import { existsSync } from "node:fs";
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
 import { listWorkItemTaskIds } from "../../artifacts/trace-artifact.js";
 import { validateArtifact, validateReturnQuarantiningEvents } from "../../artifacts/validation.js";
+import { commitTaskEvidence } from "../../commit/evidence-commit.js";
+import { resolvePrGroup } from "../../commit/hooks.js";
 import { tryCommitPhase } from "../../commit/phase-commit.js";
 import { resolveStackConfig } from "../../config/stack-flags.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
@@ -87,6 +89,29 @@ async function commitPhaseResult(
   } catch (e) {
     log.warn(
       `phase commit failed for ${workItemId}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+  return "";
+}
+
+async function commitEvidenceIfDone(
+  workItemId: string,
+  taskId: number | null,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (taskId == null) return "";
+  try {
+    const result = await commitTaskEvidence(
+      workItemId,
+      resolvePrGroup(taskId),
+      devConfig,
+      process.cwd(),
+    );
+    if (result.ok && result.hash) return `\n\n**Evidence commit:** \`${result.hash}\``;
+    if (!result.ok) return `\n\n**Evidence commit failed:** ${result.reason ?? "unknown error"}`;
+  } catch (e) {
+    log.warn(
+      `evidence commit failed for ${workItemId}: ${e instanceof Error ? e.message : String(e)}`,
     );
   }
   return "";
@@ -471,6 +496,11 @@ export async function processSubagentToolResult(
             agentName,
             extractTaskIdFromTaskText(task),
             packet as Record<string, unknown>,
+            state.devConfig,
+          );
+          contentAppend += await commitEvidenceIfDone(
+            workItemId,
+            extractTaskIdFromTaskText(task),
             state.devConfig,
           );
         }
