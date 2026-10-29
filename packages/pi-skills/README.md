@@ -4,7 +4,9 @@ Standalone Pi skills for git workflow — **no ACCORD harness** (`/dev`, `dev_*`
 
 | Skill | Needs |
 | --- | --- |
-| `commit`, `pr`, `verify`, `worktree`, `ci-debug` | **pi-git** |
+| `commit`, `pr`, `verify`, `worktree`, `ci-debug` | **pi-git** (`verify` and `worktree` also ship host-neutral scripts: `git`, `bash`) |
+| `brief`, `reuse-scout`, `risk-checklist` | Nothing required; optional `accord` CLI for `brief` harness mode |
+| `doc-verify` | `python3` and `git` (optional `mmdc` for mermaid) |
 | `review` | **pi-git** + **pi-subagent** + review agents (see install) |
 | `session-retro` | Bun only (reads `~/.config/pi/agent/sessions`) |
 | `crq-notify` | **pi-integrations** (Jira + Slack + GitHub tools) |

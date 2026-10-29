@@ -13,12 +13,16 @@
   ],
   "pi": {
     "skills": [
+      "./skills/brief",
       "./skills/ci-debug",
       "./skills/commit",
+      "./skills/doc-verify",
       "./skills/pr",
       "./skills/review",
       "./skills/pr-review",
       "./skills/crq-notify",
+      "./skills/reuse-scout",
+      "./skills/risk-checklist",
       "./skills/session-retro",
       "./skills/ste",
       "./skills/verify",

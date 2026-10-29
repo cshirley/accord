@@ -71,12 +71,16 @@
       "./packages/pi-accord/src/index.ts"
     ],
     "skills": [
+      "./packages/pi-skills/skills/brief",
       "./packages/pi-skills/skills/ci-debug",
       "./packages/pi-skills/skills/commit",
+      "./packages/pi-skills/skills/doc-verify",
       "./packages/pi-skills/skills/crq-notify",
       "./packages/pi-skills/skills/pr",
       "./packages/pi-skills/skills/pr-review",
       "./packages/pi-skills/skills/review",
+      "./packages/pi-skills/skills/reuse-scout",
+      "./packages/pi-skills/skills/risk-checklist",
       "./packages/pi-skills/skills/session-retro",
       "./packages/pi-skills/skills/ste",
       "./packages/pi-skills/skills/verify",
