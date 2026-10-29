@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T17:14:41.603Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T17:26:50.928Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -14,8 +14,8 @@
 | 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | `2194f4d` | 2/1/1 | 13 (verified 10, open 3) | 0 |
 | 6 | [commit-evidence] Commit guard and content redaction | done | `619a27f` | 2/1/1 | 21 (verified 8, reraised 3, open 8, wont_fix_accepted 2) | 0 |
 | 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | `dfcd785` | 5/3/1 | 28 (waived 1, verified 22, wont_fix_accepted 1, reraised 3, open 1) | 0 |
-| 8 | [commit-evidence] Evidence timeline from git trailers | done | — | 3/1/1 | 16 (verified 10, reraised 1, open 5) | 0 |
-| 9 | [commit-evidence] accord evidence CLI command | pending | — | 0/0/0 | 0 | 0 |
+| 8 | [commit-evidence] Evidence timeline from git trailers | done | `2a2e877` | 3/1/1 | 16 (verified 10, reraised 1, open 5) | 0 |
+| 9 | [commit-evidence] accord evidence CLI command | done | — | 1/1/1 | 11 (open 11) | 0 |
 | 10 | [commit-evidence] OKF docs and docs validation test | pending | — | 0/0/0 | 0 | 0 |
 | 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | pending | — | 0/0/0 | 0 | 0 |
 | 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | pending | — | 0/0/0 | 0 | 0 |
@@ -105,16 +105,21 @@
   - ASDLC-1/AC-3 phase-code result touching a test file: test path not committed, rejection logged, phase-test respawn requested
   - ASDLC-1/AC-3 phase mode: test edit by phase-code respawns phase-test (RGR)
 
-### AC-4 — pending (not verified)
+### AC-4 — satisfied
 
 > Then a timeline is rendered from git trailers only (ref, outcome, counts, tokens, cost) and the tsv columns match the documented awk extraction
 
-- Tasks: 8 (satisfied), 9 (pending)
-- Files: `packages/accord-core/tests/evidence-timeline.test.ts`, `packages/accord-core/src/evidence/timeline.ts`
-- Tests verified (3):
+- Tasks: 8 (satisfied), 9 (satisfied)
+- Files: `packages/accord-core/tests/evidence-timeline.test.ts`, `packages/accord-core/src/evidence/timeline.ts`, `packages/accord-cli/tests/evidence-cli.test.ts`, `packages/accord-cli/src/commands/evidence.ts`, `packages/accord-cli/src/cli.ts`, `packages/accord-cli/src/dispatch.ts`, `packages/accord-cli/src/commands/index.ts`
+- Tests verified (8):
   - evidence-timeline.test.ts: 17/17 pass (ASDLC-1/AC-4 readTimeline, renderers, trailer-only selection, tsv/awk column agreement)
   - bun run check:types
   - bun test (full suite)
+  - evidence-cli.test.ts › ASDLC-1/TC-4 default format is md
+  - evidence-cli.test.ts › ASDLC-1/TC-4 --format tsv prints header plus one tab-separated line per commit
+  - evidence-cli.test.ts › ASDLC-1/TC-4 task-2 filters to that task (md)
+  - evidence-cli.test.ts › ASDLC-1/TC-4 tsv columns match the documented awk extraction (sum usd_u by task)
+  - evidence-cli.test.ts › ASDLC-1/TC-4 unknown format exits non-zero naming the format and the valid values
 
 ### AC-5 — pending (not verified)
 
@@ -272,13 +277,16 @@
 
 > Orchestration and domain logic (commit grammar, computeStack, evidence, state, feature knowledge) MUST live in packages/accord-core; pi-accord, accord-cli and accord-mcp stay thin adapters and Pi APIs never enter acco…
 
-- Tasks: 2 (satisfied), 9 (pending), 29 (pending), 31 (pending), 49 (pending)
-- Files: `packages/accord-core/tests/helpers-git.test.ts`, `packages/accord-core/tests/layering.test.ts`, `packages/accord-core/tests/helpers/temp-git-repo.ts`, `packages/accord-core/tests/helpers/fake-gh.ts`
-- Tests verified (4):
+- Tasks: 2 (satisfied), 9 (satisfied), 29 (pending), 31 (pending), 49 (pending)
+- Files: `packages/accord-core/tests/helpers-git.test.ts`, `packages/accord-core/tests/layering.test.ts`, `packages/accord-core/tests/helpers/temp-git-repo.ts`, `packages/accord-core/tests/helpers/fake-gh.ts`, `packages/accord-cli/tests/evidence-cli.test.ts`, `packages/accord-cli/src/commands/evidence.ts`
+- Tests verified (7):
   - packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*
   - packages/accord-core/tests/helpers-git.test.ts › ASDLC-1/AC-28 (temp git repo and fake gh)
   - bun run check:types
   - bun run check:bundle
+  - evidence-cli.test.ts › ASDLC-1/AC-28 commands/evidence.ts delegates to accord-core timeline and renderers
+  - evidence-cli.test.ts › ASDLC-1/AC-28 adapter does not shell out to git or parse trailers itself
+  - no-pi-dep.test.ts › does not depend on pi-accord or pi-subagent
 
 ### AC-29 — pending (not verified)
 
@@ -386,6 +394,17 @@
 | 8 | AC-4 | F-014 | unresolved (advisory) | open | suggestion | Relative imports omit the `.js` extension; every other accord-core src file includes it. | packages/accord-core/src/evidence/timeline.ts:1 |  |
 | 8 | AC-4 | F-015 | unresolved (advisory) | open | suggestion | Every call scans and formats trailers for the entire history of HEAD, then filters by id in JS. | packages/accord-core/src/evidence/timeline.ts:91 |  |
 | 8 | AC-4 | F-016 | unresolved (advisory) | open | suggestion | Markdown cells are not escaped, so a `\|` in a trailer value breaks the table. | packages/accord-core/src/evidence/timeline.ts:115 |  |
+| 9 | AC-4 | F-001 | unresolved (advisory) | open | warning | Only one invalid format value ('xml') is tested. Missing or empty --format values are untested, so an implementation that defaults them to md passes. | packages/accord-cli/tests/evidence-cli.test.ts:267 |  |
+| 9 | AC-4 | F-002 | unresolved (advisory) | open | warning | Task-selector and work-item-id parsing is the adapter's only real logic, and only valid single-digit selectors are tested. Bad selectors and stray positional arguments silently produce wrong output. | packages/accord-cli/tests/evidence-cli.test.ts:231 |  |
+| 9 | AC-4 | F-003 | unresolved (advisory) | open | suggestion | The fixture's commit order (task-2, task-2, task-3) is the same as sorting by task. The 'in commit order' claim does not tell a timeline apart from a task-sorted table. | packages/accord-cli/tests/evidence-cli.test.ts:161 |  |
+| 9 | AC-4 | F-004 | unresolved (advisory) | open | suggestion | The 'documented awk extraction' test simulates awk in JS and compares against fixed totals that repeat the golden. It never runs awk or compares against the documented `git log --format='%H%x09%(trailers:key=Accord,valueonly,unfold)' \| awk` extraction. | packages/accord-cli/tests/evidence-cli.test.ts:249 |  |
+| 9 | AC-4 | F-007 | unresolved (advisory) | open | suggestion | `spawnSync` has no timeout, and the child process environment is not isolated from the user's git configuration. | packages/accord-cli/tests/evidence-cli.test.ts:208 |  |
+| 9 | AC-4 | F-008 | unresolved (advisory) | open | warning | console.log appends a second newline to renderer output that already ends in \n, so tsv/md output ends with a blank line. | packages/accord-cli/src/commands/evidence.ts:36 |  |
+| 9 | AC-4 | F-010 | unresolved (advisory) | open | suggestion | The global `--json` flag is accepted but silently ignored (`_options` is unused), so output is not JSON. | packages/accord-cli/src/commands/evidence.ts:12 |  |
+| 9 | AC-4 | F-011 | unresolved (advisory) | open | suggestion | `evidence` is not registered in TOP_LEVEL_COMMANDS, so it is missing from help, shell completion and interactive mode, unlike `trace` and `unblock`. | packages/accord-cli/src/ui/command-catalog.ts:25 |  |
+| 9 | AC-28 | F-005 | unresolved (advisory) | open | suggestion | The AC-28 source-text checks are loose. `toContain(symbol)` passes when the names appear only in a comment, and the deny list misses other ways to run git. Contrived bypasses only. | packages/accord-cli/tests/evidence-cli.test.ts:288 |  |
+| 9 | AC-28 | F-006 | unresolved (advisory) | open | suggestion | The task's verify step runs check:types and check:biome but not check:bundle or the accord-core import-boundary test. AC-28 enforcement names check:types, check:bundle and an import-boundary test. | packages/accord-core/tests/layering.test.ts:1 |  |
+| 9 | AC-28 | F-009 | unresolved (advisory) | open | suggestion | Flag and selector parsing plus format validation live in the adapter, but the plan step puts `evidence <ID> [task-<N>] [--format md\|tsv]` parsing in cli.ts and says the adapter has no logic. | packages/accord-cli/src/commands/evidence.ts:14 |  |
 
 ## Decisions
 
@@ -399,6 +418,7 @@ _None._
 - Task 6 (accepted): Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented. — Spec names only rule/respawn/rejected; shape and per-type scopes inferred.
 - Task 6 (accepted): redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution. — Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.
 - Task 8 (pending): Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'. — Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.
+- Task 9 (pending): Exported runEvidenceCommand from commands/index.ts (not in task.files) — dispatch.ts imports commands via the index barrel
 
 ## Evidence by task
 
@@ -561,6 +581,33 @@ evidence-timeline.test.ts: 17 pass, 0 fail. Preflight: bun test, validate:schema
 ```
 
 ### Task 9: [commit-evidence] accord evidence CLI command
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-4 accord evidence > ASDLC-1/TC-4 default format is md ...
+(fail) ... --format md equals the default output
+(fail) ... --format tsv prints header plus one tab-separated line per commit
+(fail) ... task-2 filters to that task (md)
+(fail) ... task-2 with --format tsv filters to that task
+(fail) ... --format may precede the task selector
+(fail) ... tsv columns match the documented awk extraction
+(fail) ... unknown format exits non-zero naming the format and the valid values
+(fail) ... work item id is required
+  Expected substring or pattern: /evidence requires a work item id/
+  Received: "Unknown command \"evidence\". Run accord --help.\n"
+(fail) ASDLC-1/AC-28 ... delegates to accord-core timeline and renderers
+  Received: "export function runEvidenceCommand(... throw new Error(\"not implemented: runEvidenceCommand\") ..."
+(pass) ASDLC-1/AC-28 adapter does not shell out to git or parse trailers itself
+ 1 pass
+ 10 fail
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+evidence-cli + no-pi-dep: 12 pass, 0 fail. Preflight: bun test, validate:schemas/assets/okf/ste, check:types, check:bundle, check:runtime all exit 0. check:biome exit 1: format of docs/dev/ASDLC-1/trace.json and lint at packages/accord-core/scripts/update-model-pricing.ts:84; `biome check packages/accord-cli` clean.
+```
 
 ### Task 10: [commit-evidence] OKF docs and docs validation test
 

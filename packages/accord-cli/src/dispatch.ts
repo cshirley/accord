@@ -12,6 +12,7 @@ import {
   runDevHelpCommand,
   runDeviationsCommand,
   runDriveCommand,
+  runEvidenceCommand,
   runFinishCommand,
   runGapsCommand,
   runInitCommand,
@@ -82,6 +83,10 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
 
   if (parsed.kind === "unblock") {
     return runUnblockCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "evidence") {
+    return runEvidenceCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
   }
 
   if (parsed.kind === "trace") {

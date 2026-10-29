@@ -10,6 +10,7 @@ export {
   planDriveStatus,
   runDriveWorkflow,
 } from "./drive.js";
+export { runEvidenceCommand } from "./evidence.js";
 export { type FinishCommandResult, runFinishCommand } from "./finish.js";
 export { runGapsCommand } from "./gaps.js";
 export { accordHelpText, runDevHelpCommand } from "./help.js";
