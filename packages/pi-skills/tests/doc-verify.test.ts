@@ -151,6 +151,29 @@ describe("doc-verify.py", () => {
     }
   });
 
+  test("without a git repo links are bounded by the current directory", () => {
+    const plain = realpathSync(mkdtempSync(join(tmpdir(), "docv-norepo-")));
+    try {
+      mkdirSync(join(plain, "docs", "sub"), { recursive: true });
+      writeFileSync(join(plain, "docs", "b.md"), "# B\n");
+      writeFileSync(
+        join(plain, "docs", "sub", "a.md"),
+        "# A [verified]\n\n[ok](../b.md) [missing](../gone.md) [up](../../../../etc/hosts)\n",
+      );
+      const result = run(plain, ["docs"], { GIT_CEILING_DIRECTORIES: plain });
+      expect(
+        result.findings
+          .filter((f) => f.level !== "info")
+          .map((f) => [f.code, f.message.split(" ")[0]]),
+      ).toEqual([
+        ["broken-link", "../gone.md"],
+        ["link-outside-repo", "../../../../etc/hosts"],
+      ]);
+    } finally {
+      rmSync(plain, { recursive: true, force: true });
+    }
+  });
+
   test("future front matter date is an error; filename mismatch warns", () => {
     writeFileSync(
       join(dir, "2026-10-01-plan.md"),
@@ -420,6 +443,25 @@ describe("doc-verify.py", () => {
     test("a missing node behind mmdc is an environment warning, not a syntax error", () => {
       writeFileSync(join(dir, "a.md"), block);
       const env = withFakeMmdc('echo "env: node: No such file or directory" >&2; exit 127');
+      const result = run(dir, ["a.md"], env);
+      expect(result.code).toBe(0);
+      expect(codes(result.findings)).toContain("mermaid-unavailable");
+    });
+
+    test("a syntax error whose echoed source contains env: or Browser stays a syntax error", () => {
+      writeFileSync(join(dir, "a.md"), block);
+      const env = withFakeMmdc(
+        'printf "Error: Parse error on line 2:\\ngraph TD\\n A[env: prod] --> Browser process --> B\\n" >&2; exit 1',
+      );
+      const result = run(dir, ["a.md"], env);
+      expect(result.code).toBe(1);
+      expect(codes(result.findings)).toContain("mermaid-syntax");
+      expect(codes(result.findings)).not.toContain("mermaid-unavailable");
+    });
+
+    test("mmdc exiting 127 is an environment warning whatever it prints", () => {
+      writeFileSync(join(dir, "a.md"), block);
+      const env = withFakeMmdc('echo "something unrecognised" >&2; exit 127');
       const result = run(dir, ["a.md"], env);
       expect(result.code).toBe(0);
       expect(codes(result.findings)).toContain("mermaid-unavailable");

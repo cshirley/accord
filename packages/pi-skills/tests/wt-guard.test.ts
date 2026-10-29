@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -85,10 +93,11 @@ describe("worktree/scripts/wt-guard.sh", () => {
     expect(sh(repo, [script, "inside", linked, join(linked, "link-inside", "f")]).code).toBe(0);
   });
 
-  test("inside fails closed on long symlink chains and on newlines in the path", () => {
-    // 25 chained links ending outside the root: the resolver gives up and the path counts as outside.
-    symlinkSync(join(repo, "outside.txt"), join(linked, "l25"));
-    for (let level = 24; level >= 0; level--) {
+  test("inside fails closed on over-long symlink chains and on newlines in the path", () => {
+    // 45 chained links: past the 40-link budget the resolver gives up and the path counts as outside.
+    symlinkSync(join(linked, "inner"), join(linked, "l45"));
+    mkdirSync(join(linked, "inner"));
+    for (let level = 44; level >= 0; level--) {
       symlinkSync(join(linked, `l${level + 1}`), join(linked, `l${level}`));
     }
     const chain = sh(repo, [script, "inside", linked, join(linked, "l0")]);
@@ -98,6 +107,43 @@ describe("worktree/scripts/wt-guard.sh", () => {
     expect(newline.code).toBe(1);
     expect(newline.out).toContain("newline");
   });
+
+  test("a chain within the budget resolves; one ending outside the root is outside", () => {
+    writeFileSync(join(repo, "outside.txt"), "x");
+    symlinkSync(join(repo, "outside.txt"), join(linked, "o25"));
+    for (let level = 24; level >= 0; level--) {
+      symlinkSync(join(linked, `o${level + 1}`), join(linked, `o${level}`));
+    }
+    expect(sh(repo, [script, "inside", linked, join(linked, "o0")]).code).toBe(1);
+  });
+
+  test("symlink fan-out cannot multiply the work: the shared budget stops it quickly", () => {
+    symlinkSync(".", join(linked, "s0"));
+    for (let level = 1; level <= 14; level++) {
+      symlinkSync(`s${level - 1}/s${level - 1}`, join(linked, `s${level}`));
+    }
+    const started = Date.now();
+    const result = sh(repo, [script, "inside", linked, join(linked, "s14", "x")]);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("too many levels of symbolic links");
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
+  test.skipIf(process.getuid?.() === 0)(
+    "a directory that cannot be entered fails closed instead of resolving from /",
+    () => {
+      const locked = join(linked, "locked");
+      mkdirSync(locked);
+      chmodSync(locked, 0o000);
+      try {
+        const result = sh(repo, [script, "inside", linked, `${locked}/../../x`]);
+        expect(result.code).toBe(1);
+        expect(sh(repo, [script, "inside", linked, join(locked, "f")]).code).toBe(1);
+      } finally {
+        chmodSync(locked, 0o755);
+      }
+    },
+  );
 
   test("inside requires both physical and lexical .. resolution to stay in the root", () => {
     mkdirSync(join(linked, "a", "b", "c"), { recursive: true });

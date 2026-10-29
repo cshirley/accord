@@ -136,8 +136,8 @@ if [[ -n "$source_kind" && "$source_kind" != "local" && "$source_kind" != "branc
   exit 64
 fi
 if [[ -n "$critical" ]]; then
-  if [[ ! "$critical" =~ ^[0-9]+$ ]]; then
-    echo "green.sh: --critical must be a number" >&2
+  if [[ ! "$critical" =~ ^[0-9]{1,6}$ ]]; then
+    echo "green.sh: --critical must be a number of at most 6 digits" >&2
     exit 64
   fi
   critical=$((10#$critical)) # "08" is decimal 8, not an invalid octal
@@ -183,22 +183,34 @@ case "$cmd" in
     fi
     if [[ "$kind" == "review" ]]; then
       open_critical="$(field critical)"
-      if [[ ! "$open_critical" =~ ^[0-9]+$ ]]; then
+      if [[ ! "$open_critical" =~ ^[0-9]{1,6}$ ]]; then
         echo "blocked: review marker has no valid critical count; re-run the review and 'mark review --source ... --critical N'" >&2
         exit 1
       fi
       if [[ "$((10#$open_critical))" -gt 0 && -z "$(field accepted)" ]]; then
-        echo "blocked: last review left $open_critical open Critical finding(s); fix them and re-review, or record 'mark review --accepted <reason>'" >&2
+        echo "blocked: last review left $open_critical open Critical finding(s); fix them and re-review, or record the user's acceptance: green.sh mark review --source <local|branch> --critical $open_critical --accepted '<reason, single-quoted>'" >&2
         exit 1
       fi
-      if [[ "$(field source)" == "local" ]]; then
+      review_source="$(field source)"
+      if [[ "$review_source" != "local" && "$review_source" != "branch" ]]; then
+        echo "blocked: review marker has no valid source (local|branch); re-run the review and 'mark review --source ... --critical N'" >&2
+        exit 1
+      fi
+      if [[ "$review_source" == "local" ]]; then
         if git rev-parse --verify -q origin/HEAD >/dev/null; then
           # A local review covers uncommitted changes only. Commits that already existed when the
           # review was marked (origin/HEAD..recorded head) were not reviewed; commits made after
           # it (the reviewed change itself, same tree) are fine.
           reviewed_head="$(field head)"
-          if [[ "$reviewed_head" != "none" ]] && git cat-file -e "${reviewed_head}^{commit}" 2>/dev/null; then
-            ahead="$(git rev-list --count "origin/HEAD..${reviewed_head}" 2>/dev/null || echo 0)"
+          if [[ "$reviewed_head" != "none" ]]; then
+            if ! git cat-file -e "${reviewed_head}^{commit}" 2>/dev/null; then
+              echo "blocked: the commit this review was marked on ($reviewed_head) no longer exists (history was rewritten?); re-run the review with source=branch" >&2
+              exit 1
+            fi
+            ahead="$(git rev-list --count "origin/HEAD..${reviewed_head}")" || {
+              echo "blocked: cannot count commits ahead of origin/HEAD; re-run the review with source=branch" >&2
+              exit 1
+            }
             if [[ "$ahead" -gt 0 ]]; then
               echo "blocked: review covered only uncommitted changes; $ahead commit(s) ahead of origin/HEAD were not reviewed — re-run the review with source=branch" >&2
               exit 1

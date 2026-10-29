@@ -291,6 +291,66 @@ describe("verify/scripts/green.sh", () => {
     expect(blocked.out).toContain("1 commit(s) ahead of origin/HEAD");
   });
 
+  test("a review marker with a bad source, a missing source or a huge count is rejected", () => {
+    expect(
+      sh(repo, [
+        script,
+        "mark",
+        "review",
+        "--source",
+        "branch",
+        "--critical",
+        "18446744073709551616",
+      ]).code,
+    ).toBe(64);
+    sh(repo, [script, "mark", "review", ...REVIEW_FLAGS]);
+    const marker = join(repo, ".git", "accord", "last-review");
+    const original = readFileSync(marker, "utf8");
+    writeFileSync(marker, original.replace("source=branch\n", ""));
+    const missing = sh(repo, [script, "check", "review"]);
+    expect(missing.code).toBe(1);
+    expect(missing.out).toContain("no valid source");
+    writeFileSync(marker, original.replace("source=branch", "source=whatever"));
+    expect(sh(repo, [script, "check", "review"]).code).toBe(1);
+  });
+
+  test("a local review whose recorded commit no longer exists is blocked", () => {
+    sh(repo, ["git", "update-ref", "refs/remotes/origin/main", "HEAD"]);
+    sh(repo, ["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
+    sh(repo, [script, "mark", "review", "--source", "local", "--critical", "0"]);
+    const marker = join(repo, ".git", "accord", "last-review");
+    writeFileSync(
+      marker,
+      readFileSync(marker, "utf8").replace(
+        /head=.*/,
+        "head=1111111111111111111111111111111111111111",
+      ),
+    );
+    const blocked = sh(repo, [script, "check", "review"]);
+    expect(blocked.code).toBe(1);
+    expect(blocked.out).toContain("no longer exists");
+  });
+
+  test("the Critical-blocked message names a command that is valid as written", () => {
+    sh(repo, [script, "mark", "review", "--source", "branch", "--critical", "3"]);
+    const blocked = sh(repo, [script, "check", "review"]);
+    expect(blocked.out).toContain("--source <local|branch> --critical 3 --accepted '<reason");
+    expect(
+      sh(repo, [
+        script,
+        "mark",
+        "review",
+        "--source",
+        "branch",
+        "--critical",
+        "3",
+        "--accepted",
+        "known; STEP-1",
+      ]).code,
+    ).toBe(0);
+    expect(sh(repo, [script, "check", "review"]).code).toBe(0);
+  });
+
   test("a local review without origin/HEAD warns but passes", () => {
     sh(repo, [script, "mark", "review", "--source", "local", "--critical", "0"]);
     const result = sh(repo, [script, "check", "review"]);

@@ -14,8 +14,8 @@ Checks (code: level):
     with --allow-repo (error). Front matter is untrusted input, so it cannot pick any directory.
   verified-paths-empty: `verified-paths` is set but yields no paths, so staleness cannot be checked
   verified-paths-unchecked: `git diff` failed for the listed paths (for example a malformed pathspec)
-  link-outside-repo: a relative link resolves outside the repo root, or the document's directory
-    when there is no repo (warning; the target is neither probed nor opened)
+  link-outside-repo: a relative link resolves outside the repo root, or the current directory
+    when there is no repo, the current directory (warning; the target is neither probed nor opened)
   stale-evidence: files listed in `verified-paths` changed since `verified-against` (error)
   unconfirmed-assumptions: [assumed] tags remain (warning)
   no-provenance-tags: no [verified]/[inferred]/[assumed] tags (info)
@@ -165,7 +165,18 @@ def git(repo: str, *args: str) -> tuple[int, str]:
 
 
 def inside(root: str, target: str) -> bool:
-    root_real, target_real = os.path.realpath(root), os.path.realpath(target)
+    """True when `target` is within `root`. The text is checked first, so an outside target is
+    rejected without any filesystem access (realpath would stat every component, which can wake
+    autofs mounts or hang on a dead network share); only a lexically inside target is resolved."""
+    root_real = os.path.realpath(root)
+    normalised = os.path.normpath(os.path.abspath(target))
+    if os.path.commonpath([root_real, normalised]) != root_real:
+        # `root` itself may be reached through a symlink (for example /tmp -> /private/tmp):
+        # compare against the text of the unresolved root too before giving up.
+        root_text = os.path.normpath(os.path.abspath(root))
+        if os.path.commonpath([root_text, normalised]) != root_text:
+            return False
+    target_real = os.path.realpath(target)
     return os.path.commonpath([root_real, target_real]) == root_real
 
 
@@ -276,7 +287,7 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                 resolved = os.path.normpath(os.path.join(directory, file_part))
             # Targets outside the boundary (repo root, else the document's own directory) are
             # reported without touching the filesystem: no existence probing, no file opened.
-            if not inside(root or directory, resolved):
+            if not inside(root or os.getcwd(), resolved):
                 add(offset, "warning", "link-outside-repo", f"{target} resolves outside the repo root; the link breaks when the document moves and was not checked")
             elif not os.path.exists(resolved):
                 add(offset, "error", "broken-link", f"{target} does not exist")
@@ -321,7 +332,11 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                     if proc.returncode != 0:
                         detail = (proc.stderr or proc.stdout).strip()
                         first = detail.split("\n")[0][:200]
-                        if re.search(r"puppeteer|chrom|sandbox|ENOENT|browser|Failed to launch|command not found|No such file|env: ", detail, re.I):
+                        # Classify on the exit status and the first line only: mmdc echoes the
+                        # diagram source after its message, so a diagram that merely contains a
+                        # word such as "env:" or "Browser" must not turn a syntax error into
+                        # an environment warning.
+                        if proc.returncode in (126, 127) or re.search(r"puppeteer|chrom|sandbox|ENOENT|browser process|Failed to launch|command not found|No such file", first, re.I):
                             add(start, "warning", "mermaid-unavailable", f"mmdc could not run: {first}")
                         else:
                             add(start, "error", "mermaid-syntax", first or "mmdc failed")

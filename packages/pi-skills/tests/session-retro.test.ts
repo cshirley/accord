@@ -166,6 +166,24 @@ describe("session-retro gates", () => {
     expect(gates.commitsWithUnverifiedEdits).toBe(2);
   });
 
+  test("a fallback after || does not make a later commit unverified; escaped quotes do not hide commands", () => {
+    session("2026-10-04T12-30-00-000Z_j.jsonl", [
+      { tool: "edit" },
+      bash("bun test || exit 1\ngit commit -m x", "call-4"),
+      { result: "call-4" },
+      { tool: "edit" },
+      bash("bun run lint || bun run lint:fix", "call-5"),
+      { result: "call-5" },
+      bash("git commit -m y"),
+      { tool: "edit" },
+      bash("echo it\\'s ok && bun test && git commit -m z", "call-6"),
+      { result: "call-6" },
+    ]);
+    const { gates } = retro(root);
+    expect(gates.commits).toBe(3);
+    expect(gates.commitsWithUnverifiedEdits).toBe(0);
+  });
+
   test("newline-separated commands and quoted operators are read correctly", () => {
     session("2026-10-04T13-00-00-000Z_i.jsonl", [
       { tool: "edit" },

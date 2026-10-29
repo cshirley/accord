@@ -129,6 +129,12 @@ function shellSegments(command: string): Segment[] {
   };
   for (let index = 0; index < command.length; index++) {
     const char = command[index];
+    // A backslash escapes the next character outside single quotes (so `it\'s` opens no quote).
+    if (char === "\\" && quote !== "'" && index + 1 < command.length) {
+      current += char + command[index + 1];
+      index += 1;
+      continue;
+    }
     if (quote) {
       if (char === quote) quote = "";
       current += char;
@@ -320,12 +326,13 @@ for (const file of files) {
               if (part.id) pendingVerifyIds.add(String(part.id));
               else everVerified = true;
             }
-            // `verify || git commit` runs the commit only when the verify failed.
-            if (previousWasVerify && segment.op === "||") dirty = true;
+            // `verify || git commit` runs the commit only when the verify failed, so that commit
+            // is unverified. (`dirty` itself is not changed: `verify || exit 1; git commit` is fine.)
+            const commitAfterFailedVerify = previousWasVerify && segment.op === "||";
             previousWasVerify = isVerify;
             if (COMMIT_COMMAND.test(segment.text)) {
               gates.commits += 1;
-              if (dirty) gates.commitsWithUnverifiedEdits += 1;
+              if (dirty || commitAfterFailedVerify) gates.commitsWithUnverifiedEdits += 1;
               if (!reviewSeen) gates.commitsBeforeAnyReview += 1;
             }
             if (PR_COMMAND.test(segment.text)) {

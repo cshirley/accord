@@ -11,41 +11,51 @@ set -euo pipefail
 
 # Resolve a path to an absolute, physical path without requiring it to exist.
 # Walks component by component from the root: `.` is skipped, `..` pops (physically, after
-# symlinked directories were resolved), existing directories and symlinks are resolved, and the
-# remaining components of a path that does not exist yet are kept as written. A symlink as the
-# last component is followed, so a link to a file outside a root is reported as outside.
-# Fails closed (returns 1) on a newline in the path or a symlink chain deeper than 20 links.
+# symlinked directories were resolved), existing directories are resolved with `pwd -P`, and the
+# remaining components of a path that does not exist yet are kept as written. A symlink (also as
+# the last component) is followed by splicing its target into the unresolved remainder, with one
+# budget of 40 links for the whole path, so fan-out cannot multiply the work. Fails closed
+# (returns 1, message on stderr) on a newline in the path, an exhausted link budget, a directory
+# that cannot be entered, or an unreadable link.
 abspath() {
-  local path="$1" depth="${2:-0}" current="" component target candidate
-  if [[ "$path" == *$'\n'* ]]; then
+  local rest="$1" current="" links=0 component candidate target
+  if [[ "$rest" == *$'\n'* ]]; then
     echo "wt-guard: path contains a newline: refusing to resolve it" >&2
     return 1
   fi
-  [[ "$path" == /* ]] || path="$PWD/$path"
-  if [[ "$depth" -gt 20 ]]; then
-    echo "wt-guard: too many levels of symbolic links: $path" >&2
-    return 1
-  fi
-  local -a parts
-  IFS=/ read -r -a parts <<<"$path"
-  for component in "${parts[@]}"; do
+  [[ "$rest" == /* ]] || rest="$PWD/$rest"
+  while [[ -n "$rest" ]]; do
+    component="${rest%%/*}"
+    if [[ "$rest" == */* ]]; then rest="${rest#*/}"; else rest=""; fi
     case "$component" in
       "" | ".") continue ;;
-      "..") current="${current%/*}" ;;
-      *)
-        candidate="$current/$component"
-        if [[ -L "$candidate" ]]; then
-          target="$(readlink "$candidate")"
-          [[ "$target" == /* ]] || target="$current/$target"
-          current="$(abspath "$target" $((depth + 1)))" || return 1
-          [[ "$current" == "/" ]] && current=""
-        elif [[ -d "$candidate" ]]; then
-          current="$(cd "$candidate" && pwd -P)"
-        else
-          current="$candidate"
-        fi
+      "..")
+        current="${current%/*}"
+        continue
         ;;
     esac
+    candidate="$current/$component"
+    if [[ -L "$candidate" ]]; then
+      links=$((links + 1))
+      if [[ "$links" -gt 40 ]]; then
+        echo "wt-guard: too many levels of symbolic links: $1" >&2
+        return 1
+      fi
+      target="$(readlink "$candidate")" || {
+        echo "wt-guard: cannot read link $candidate" >&2
+        return 1
+      }
+      if [[ "$target" == /* ]]; then current=""; fi
+      rest="$target/$rest"
+    elif [[ -d "$candidate" ]]; then
+      current="$(cd "$candidate" && pwd -P)" || {
+        echo "wt-guard: cannot enter directory $candidate" >&2
+        return 1
+      }
+      [[ -n "$current" ]] || return 1
+    else
+      current="$candidate"
+    fi
   done
   echo "${current:-/}"
 }
