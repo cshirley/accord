@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T13:16:52.088Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T13:26:19.969Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -8,8 +8,8 @@
 | Task | Title | Status | Commits | Rounds T/C/V | Findings | Unblocks |
 | ---: | --- | --- | --- | --- | --- | ---: |
 | 1 | [flags] Stack and knowledge switch resolver with default-off values | done | `0e9ed2e` | 1/1/1 | 8 (open 8) | 0 |
-| 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | — | 4/4/1 | 21 (verified 15, wont_fix_accepted 1, waived 2, open 3) | 0 |
-| 3 | [telemetry] Stack event catalogue and emitter on the shared logger | pending | — | 0/0/0 | 0 | 0 |
+| 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | `a018167` | 4/4/1 | 21 (verified 15, wont_fix_accepted 1, waived 2, open 3) | 0 |
+| 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | — | 1/1/1 | 9 (open 9) | 0 |
 | 4 | [infra] accord/evidence check runner and workflow | pending | — | 0/0/0 | 0 | 0 |
 | 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | pending | — | 0/0/0 | 0 | 0 |
 | 6 | [commit-evidence] Commit guard and content redaction | pending | — | 0/0/0 | 0 | 0 |
@@ -248,7 +248,17 @@
 
 > The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…
 
-- Tasks: 3 (pending), 6 (pending), 7 (pending), 13 (pending), 34 (pending), 39 (pending)
+- Tasks: 3 (satisfied), 6 (pending), 7 (pending), 13 (pending), 34 (pending), 39 (pending)
+- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`
+- Tests verified (8):
+  - packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields
+  - ASDLC-1/AC-29 <event> catalogue entry declares exact level and fields
+  - ASDLC-1/AC-29 <event> rejects an unknown field
+  - ASDLC-1/AC-29 <event> rejects missing field <field>
+  - ASDLC-1/AC-29 rejects non-numeric <key>=<value>
+  - ASDLC-1/AC-29 emits through createLogger('stack') at debug level
+  - bun run check:types
+  - bunx biome check (task files)
 
 ### AC-30 — pending (not verified)
 
@@ -280,6 +290,15 @@
 | 2 | AC-28 | F-019 | unresolved (advisory) | open | suggestion | Shebang embeds `process.execPath` unquoted; a Bun path containing a space, or longer than the kernel shebang limit, makes the fake `gh` fail to exec. | packages/accord-core/tests/helpers/fake-gh.ts:37 |  |
 | 2 | AC-28 | F-020 | unresolved (advisory) | open | suggestion | Monkey-patching of Bun.spawn/spawnSync restores correctly only in LIFO order, and PATH is restored to a snapshot. | packages/accord-core/tests/helpers/fake-gh.ts:60 |  |
 | 2 | AC-28 | F-021 | unresolved (advisory) | open | suggestion | Temp dir leaks if `git init` or `git config` throws, and `GIT_CONFIG_COUNT`/`GIT_CONFIG_PARAMETERS`/`GIT_TEMPLATE_DIR` from the host env are not scrubbed. | packages/accord-core/tests/helpers/temp-git-repo.ts:37 |  |
+| 3 | AC-29 | F-001 | unresolved (advisory) | open | warning | Unknown-field and missing-field tests only change the number of fields. A rename that keeps the same count, with one declared field swapped for an undeclared one, is never tested. 'Exactly the declared field names' is therefore not enforced. | packages/accord-core/tests/stack-telemetry.test.ts:65 |  |
+| 3 | AC-29 | F-002 | unresolved (advisory) | open | suggestion | The counts-only test for stack.state.snapshot only tries string values. Numbers that are not valid counts are not rejected. | packages/accord-core/tests/stack-telemetry.test.ts:101 |  |
+| 3 | AC-29 | F-003 | unresolved (advisory) | open | suggestion | Values are written into `key=value` with no escaping. A string field holding whitespace or a newline (stack.guard.rejected path, stack.commit.created ref) gives a log line that is ambiguous or forged. No test pins single-line output. | packages/accord-core/tests/stack-telemetry.test.ts:53 |  |
+| 3 | AC-29 | F-004 | unresolved (advisory) | open | suggestion | AC-29 is architectural: events must go through the shared logging.ts. The console.error spy checks the format, but a deliberately bad emitter could write `[accord:stack:<level>]` directly and copy the getLogLevel() threshold. | packages/accord-core/tests/stack-telemetry.test.ts:135 |  |
+| 3 | AC-29 | F-005 | unresolved (advisory) | open | suggestion | Values are interpolated raw, so a value containing whitespace, '=' or a newline makes the `key=value` line ambiguous or lets it split across lines. | packages/accord-core/src/telemetry/stack-events.ts:63 |  |
+| 3 | AC-29 | F-006 | unresolved (advisory) | open | suggestion | `event` is a plain `string` and the field map is untyped, so a typo or wrong field at a call site is caught only at runtime. The emitter then throws, which could abort the commit or guard path it instruments. | packages/accord-core/src/telemetry/stack-events.ts:41 |  |
+| 3 | AC-29 | F-007 | unresolved (advisory) | open | suggestion | Value validation is partial. task, est_lines and act_lines are unchecked, negative or fractional counts pass, and a runtime `undefined` value passes the presence check. | packages/accord-core/src/telemetry/stack-events.ts:14 |  |
+| 3 | AC-29 | F-008 | unresolved (advisory) | open | suggestion | StackEventLevel duplicates LogLevel minus 'silent'. | packages/accord-core/src/telemetry/stack-events.ts:3 |  |
+| 3 | AC-29 | F-009 | unresolved (advisory) | open | suggestion | The docs describe telemetry/ as 'Usage accounting', which is now stale. | docs/file-structure.md:26 |  |
 
 ## Decisions
 
@@ -333,6 +352,24 @@ task tests: 52 pass, 0 fail (2 files). check:types, check:bundle and check:biome
 ```
 
 ### Task 3: [telemetry] Stack event catalogue and emitter on the shared logger
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-29 stack telemetry (ASDLC-1/TC-30) > default shared logger (stderr) > ASDLC-1/AC-29 debug snapshot is silent at default error level, error alert is not
+error: not implemented: emitStackEvent
+
+ 0 pass
+ 51 fail
+ 43 expect() calls
+Ran 51 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+stack-telemetry.test.ts: 51 pass, 0 fail. bun test, check:types, validate:schemas/assets/okf/ste, check:bundle, check:runtime exit 0. biome on task files: clean. Repo-wide check:biome exit 1 (lint in a file the preflight output didn't name, trace.json format), outside task scope.
+```
 
 ### Task 4: [infra] accord/evidence check runner and workflow
 
