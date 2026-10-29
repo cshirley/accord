@@ -5,8 +5,8 @@
  * Usage:
  *   bun packages/pi-skills/scripts/session-retro.ts [--json] [--sessions-root PATH] [--since YYYY-MM-DD]
  *
- * `--since` keeps sessions whose file name timestamp is on or after the date, so a pilot window
- * can be compared with the sessions before it. The `gates` and `adoption` sections measure the
+ * `--since` keeps sessions whose file name timestamp is on or after the date and `--until` keeps
+ * those strictly before it, so a pilot window can be compared with the sessions before it. The `gates` and `adoption` sections measure the
  * checks that the verify, commit, pr, review, worktree and brief skills ask for.
  */
 
@@ -16,10 +16,15 @@ import { join } from "node:path";
 
 const DEFAULT_ROOT = join(homedir(), ".config/pi/agent/sessions");
 
-type Args = { json: boolean; sessionsRoot: string; since: string | null };
+type Args = {
+  json: boolean;
+  sessionsRoot: string;
+  since: string | null;
+  until: string | null;
+};
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { json: false, sessionsRoot: DEFAULT_ROOT, since: null };
+  const args: Args = { json: false, sessionsRoot: DEFAULT_ROOT, since: null, until: null };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--json") args.json = true;
@@ -35,8 +40,17 @@ function parseArgs(argv: string[]): Args {
       }
       args.since = value;
       index += 1;
+    } else if (arg === "--until") {
+      const value = argv[index + 1];
+      if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        throw new Error("--until requires YYYY-MM-DD");
+      }
+      args.until = value;
+      index += 1;
     } else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: session-retro.ts [--json] [--sessions-root PATH] [--since YYYY-MM-DD]");
+      console.log(
+        "Usage: session-retro.ts [--json] [--sessions-root PATH] [--since YYYY-MM-DD] [--until YYYY-MM-DD]",
+      );
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -86,22 +100,44 @@ function sessionDate(filePath: string): string | null {
   return match?.[1] ?? null;
 }
 
+// Patterns are anchored to the start of one shell segment (see `shellSegments`), so a mention such
+// as `echo "git commit"` or `rg 'bun test'` does not count.
 const VERIFY_COMMAND =
-  /\b(jest|vitest|pytest|go test|cargo test|bun test|bun run check|npm (run )?(test|check|lint)|yarn (run )?(test|check|lint)|pnpm (run )?(test|check|lint)|tsc\b|biome check|eslint)\b/;
-const COMMIT_COMMAND = /\bgit commit\b/;
-const PR_COMMAND = /\bgh pr (create|edit)\b/;
-const CI_COMMAND = /\bgh (pr checks|run (view|watch|list))\b/;
+  /^(npx |bunx |yarn |pnpm |npm run |bun run |bun |npm )?(jest|vitest|pytest|go test|cargo test|test|check|lint|tsc|biome check|eslint)\b/;
+const COMMIT_COMMAND = /^git( -C \S+)? commit\b/;
+const PR_COMMAND = /^gh pr (create|edit)\b/;
+const CI_COMMAND = /^gh (pr checks|run (view|watch|list))\b/;
+
+type Segment = { text: string; afterAnd: boolean };
+
+/** Split a command line on `&&`, `||`, `;` and `|`, dropping `cd` and `VAR=x` prefixes. */
+function shellSegments(command: string): Segment[] {
+  const segments: Segment[] = [];
+  const pattern = /(&&|\|\||;|\|)/;
+  const tokens = command.split(pattern);
+  let afterAnd = false;
+  for (let index = 0; index < tokens.length; index += 2) {
+    const text = (tokens[index] ?? "").trim().replace(/^(\w+=\S+\s+)+/, "");
+    if (text && !/^cd\b/.test(text)) segments.push({ text, afterAnd });
+    afterAnd = tokens[index + 1] === "&&";
+  }
+  return segments;
+}
 const REWORK_SIGNAL =
   /\b(wrong|revert|still (not|see|seeing|fail|loop|only|return)|you forgot|forgot to|missed|not what i)\b/i;
 
 const args = parseArgs(process.argv.slice(2));
 const allFiles = await walkJsonl(args.sessionsRoot);
-const files = args.since
-  ? allFiles.filter((file) => {
-      const date = sessionDate(file);
-      return date !== null && date >= (args.since as string);
-    })
-  : allFiles;
+const files =
+  args.since || args.until
+    ? allFiles.filter((file) => {
+        const date = sessionDate(file);
+        if (date === null) return false;
+        if (args.since && date < args.since) return false;
+        if (args.until && date >= args.until) return false;
+        return true;
+      })
+    : allFiles;
 
 const gates = {
   sessionsWithEdits: 0,
@@ -124,7 +160,7 @@ const adoption = {
   adhocBootstrap: 0,
   skillReads: {} as Record<string, number>,
 };
-const NEW_SKILLS = ["brief", "reuse-scout", "risk-checklist", "doc-verify", "worktree"];
+const NEW_SKILLS = ["brief", "reuse-scout", "risk-checklist", "doc-verify"];
 
 const toolCounts: Record<string, number> = {};
 const toolErrors: Record<string, number> = {};
@@ -166,6 +202,7 @@ for (const file of files) {
   let reviewSeen = false;
   let prPending = false;
   let sawFirstPrompt = false;
+  const pendingVerifyIds = new Set<string>();
 
   for (const line of (await readFile(file, "utf8")).split("\n").filter(Boolean)) {
     const event = JSON.parse(line);
@@ -209,8 +246,11 @@ for (const file of files) {
           sawEdit = true;
         }
         if (name === "repo_verify") {
+          // Assume success now (so a later commit in this turn counts as verified); a failed result
+          // puts the edits back to unverified below.
           dirty = false;
-          everVerified = true;
+          if (part.id) pendingVerifyIds.add(String(part.id));
+          else everVerified = true;
         }
         if (
           name === "git_review_context" ||
@@ -239,20 +279,23 @@ for (const file of files) {
         }
         if (name === "bash" && part.arguments?.command) {
           const command = String(part.arguments.command).trim();
-          if (VERIFY_COMMAND.test(command)) {
-            dirty = false;
-            everVerified = true;
+          for (const segment of shellSegments(command)) {
+            if (VERIFY_COMMAND.test(segment.text)) {
+              dirty = false;
+              if (part.id) pendingVerifyIds.add(String(part.id));
+              else everVerified = true;
+            }
+            if (COMMIT_COMMAND.test(segment.text)) {
+              gates.commits += 1;
+              if (dirty) gates.commitsWithUnverifiedEdits += 1;
+              if (!reviewSeen) gates.commitsBeforeAnyReview += 1;
+            }
+            if (PR_COMMAND.test(segment.text)) {
+              gates.prSubmits += 1;
+              prPending = true;
+            }
+            if (CI_COMMAND.test(segment.text)) prPending = false;
           }
-          if (COMMIT_COMMAND.test(command)) {
-            gates.commits += 1;
-            if (dirty) gates.commitsWithUnverifiedEdits += 1;
-            if (!reviewSeen) gates.commitsBeforeAnyReview += 1;
-          }
-          if (PR_COMMAND.test(command)) {
-            gates.prSubmits += 1;
-            prPending = true;
-          }
-          if (CI_COMMAND.test(command)) prPending = false;
           if (/green\.sh mark review/.test(command)) adoption.reviewMark += 1;
           else if (/green\.sh mark/.test(command)) adoption.greenMark += 1;
           if (/green\.sh check/.test(command)) adoption.greenCheck += 1;
@@ -268,6 +311,11 @@ for (const file of files) {
     }
 
     if (message.role === "toolResult") {
+      const callId = String(message.toolCallId ?? "");
+      if (callId && pendingVerifyIds.delete(callId)) {
+        if (message.isError) dirty = true;
+        else everVerified = true;
+      }
       const body = textFromContent(message.content);
       if (message.isError || /\b(error|failed|exit code 1)\b/i.test(body.slice(0, 400))) {
         inc(toolErrors, String(message.toolName ?? "unknown"));
@@ -296,6 +344,7 @@ for (const file of files) {
 const report = {
   sessionsRoot: args.sessionsRoot,
   since: args.since,
+  until: args.until,
   sessionFiles: files.length,
   totalUserTurns,
   totalToolCalls,
@@ -364,7 +413,7 @@ if (args.json) {
   const pct = (part: number, whole: number): string =>
     whole > 0 ? `${Math.round((part / whole) * 100)}%` : "n/a";
   console.log(
-    `\nGates${args.since ? ` since ${args.since}` : ""}:` +
+    `\nGates${args.since ? ` since ${args.since}` : ""}${args.until ? ` until ${args.until}` : ""} (heuristic: command text and tool order, not outcomes):` +
       `\n  edited, never verified: ${gates.sessionsEditedNeverVerified}/${gates.sessionsWithEdits} sessions (${pct(gates.sessionsEditedNeverVerified, gates.sessionsWithEdits)})` +
       `\n  commits with unverified edits: ${gates.commitsWithUnverifiedEdits}/${gates.commits} (${pct(gates.commitsWithUnverifiedEdits, gates.commits)})` +
       `\n  commits before any review: ${gates.commitsBeforeAnyReview}/${gates.commits} (${pct(gates.commitsBeforeAnyReview, gates.commits)})` +

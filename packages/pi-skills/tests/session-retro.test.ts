@@ -5,38 +5,68 @@ import { join } from "node:path";
 
 const script = join(import.meta.dir, "..", "scripts", "session-retro.ts");
 
-type Step = { user: string } | { tool: string; args?: Record<string, unknown> };
+type Step =
+  | { user: string }
+  | { tool: string; args?: Record<string, unknown>; id?: string }
+  | { result: string; error?: boolean };
+
+const bash = (command: string, id?: string): Step => ({ tool: "bash", args: { command }, id });
 
 function toLines(steps: Step[]): string {
   return `${steps
-    .map((step) =>
-      JSON.stringify(
-        "user" in step
-          ? { type: "message", message: { role: "user", content: step.user } }
-          : {
-              type: "message",
-              message: {
-                role: "assistant",
-                content: [{ type: "toolCall", name: step.tool, arguments: step.args ?? {} }],
-              },
-            },
-      ),
-    )
+    .map((step) => {
+      if ("user" in step) {
+        return JSON.stringify({ type: "message", message: { role: "user", content: step.user } });
+      }
+      if ("result" in step) {
+        return JSON.stringify({
+          type: "message",
+          message: {
+            role: "toolResult",
+            toolCallId: step.result,
+            toolName: "bash",
+            isError: step.error ?? false,
+            content: [{ type: "text", text: step.error ? "failed" : "ok" }],
+          },
+        });
+      }
+      return JSON.stringify({
+        type: "message",
+        message: {
+          role: "assistant",
+          content: [{ type: "toolCall", id: step.id, name: step.tool, arguments: step.args ?? {} }],
+        },
+      });
+    })
     .join("\n")}\n`;
 }
 
 type Report = {
   sessionFiles: number;
   since: string | null;
+  until: string | null;
   gates: Record<string, number>;
-  adoption: Record<string, unknown> & { greenMark: number; greenCheck: number; wtGuard: number };
+  adoption: {
+    greenMark: number;
+    greenCheck: number;
+    reviewMark: number;
+    wtGuard: number;
+    docVerify: number;
+    adhocBootstrap: number;
+    skillReads: Record<string, number>;
+  };
 };
 
-function retro(root: string, extra: string[] = []): Report {
-  const proc = Bun.spawnSync(["bun", script, "--json", "--sessions-root", root, ...extra], {
+function runRetro(root: string, extra: string[] = []) {
+  return Bun.spawnSync([process.execPath, script, "--json", "--sessions-root", root, ...extra], {
     stdout: "pipe",
     stderr: "pipe",
   });
+}
+
+function retro(root: string, extra: string[] = []): Report {
+  const proc = runRetro(root, extra);
+  expect(proc.exitCode).toBe(0);
   return JSON.parse(proc.stdout.toString()) as Report;
 }
 
@@ -59,7 +89,7 @@ describe("session-retro gates", () => {
       { tool: "edit" },
       { tool: "git_commit_execute" },
       { tool: "edit" },
-      { tool: "bash", args: { command: "bun test" } },
+      bash("bun test"),
       { tool: "git_review_context" },
       { tool: "git_commit_execute" },
       { tool: "gh_pr_submit" },
@@ -81,31 +111,108 @@ describe("session-retro gates", () => {
     expect(gates.firstPromptsUnder100Chars).toBe(1);
   });
 
-  test("edits never verified; --since filters sessions by file name date", () => {
-    session("2026-09-01T10-00-00-000Z_old.jsonl", [{ tool: "edit" }]);
-    session("2026-10-05T10-00-00-000Z_new.jsonl", [
+  test("bash git commit, gh pr create and gh pr checks are detected; review via subagent counts", () => {
+    session("2026-10-03T10-00-00-000Z_c.jsonl", [
       { tool: "edit" },
-      { tool: "bash", args: { command: "green.sh check" } },
-      { tool: "bash", args: { command: "skills/verify/scripts/green.sh mark" } },
-      { tool: "bash", args: { command: "skills/worktree/scripts/wt-guard.sh where" } },
+      bash("git commit -m x"),
+      { tool: "subagent", args: { tasks: [{ agent: "review-code", task: "t" }] } },
+      bash("gh pr create --fill"),
+      bash("gh pr checks 12"),
     ]);
-    const all = retro(root);
-    expect(all.sessionFiles).toBe(2);
-    expect(all.gates.sessionsEditedNeverVerified).toBe(2);
-
-    const since = retro(root, ["--since", "2026-10-01"]);
-    expect(since.sessionFiles).toBe(1);
-    expect(since.since).toBe("2026-10-01");
-    expect(since.adoption.greenMark).toBe(1);
-    expect(since.adoption.greenCheck).toBe(1);
-    expect(since.adoption.wtGuard).toBe(1);
+    const { gates } = retro(root);
+    expect(gates.commits).toBe(1);
+    expect(gates.commitsWithUnverifiedEdits).toBe(1);
+    expect(gates.commitsBeforeAnyReview).toBe(1);
+    expect(gates.prSubmits).toBe(1);
+    expect(gates.sessionsWithPrNoCiCheck).toBe(0);
   });
 
-  test("rejects a malformed --since", () => {
-    const proc = Bun.spawnSync(["bun", script, "--since", "yesterday", "--sessions-root", root], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+  test("a command that only mentions git commit or a test runner is not counted", () => {
+    session("2026-10-03T11-00-00-000Z_d.jsonl", [
+      { tool: "edit" },
+      bash('echo "git commit" && rg "bun test" src'),
+      bash("git commit -m x"),
+    ]);
+    const { gates } = retro(root);
+    expect(gates.commits).toBe(1);
+    expect(gates.commitsWithUnverifiedEdits).toBe(1);
+    expect(gates.sessionsEditedNeverVerified).toBe(1);
+  });
+
+  test("verify and commit chained with && are read in order; commit before verify is unverified", () => {
+    session("2026-10-04T10-00-00-000Z_e.jsonl", [
+      { tool: "edit" },
+      bash("cd app && bun test && git commit -am x", "call-1"),
+      { result: "call-1" },
+      { tool: "edit" },
+      bash("git commit -am y && bun test", "call-2"),
+      { result: "call-2" },
+    ]);
+    const { gates } = retro(root);
+    expect(gates.commits).toBe(2);
+    expect(gates.commitsWithUnverifiedEdits).toBe(1);
+  });
+
+  test("a failed verify leaves the edits unverified", () => {
+    session("2026-10-04T11-00-00-000Z_f.jsonl", [
+      { tool: "edit" },
+      bash("bun test", "call-1"),
+      { result: "call-1", error: true },
+      bash("git commit -am x"),
+    ]);
+    const { gates } = retro(root);
+    expect(gates.commitsWithUnverifiedEdits).toBe(1);
+    expect(gates.sessionsEditedNeverVerified).toBe(1);
+  });
+
+  test("edits never verified; --since is inclusive and --until is exclusive on the file date", () => {
+    session("2026-09-01T10-00-00-000Z_old.jsonl", [{ tool: "edit" }]);
+    session("2026-10-01T00-00-00-000Z_edge.jsonl", [{ tool: "edit" }]);
+    session("2026-10-05T10-00-00-000Z_new.jsonl", [
+      { tool: "edit" },
+      bash("skills/verify/scripts/green.sh check"),
+      bash("skills/verify/scripts/green.sh mark"),
+      bash("skills/verify/scripts/green.sh mark review --source branch"),
+      bash("skills/worktree/scripts/wt-guard.sh where"),
+      bash("python3 skills/doc-verify/scripts/doc-verify.py a.md"),
+      bash("accord bootstrap --adhoc x"),
+      { tool: "read", args: { path: "/x/skills/brief/SKILL.md" } },
+    ]);
+    const all = retro(root);
+    expect(all.sessionFiles).toBe(3);
+    expect(all.gates.sessionsEditedNeverVerified).toBe(3);
+
+    const since = retro(root, ["--since", "2026-10-01"]);
+    expect(since.sessionFiles).toBe(2);
+    expect(since.since).toBe("2026-10-01");
+    expect(since.adoption.greenMark).toBe(1);
+    expect(since.adoption.reviewMark).toBe(1);
+    expect(since.adoption.greenCheck).toBe(1);
+    expect(since.adoption.wtGuard).toBe(1);
+    expect(since.adoption.docVerify).toBe(1);
+    expect(since.adoption.adhocBootstrap).toBe(1);
+    expect(since.adoption.skillReads.brief).toBe(1);
+
+    const before = retro(root, ["--until", "2026-10-01"]);
+    expect(before.sessionFiles).toBe(1);
+    expect(before.until).toBe("2026-10-01");
+  });
+
+  test("rework signals in user prompts are counted", () => {
+    session("2026-10-06T10-00-00-000Z_g.jsonl", [
+      { user: "that is wrong, revert it" },
+      { user: "looks good" },
+      { user: "this is still not working" },
+    ]);
+    expect(retro(root).gates.reworkSignals).toBe(2);
+  });
+
+  test("rejects a malformed --since with a clear message", () => {
+    const proc = runRetro(root, ["--since", "yesterday"]);
     expect(proc.exitCode).not.toBe(0);
+    expect(proc.stderr.toString()).toContain("--since requires YYYY-MM-DD");
+    const until = runRetro(root, ["--until", "soon"]);
+    expect(until.exitCode).not.toBe(0);
+    expect(until.stderr.toString()).toContain("--until requires YYYY-MM-DD");
   });
 });

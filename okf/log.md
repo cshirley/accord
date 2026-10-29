@@ -3,6 +3,7 @@
 ## 2026-10-29
 
 * **Addition**: `accord bootstrap <ID> <title…>` and `accord bootstrap --adhoc <title…>` (`packages/accord-cli/src/commands/bootstrap.ts`); synthetic `ADHOC-<YYYYMMDD><NN>` work item ids (`packages/accord-core/src/work-items/synthetic.ts`). Orchestrator re-runs `phase-align` without `phase-gather` when a synthetic id returns `needs_gather` (`orchestration/spawn-followup.ts`). Updated [accord CLI](/references/accord-cli.md).
+* **Addition**: `pi-skills` gains `brief`, `reuse-scout`, `risk-checklist` and `doc-verify`; `verify`, `commit`, `pr`, `review` and `worktree` gain last-green/last-review gates (`verify/scripts/green.sh`) and a worktree pinning guard (`worktree/scripts/wt-guard.sh`); `session-retro` reports gate and adoption metrics. Updated [Monorepo packages](/architecture/monorepo-packages.md).
 
 ## 2026-10-06
 

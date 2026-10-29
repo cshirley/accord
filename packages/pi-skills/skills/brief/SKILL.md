@@ -13,7 +13,7 @@ Use it for work with no tracker ticket, or any change where earlier work needed 
 
 | Mode | When | How |
 |------|------|-----|
-| **Harness** | The `accord` CLI is installed and `AGENTS.md` has a `## Dev Harness` block | `accord bootstrap --adhoc "<title>"` prints `Next: accord align <ID>`; run that |
+| **Harness** | The `accord` CLI is installed and `AGENTS.md` has a `## Dev Harness` block | `accord bootstrap --adhoc -- '<title>'` prints a `Next:` line (usually `accord align <ID>`); run it |
 | **Inline** | No accord CLI, or the user wants to stay in this conversation | Follow the process below and write the file yourself |
 
 Check with `command -v accord`. In harness mode accord runs the alignment agent for you and writes `brief.md`. The rest of this skill covers inline mode and the checks that apply to both.
@@ -21,7 +21,8 @@ Check with `command -v accord`. In harness mode accord runs the alignment agent 
 ## ID
 
 - **Real ticket exists:** use it (for example `STEP-123`).
-- **No ticket:** use a synthetic id `ADHOC-<YYYYMMDD><NN>` (for example `ADHOC-2026102901`). Get it from `accord bootstrap --adhoc` (harness mode) or `scripts/adhoc-id.sh` (inline; path relative to this skill). It matches the accord id pattern and is never looked up in a tracker.
+- **No ticket:** use a synthetic id `ADHOC-<YYYYMMDD><NN>` (for example `ADHOC-2026102901`). Get it from `accord bootstrap --adhoc` (harness mode) or `scripts/adhoc-id.sh` (inline; path relative to this skill; it checks only `./.tasks` and `./docs/dev` of the current directory, so run it from the repo root). It matches the accord id pattern and is never looked up in a tracker.
+- **Quote the title for the shell:** use single quotes and write an embedded `'` as `'\''`, or pass the title after `--`. Never put user text inside double quotes.
 - The **title** must describe the work. Never use the id as the title: a ticket-shaped title makes align query the tracker for a ticket that does not exist.
 
 ## Process (inline mode)

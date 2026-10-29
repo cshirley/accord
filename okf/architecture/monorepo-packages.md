@@ -59,7 +59,7 @@ never enter `accord-core`.
 | `packages/pi-git` | `@clive.shirley/pi-git` | `git_commit_*`, `gh_pr_*`, `gh_ci_context`, `git_review_*`, `repo_verify`, `wt_*`, `/wt` |
 | `packages/pi-thrift` | `@clive.shirley/pi-thrift` | Input/output token pruning, `/thrift` (`/tp`), `thrift_recall` |
 | `packages/pi-integrations` | `@clive.shirley/pi-integrations` | Jira, Slack, Gmail, Calendar tools (`defineTool()` defs) |
-| `packages/pi-skills` | `@clive.shirley/pi-skills` | Standalone skills: `commit`, `pr`, `review`, `verify`, `worktree`, `ci-debug`, `session-retro`, `crq-notify` |
+| `packages/pi-skills` | `@clive.shirley/pi-skills` | Standalone skills: `commit`, `pr`, `review`, `verify`, `worktree`, `ci-debug`, `session-retro`, `crq-notify`, `brief`, `reuse-scout`, `risk-checklist`, `doc-verify` (helper scripts in `verify/`, `worktree/`, `brief/`, `doc-verify/`) |
 
 # Pi manifest
 

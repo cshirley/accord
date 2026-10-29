@@ -16,10 +16,10 @@ From the accord monorepo (or anywhere with Bun):
 bun packages/pi-skills/scripts/session-retro.ts
 bun packages/pi-skills/scripts/session-retro.ts --json
 bun packages/pi-skills/scripts/session-retro.ts --sessions-root ~/.config/pi/agent/sessions
-bun packages/pi-skills/scripts/session-retro.ts --since 2026-11-01   # pilot window only
+bun packages/pi-skills/scripts/session-retro.ts --since 2026-11-01   # pilot window only; add --until DATE (exclusive) for the baseline before it
 ```
 
-`--since YYYY-MM-DD` keeps sessions whose file name date is on or after it. Run once without it for the baseline, then with it for the pilot, and compare.
+`--since YYYY-MM-DD` keeps sessions whose file name date is on or after it; `--until YYYY-MM-DD` keeps those strictly before it. Run once without it for the baseline, then with it for the pilot, and compare.
 
 ## Output
 
