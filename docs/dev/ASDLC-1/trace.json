@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T14:26:03.423Z",
+  "generated_at": "2026-10-29T15:11:48.940Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -28,6 +28,18 @@
       "task_id": 4,
       "description": "Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files",
       "reason": "Test requires an okf concept listing the evidence check as a source and describing accord/evidence",
+      "resolution": null
+    },
+    {
+      "task_id": 6,
+      "description": "Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented.",
+      "reason": "Spec names only rule/respawn/rejected; shape and per-type scopes inferred.",
+      "resolution": null
+    },
+    {
+      "task_id": 6,
+      "description": "redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution.",
+      "reason": "Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.",
       "resolution": null
     }
   ],
@@ -362,7 +374,9 @@
       "id": 5,
       "title": "[commit-evidence] Commit grammar: Accord trailer build, parse, validate",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "2194f4d"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -436,38 +450,121 @@
     {
       "id": 6,
       "title": "[commit-evidence] Commit guard and content redaction",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 21,
+        "by_state": {
+          "verified": 8,
+          "reraised": 3,
+          "open": 8,
+          "wont_fix_accepted": 2
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "46 fail, 0 pass across 2 files; every failure: error: not implemented: guardStagedPaths / guardTrailer / redactText (stub throws). check:types clean; secret-literal grep over packages/accord-core/tests: no match.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "72 pass, 0 fail (commit-guard + redact). check:types ok. biome on task files clean; repo-wide check:biome fails only on untouched docs/dev/ASDLC-1/trace.json formatting and packages/accord-core/scripts/update-model-pricing.ts:84 useOptionalChain (pre-existing, not in task scope). Secret-token grep over packages/accord-core/tests: no match.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-3",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/commit-guard.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/tests/redact.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-guard.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/state/redact.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-guard.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/state/redact.ts",
+              "action": "add",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/commit-guard.test.ts packages/accord-core/tests/redact.test.ts"
+          }
         },
         {
           "id": "AC-29",
-          "status": "pending",
-          "changes": [],
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/commit-guard.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-guard.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-guard.ts",
+              "action": "add",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/commit-guard.test.ts"
+          }
+        },
+        {
+          "id": "_task",
+          "text": "Changes/findings not attributable to one AC",
+          "status": "n/a",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/redact.test.ts",
+              "action": "modify",
+              "kind": "test"
+            }
+          ],
           "verification": null
         }
       ]
@@ -2353,15 +2450,25 @@
       "tasks": [
         {
           "task": 6,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 7,
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/commit-guard.test.ts",
+        "packages/accord-core/tests/redact.test.ts",
+        "packages/accord-core/src/commit/commit-guard.ts",
+        "packages/accord-core/src/state/redact.ts"
+      ],
+      "tests": [
+        "commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — review commits keep only reviews/** and state/**",
+        "commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — code loop",
+        "commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — state and evidence commits",
+        "commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts"
+      ],
       "verified": false
     },
     {
@@ -2860,7 +2967,7 @@
         },
         {
           "task": 6,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 7,
@@ -2881,7 +2988,9 @@
       ],
       "files": [
         "packages/accord-core/tests/stack-telemetry.test.ts",
-        "packages/accord-core/src/telemetry/stack-events.ts"
+        "packages/accord-core/src/telemetry/stack-events.ts",
+        "packages/accord-core/tests/commit-guard.test.ts",
+        "packages/accord-core/src/commit/commit-guard.ts"
       ],
       "tests": [
         "packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields",
@@ -2891,7 +3000,9 @@
         "ASDLC-1/AC-29 rejects non-numeric <key>=<value>",
         "ASDLC-1/AC-29 emits through createLogger('stack') at debug level",
         "bun run check:types",
-        "bunx biome check (task files)"
+        "bunx biome check (task files)",
+        "commit-guard.test.ts › ASDLC-1/AC-29 guard rejection telemetry",
+        "commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts > ASDLC-1/AC-29 trailer rejection emits stack.guard.rejected at warn"
       ],
       "verified": false
     },
@@ -3573,6 +3684,200 @@
       "issue": "Single-letter callback parameter `l`; also INTEGER_KEYS and KEY_ORDER repeat the same ~40 names in two hand-kept lists.",
       "file": "packages/accord-core/src/commit/commit-grammar.ts",
       "line": 195,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-005",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "For review, state and evidence rejections, `result.rule` is never asserted, and the logged rule= value is unchecked. Telemetry is asserted only for review-code with a single path. review-test, review-security, state and evidence rejections, and the per-path event count for multi-path review rejections, are untested.",
+      "file": "packages/accord-core/tests/commit-guard.test.ts",
+      "line": 189,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Done-when unmet: phase-verify-task (now in the table with rejections) has no result.rule literal and no warn-line assertions; state lines (line 301) have no path check; evidence lines (line 312) have no [accord:stack:warn] check."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-006",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The boundaries of the environment-value and home-path rules are untested: an env value of exactly 8 characters (only 7 and 20 are used), env values containing regex metacharacters, and usernames containing '.' or '-'.",
+      "file": "packages/accord-core/tests/redact.test.ts",
+      "line": 101,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Target changed: my original 'full username absent' oracle was too weak. A \\w+ username regex leaks '.shirley' and '-last2' and still passes. The new Done-when requires each name segment to be absent. The 8-char and metacharacter env rows are fine."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-010",
+      "state": "reraised",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "guardTrailer asserts only `errors.length > 0`. Non-count validation failures (missing required key, v=2) have no pinned rule, so an impl that labels every validateTrailer failure 'trailer-counts', or logs 'ref=undefined' for a trailer missing ref, is green.",
+      "file": "packages/accord-core/tests/commit-guard.test.ts",
+      "line": 147,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "The exact errors text and the trailer-invalid rule are pinned, but the missing-ref 'no ref=undefined' loop is vacuous when no line is emitted, and neither trailer-invalid row asserts a stack.guard.rejected line exists."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "MASK allows any label text inside [REDACTED…], and the per-case loop (line 83) no longer asserts the secret is absent. A redactor that keeps a 'hint' of the secret in the label, e.g. [REDACTED:ghp_A1b2A1b2…], passes every per-case row. The T1 not.toContain oracle was removed when the anchored shape was added.",
+      "file": "packages/accord-core/tests/redact.test.ts",
+      "line": 33,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The quoted KEY=value rows use a value with no spaces. A plausible impl =[\"']?[^\\s\"']+ masks only the first word of a quoted passphrase, e.g. API_KEY=\"correct horse battery staple\", and leaks the rest.",
+      "file": "packages/accord-core/tests/redact.test.ts",
+      "line": 92,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The test-directory union is pinned only for a nested 'packages/…/tests/helpers' path. Reusing TEST_DIR_PATTERN (/\\/(test|__tests__|tests|spec)\\//, which needs a leading slash) misses repo-root dirs such as 'tests/conftest.py' or 'test/fixtures/x.json', so phase-code can edit root test helpers without a phase-test respawn. The comment names isTestFilePath, but the 'src/contest_api.py' kept row forbids its filename regex, which misleads the implementer.",
+      "file": "packages/accord-core/tests/commit-guard.test.ts",
+      "line": 109,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "HOME_RE matches `/home/<seg>/` and `/Users/<seg>/` anywhere in a path, so relative repo paths are corrupted and over-counted.",
+      "file": "packages/accord-core/src/state/redact.ts",
+      "line": 22,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "ASSIGNMENT_RE is case-sensitive, so lowercase or camelCase secret names are not masked. The env-name rule on line 8 uses the `i` flag, so the two rules are inconsistent.",
+      "file": "packages/accord-core/src/state/redact.ts",
+      "line": 11,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "BEARER_RE masks any word of 8 or more characters after `Bearer`, and matches only the exact casing `Bearer`.",
+      "file": "packages/accord-core/src/state/redact.ts",
+      "line": 15,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "AC-3",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "guardTrailer decides `trailer-counts` versus `trailer-invalid` by substring-matching the error text `does not equal` from validateTrailer.",
+      "file": "packages/accord-core/src/commit/commit-guard.ts",
+      "line": 123,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 6,
+      "requirement": "AC-29",
+      "finding_id": "F-012",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The telemetry tests pin `ref=phase-code` (the commit type) in the `ref` field. The stack event catalogue, the trailer path and AC-1 use the round ref (for example 'review-C1' or 'C1/phase-code'), so path-guard rejections cannot be correlated to a round.",
+      "file": "packages/accord-core/tests/commit-guard.test.ts",
+      "line": 182,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Sound: the task signature guardStagedPaths(commitType, workItemId, paths, pattern) has no round ref; a round-ref argument can come later."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 6,
+      "requirement": "AC-29",
+      "finding_id": "F-013",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The '[accord:stack:warn]' prefix assertion would also pass for a direct console.error call with a hand-formatted prefix, which bypasses emitStackEvent and the catalogue's field validation. Proving emission goes through logging.ts is an enforcement check, not a unit assertion.",
+      "file": "packages/accord-core/tests/commit-guard.test.ts",
+      "line": 175,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "This is an enforcement check for phase-verify-task (grep for no console. and for emitStackEvent in commit-guard.ts), not a unit assertion."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 6,
+      "requirement": "_task",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "isTestPath recompiles the glob for every staged path, and an unbalanced `{` in test.file_pattern produces an invalid RegExp that throws a raw SyntaxError.",
+      "file": "packages/accord-core/src/commit/commit-guard.ts",
+      "line": 68,
       "raised": "C1/review-code"
     }
   ]
