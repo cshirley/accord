@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T13:58:47.332Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T14:26:03.423Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -10,8 +10,8 @@
 | 1 | [flags] Stack and knowledge switch resolver with default-off values | done | `0e9ed2e` | 1/1/1 | 8 (open 8) | 0 |
 | 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | `a018167` | 4/4/1 | 21 (verified 15, wont_fix_accepted 1, waived 2, open 3) | 0 |
 | 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | `fcd446c` | 1/1/1 | 9 (open 9) | 0 |
-| 4 | [infra] accord/evidence check runner and workflow | done | — | 2/1/1 | 21 (verified 9, reraised 1, wont_fix_accepted 1, open 10) | 0 |
-| 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | pending | — | 0/0/0 | 0 | 0 |
+| 4 | [infra] accord/evidence check runner and workflow | done | `fd02108` | 2/1/1 | 21 (verified 9, reraised 1, wont_fix_accepted 1, open 10) | 0 |
+| 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | — | 2/1/1 | 13 (verified 10, open 3) | 0 |
 | 6 | [commit-evidence] Commit guard and content redaction | pending | — | 0/0/0 | 0 | 0 |
 | 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | pending | — | 0/0/0 | 0 | 0 |
 | 8 | [commit-evidence] Evidence timeline from git trailers | pending | — | 0/0/0 | 0 | 0 |
@@ -70,11 +70,21 @@
 
 - Tasks: 7 (pending)
 
-### AC-2 — pending (not verified)
+### AC-2 — satisfied
 
 > Then it is one line of key=value pairs, required keys are present, counts equal the staged findings and tests, unknown x_ keys are ignored, and the documented awk extraction over git log returns the same values
 
-- Tasks: 5 (pending)
+- Tasks: 5 (satisfied)
+- Files: `packages/accord-core/tests/commit-grammar.test.ts`, `packages/accord-core/tests/fixtures/commit-grammar/messages.golden.txt`, `packages/accord-core/tests/fixtures/commit-grammar/awk-extract.golden.txt`, `packages/accord-core/src/commit/commit-grammar.ts`
+- Tests verified (8):
+  - commit-grammar.test.ts: 512 pass, 0 fail
+  - ASDLC-1/AC-2 buildCommitMessage equals golden
+  - ASDLC-1/AC-2 parseAccordTrailer round-trips golden
+  - ASDLC-1/AC-2 missing required key fails validation
+  - ASDLC-1/AC-2 crit+warn+sugg vs staged findings
+  - ASDLC-1/AC-2 t_pass/t_fail vs recorded tests
+  - ASDLC-1/AC-2 unknown x_ keys are ignored by validation and by counts
+  - ASDLC-1/AC-2 awk extraction equals awk-extract.golden.txt and parseAccordTrailer sums
 
 ### AC-3 — pending (not verified)
 
@@ -318,6 +328,9 @@
 | 4 | AC-31 | F-019 | unresolved (advisory) | open | suggestion | Trigger filter can leave a stacked PR without the required status after its base changes. | .github/workflows/accord-evidence.yml:8 |  |
 | 4 | AC-31 | F-020 | unresolved (advisory) | open | suggestion | Job name and status context are both `accord/evidence`, and fork or Dependabot PRs get a read-only token. | .github/workflows/accord-evidence.yml:16 |  |
 | 4 | AC-31 | F-021 | unresolved (advisory) | open | suggestion | Multi-line rule messages break the one-line `accord/evidence: <rule>: <message>` format and the status description. | packages/accord-ci/src/evidence-check.ts:44 |  |
+| 5 | AC-2 | F-011 | unresolved (advisory) | open | suggestion | parseAccordTrailer takes the first 'Accord: ' line anywhere in the message; git's documented extraction reads only the final trailer block. | packages/accord-core/src/commit/commit-grammar.ts:212 |  |
+| 5 | AC-2 | F-012 | unresolved (advisory) | open | suggestion | Parser accepts duplicate keys (last wins) and any digit string for integer keys, so a trailer can parse to different counts than a single-pass reader would see. | packages/accord-core/src/commit/commit-grammar.ts:224 |  |
+| 5 | AC-2 | F-013 | unresolved (advisory) | open | suggestion | Single-letter callback parameter `l`; also INTEGER_KEYS and KEY_ORDER repeat the same ~40 names in two hand-kept lists. | packages/accord-core/src/commit/commit-grammar.ts:195 |  |
 
 ## Decisions
 
@@ -415,6 +428,26 @@ evidence-check-runner.test.ts: 26 pass, 0 fail. Preflight: bun test, validate:sc
 ```
 
 ### Task 5: [commit-evidence] Commit grammar: Accord trailer build, parse, validate
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-2 subject > ASDLC-1/AC-2 parseSubject rejects "random subject"
+error: not implemented: parseSubject
+(fail) ASDLC-1/AC-2 documented awk extraction over git log > awk extraction equals awk-extract.golden.txt and parseAccordTrailer sums
+error: not implemented: buildCommitMessage
+
+ 1 pass
+ 68 fail
+ 8 expect() calls
+Ran 69 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+commit-grammar.test.ts: 512 pass, 0 fail. bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime all exit 0. check:biome exit 1: docs/dev/ASDLC-1/trace.json formatter diff (commits arrays). biome on task files: Checked 2 files, no fixes.
+```
 
 ### Task 6: [commit-evidence] Commit guard and content redaction
 
