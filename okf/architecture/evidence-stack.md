@@ -49,7 +49,7 @@ One generated stack map comment and one generated PR brief per PR. Three lenses:
 # Storage and feature knowledge
 
 * **Change record** — `docs/dev/<ID>/` stays: ticket-keyed, immutable after merge (brief, spec, plan, contract lock, `evidence/`, verify, trace).
-* **Feature knowledge** — `<knowledge.root>/<slug>.md` (default `docs/features/`) plus generated `index.md` / `index.json`. Capability-keyed, living, updated only by closeout PRs. OKF-style frontmatter with stable feature-scoped `acs`, code and interface `anchors`, `depends_on`, `related`, `supersedes`, and `changes[]` linking work items, PRs, evidence, and contract sha.
+* **Feature knowledge** — `<knowledge.root>/<slug>.md` (default `docs/features/`) plus generated `index.md` / `index.json`. Feature-keyed, living, updated only by closeout PRs. OKF-style frontmatter with stable feature-scoped `acs`, code and interface `anchors`, `depends_on`, `related`, `supersedes`, and `changes[]` linking work items, PRs, evidence, and contract sha.
 * **Cross-referencing** — `spec.json` `features[]` (relation and AC delta). Impact analysis at align/spec (anchor overlap, dependency traversal, index search) lands as an "Impacted features" table in PR0. Review agents receive impacted features as invariants. `validate:features` and a CI drift check keep docs true. Config: [Knowledge configuration](/references/knowledge-config.md). Plan sections 3.2c and 3.2d.
 
 # Layering
