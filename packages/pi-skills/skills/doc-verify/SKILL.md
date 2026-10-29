@@ -12,7 +12,7 @@ Mechanical checks plus a short judgement pass for markdown documents. It targets
 From this skill's directory (host-neutral; needs `python3` and `git`):
 
 ```bash
-scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] PATH...
+scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo DIR]... PATH...
 ```
 
 `PATH` is a file or a directory (walked for `*.md`; `.git`, `node_modules` and `.worktrees` are skipped). Exit 0 means no errors, 1 means at least one error, 2 means a usage problem.
@@ -25,11 +25,16 @@ scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] PATH...
 | `future-front-matter-date` | error | Front matter `date`, `created` or `updated` is after today. |
 | `filename-date-mismatch` | warning | A `YYYY-MM-DD-` filename prefix differs from front matter `date`. |
 | `future-date` | warning | A date after today on a line with no deadline or plan wording. |
-| `verified-against` | error | The `verified-against` commit does not resolve. |
+| `verified-against` | error | `verified-against` is not a 7–64 character hex commit id, or the commit does not resolve. |
+| `verified-repo-not-allowed` | error | `verified-repo` points outside the document's repo and was not passed with `--allow-repo`. |
+| `verified-paths-empty` | warning | `verified-paths` is set but yields no paths, so staleness is not checked. |
+| `link-outside-repo` | warning | A relative link resolves outside the repo root (it breaks when the document moves). It is never opened. |
 | `stale-evidence` | error | Files in `verified-paths` changed since `verified-against`. |
 | `unconfirmed-assumptions` | warning | `[assumed]` tags remain. |
 | `no-provenance-tags` | info | No `[verified]`, `[inferred]` or `[assumed]` tags. |
-| `mermaid-syntax` | error | `mmdc` rejected a mermaid block. `mermaid-not-checked` (info) when `mmdc` is absent. |
+| `mermaid-syntax` | error | `mmdc` rejected a mermaid block. |
+| `mermaid-unavailable` | warning | `mmdc` could not run (browser launch failure) or timed out after 60 s. |
+| `mermaid-not-checked` | info | `mmdc` is not installed. |
 
 ## Process
 
@@ -42,10 +47,12 @@ scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] PATH...
    ---
    date: 2026-10-29
    verified-against: <full or short commit sha>
-   verified-repo: ../other-repo        # optional; default is the repo holding the document
+   verified-repo: ../other-repo         # optional; default is the repo holding the document
    verified-paths: [src/auth, docs/api] # optional; enables stale-evidence
    ---
    ```
+
+   Inline `# comments` and quoted list items are accepted. Front matter is untrusted input: a `verified-repo` outside the document's own repo is refused unless you pass it explicitly (`--allow-repo ../other-repo`), and `verified-against` must be a hex commit id (not a branch name).
 
    After a rebase, a PR split or a repo move, re-run the script. A `stale-evidence` error means the cited files changed: re-check those claims, then update `verified-against`.
 5. **Moved documents.** After moving a document to another repo, run the script. Fix broken links to point at the new location (for example the GitHub URL of the original repo) instead of deleting them.
