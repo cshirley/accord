@@ -1,10 +1,10 @@
-# Problem Brief: FEAT-ASDLC
+# Problem Brief: ASDLC-1
 
-> Authored by hand from the design discussion and the plan documents (not by `phase-align`). It is the first dog-food artifact of the evidence-stack process. Markers marked `confirmed` were decided by the owner; `proposed` markers still need confirmation. Confirmed by `cshirley` in session, 2026-05-17 (review round 1: depth, merge strategy, task naming, sizing scope, gating default, paths).
+> Authored by hand from the design discussion and the plan documents (not by `phase-align`). It is the first dog-food artifact of the evidence-stack process. Markers marked `confirmed` were decided by the owner; `proposed` markers still need confirmation. Confirmed by `cshirley` in session, 2026-10-28 (review round 1: depth, merge strategy, task naming, sizing scope, gating default, paths).
 
 ## Core Problem
 
-ACCORD's agentic workflow suits small changes. For a new feature or greenfield solution, engineers cannot gain confidence in the code's lineage or in the process that produced it. Today one branch and one PR carry many features and concerns, and all of it must be merged at once. The red and green test runs, the adversarial review rounds, and the fix rounds live in `.tasks/` (gitignored), so git holds no evidence of them. Reviewers read one large diff plus a summary (`verify.md`).
+ACCORD's agentic workflow suits small changes. For a large change or greenfield solution, engineers cannot gain confidence in the code's lineage or in the process that produced it. Today one branch and one PR carry many features and concerns, and all of it must be merged at once. The red and green test runs, the adversarial review rounds, and the fix rounds live in `.tasks/` (gitignored), so git holds no evidence of them. Reviewers read one large diff plus a summary (`verify.md`).
 
 Affected: engineers and reviewers who need to trust and navigate agent-built code, and agents that need to know what already exists. Cost of inaction: large unreviewable PRs, trust built on assertion instead of evidence, and new features that silently conflict with old ones.
 
@@ -33,7 +33,7 @@ Code references: `packages/accord-core/src/orchestration/policy.ts` (commit poli
 
 ## Desired Outcome
 
-- **Engineer view**: a feature arrives as a stack of small PRs, each one concern. Commits show red tests, then green code, then review findings, then fixes. A reviewer can open any PR and see why it exists, what it proves, and how it was reviewed.
+- **Engineer view**: a change arrives as a stack of small PRs, each one concern. Commits show red tests, then green code, then review findings, then fixes. A reviewer can open any PR and see why it exists, what it proves, and how it was reviewed.
 - **Business view**: confidence in agent-built code comes from evidence in git, not trust. Greenfield work becomes tractable.
 - **Agent view**: a discoverable record of existing features, used to check new work for overlap and regressions.
 - **Contract**: brief, spec and plan are locked as the first PR of the stack.
@@ -90,7 +90,7 @@ Git history is the evidence log. Full design: `docs/plans/evidence-stack-plan.md
    Use merge or rebase for task PRs when full audit matters.
 4. **Tree state**: harness state is committed under `docs/dev/<ID>/state/task-<N>/` with each typed commit and deleted by the final evidence commit. This lets CI resume statelessly.
 5. **Contract lock**: `contract.lock.json` (sha256) plus a guard; changes go through `contract-amend`.
-6. **Feature knowledge**: keep `docs/dev/<ID>/` as the immutable change record; add a living, capability-keyed layer (`docs/features/`) with stable AC IDs and code anchors, updated by closeout PRs. Impact analysis, review invariants and a drift check cross-reference new against old.
+6. **Feature knowledge**: keep `docs/dev/<ID>/` as the immutable change record; add a living, feature-keyed layer (`docs/features/`) with stable AC IDs and code anchors, updated by closeout PRs. Impact analysis, review invariants and a drift check cross-reference new against old.
 7. **Reviewer surface**: one stack map comment and one generated PR brief per PR; three lenses (contract, net change, process audit); one `accord/evidence` status check; human notifications only at gates.
 8. **Config**: top-level `stack` and `knowledge` keys in `accord.json`, in `accord-schema.json`.
 9. **Scope**: `implement` and greenfield work items. `quick_fix` keeps one branch and one PR.
@@ -105,7 +105,9 @@ flowchart TB
   PR1 -.-> task
 ```
 
-Delivery phases (plan section 6): 1 commit grammar and `accord evidence`; 2 contract PR0 and lock; 3 plan schema, `computeStack`, `gh` provider, evidence asset; 4 tree state; 5 trunk hardening; 6 feature knowledge; 7 CI-driven mode.
+Delivery is by feature (plan section 6), in dependency order: `commit-evidence`; `evidence-asset` (needs commit-evidence); `security-gate`; `contract-lock`; `stack-compute` (needs contract-lock, evidence-asset); `tree-state` (needs commit-evidence, evidence-asset); `trunk-hardening` (needs stack-compute, tree-state); `feature-knowledge` (needs contract-lock, stack-compute); `ci-driven-mode` (needs contract-lock, stack-compute, tree-state, trunk-hardening). Each feature is N tasks, one PR each.
+
+Terms: a **work item** is the ticket-keyed change (`ASDLC-1`); a **feature** is a slug-keyed unit of system behaviour with a living doc in `docs/features/`, composed through `depends_on`; a **task** is one plan unit and one PR; **phase** means only a harness agent step (`phase-test`, `phase-code`).
 
 ## Telemetry & Observability
 
@@ -131,7 +133,7 @@ The evidence asset, the stack map and the `accord/evidence` check are the produc
 | am-4 | `gh` is the first stack provider, configurable behind a port | confirmed | infrastructure |
 | am-5 | Harness state persists in the tree (`docs/dev/<ID>/state/`), deleted by the final evidence commit | confirmed | approach |
 | am-6 | Long-term target is CI-driven mode triggered by committing brief + spec | confirmed | infrastructure |
-| am-7 | `docs/dev/<ID>/` stays as the change record; add a capability-keyed feature layer for discovery and cross-referencing | confirmed | approach |
+| am-7 | `docs/dev/<ID>/` stays as the change record; add a feature-keyed layer for discovery and cross-referencing | confirmed | approach |
 | am-8 | `stack` and `knowledge` are top-level keys in `accord.json` | confirmed | constraints |
 | am-9 | Default sizing budgets (400 lines, 30 minimum, 10 files, 6 open PRs, 1.5 overrun), net source+test diff, configurable in `accord.json` | proposed | scale |
 | am-10 | `knowledge.drift_check` defaults to `warn` | proposed | approach |
