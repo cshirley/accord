@@ -192,10 +192,27 @@ Address **Critical** first, then warnings. Agent `findings[]` order is advisory;
 
 ### Record the review
 
-When **every** reviewer agent completed (no agent failures), run `../verify/scripts/green.sh mark review`
-(same worktree as the diff). This stores a fingerprint of the reviewed working tree; the `pr` skill
-checks it. Mark even when findings exist: the mark means "reviewed", not "clean". Severity handling
-stays as above. Do not mark when an agent failed. After fixes, run `/review` again to refresh the mark.
+The mark must describe what was actually reviewed, so capture it in two steps (paths relative to
+this skill, same worktree as the diff):
+
+1. **At diff capture (Step 1)**, right after `git_review_context`:
+   `FP=$(../verify/scripts/green.sh fingerprint)`. Edits made while the reviewers run then make the
+   mark stale instead of being attested.
+2. **After the report**, when **every** reviewer agent completed (no agent failures):
+
+   ```bash
+   ../verify/scripts/green.sh mark review --tree "$FP" --source <local|branch> --critical <N>
+   ```
+
+   - `--source` is `details.source`. A `local` review covers only uncommitted changes, so
+     `check review` fails while the branch has commits ahead of `origin/HEAD`. Re-run on a clean tree
+     (`branch`) to cover them.
+   - `--critical` is the number of Critical findings **still open**. `check review` fails while it is
+     above 0. If the user accepts the risk, add `--accepted "<reason>"` (their words, plus a ticket if
+     any). Never add it on your own.
+
+Mark even when Warnings or Suggestions remain: the mark means "reviewed with this outcome", not
+"clean". Do not mark when an agent failed. After fixes, run `/review` again to refresh the mark.
 
 ### Suggested next steps (do not auto-run)
 

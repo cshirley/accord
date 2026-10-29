@@ -35,7 +35,7 @@ Run **`verification_commands`** from `AGENTS.md` without hand-rolled `cd` + `yar
 ## Last-green gate (for commit and PR)
 
 `scripts/green.sh check` compares the current working tree to the last recorded green fingerprint
-(tree hash of HEAD plus tracked and untracked, non-ignored files; the real index is untouched).
+(tree hash of HEAD plus tracked and untracked, non-ignored files). It is computed with a temporary index and object directory, so the real index, the working tree and `.git/objects` are untouched. Every file is re-hashed on each call: correct, but slower in very large repos.
 
 | Exit | Meaning | Action |
 |------|---------|--------|
@@ -43,10 +43,11 @@ Run **`verification_commands`** from `AGENTS.md` without hand-rolled `cd` + `yar
 | 1 | Edits since last green verify | Run verify (step 3), then `mark` |
 | 2 | No green recorded in this worktree | Run verify, then `mark` |
 | 3 | Not a git repo | Skip the gate |
+| 4 | Fingerprint failed (for example an unreadable untracked file or directory) | Fix the cause; the gate never records or compares a partial fingerprint |
 
 - A commit of the verified tree stays green (hash is content-based, not SHA-based).
 - The marker is per worktree: `git rev-parse --git-path accord/last-green`.
-- `green.sh <mark|check|show> review` uses a separate marker (`last-review`), written by the `review` skill and read by `pr`.
+- `green.sh <mark|check|show> review` uses a separate marker (`last-review`), written by the `review` skill and read by `pr`. Review marks also record `--source`, `--critical` and `--accepted`; `check review` fails on open Critical findings (unless accepted) and on a `local`-source review while commits are ahead of `origin/HEAD`. `green.sh fingerprint` prints the current tree hash for `mark review --tree`.
 - `commit` and `pr` skills should call `check` before committing or opening a PR.
   Skipping needs an explicit reason from the user.
 - Host-neutral: the script needs only `git` and `bash`. Without pi tools, run the
