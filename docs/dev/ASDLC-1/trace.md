@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T17:43:59.641Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T18:16:09.063Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -16,8 +16,8 @@
 | 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | `dfcd785` | 5/3/1 | 28 (waived 1, verified 22, wont_fix_accepted 1, reraised 3, open 1) | 0 |
 | 8 | [commit-evidence] Evidence timeline from git trailers | done | `2a2e877` | 3/1/1 | 16 (verified 10, reraised 1, open 5) | 0 |
 | 9 | [commit-evidence] accord evidence CLI command | done | `831cf8e` | 1/1/1 | 11 (open 11) | 0 |
-| 10 | [commit-evidence] OKF docs and docs validation test | done | — | 2/1/1 | 13 (verified 5, wont_fix_accepted 1, open 7) | 0 |
-| 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | pending | — | 0/0/0 | 0 | 0 |
+| 10 | [commit-evidence] OKF docs and docs validation test | done | `cfb68a8` | 2/1/1 | 13 (verified 5, wont_fix_accepted 1, open 7) | 0 |
+| 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | done | — | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
 | 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | pending | — | 0/0/0 | 0 | 0 |
 | 13 | [evidence-asset] Final evidence(task-<N>) commit | pending | — | 0/0/0 | 0 | 0 |
 | 14 | [evidence-asset] OKF docs for the evidence asset | pending | — | 0/0/0 | 0 | 0 |
@@ -131,7 +131,13 @@
 
 > Every AC or TC reference outside spec.json (evidence asset .md and .json, trace.json, the PR brief and the stack map) MUST be work-item-qualified as <work_item_id>/AC-<n>, never a bare AC-<n>, so it resolves once many…
 
-- Tasks: 11 (pending), 12 (pending), 27 (pending)
+- Tasks: 11 (satisfied), 12 (pending), 27 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/src/artifacts/trace-artifact.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/src/queries/verify-summary.ts`
+- Tests verified (4):
+  - qualified-ac-refs.test.ts: ASDLC-1/AC-6 qualifyAcRef, qualifyTcRef, normalizeAcId, findBareAcRefs
+  - ASDLC-1/AC-6 written trace.json is qualified and schema-valid
+  - ASDLC-1/AC-26 bare/qualified verify-summary and renderAcTrace cases
+  - trace-artifact.test.ts
 
 ### AC-7 — pending (not verified)
 
@@ -312,7 +318,15 @@
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (pending), 17 (pending), 18 (pending), 25 (pending), 32 (pending), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
+- Tasks: 11 (satisfied), 17 (pending), 18 (pending), 25 (pending), 32 (pending), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`
+- Tests verified (6):
+  - ASDLC-1/AC-30 accepts ac_id (table)
+  - ASDLC-1/AC-30 rejects ac_id (table)
+  - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
+  - bun run validate:schemas (30 passed, 0 failed)
+  - bun run validate:assets (exit 0)
+  - bun run check:types (exit 0)
 
 ### AC-31 — pending (not verified)
 
@@ -421,6 +435,13 @@
 | 10 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | Shape and Keys describe output the orchestrator does not emit, under `status: implemented`. | okf/references/commit-format.md:30 |  |
 | 10 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Commit grammar paragraph repeats the evidence-commit description and contradicts commit-format.md on verify scope. | okf/architecture/evidence-stack.md:38 |  |
 | 10 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | `evidence` is documented as a command but is not in TOP_LEVEL_COMMANDS, so help and completion omit it; docs/accord-cli.md, the cited source of accord-cli.md, does not mention it either. | packages/accord-cli/src/ui/command-catalog.ts:76 |  |
+| 11 | AC-6 | F-010 | unresolved (advisory) | open | suggestion | The verify.md tests check renderAcTrace only with a qualified trace and a bare verify.json. A qualified verify.json is never rendered through renderAcTrace, against either a qualified or a bare trace. That is the likely case under stack.enabled once agents follow AC-6. | packages/accord-core/tests/qualified-ac-refs.test.ts:416 |  |
+| 11 | AC-6 | F-011 | unresolved (advisory) | open | suggestion | The findBareAcRefs table still lets two simple wrong detectors pass. One skips every line that contains 'ac='. The other skips any ref that follows a comma. Both match every current row because no row has a bare ref on the same line as an ac= value, and no plain-text row is comma-separated. | packages/accord-core/tests/qualified-ac-refs.test.ts:143 |  |
+| 11 | AC-6 | F-012 | unresolved (advisory) | open | suggestion | Requirements that are not ACs (_task) are never exercised under stack.enabled. In the fixture, _task has no changes or findings, so projectTask filters it out of requirements[] and it produces no accepted_risks entry. | packages/accord-core/tests/qualified-ac-refs.test.ts:157 |  |
+| 11 | AC-6 | F-013 | unresolved (advisory) | open | warning | With stack.enabled only id fields are qualified; free-text fields copied into trace.json still contain bare AC-n/TC-n, so the trace does not satisfy 'contains no bare ref' (AC-6). | packages/accord-core/src/artifacts/trace-artifact.ts:402 |  |
+| 11 | AC-6 | F-014 | unresolved (advisory) | open | suggestion | OKF concept lists trace-artifact.ts and verify-summary.ts as sources but does not mention qualified ids in trace.json under stack.enabled; no okf/log.md entry found for this change. | okf/references/artifacts-and-state.md:39 |  |
+| 11 | AC-6 | F-015 | unresolved (advisory) | open | suggestion | Terse names and a redundant check in the qualification block. | packages/accord-core/src/artifacts/trace-artifact.ts:403 |  |
+| 11 | AC-30 | F-007 | accepted (advisory) | wont_fix_accepted | suggestion | Unit tests here cannot prove AC-30 enforcement, and TC-31 (alignment.test.ts) belongs to the stack-compute plan task, not this one. schemas/examples/trace.json has no qualified ac_id example, so validate:schemas never exercises the widened pattern. | packages/accord-core/tests/qualified-ac-refs.test.ts:1 | wont_fix_accepted by T2/review-test — Enforcement belongs to phase-verify-task (bun run validate:schemas && bun run validate:assets). TC-31 belongs to another task. schemas/examples/trace.json is not in task.files. |
 
 ## Decisions
 
@@ -435,6 +456,7 @@ _None._
 - Task 6 (accepted): redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution. — Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.
 - Task 8 (pending): Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'. — Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.
 - Task 9 (pending): Exported runEvidenceCommand from commands/index.ts (not in task.files) — dispatch.ts imports commands via the index barrel
+- Task 11 (pending): AC-30 has no dedicated test in qualified-ac-refs.test.ts; the trace-schema ac_id widening is covered indirectly via validateArtifact on a qualified trace.json. — AC-30 is enforced by bun run validate:schemas / validate:assets (phase-verify-task), and TC-31 lives in alignment.test.ts, which is outside this task's files.
 
 ## Evidence by task
 
@@ -647,6 +669,22 @@ docs-validation.test.ts: 7 pass, 0 fail. Preflight: bun test, check:biome, valid
 ```
 
 ### Task 11: [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/qualified-ac-refs.test.ts: 11 pass, 20 fail. Failures: helper tests throw 'not implemented: qualifyAcRef/qualifyTcRef/findBareAcRefs/normalizeAcId'; stack.enabled trace tests expect ["ASDLC-1/AC-1","ASDLC-1/AC-2"] but received ["AC-1","AC-2"]; hand-qualified trace vs bare verify.json tests fail on exact-match lookup in findVerifyTraceDiscrepancies. Passing: stack-disabled bare/byte-identical regressions, legacy bare trace validates.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+task tests: 62 pass, 0 fail
+validate:schemas: 30 passed, 0 failed
+validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime: exit 0
+check:biome: exit 1. Errors: packages/accord-core/scripts/update-model-pricing.ts:84 (useOptionalChain), and the format of docs/dev/ASDLC-1/trace.json and docs/dev/ASDLC-1 state JSON (inline commits arrays). None of these files is in the task's file list.
+Full bun test: 2092 pass, 1 fail. The failure is 'ASDLC-1/AC-31 check:biome exits 0', caused by the same biome errors.
+```
 
 ### Task 12: [evidence-asset] Evidence asset writer (task-<N>.md and .json)
 

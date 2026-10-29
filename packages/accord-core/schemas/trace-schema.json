@@ -251,7 +251,10 @@
         "required": ["ac_id", "text", "status", "tasks", "files", "tests", "verified"],
         "additionalProperties": false,
         "properties": {
-          "ac_id": { "type": "string", "pattern": "^(AC-\\d+|QF)$" },
+          "ac_id": {
+            "type": "string",
+            "pattern": "^(([A-Za-z][A-Za-z0-9_-]*/)?AC-\\d+|QF)$"
+          },
           "text": { "type": "string" },
           "status": { "$ref": "#/definitions/requirementStatus" },
           "tasks": {
