@@ -85,6 +85,46 @@ describe("worktree/scripts/wt-guard.sh", () => {
     expect(sh(repo, [script, "inside", linked, join(linked, "link-inside", "f")]).code).toBe(0);
   });
 
+  test("inside fails closed on long symlink chains and on newlines in the path", () => {
+    // 25 chained links ending outside the root: the resolver gives up and the path counts as outside.
+    symlinkSync(join(repo, "outside.txt"), join(linked, "l25"));
+    for (let level = 24; level >= 0; level--) {
+      symlinkSync(join(linked, `l${level + 1}`), join(linked, `l${level}`));
+    }
+    const chain = sh(repo, [script, "inside", linked, join(linked, "l0")]);
+    expect(chain.code).toBe(1);
+    expect(chain.out).toContain("too many levels of symbolic links");
+    const newline = sh(repo, [script, "inside", linked, `${linked}/a\n/../../x`]);
+    expect(newline.code).toBe(1);
+    expect(newline.out).toContain("newline");
+  });
+
+  test("inside requires both physical and lexical .. resolution to stay in the root", () => {
+    mkdirSync(join(linked, "a", "b", "c"), { recursive: true });
+    symlinkSync(join(linked, "a", "b", "c"), join(linked, "link"));
+    // Physically a/x (inside); textually linked/../x (outside): rejected.
+    expect(sh(repo, [script, "inside", linked, `${linked}/link/../../x`]).code).toBe(1);
+    // Both readings inside.
+    expect(sh(repo, [script, "inside", linked, `${linked}/link/../x`]).code).toBe(0);
+  });
+
+  test("inside handles spaces, relative symlink targets and a root reached through a symlink", () => {
+    const spaced = join(repo, ".worktrees", "My Project");
+    sh(repo, ["git", "worktree", "add", "-q", "-b", "wt/spaced2", spaced]);
+    expect(sh(repo, [script, "inside", spaced, join(spaced, "src", "a b.ts")]).code).toBe(0);
+    expect(sh(repo, [script, "inside", spaced, join(spaced, "..", "STEP-1", "x")]).code).toBe(1);
+    writeFileSync(join(repo, "outside.txt"), "x");
+    symlinkSync("../../outside.txt", join(spaced, "rel"));
+    expect(sh(repo, [script, "inside", spaced, join(spaced, "rel")]).code).toBe(1);
+    mkdirSync(join(spaced, "inner"));
+    symlinkSync("inner", join(spaced, "rel-inside"));
+    expect(sh(repo, [script, "inside", spaced, join(spaced, "rel-inside", "f")]).code).toBe(0);
+    const rootLink = join(repo, "root-link");
+    symlinkSync(spaced, rootLink);
+    expect(sh(repo, [script, "inside", rootLink, join(spaced, "src", "x.ts")]).code).toBe(0);
+    expect(sh(repo, [script, "inside", rootLink, join(repo, "README.md")]).code).toBe(1);
+  });
+
   test("find prints the full path when the worktree directory contains a space", () => {
     const spaced = join(repo, ".worktrees", "My Project");
     sh(repo, ["git", "worktree", "add", "-q", "-b", "wt/spaced", spaced]);

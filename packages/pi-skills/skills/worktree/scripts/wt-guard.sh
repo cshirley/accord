@@ -14,12 +14,17 @@ set -euo pipefail
 # symlinked directories were resolved), existing directories and symlinks are resolved, and the
 # remaining components of a path that does not exist yet are kept as written. A symlink as the
 # last component is followed, so a link to a file outside a root is reported as outside.
+# Fails closed (returns 1) on a newline in the path or a symlink chain deeper than 20 links.
 abspath() {
   local path="$1" depth="${2:-0}" current="" component target candidate
+  if [[ "$path" == *$'\n'* ]]; then
+    echo "wt-guard: path contains a newline: refusing to resolve it" >&2
+    return 1
+  fi
   [[ "$path" == /* ]] || path="$PWD/$path"
   if [[ "$depth" -gt 20 ]]; then
-    echo "$path"
-    return
+    echo "wt-guard: too many levels of symbolic links: $path" >&2
+    return 1
   fi
   local -a parts
   IFS=/ read -r -a parts <<<"$path"
@@ -32,7 +37,7 @@ abspath() {
         if [[ -L "$candidate" ]]; then
           target="$(readlink "$candidate")"
           [[ "$target" == /* ]] || target="$current/$target"
-          current="$(abspath "$target" $((depth + 1)))"
+          current="$(abspath "$target" $((depth + 1)))" || return 1
           [[ "$current" == "/" ]] && current=""
         elif [[ -d "$candidate" ]]; then
           current="$(cd "$candidate" && pwd -P)"
@@ -43,6 +48,32 @@ abspath() {
     esac
   done
   echo "${current:-/}"
+}
+
+# Collapse `.` and `..` in the string only (no filesystem access), never above `/`.
+lexical() {
+  local path="$1" component out=""
+  [[ "$path" == /* ]] || path="$PWD/$path"
+  local -a parts
+  IFS=/ read -r -a parts <<<"$path"
+  for component in "${parts[@]}"; do
+    case "$component" in
+      "" | ".") continue ;;
+      "..") out="${out%/*}" ;;
+      *) out="$out/$component" ;;
+    esac
+  done
+  echo "${out:-/}"
+}
+
+# A path is inside a root only when BOTH readings agree: `..` resolved after symlinks (what the
+# kernel does) and `..` collapsed in the text first (what path.resolve-style tools do).
+is_inside() {
+  local root="$1" path="$2" physical lexical_first
+  physical="$(abspath "$path")" || return 1
+  lexical_first="$(abspath "$(lexical "$path")")" || return 1
+  case "$physical/" in "$root"/*) ;; *) return 1 ;; esac
+  case "$lexical_first/" in "$root"/*) ;; *) return 1 ;; esac
 }
 
 cmd="${1:-}"
@@ -69,15 +100,14 @@ case "$cmd" in
     ;;
   inside)
     [[ $# -ge 2 ]] || { echo "usage: wt-guard.sh inside <root> <path>..." >&2; exit 64; }
-    root="$(abspath "$1")"
+    root="$(abspath "$1")" || { echo "outside: cannot resolve root $1" >&2; exit 1; }
     shift
     bad=0
     for path in "$@"; do
-      resolved="$(abspath "$path")"
-      case "$resolved/" in
-        "$root"/*) ;;
-        *) echo "outside: $resolved (root $root)" >&2; bad=1 ;;
-      esac
+      if ! is_inside "$root" "$path"; then
+        echo "outside: $path (root $root)" >&2
+        bad=1
+      fi
     done
     exit "$bad"
     ;;

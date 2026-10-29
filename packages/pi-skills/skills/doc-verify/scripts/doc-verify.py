@@ -13,7 +13,9 @@ Checks (code: level):
   verified-repo-not-allowed: `verified-repo` points outside the document's repo and is not listed
     with --allow-repo (error). Front matter is untrusted input, so it cannot pick any directory.
   verified-paths-empty: `verified-paths` is set but yields no paths, so staleness cannot be checked
-  link-outside-repo: a relative link resolves outside the repo root (warning; never opened)
+  verified-paths-unchecked: `git diff` failed for the listed paths (for example a malformed pathspec)
+  link-outside-repo: a relative link resolves outside the repo root, or the document's directory
+    when there is no repo (warning; the target is neither probed nor opened)
   stale-evidence: files listed in `verified-paths` changed since `verified-against` (error)
   unconfirmed-assumptions: [assumed] tags remain (warning)
   no-provenance-tags: no [verified]/[inferred]/[assumed] tags (info)
@@ -97,6 +99,31 @@ def parse_list(value: str) -> list[str]:
 SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{7,64}$")
 
 
+class FenceTracker:
+    """Tracks fenced code blocks: a fence closes only on the same character, at least as long,
+    with no info string. Shared by heading and link scanning so both agree on what is code."""
+
+    def __init__(self) -> None:
+        self.open = False
+        self.char = ""
+        self.length = 0
+        self.info = ""
+
+    def feed(self, line: str) -> str:
+        """Return 'open', 'close', 'inside' (a line within a block) or 'text'."""
+        fence = FENCE_RUN.match(line)
+        if not self.open:
+            if fence:
+                self.open, self.char, self.length = True, fence.group(1)[0], len(fence.group(1))
+                self.info = fence.group(2).strip().lower()
+                return "open"
+            return "text"
+        if fence and fence.group(1)[0] == self.char and len(fence.group(1)) >= self.length and not fence.group(2).strip():
+            self.open = False
+            return "close"
+        return "inside"
+
+
 def slugify(heading: str) -> str:
     text = re.sub(r"[`*_~]", "", heading.strip().lower())
     text = re.sub(r"[^\w\s-]", "", text)
@@ -106,14 +133,12 @@ def slugify(heading: str) -> str:
 def heading_slugs(path: str) -> set[str]:
     slugs: set[str] = set()
     counts: dict[str, int] = {}
-    in_fence = False
+    fences = FenceTracker()
     try:
-        with open(path, encoding="utf-8") as handle:
+        with open(path, encoding="utf-8", errors="replace") as handle:
             for line in handle:
-                if FENCE_RUN.match(line):
-                    in_fence = not in_fence
-                    continue
-                match = None if in_fence else re.match(r"^#{1,6}\s+(.*?)\s*#*\s*$", line)
+                state = fences.feed(line.rstrip("\n"))
+                match = re.match(r"^#{1,6}\s+(.*?)\s*#*\s*$", line) if state == "text" else None
                 if match:
                     base = slugify(match.group(1))
                     seen = counts.get(base, 0)
@@ -126,7 +151,12 @@ def heading_slugs(path: str) -> set[str]:
 
 def git(repo: str, *args: str) -> tuple[int, str]:
     try:
-        proc = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=60)
+        proc = subprocess.run(
+            ["git", "-c", "safe.bareRepository=explicit", "-C", repo, *args],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
     except FileNotFoundError:
         return 127, "git is not installed"
     except subprocess.TimeoutExpired:
@@ -175,6 +205,7 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
         sha = unquote(sha)
         declared_repo = unquote(front.get("verified-repo", ""))
         target_repo = declared_repo or root
+        denied = False
         if declared_repo:
             target_repo = os.path.normpath(os.path.join(directory, declared_repo))
             permitted = (root is not None and inside(root, target_repo)) or any(
@@ -182,12 +213,12 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
             )
             if not permitted:
                 add(1, "error", "verified-repo-not-allowed", f"verified-repo {declared_repo} is outside this repo; pass --allow-repo {target_repo} to permit it")
-                target_repo = None
+                denied = True
         if not SHA_PATTERN.match(sha):
             add(1, "error", "verified-against", f"verified-against {sha!r} is not a 7-64 character hex commit id")
-        elif target_repo is None:
+        elif denied:
             pass
-        elif not os.path.isdir(target_repo):
+        elif not target_repo or not os.path.isdir(target_repo):
             add(1, "error", "verified-against", "verified-against set but no git repo found (set verified-repo)")
         else:
             code, out = git(target_repo, "cat-file", "-e", f"{sha}^{{commit}}")
@@ -199,36 +230,30 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                     add(1, "warning", "verified-paths-empty", "verified-paths is set but empty, so staleness is not checked")
                 if paths:
                     code, out = git(target_repo, "diff", "--name-only", f"{sha}..HEAD", "--", *paths)
+                    if code != 0:
+                        add(1, "warning", "verified-paths-unchecked", f"git diff failed, staleness not checked: {out[:160]}")
                     changed = [line for line in out.split("\n") if line.strip()] if code == 0 else []
                     if changed:
                         add(1, "error", "stale-evidence", f"{len(changed)} file(s) changed since {sha[:10]}: " + ", ".join(changed[:5]))
 
-    in_fence = False
+    fences = FenceTracker()
     fence_open_line = 0
-    fence_info = ""
-    fence_char = ""
-    fence_len = 0
     fence_buf: list[str] = []
     mermaid_blocks: list[tuple[int, str]] = []
     tag_counts = {name: 0 for name in TAGS}
     own_slugs: set[str] | None = None
 
     for offset, raw in enumerate(lines[body_start:], start=body_start + 1):
-        fence = FENCE_RUN.match(raw)
-        if fence and not in_fence:
-            fence_char, fence_len = fence.group(1)[0], len(fence.group(1))
-            in_fence, fence_open_line = True, offset
-            fence_info = fence.group(2).strip().lower()
-            fence_buf = []
+        state = fences.feed(raw)
+        if state == "open":
+            fence_open_line, fence_buf = offset, []
             continue
-        if in_fence:
-            # A closing fence uses the same character, is at least as long, and has no info string.
-            if fence and fence.group(1)[0] == fence_char and len(fence.group(1)) >= fence_len and not fence.group(2).strip():
-                in_fence = False
-                if fence_info.startswith("mermaid"):
-                    mermaid_blocks.append((fence_open_line, "\n".join(fence_buf)))
-            else:
-                fence_buf.append(raw)
+        if state == "inside":
+            fence_buf.append(raw)
+            continue
+        if state == "close":
+            if fences.info.startswith("mermaid"):
+                mermaid_blocks.append((fence_open_line, "\n".join(fence_buf)))
             continue
 
         prose = INLINE_CODE.sub("", raw)
@@ -249,11 +274,12 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                 resolved = os.path.join(root or directory, file_part.lstrip("/"))
             else:
                 resolved = os.path.normpath(os.path.join(directory, file_part))
-            outside = root is not None and not inside(root, resolved)
-            if not os.path.exists(resolved):
+            # Targets outside the boundary (repo root, else the document's own directory) are
+            # reported without touching the filesystem: no existence probing, no file opened.
+            if not inside(root or directory, resolved):
+                add(offset, "warning", "link-outside-repo", f"{target} resolves outside the repo root; the link breaks when the document moves and was not checked")
+            elif not os.path.exists(resolved):
                 add(offset, "error", "broken-link", f"{target} does not exist")
-            elif outside:
-                add(offset, "warning", "link-outside-repo", f"{target} resolves outside the repo root; the link breaks when the document moves")
             elif fragment and resolved.lower().endswith(".md"):
                 slugs = own_slugs if resolved == os.path.abspath(path) and own_slugs else heading_slugs(resolved)
                 if resolved == os.path.abspath(path):
@@ -269,7 +295,7 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
             if when > today and not PLAN_WORDS.search(prose):
                 add(offset, "warning", "future-date", f"{when} is after today ({today}) with no plan/deadline wording")
 
-    if in_fence:
+    if fences.open:
         add(fence_open_line, "error", "unclosed-fence", "code fence is never closed")
 
     if tag_counts["assumed"]:
@@ -295,7 +321,7 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                     if proc.returncode != 0:
                         detail = (proc.stderr or proc.stdout).strip()
                         first = detail.split("\n")[0][:200]
-                        if re.search(r"puppeteer|chrom|sandbox|ENOENT|browser|Failed to launch", detail, re.I):
+                        if re.search(r"puppeteer|chrom|sandbox|ENOENT|browser|Failed to launch|command not found|No such file|env: ", detail, re.I):
                             add(start, "warning", "mermaid-unavailable", f"mmdc could not run: {first}")
                         else:
                             add(start, "error", "mermaid-syntax", first or "mmdc failed")

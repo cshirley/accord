@@ -207,9 +207,9 @@ this skill, same worktree as the diff):
    - `--source` is `details.source`. A `local` review covers only uncommitted changes, so
      `check review` fails while the branch has commits ahead of `origin/HEAD`. Re-run on a clean tree
      (`branch`) to cover them.
-   - `--critical` is the number of Critical findings **still open**. `check review` fails while it is
-     above 0. If the user accepts the risk, add `--accepted "<reason>"` (their words, plus a ticket if
-     any). Never add it on your own.
+   - `--source` and `--critical` are both required (`mark review` exits 64 without them). `--critical` is the number of Critical findings **still open**. `check review` fails while it is
+     above 0. If the user accepts the risk, add `--accepted '<reason>'` (their words, plus a ticket if
+     any). Never add it on your own. **Single-quote user text** and write an embedded `'` as `'\''`; never put it inside double quotes, where `$(…)` and backticks run.
 
 Mark even when Warnings or Suggestions remain: the mark means "reviewed with this outcome", not
 "clean". Do not mark when an agent failed. After fixes, run `/review` again to refresh the mark.

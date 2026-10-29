@@ -3,7 +3,13 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
-import { loadWorkItem, mutateJson, now, workItemJsonPath } from "../work-items/io.js";
+import {
+  loadWorkItem,
+  mutateJson,
+  now,
+  WORK_ITEM_ID_PATTERN,
+  workItemJsonPath,
+} from "../work-items/io.js";
 import { isSyntheticWorkItemId } from "../work-items/synthetic.js";
 import type { WorkItem } from "../work-items/types.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
@@ -45,6 +51,9 @@ function parseGatherHint(parsedReturn: unknown): AlignGatherHint | undefined {
   return { ticket_id, reason };
 }
 
+/** Anchored form of the canonical work item id pattern. */
+const TICKET_ID = new RegExp(`^${WORK_ITEM_ID_PATTERN.source}$`);
+
 export interface SpawnFollowUpPlan {
   agent: string;
   task: string;
@@ -82,8 +91,10 @@ export function planSpawnFollowUp(input: PlanSpawnFollowUpInput): SpawnFollowUpP
     // A synthetic ADHOC id is not a tracker ticket: skip the lookup and re-run align without it.
     // A real ticket named in the hint (e.g. "fix CLD-4639 timeout") still gathers.
     const hintTicket = parseGatherHint(input.parsedReturn)?.ticket_id?.trim();
-    const hintIsSynthetic = !hintTicket || isSyntheticWorkItemId(hintTicket);
-    if (isSyntheticWorkItemId(input.workItemId) && hintIsSynthetic) {
+    // Only a well-formed tracker id counts as a real ticket; filler such as "none" or "N/A" does not.
+    const hintIsRealTicket =
+      !!hintTicket && TICKET_ID.test(hintTicket) && !isSyntheticWorkItemId(hintTicket);
+    if (isSyntheticWorkItemId(input.workItemId) && !hintIsRealTicket) {
       return {
         agent: "phase-align",
         consumesGatherBudget: true,

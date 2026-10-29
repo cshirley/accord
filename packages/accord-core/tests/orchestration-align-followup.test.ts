@@ -227,6 +227,26 @@ describe("synthetic ADHOC work items", () => {
     expect(plan?.consumesGatherBudget).toBe(true);
   });
 
+  test("filler hints such as none or N/A are not tickets and skip gather for an ADHOC id", () => {
+    for (const ticket_id of ["none", "N/A", "n/a", "TBD", ""]) {
+      const plan = planSpawnFollowUp({
+        workItemId: "ADHOC-2026102901",
+        agent: "phase-align",
+        exitCode: 0,
+        parsedReturn: {
+          status: "needs_gather",
+          gather_hint: { ticket_id, reason: "x" },
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        },
+        phase: "aligning",
+        title: "t",
+        pattern: "implement",
+        devConfig: minimalDevConfig(),
+      });
+      expect([ticket_id, plan?.agent]).toEqual([ticket_id, "phase-align"]);
+    }
+  });
+
   test("a real ticket in the hint still gathers for an ADHOC work item", () => {
     const plan = planSpawnFollowUp({
       workItemId: "ADHOC-2026102901",

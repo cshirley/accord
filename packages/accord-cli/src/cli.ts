@@ -114,6 +114,12 @@ function parseGlobalFlags(argv: string[]): { flags: GlobalOptions; rest: string[
 
   for (let index = 0; index < argv.length; index++) {
     const token = argv[index];
+    if (token === "--") {
+      // A bare `--` ends global flag parsing: the rest is passed through untouched (for example a
+      // `bootstrap` title that contains `--json` or `-h`).
+      rest.push(...argv.slice(index));
+      break;
+    }
     if (token === "--json") {
       flags.json = true;
     } else if (token === "-y" || token === "--yes") {

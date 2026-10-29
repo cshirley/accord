@@ -26,7 +26,7 @@ PR flow uses **Pi tools from `pi-git`**, not shell `git push`/`gh pr` and not `a
 
 0. **Gates** (run in the PR's worktree; paths relative to this skill):
    - `../verify/scripts/green.sh check` — exit 1 or 2: run the `verify` skill first.
-   - `../verify/scripts/green.sh check review` — exit 1 or 2: run the `review` skill first (it marks on completion). The check also fails when the last review left open **Critical** findings (unless the user accepted them: `mark review --accepted "<reason>"`) and when a `local`-source review left commits ahead of `origin/HEAD` unreviewed. Read the message and follow it.
+   - `../verify/scripts/green.sh check review` — exit 1 or 2: run the `review` skill first (it marks on completion). The check also fails when the last review left open **Critical** findings (unless the user accepted them: `mark review --source <local|branch> --critical <N> --accepted '<reason>'`, single-quoted) and when a `local`-source review left commits ahead of `origin/HEAD` unreviewed. Read the message and follow it.
    - Exit 3 (not a git repo): skip.
    - **Skip** a gate only when the user explicitly says so. Record each skip and its reason in the PR body under `## Risks / notes`.
 1. Call `gh_pr_context` — gathers existing PR, branch/ticket, commits, diffstat, spec doc, verify report in one call

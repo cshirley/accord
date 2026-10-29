@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -118,7 +126,15 @@ describe("doc-verify.py", () => {
     expect(result.findings[0].line).toBe(8);
   });
 
-  test("a link that resolves outside the repo warns and is never an error when it exists", () => {
+  test("anchors after a nested fence still resolve (headings use the same fence tracker)", () => {
+    writeFileSync(
+      join(dir, "a.md"),
+      "# A [verified]\n\n[later](#later-heading)\n\n````md\n```\n````\n\n## Later heading\n",
+    );
+    expect(run(dir, ["a.md"]).findings).toEqual([]);
+  });
+
+  test("a link that resolves outside the repo is only a warning and is not probed", () => {
     const sibling = join(dir, "..", `${dir.split("/").pop()}-sibling.md`);
     writeFileSync(sibling, "# S\n");
     try {
@@ -127,7 +143,9 @@ describe("doc-verify.py", () => {
         `# A [verified]\n\n[out](../${sibling.split("/").pop()}) [gone](../does-not-exist.md)\n`,
       );
       const result = run(dir, ["a.md"]);
-      expect(codes(result.findings).sort()).toEqual(["broken-link", "link-outside-repo"]);
+      // Neither the existing nor the missing target is stat-ed or opened: both just warn.
+      expect(codes(result.findings)).toEqual(["link-outside-repo", "link-outside-repo"]);
+      expect(result.code).toBe(0);
     } finally {
       rmSync(sibling, { force: true });
     }
@@ -142,6 +160,16 @@ describe("doc-verify.py", () => {
     expect(result.code).toBe(1);
     expect(codes(result.findings)).toContain("future-front-matter-date");
     expect(codes(result.findings)).toContain("filename-date-mismatch");
+  });
+
+  test("tomorrow is in the future, in front matter and in prose", () => {
+    writeFileSync(
+      join(dir, "a.md"),
+      "---\ndate: 2026-10-30\n---\n# A [verified]\n\nShipped 2026-10-30.\n",
+    );
+    const result = run(dir, ["a.md"]);
+    expect(result.code).toBe(1);
+    expect(codes(result.findings).sort()).toEqual(["future-date", "future-front-matter-date"]);
   });
 
   test("a date equal to today is not in the future; a matching filename date does not warn", () => {
@@ -257,6 +285,68 @@ describe("doc-verify.py", () => {
       }
     });
 
+    test("a document outside any git repo with a well-formed sha reports that it cannot verify", () => {
+      const plain = realpathSync(mkdtempSync(join(tmpdir(), "docv-plain-")));
+      try {
+        writeFileSync(
+          join(plain, "doc.md"),
+          "---\nverified-against: abc1234\n---\n# D [verified]\n",
+        );
+        const result = run(plain, ["doc.md"], { GIT_CEILING_DIRECTORIES: plain });
+        expect(result.code).toBe(1);
+        expect(codes(result.findings)).toEqual(["verified-against"]);
+        expect(result.findings[0].message).toContain("no git repo found");
+      } finally {
+        rmSync(plain, { recursive: true, force: true });
+      }
+    });
+
+    test("a pathspec git rejects is reported, not silently treated as no changes", () => {
+      writeFileSync(join(dir, "a.txt"), "1\n");
+      const sha = commit("one");
+      writeFileSync(
+        join(dir, "doc.md"),
+        `---\nverified-against: ${sha}\nverified-paths: [":(bad)x"]\n---\n# D [verified]\n`,
+      );
+      const result = run(dir, ["doc.md"]);
+      expect(codes(result.findings)).toEqual(["verified-paths-unchecked"]);
+      expect(result.code).toBe(0);
+    });
+
+    test("relative and symlinked verified-repo escapes are refused", () => {
+      const other = realpathSync(mkdtempSync(join(tmpdir(), "docv-esc-")));
+      try {
+        git(other, ["init", "-q"]);
+        git(other, ["config", "user.email", "t@example.com"]);
+        git(other, ["config", "user.name", "t"]);
+        writeFileSync(join(other, "f.txt"), "1\n");
+        git(other, ["add", "-A"]);
+        git(other, ["commit", "-qm", "one"]);
+        const sha = git(other, ["rev-parse", "HEAD"]);
+        symlinkSync(other, join(dir, "vendor"));
+        const relative = `../${other.split("/").pop()}`;
+        for (const declared of [relative, "vendor"]) {
+          writeFileSync(
+            join(dir, "doc.md"),
+            `---\nverified-against: ${sha}\nverified-repo: ${declared}\n---\n# D [verified]\n`,
+          );
+          const result = run(dir, ["doc.md"]);
+          expect([declared, codes(result.findings)]).toEqual([
+            declared,
+            ["verified-repo-not-allowed"],
+          ]);
+        }
+        // Allowed explicitly, the same relative form verifies.
+        writeFileSync(
+          join(dir, "doc.md"),
+          `---\nverified-against: ${sha}\nverified-repo: ${relative}\n---\n# D [verified]\n`,
+        );
+        expect(run(dir, ["--allow-repo", other, "doc.md"]).findings).toEqual([]);
+      } finally {
+        rmSync(other, { recursive: true, force: true });
+      }
+    });
+
     test("verified-repo outside the repo needs --allow-repo; inside is fine", () => {
       const other = realpathSync(mkdtempSync(join(tmpdir(), "docv-other-")));
       try {
@@ -295,8 +385,17 @@ describe("doc-verify.py", () => {
 
     test("without mmdc the block is reported as not checked (info)", () => {
       writeFileSync(join(dir, "a.md"), block);
-      // Only an empty PATH entry for mmdc: run with a PATH lacking it.
-      const result = run(dir, ["a.md"], { PATH: "/usr/bin:/bin" });
+      // A PATH holding only symlinks to python3 and git, so no mmdc can be found on this host.
+      const bin = join(dir, "bin-no-mmdc");
+      mkdirSync(bin);
+      const python = Bun.spawnSync(["python3", "-c", "import sys;print(sys.executable)"], {
+        stdout: "pipe",
+      })
+        .stdout.toString()
+        .trim();
+      symlinkSync(python, join(bin, "python3"));
+      symlinkSync(Bun.which("git") as string, join(bin, "git"));
+      const result = run(dir, ["a.md"], { PATH: bin });
       expect(codes(result.findings)).toContain("mermaid-not-checked");
       expect(result.code).toBe(0);
     });
@@ -316,6 +415,14 @@ describe("doc-verify.py", () => {
       expect(result.code).toBe(0);
       expect(codes(result.findings)).toContain("mermaid-unavailable");
       expect(codes(result.findings)).not.toContain("mermaid-syntax");
+    });
+
+    test("a missing node behind mmdc is an environment warning, not a syntax error", () => {
+      writeFileSync(join(dir, "a.md"), block);
+      const env = withFakeMmdc('echo "env: node: No such file or directory" >&2; exit 127');
+      const result = run(dir, ["a.md"], env);
+      expect(result.code).toBe(0);
+      expect(codes(result.findings)).toContain("mermaid-unavailable");
     });
 
     test("a clean mmdc run produces no mermaid finding", () => {

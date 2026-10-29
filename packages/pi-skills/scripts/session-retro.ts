@@ -101,28 +101,61 @@ function sessionDate(filePath: string): string | null {
 }
 
 // Patterns are anchored to the start of one shell segment (see `shellSegments`), so a mention such
-// as `echo "git commit"` or `rg 'bun test'` does not count.
+// as `echo "git commit"` or `rg 'bun test'` does not count. Bare `test`/`check`/`lint` only count
+// behind a package runner, so the shell builtin `test -f x` is not a verification.
 const VERIFY_COMMAND =
-  /^(npx |bunx |yarn |pnpm |npm run |bun run |bun |npm )?(jest|vitest|pytest|go test|cargo test|test|check|lint|tsc|biome check|eslint)\b/;
+  /^(?:(?:npx|bunx) )?(?:jest|vitest|pytest|go test|cargo test|tsc|biome check|eslint)\b|^(?:npm|yarn|pnpm|bun)(?: run)? (?:test|check|lint)\b/;
 const COMMIT_COMMAND = /^git( -C \S+)? commit\b/;
 const PR_COMMAND = /^gh pr (create|edit)\b/;
 const CI_COMMAND = /^gh (pr checks|run (view|watch|list))\b/;
 
-type Segment = { text: string; afterAnd: boolean };
+type Segment = { text: string; op: "" | "&&" | "||" | ";" | "|" };
 
-/** Split a command line on `&&`, `||`, `;` and `|`, dropping `cd` and `VAR=x` prefixes. */
+/**
+ * Split a command line into shell segments on `&&`, `||`, `;`, `|` and newlines, outside quotes,
+ * dropping `cd` and `VAR=x` prefixes. `op` is the operator that precedes the segment.
+ */
 function shellSegments(command: string): Segment[] {
   const segments: Segment[] = [];
-  const pattern = /(&&|\|\||;|\|)/;
-  const tokens = command.split(pattern);
-  let afterAnd = false;
-  for (let index = 0; index < tokens.length; index += 2) {
-    const text = (tokens[index] ?? "").trim().replace(/^(\w+=\S+\s+)+/, "");
-    if (text && !/^cd\b/.test(text)) segments.push({ text, afterAnd });
-    afterAnd = tokens[index + 1] === "&&";
+  let current = "";
+  let quote = "";
+  let op: Segment["op"] = "";
+  let nextOp: Segment["op"] = "";
+  const flush = () => {
+    const text = current.trim().replace(/^(\w+=\S+\s+)+/, "");
+    if (text && !/^cd\b/.test(text)) segments.push({ text, op });
+    current = "";
+    op = nextOp;
+  };
+  for (let index = 0; index < command.length; index++) {
+    const char = command[index];
+    if (quote) {
+      if (char === quote) quote = "";
+      current += char;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      current += char;
+      continue;
+    }
+    const pair = command.slice(index, index + 2);
+    if (pair === "&&" || pair === "||") {
+      nextOp = pair;
+      flush();
+      index += 1;
+    } else if (char === ";" || char === "|" || char === "\n") {
+      nextOp = char === "\n" ? ";" : char;
+      flush();
+    } else {
+      current += char;
+    }
   }
+  nextOp = "";
+  flush();
   return segments;
 }
+
 const REWORK_SIGNAL =
   /\b(wrong|revert|still (not|see|seeing|fail|loop|only|return)|you forgot|forgot to|missed|not what i)\b/i;
 
@@ -279,12 +312,17 @@ for (const file of files) {
         }
         if (name === "bash" && part.arguments?.command) {
           const command = String(part.arguments.command).trim();
+          let previousWasVerify = false;
           for (const segment of shellSegments(command)) {
-            if (VERIFY_COMMAND.test(segment.text)) {
+            const isVerify = VERIFY_COMMAND.test(segment.text);
+            if (isVerify) {
               dirty = false;
               if (part.id) pendingVerifyIds.add(String(part.id));
               else everVerified = true;
             }
+            // `verify || git commit` runs the commit only when the verify failed.
+            if (previousWasVerify && segment.op === "||") dirty = true;
+            previousWasVerify = isVerify;
             if (COMMIT_COMMAND.test(segment.text)) {
               gates.commits += 1;
               if (dirty) gates.commitsWithUnverifiedEdits += 1;

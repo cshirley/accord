@@ -108,6 +108,21 @@ describe("accord bootstrap", () => {
     if (parsed.kind === "bootstrap") expect(parsed.args.title).toBe("--fix it");
   });
 
+  test("after -- even global flags are title text, not options", () => {
+    const parsed = parseCli(["bootstrap", "--adhoc", "--", "explain", "--json", "output", "-h"]);
+    expect(parsed.kind).toBe("bootstrap");
+    if (parsed.kind !== "bootstrap") return;
+    expect(parsed.args.title).toBe("explain --json output -h");
+    expect(parsed.options.json).toBe(false);
+    expect(parsed.options.help).toBe(false);
+  });
+
+  test("global flags before -- still apply", () => {
+    const parsed = parseCli(["--json", "bootstrap", "--adhoc", "--", "title"]);
+    expect(parsed.kind).toBe("bootstrap");
+    if (parsed.kind === "bootstrap") expect(parsed.options.json).toBe(true);
+  });
+
   test("--adhoc with a ticket-shaped first word is rejected with guidance", () => {
     const parsed = parseBootstrapArgs(["--adhoc", "STEP-5", "add", "refresh"]);
     expect(parsed.ok).toBe(false);

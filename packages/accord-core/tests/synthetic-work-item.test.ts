@@ -34,8 +34,14 @@ describe("synthetic work item ids", () => {
   test("uses the local calendar date, not UTC", () => {
     const original = process.env.TZ;
     try {
-      for (const zone of ["Pacific/Auckland", "America/Los_Angeles"]) {
+      const expectedOffsets: Record<string, number> = {
+        "Pacific/Auckland": -780, // UTC+13 in January
+        "America/Los_Angeles": 480, // UTC-8 in January
+      };
+      for (const zone of Object.keys(expectedOffsets)) {
         process.env.TZ = zone;
+        // Prove the runtime honoured the zone switch, or this test would pass under UTC.
+        expect(new Date(2026, 0, 5, 12).getTimezoneOffset()).toBe(expectedOffsets[zone]);
         expect(nextSyntheticWorkItemId(() => false, new Date(2026, 0, 5, 0, 30))).toBe(
           "ADHOC-2026010501",
         );
@@ -44,8 +50,7 @@ describe("synthetic work item ids", () => {
         );
       }
     } finally {
-      if (original === undefined) delete process.env.TZ;
-      else process.env.TZ = original;
+      process.env.TZ = original ?? "Etc/UTC";
     }
   });
 

@@ -1,9 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const script = join(import.meta.dir, "..", "skills", "verify", "scripts", "green.sh");
+const REVIEW_FLAGS = ["--source", "branch", "--critical", "0"];
 
 function sh(
   cwd: string,
@@ -76,7 +85,7 @@ describe("verify/scripts/green.sh", () => {
   test("review marker is independent of verify marker", () => {
     sh(repo, [script, "mark"]);
     expect(sh(repo, [script, "check", "review"]).code).toBe(2);
-    expect(sh(repo, [script, "mark", "review"]).code).toBe(0);
+    expect(sh(repo, [script, "mark", "review", ...REVIEW_FLAGS]).code).toBe(0);
     expect(sh(repo, [script, "check", "review"]).code).toBe(0);
     writeFileSync(join(repo, "a.txt"), "two\n");
     expect(sh(repo, [script, "check", "review"]).code).toBe(1);
@@ -139,24 +148,28 @@ describe("verify/scripts/green.sh", () => {
     expect(sh(repo, [script, "mark", "review", "--critical", "many"]).code).toBe(64);
   });
 
-  test("an unreadable untracked directory fails loudly instead of recording a partial fingerprint", () => {
-    if (process.getuid?.() === 0) return; // root can read it, so the failure cannot be provoked
-    const blocked = join(repo, "blocked");
-    mkdirSync(blocked);
-    writeFileSync(join(blocked, "f"), "x");
-    chmodSync(blocked, 0o000);
-    try {
-      const result = sh(repo, [script, "mark"]);
-      expect(result.code).toBe(4);
-      expect(result.out).toContain("fingerprint failed");
-      expect(sh(repo, [script, "check"]).code).toBe(2); // nothing was recorded
-    } finally {
-      chmodSync(blocked, 0o755);
-    }
-  });
+  // Root can read every file, so the failure cannot be provoked there; skip instead of passing.
+  const asRoot = process.getuid?.() === 0;
 
-  test("an unreadable untracked file fails loudly too", () => {
-    if (process.getuid?.() === 0) return;
+  test.skipIf(asRoot)(
+    "an unreadable untracked directory fails loudly instead of recording a partial fingerprint",
+    () => {
+      const blocked = join(repo, "blocked");
+      mkdirSync(blocked);
+      writeFileSync(join(blocked, "f"), "x");
+      chmodSync(blocked, 0o000);
+      try {
+        const result = sh(repo, [script, "mark"]);
+        expect(result.code).toBe(4);
+        expect(result.out).toContain("fingerprint failed");
+        expect(sh(repo, [script, "check"]).code).toBe(2); // nothing was recorded
+      } finally {
+        chmodSync(blocked, 0o755);
+      }
+    },
+  );
+
+  test.skipIf(asRoot)("an unreadable untracked file fails loudly too", () => {
     const secret = join(repo, "secret.txt");
     writeFileSync(secret, "x");
     chmodSync(secret, 0o000);
@@ -171,7 +184,17 @@ describe("verify/scripts/green.sh", () => {
     const captured = sh(repo, [script, "fingerprint"]).out.trim();
     writeFileSync(join(repo, "a.txt"), "edited while reviewers ran\n");
     expect(
-      sh(repo, [script, "mark", "review", "--tree", captured, "--source", "branch"]).code,
+      sh(repo, [
+        script,
+        "mark",
+        "review",
+        "--tree",
+        captured,
+        "--source",
+        "branch",
+        "--critical",
+        "0",
+      ]).code,
     ).toBe(0);
     expect(sh(repo, [script, "check", "review"]).code).toBe(1);
   });
@@ -202,12 +225,77 @@ describe("verify/scripts/green.sh", () => {
     sh(repo, ["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
     writeFileSync(join(repo, "a.txt"), "two\n");
     sh(repo, ["git", "commit", "-qam", "ahead"]);
-    sh(repo, [script, "mark", "review", "--source", "local"]);
+    sh(repo, [script, "mark", "review", "--source", "local", "--critical", "0"]);
     const blocked = sh(repo, [script, "check", "review"]);
     expect(blocked.code).toBe(1);
     expect(blocked.out).toContain("1 commit(s) ahead of origin/HEAD");
-    sh(repo, [script, "mark", "review", "--source", "branch"]);
+    sh(repo, [script, "mark", "review", "--source", "branch", "--critical", "0"]);
     expect(sh(repo, [script, "check", "review"]).code).toBe(0);
+  });
+
+  test("a failing git add without any recognisable message still fails closed (exit 4)", () => {
+    // Shim git so `add` fails with an arbitrary, non-English message and exit status.
+    const realGit = Bun.which("git") as string;
+    const bin = join(repo, "..", `shim-${Date.now()}`);
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, "git"),
+      `#!/bin/sh\nif [ "$1" = add ]; then echo "fatal: panne simulee" >&2; exit 128; fi\nexec "${realGit}" "$@"\n`,
+    );
+    chmodSync(join(bin, "git"), 0o755);
+    try {
+      const result = sh(repo, [script, "mark"], { PATH: `${bin}:${process.env.PATH ?? ""}` });
+      expect(result.code).toBe(4);
+      expect(result.out).toContain("fingerprint failed");
+      expect(sh(repo, [script, "check"]).code).toBe(2);
+    } finally {
+      rmSync(bin, { recursive: true, force: true });
+    }
+  });
+
+  test("mark review requires --source and --critical; --critical 08 is decimal", () => {
+    expect(sh(repo, [script, "mark", "review"]).code).toBe(64);
+    expect(sh(repo, [script, "mark", "review", "--source", "branch"]).code).toBe(64);
+    expect(sh(repo, [script, "mark", "review", "--critical", "0"]).code).toBe(64);
+    expect(sh(repo, [script, "mark", "review", "--source"]).code).toBe(64);
+    expect(
+      sh(repo, [script, "mark", "review", "--source", "branch", "--critical", "08"]).code,
+    ).toBe(0);
+    const blocked = sh(repo, [script, "check", "review"]);
+    expect(blocked.code).toBe(1);
+    expect(blocked.out).toContain("8 open Critical");
+  });
+
+  test("a review marker without a valid critical count is blocked (fail closed)", () => {
+    sh(repo, [script, "mark", "review", ...REVIEW_FLAGS]);
+    const marker = join(repo, ".git", "accord", "last-review");
+    writeFileSync(marker, readFileSync(marker, "utf8").replace("critical=0", "critical=lots"));
+    const blocked = sh(repo, [script, "check", "review"]);
+    expect(blocked.code).toBe(1);
+    expect(blocked.out).toContain("no valid critical count");
+  });
+
+  test("review -> commit -> check stays valid; commits ahead before the review do not", () => {
+    sh(repo, ["git", "update-ref", "refs/remotes/origin/main", "HEAD"]);
+    sh(repo, ["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
+    // 1. review the uncommitted change, then commit exactly that change
+    writeFileSync(join(repo, "a.txt"), "reviewed change\n");
+    sh(repo, [script, "mark", "review", "--source", "local", "--critical", "0"]);
+    sh(repo, ["git", "commit", "-qam", "the reviewed change"]);
+    expect(sh(repo, [script, "check", "review"]).code).toBe(0);
+    // 2. a second local review while that commit is ahead of origin/HEAD does not cover it
+    writeFileSync(join(repo, "a.txt"), "another change\n");
+    sh(repo, [script, "mark", "review", "--source", "local", "--critical", "0"]);
+    const blocked = sh(repo, [script, "check", "review"]);
+    expect(blocked.code).toBe(1);
+    expect(blocked.out).toContain("1 commit(s) ahead of origin/HEAD");
+  });
+
+  test("a local review without origin/HEAD warns but passes", () => {
+    sh(repo, [script, "mark", "review", "--source", "local", "--critical", "0"]);
+    const result = sh(repo, [script, "check", "review"]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain("origin/HEAD is not set");
   });
 
   test("outside a git repo exits 3", () => {

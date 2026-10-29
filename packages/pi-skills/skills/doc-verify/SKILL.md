@@ -28,7 +28,8 @@ scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo D
 | `verified-against` | error | `verified-against` is not a 7–64 character hex commit id, or the commit does not resolve. |
 | `verified-repo-not-allowed` | error | `verified-repo` points outside the document's repo and was not passed with `--allow-repo`. |
 | `verified-paths-empty` | warning | `verified-paths` is set but yields no paths, so staleness is not checked. |
-| `link-outside-repo` | warning | A relative link resolves outside the repo root (it breaks when the document moves). It is never opened. |
+| `verified-paths-unchecked` | warning | `git diff` failed for the listed paths (for example a malformed pathspec), so staleness was not checked. |
+| `link-outside-repo` | warning | A relative link resolves outside the repo root (or the document's directory when there is no repo). It breaks when the document moves; the target is neither probed nor opened, so a missing target is not reported either. |
 | `stale-evidence` | error | Files in `verified-paths` changed since `verified-against`. |
 | `unconfirmed-assumptions` | warning | `[assumed]` tags remain. |
 | `no-provenance-tags` | info | No `[verified]`, `[inferred]` or `[assumed]` tags. |

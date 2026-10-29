@@ -153,6 +153,35 @@ describe("session-retro gates", () => {
     expect(gates.commitsWithUnverifiedEdits).toBe(1);
   });
 
+  test("the shell builtin test is not a verification; verify || commit is unverified", () => {
+    session("2026-10-04T12-00-00-000Z_h.jsonl", [
+      { tool: "edit" },
+      bash("test -f a.ts && git commit -m x"),
+      { tool: "edit" },
+      bash("bun test || git commit -m y", "call-9"),
+      { result: "call-9" },
+    ]);
+    const { gates } = retro(root);
+    expect(gates.commits).toBe(2);
+    expect(gates.commitsWithUnverifiedEdits).toBe(2);
+  });
+
+  test("newline-separated commands and quoted operators are read correctly", () => {
+    session("2026-10-04T13-00-00-000Z_i.jsonl", [
+      { tool: "edit" },
+      bash("git add -A\ngit commit -m x"),
+      { tool: "edit" },
+      bash('git commit -m "fix a | bun test"'),
+      { tool: "edit" },
+      bash("bun test\ngit commit -m z", "call-3"),
+      { result: "call-3" },
+    ]);
+    const { gates } = retro(root);
+    expect(gates.commits).toBe(3);
+    // newline commit and the quoted `| bun test` are unverified; the real verify then commit is not
+    expect(gates.commitsWithUnverifiedEdits).toBe(2);
+  });
+
   test("a failed verify leaves the edits unverified", () => {
     session("2026-10-04T11-00-00-000Z_f.jsonl", [
       { tool: "edit" },

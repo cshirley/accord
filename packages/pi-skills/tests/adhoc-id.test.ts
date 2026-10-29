@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { nextSyntheticWorkItemId } from "../../accord-core/src/work-items/synthetic.js";
 
 const script = join(import.meta.dir, "..", "skills", "brief", "scripts", "adhoc-id.sh");
 
@@ -14,7 +15,11 @@ describe("brief/scripts/adhoc-id.sh", () => {
     // Pin the date with a `date` shim so the test never depends on the wall clock.
     const bin = join(dir, "bin");
     mkdirSync(bin);
-    writeFileSync(join(bin, "date"), '#!/bin/sh\necho "20260105"\n');
+    // Only the exact local-date format is answered; any other call fails the script.
+    writeFileSync(
+      join(bin, "date"),
+      '#!/bin/sh\n[ "$*" = "+%Y%m%d" ] && echo 20260105 || exit 9\n',
+    );
     chmodSync(join(bin, "date"), 0o755);
     env = { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` } as Record<string, string>;
     mkdirSync(join(dir, "work"));
@@ -56,9 +61,12 @@ describe("brief/scripts/adhoc-id.sh", () => {
     expect(result.out).toBe("");
   });
 
-  test("agrees with the core generator on the format and numbering", () => {
+  test("agrees with the core generator for the same date and taken ids", () => {
     mkdirSync(join(dir, "work", ".tasks"));
-    writeFileSync(join(dir, "work", ".tasks", "ADHOC-2026010501.json"), "{}");
-    expect(run().out).toBe("ADHOC-2026010502");
+    const taken = new Set(["ADHOC-2026010501", "ADHOC-2026010502"]);
+    for (const id of taken) writeFileSync(join(dir, "work", ".tasks", `${id}.json`), "{}");
+    const fromCore = nextSyntheticWorkItemId((id) => taken.has(id), new Date(2026, 0, 5));
+    expect(run().out).toBe(fromCore);
+    expect(fromCore).toBe("ADHOC-2026010503");
   });
 });

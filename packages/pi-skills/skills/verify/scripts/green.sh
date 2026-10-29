@@ -13,10 +13,12 @@
 # temporary object directory, so the real index, the working tree and `.git/objects` are not touched.
 # The marker lives per worktree under `git rev-parse --git-path accord/last-<green|review>`.
 #
-# Review marks also record `source` (what the review covered), `critical` (open Critical
-# findings) and `accepted` (the reason a user accepted them). `check review` fails when:
-#   - critical > 0 and no `accepted` reason is recorded;
-#   - source=local and the branch has commits ahead of origin/HEAD (they were not reviewed).
+# Review marks require `--source` (what the review covered) and `--critical` (open Critical
+# findings) and may record `--accepted` (the reason a user accepted them). `check review` fails when:
+#   - critical is missing/invalid, or > 0 with no `accepted` reason;
+#   - source=local and commits ahead of origin/HEAD existed when the review was marked (they were
+#     not reviewed; commits made after the mark, with the same tree, are fine). Without origin/HEAD
+#     it warns instead.
 #
 # Use `fingerprint` at diff-capture time and pass it as `mark review --tree FP` when the review
 # ends: edits made while reviewers ran then make the mark stale instead of being attested.
@@ -37,8 +39,11 @@ fingerprint() {
     return 4
   }
 
+  # The subshell is the left side of `||`, so bash ignores `set -e` inside it. Every step is
+  # therefore chained with `&&`, and the subshell exit status is the first failing step. LC_ALL=C
+  # keeps git's messages in English for the warning check below.
   (
-    export GIT_INDEX_FILE="$index" GIT_OBJECT_DIRECTORY="$objects" \
+    export LC_ALL=C GIT_INDEX_FILE="$index" GIT_OBJECT_DIRECTORY="$objects" \
       GIT_ALTERNATE_OBJECT_DIRECTORIES="$real_objects"
     # Start from HEAD, not a copy of the real index: a copied index carries stat data, and a
     # same-size edit within the same timestamp tick would then be missed (racy git). Hashing
@@ -47,9 +52,9 @@ fingerprint() {
       git read-tree HEAD
     else
       git read-tree --empty
-    fi
-    git add -A
-    git write-tree
+    fi &&
+      git add -A &&
+      git write-tree
   ) 2>"$work/err" >"$work/tree" || status=$?
 
   # git only warns (exit 0) about an unreadable directory, then omits its files: treat that as a
@@ -97,10 +102,19 @@ critical=""
 accepted=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --tree) tree_override="${2:?--tree needs a value}"; shift 2 ;;
-    --source) source_kind="${2:?--source needs local or branch}"; shift 2 ;;
-    --critical) critical="${2:?--critical needs a number}"; shift 2 ;;
-    --accepted) accepted="${2:?--accepted needs a reason}"; shift 2 ;;
+    --tree | --source | --critical | --accepted)
+      if [[ $# -lt 2 ]]; then
+        echo "green.sh: $1 needs a value" >&2
+        exit 64
+      fi
+      case "$1" in
+        --tree) tree_override="$2" ;;
+        --source) source_kind="$2" ;;
+        --critical) critical="$2" ;;
+        --accepted) accepted="$2" ;;
+      esac
+      shift 2
+      ;;
     *)
       echo "green.sh: unknown option '$1'" >&2
       exit 64
@@ -121,9 +135,12 @@ if [[ -n "$source_kind" && "$source_kind" != "local" && "$source_kind" != "branc
   echo "green.sh: --source must be local or branch" >&2
   exit 64
 fi
-if [[ -n "$critical" && ! "$critical" =~ ^[0-9]+$ ]]; then
-  echo "green.sh: --critical must be a number" >&2
-  exit 64
+if [[ -n "$critical" ]]; then
+  if [[ ! "$critical" =~ ^[0-9]+$ ]]; then
+    echo "green.sh: --critical must be a number" >&2
+    exit 64
+  fi
+  critical=$((10#$critical)) # "08" is decimal 8, not an invalid octal
 fi
 if [[ -n "$tree_override" && ! "$tree_override" =~ ^[0-9a-f]{40,64}$ ]]; then
   echo "green.sh: --tree must be a tree hash from 'green.sh fingerprint'" >&2
@@ -138,6 +155,10 @@ field() { sed -n "s/^$1=//p" "$marker" | head -n 1; }
 
 case "$cmd" in
   mark)
+    if [[ "$kind" == "review" && ( -z "$source_kind" || -z "$critical" ) ]]; then
+      echo "green.sh: mark review requires --source <local|branch> and --critical <N>, so the check can enforce them" >&2
+      exit 64
+    fi
     mkdir -p "$(dirname "$marker")"
     fp="${tree_override:-$(fingerprint)}"
     head_sha="$(git rev-parse --verify -q HEAD || echo none)"
@@ -162,15 +183,29 @@ case "$cmd" in
     fi
     if [[ "$kind" == "review" ]]; then
       open_critical="$(field critical)"
-      if [[ -n "$open_critical" && "$open_critical" -gt 0 && -z "$(field accepted)" ]]; then
+      if [[ ! "$open_critical" =~ ^[0-9]+$ ]]; then
+        echo "blocked: review marker has no valid critical count; re-run the review and 'mark review --source ... --critical N'" >&2
+        exit 1
+      fi
+      if [[ "$((10#$open_critical))" -gt 0 && -z "$(field accepted)" ]]; then
         echo "blocked: last review left $open_critical open Critical finding(s); fix them and re-review, or record 'mark review --accepted <reason>'" >&2
         exit 1
       fi
-      if [[ "$(field source)" == "local" ]] && git rev-parse --verify -q origin/HEAD >/dev/null; then
-        ahead="$(git rev-list --count origin/HEAD..HEAD 2>/dev/null || echo 0)"
-        if [[ "$ahead" -gt 0 ]]; then
-          echo "blocked: review covered only uncommitted changes; $ahead commit(s) ahead of origin/HEAD were not reviewed — re-run the review with source=branch" >&2
-          exit 1
+      if [[ "$(field source)" == "local" ]]; then
+        if git rev-parse --verify -q origin/HEAD >/dev/null; then
+          # A local review covers uncommitted changes only. Commits that already existed when the
+          # review was marked (origin/HEAD..recorded head) were not reviewed; commits made after
+          # it (the reviewed change itself, same tree) are fine.
+          reviewed_head="$(field head)"
+          if [[ "$reviewed_head" != "none" ]] && git cat-file -e "${reviewed_head}^{commit}" 2>/dev/null; then
+            ahead="$(git rev-list --count "origin/HEAD..${reviewed_head}" 2>/dev/null || echo 0)"
+            if [[ "$ahead" -gt 0 ]]; then
+              echo "blocked: review covered only uncommitted changes; $ahead commit(s) ahead of origin/HEAD were not reviewed — re-run the review with source=branch" >&2
+              exit 1
+            fi
+          fi
+        else
+          echo "warning: origin/HEAD is not set, so commits made before this local review cannot be checked" >&2
         fi
       fi
     fi
