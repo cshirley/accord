@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T13:26:19.969Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T13:58:47.332Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -9,8 +9,8 @@
 | ---: | --- | --- | --- | --- | --- | ---: |
 | 1 | [flags] Stack and knowledge switch resolver with default-off values | done | `0e9ed2e` | 1/1/1 | 8 (open 8) | 0 |
 | 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | `a018167` | 4/4/1 | 21 (verified 15, wont_fix_accepted 1, waived 2, open 3) | 0 |
-| 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | — | 1/1/1 | 9 (open 9) | 0 |
-| 4 | [infra] accord/evidence check runner and workflow | pending | — | 0/0/0 | 0 | 0 |
+| 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | `fcd446c` | 1/1/1 | 9 (open 9) | 0 |
+| 4 | [infra] accord/evidence check runner and workflow | done | — | 2/1/1 | 21 (verified 9, reraised 1, wont_fix_accepted 1, open 10) | 0 |
 | 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | pending | — | 0/0/0 | 0 | 0 |
 | 6 | [commit-evidence] Commit guard and content redaction | pending | — | 0/0/0 | 0 | 0 |
 | 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | pending | — | 0/0/0 | 0 | 0 |
@@ -270,7 +270,14 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (pending), 10 (pending), 14 (pending), 17 (pending), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Tasks: 4 (satisfied), 10 (pending), 14 (pending), 17 (pending), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`
+- Tests verified (5):
+  - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
+  - bun run validate:okf
+  - bun run validate:ste
+  - bun run check:types
+  - grep fetch-depth: 0 / pull_request.head.sha / secrets in accord-evidence.yml
 
 ## Accepted risks and unresolved findings
 
@@ -299,6 +306,18 @@
 | 3 | AC-29 | F-007 | unresolved (advisory) | open | suggestion | Value validation is partial. task, est_lines and act_lines are unchecked, negative or fractional counts pass, and a runtime `undefined` value passes the presence check. | packages/accord-core/src/telemetry/stack-events.ts:14 |  |
 | 3 | AC-29 | F-008 | unresolved (advisory) | open | suggestion | StackEventLevel duplicates LogLevel minus 'silent'. | packages/accord-core/src/telemetry/stack-events.ts:3 |  |
 | 3 | AC-29 | F-009 | unresolved (advisory) | open | suggestion | The docs describe telemetry/ as 'Usage accounting', which is now stale. | docs/file-structure.md:26 |  |
+| 4 | AC-31 | F-002 | unresolved (advisory) | reraised | warning | The trigger and sha wiring is checked by substring presence only. Statuses can be posted to the merge sha, and either trigger can lack the main branch filter. | packages/accord-ci/tests/evidence-check-runner.test.ts:110 | reraised by T2/review-test — Unmet part of the Done-when: 'the status step's statuses/ URL uses that variable'. The test checks only that env contains the expression and bans only the literal `statuses/${{ github.sha }}`. `statuses/$GITHUB_SHA`, `${GITHUB_SHA}` and `${{github.sha}}` still pass, and so does `--head "$GITHUB_SHA"`. The other rows (trigger filters, no pull_request_target, fetch-depth 0, the base no-HEAD~1 check) are verified. |
+| 4 | AC-31 | F-011 | accepted (advisory) | wont_fix_accepted | suggestion | The tests pin the declarations (doc and log text). The tools that enforce AC-31 (validate:okf, validate:ste, check:biome) run outside the unit test. | packages/accord-ci/tests/evidence-check-runner.test.ts:106 | wont_fix_accepted by T2/review-test — Running validate:okf, validate:ste, check:biome and the grep checks belongs to phase-verify-task. The suite already asserts the parsed-YAML equivalents of the greps. |
+| 4 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Later tasks will break these tests. The registry length is pinned to 0, and the subprocess run uses fake shas ('1'x40 and '2'x40). When a later task registers a git-backed rule, both tests fail, and that task's phase-code cannot edit them. | packages/accord-ci/tests/evidence-check-runner.test.ts:200 |  |
+| 4 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | Only one argv validation case (--head missing) is tested. An implementation that validates only --head and defaults the others passes. | packages/accord-ci/tests/evidence-check-runner.test.ts:186 |  |
+| 4 | AC-31 | F-014 | unresolved (advisory) | open | warning | A05 — Security Misconfiguration: actions/checkout persists GITHUB_TOKEN (statuses: write) into .git/config before running PR-controlled code | .github/workflows/accord-evidence.yml:25 |  |
+| 4 | AC-31 | F-015 | unresolved (advisory) | open | suggestion | A03 — Injection: --base/--head accepted unvalidated; later rules will pass them to git (argument/option injection) | packages/accord-ci/src/evidence-check.ts:86 |  |
+| 4 | AC-31 | F-016 | unresolved (advisory) | open | suggestion | A08 — Software/Data Integrity: required check is self-attesting; PR-controlled workflow and runner decide their own accord/evidence status | .github/workflows/accord-evidence.yml:7 |  |
+| 4 | AC-31 | F-017 | unresolved (advisory) | open | suggestion | Supply chain — third-party action tag-pinned and toolchain unpinned in a job holding statuses: write | .github/workflows/accord-evidence.yml:30 |  |
+| 4 | AC-31 | F-018 | unresolved (advisory) | open | suggestion | Push base can be all-zero or unreachable, and the runner passes it to rules unchecked. | .github/workflows/accord-evidence.yml:24 |  |
+| 4 | AC-31 | F-019 | unresolved (advisory) | open | suggestion | Trigger filter can leave a stacked PR without the required status after its base changes. | .github/workflows/accord-evidence.yml:8 |  |
+| 4 | AC-31 | F-020 | unresolved (advisory) | open | suggestion | Job name and status context are both `accord/evidence`, and fork or Dependabot PRs get a read-only token. | .github/workflows/accord-evidence.yml:16 |  |
+| 4 | AC-31 | F-021 | unresolved (advisory) | open | suggestion | Multi-line rule messages break the one-line `accord/evidence: <rule>: <message>` format and the status description. | packages/accord-ci/src/evidence-check.ts:44 |  |
 
 ## Decisions
 
@@ -307,6 +326,8 @@ _None._
 ## Deviations
 
 - Task 2 (pending): layering.test.ts import-boundary tests pass without impl — accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations
+- Task 4 (pending): Added a test requiring an okf concept to list the evidence-check script or workflow as a source and mention accord/evidence. — F-005: the AC-31 clause 'update the affected okf/ concepts'. The natural file, okf/architecture/monorepo-packages.md, is not in task.files[]; the implementer must edit it, or another okf concept.
+- Task 4 (pending): Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files — Test requires an okf concept listing the evidence check as a source and describing accord/evidence
 
 ## Evidence by task
 
@@ -372,6 +393,26 @@ stack-telemetry.test.ts: 51 pass, 0 fail. bun test, check:types, validate:schema
 ```
 
 ### Task 4: [infra] accord/evidence check runner and workflow
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-ci/tests/evidence-check-runner.test.ts
+(fail) runEvidenceCheck > zero rules passes ... Error: not implemented: runEvidenceCheck
+(fail) commit-status payload > ... Error: not implemented
+(fail) workflow and docs declaration > ... ENOENT .github/workflows/accord-evidence.yml
+(fail) docs/ci/pre-merge-smoke.md documents the accord-evidence workflow: Expected to contain "accord-evidence"
+(fail) okf/log.md has an entry naming the accord-evidence workflow: Expected to contain "accord-evidence.yml"
+ 0 pass
+ 15 fail
+Ran 15 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+evidence-check-runner.test.ts: 26 pass, 0 fail. Preflight: bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime all exit 0; check:biome exit 1 (update-model-pricing.ts useOptionalChain; docs/dev/ASDLC-1/trace.json format). Workflow: fetch-depth: 0 at line 27; pull_request.head.sha at lines 37 and 44; only secrets.GITHUB_TOKEN referenced (line 43); no echo of the token.
+```
 
 ### Task 5: [commit-evidence] Commit grammar: Accord trailer build, parse, validate
 
