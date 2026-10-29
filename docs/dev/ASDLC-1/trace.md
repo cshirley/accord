@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T18:16:09.063Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T19:03:39.278Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -17,8 +17,8 @@
 | 8 | [commit-evidence] Evidence timeline from git trailers | done | `2a2e877` | 3/1/1 | 16 (verified 10, reraised 1, open 5) | 0 |
 | 9 | [commit-evidence] accord evidence CLI command | done | `831cf8e` | 1/1/1 | 11 (open 11) | 0 |
 | 10 | [commit-evidence] OKF docs and docs validation test | done | `cfb68a8` | 2/1/1 | 13 (verified 5, wont_fix_accepted 1, open 7) | 0 |
-| 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | done | — | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
-| 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | pending | — | 0/0/0 | 0 | 0 |
+| 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | done | `58b8d41` | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
+| 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | done | — | 2/1/1 | 24 (verified 14, open 10) | 0 |
 | 13 | [evidence-asset] Final evidence(task-<N>) commit | pending | — | 0/0/0 | 0 | 0 |
 | 14 | [evidence-asset] OKF docs for the evidence asset | pending | — | 0/0/0 | 0 | 0 |
 | 15 | [security-gate] review-security gating inside the C loop | pending | — | 0/0/0 | 0 | 0 |
@@ -125,19 +125,25 @@
 
 > Then it is evidence(task-<N>) (evidence(task-<N>,<M>) for a merged PR), writes docs/dev/<ID>/evidence/task-<N>.{md,json} per task from commits and trailers (red and green excerpts, findings, review-to-fix patches, pla…
 
-- Tasks: 12 (pending), 13 (pending)
+- Tasks: 12 (satisfied), 13 (pending)
+- Files: `packages/accord-core/tests/evidence-asset.test.ts`, `packages/accord-core/src/evidence/asset.ts`, `packages/accord-core/src/evidence/lines.ts`
+- Tests verified (2):
+  - evidence-asset.test.ts: ASDLC-1/AC-5 evidence asset content (ASDLC-1/TC-5) (json roll-up, md excerpts, merged PR one asset per task, byte-identical output, squash simulation, include_diffs)
+  - evidence-asset.test.ts: ASDLC-1/AC-5 measureActualLines (ASDLC-1/TC-5)
 
 ### AC-6 — pending (not verified)
 
 > Every AC or TC reference outside spec.json (evidence asset .md and .json, trace.json, the PR brief and the stack map) MUST be work-item-qualified as <work_item_id>/AC-<n>, never a bare AC-<n>, so it resolves once many…
 
-- Tasks: 11 (satisfied), 12 (pending), 27 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/src/artifacts/trace-artifact.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/src/queries/verify-summary.ts`
-- Tests verified (4):
+- Tasks: 11 (satisfied), 12 (satisfied), 27 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/src/artifacts/trace-artifact.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/src/queries/verify-summary.ts`, `packages/accord-core/tests/evidence-asset.test.ts`, `packages/accord-core/src/evidence/asset.ts`
+- Tests verified (6):
   - qualified-ac-refs.test.ts: ASDLC-1/AC-6 qualifyAcRef, qualifyTcRef, normalizeAcId, findBareAcRefs
   - ASDLC-1/AC-6 written trace.json is qualified and schema-valid
   - ASDLC-1/AC-26 bare/qualified verify-summary and renderAcTrace cases
   - trace-artifact.test.ts
+  - evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) every AC/TC reference in md and json is ASDLC-1/AC-<n>
+  - evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) a bare reference is detected
 
 ### AC-7 — pending (not verified)
 
@@ -442,6 +448,16 @@
 | 11 | AC-6 | F-014 | unresolved (advisory) | open | suggestion | OKF concept lists trace-artifact.ts and verify-summary.ts as sources but does not mention qualified ids in trace.json under stack.enabled; no okf/log.md entry found for this change. | okf/references/artifacts-and-state.md:39 |  |
 | 11 | AC-6 | F-015 | unresolved (advisory) | open | suggestion | Terse names and a redundant check in the qualification block. | packages/accord-core/src/artifacts/trace-artifact.ts:403 |  |
 | 11 | AC-30 | F-007 | accepted (advisory) | wont_fix_accepted | suggestion | Unit tests here cannot prove AC-30 enforcement, and TC-31 (alignment.test.ts) belongs to the stack-compute plan task, not this one. schemas/examples/trace.json has no qualified ac_id example, so validate:schemas never exercises the widened pattern. | packages/accord-core/tests/qualified-ac-refs.test.ts:1 | wont_fix_accepted by T2/review-test — Enforcement belongs to phase-verify-task (bun run validate:schemas && bun run validate:assets). TC-31 belongs to another task. schemas/examples/trace.json is not in task.files. |
+| 12 | AC-5 | F-015 | unresolved (advisory) | open | suggestion | Multi-round test cannot tell 'render every review-to-fix patch' from 'render only the last patch per loop'. The T2-review..T3-phase diff carries the line '+R2-FIX' as unified-diff context (' +R2-FIX'), so toContain("R2-FIX") holds even when the T1-review..T2-phase patch is dropped. | packages/accord-core/tests/evidence-asset.test.ts:457 |  |
+| 12 | AC-5 | F-016 | unresolved (advisory) | open | suggestion | The 'default cap' row never proves its seed renders more than 262144 bytes uncapped. An impl that shortens each excerpt (e.g. last 200 lines) and applies no cap when stack.state.max_bytes is unset (`if (cfg.stack?.state?.max_bytes) truncate(...)`) produces about 110 KB and passes, although the default should be 262144 from resolveStackConfig. | packages/accord-core/tests/evidence-asset.test.ts:806 |  |
+| 12 | AC-5 | F-017 | unresolved (advisory) | open | warning | Test-file classification uses a private globToRegExp with no brace support and no basename matching, so it misclassifies under the shipped default test pattern. | packages/accord-core/src/evidence/lines.ts:77 |  |
+| 12 | AC-5 | F-018 | unresolved (advisory) | open | warning | Review-to-fix patches are emitted for every review commit, including clean reviews, and pair it with the next non-review commit of any loop. | packages/accord-core/src/evidence/asset.ts:199 |  |
+| 12 | AC-5 | F-019 | unresolved (advisory) | open | warning | Git failures are swallowed, so the writer can commit a hollow evidence asset with no signal. | packages/accord-core/src/evidence/asset.ts:72 |  |
+| 12 | AC-5 | F-020 | unresolved (advisory) | open | warning | Red/green excerpts, test counts, responses and acs depend on trailer keys and commit bodies that the only in-repo producer never emits. | packages/accord-core/src/evidence/asset.ts:161 |  |
+| 12 | AC-5 | F-021 | unresolved (advisory) | open | suggestion | plan.json is read from the working tree while commits and review files come from git, so planned size can change on regeneration. | packages/accord-core/src/evidence/asset.ts:172 |  |
+| 12 | AC-5 | F-023 | unresolved (advisory) | open | suggestion | The excluded state/reviews/evidence paths are defined twice (PATCH_EXCLUDES here, STATE_PATH_RE in lines.ts) and ignore a configured stack.state.path. | packages/accord-core/src/evidence/asset.ts:53 |  |
+| 12 | AC-5 | F-024 | unresolved (advisory) | open | suggestion | Math.max(2, ...runs) spreads an unbounded array and can throw RangeError on large inputs. | packages/accord-core/src/evidence/asset.ts:116 |  |
+| 12 | AC-6 | F-022 | unresolved (advisory) | open | suggestion | BARE_REF and qualifyText duplicate the regex already in evidence/qualify-ac.ts, so the two can drift apart. | packages/accord-core/src/evidence/asset.ts:51 |  |
 
 ## Decisions
 
@@ -687,6 +703,31 @@ Full bun test: 2092 pass, 1 fail. The failure is 'ASDLC-1/AC-31 check:biome exit
 ```
 
 ### Task 12: [evidence-asset] Evidence asset writer (task-<N>.md and .json)
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-5 measureActualLines > an empty range measures zero
+error: not implemented: measureActualLines
+(fail) ASDLC-1/AC-6 qualified AC references > every AC/TC reference in md and json is ASDLC-1/AC-<n>
+error: not implemented: buildEvidenceAsset
+(fail) ASDLC-1/AC-12 redaction and size cap > masks seeded secrets, Bearer headers and home paths in md and json
+error: not implemented: buildEvidenceAsset
+(fail) ASDLC-1/AC-12 redaction and size cap > masks secrets in the written files too
+error: not implemented: writeEvidenceAssets
+(fail) ASDLC-1/AC-12 redaction and size cap > caps md and json at stack.state.max_bytes and keeps the json valid
+error: not implemented: buildEvidenceAsset
+
+ 1 pass
+ 14 fail
+Ran 15 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+evidence-asset.test.ts: 24 pass, 0 fail. check:types exit 0. Secret grep over packages/accord-core/tests: no match. biome on the task files (src/evidence, tests/evidence-asset.test.ts): clean. Repo-wide check:biome exit 1, on packages/accord-core/scripts/update-model-pricing.ts:84 (lint/complexity/useOptionalChain) and docs/dev/ASDLC-1/trace.json (format). Both are outside the task and unmodified in git status. Full bun test: 2116 pass, 1 fail (ASDLC-1/AC-31 check:biome exits 0), caused by the same biome failures. validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle and check:runtime all pass.
+```
 
 ### Task 13: [evidence-asset] Final evidence(task-<N>) commit
 
