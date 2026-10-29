@@ -119,7 +119,7 @@ Accord: v=1 id=ASDLC-1 task=2 seq=2 ref=T1/review-test agent=review-test loop=te
 | Verdicts (review commits) | `verified reraised dispute_upheld wont_fix_accepted waived` | Reviewer or human resolution of earlier findings; same lifecycle names |
 | IDs | `findings fixes` | Comma-separated `F-nnn` IDs |
 | Tests | `t_pass t_fail t_skip t_ms red` | `red` is `assertion`, `import`, or `compile` |
-| Criteria | `ac ac_pass ac_fail` | `ac` is the covered list; the counts are on verify commits |
+| Criteria | `ac ac_pass ac_fail` | `ac` is the covered list (bare `AC-<n>`: the same trailer carries `id=`); the counts are on verify commits |
 | Diff | `files add_src del_src add_test del_test` | Measured from the staged diff |
 | Model | `harness model spawns` | Backend (`pi`, `claude`, `exec`), model id, number of spawns summed into this commit |
 | Tokens | `tok_in tok_out tok_cache_r tok_cache_w` | Integers, summed over all spawns since the previous commit |
@@ -238,9 +238,11 @@ changes:                        # newest first
 
 The body holds behaviour, key decisions with reasons (ADR style), constraints, and non-goals. `acs` and `anchors` are the machine-readable part.
 
+**AC identity.** AC ids are local to the work item (`AC-1` restarts in every spec). Outside `spec.json` every reference is work-item-qualified, `<ID>/AC-<n>` (`ASDLC-1/AC-3`): test names (as `phase-test` already does), the evidence asset, `trace.json`, the PR brief and the stack map. Each `spec.json` AC may carry an optional `feature` slug. At closeout the harness records the mapping `<ID>/AC-<n>` to the feature AC id (`commit-evidence.AC2`) in the feature doc, and `acs[].tests` lists the tests that carry the qualified id. The feature slug is not put in test names, because features are renamed and split while tests rarely move; the feature doc is the index (`accord feature find`).
+
 **Links into the stack**
 - **Contract (PR0)**: `spec.json` gains `features[]` with a relation (`new`, `extends`, `modifies`, `deprecates`, `depends_on`) and a delta against feature AC IDs.
-- **Closeout PR**: applies the delta to the feature docs and appends `changes[]`. The knowledge update is a reviewable diff. The mapping from work-item AC IDs to feature AC IDs is recorded here.
+- **Closeout PR**: applies the delta to the feature docs and appends `changes[]`. The knowledge update is a reviewable diff. The mapping from work-item AC IDs to feature AC IDs is recorded here (see AC identity below).
 - **Evidence**: feature docs link to `docs/dev/<ID>/evidence/task-<N>.*`; they do not copy it.
 
 ### 3.2d Cross-referencing new against old
