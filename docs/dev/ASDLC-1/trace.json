@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T18:16:09.063Z",
+  "generated_at": "2026-10-29T19:03:39.278Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -1084,7 +1084,9 @@
       "id": 11,
       "title": "[evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "58b8d41"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -1191,39 +1193,102 @@
     {
       "id": 12,
       "title": "[evidence-asset] Evidence asset writer (task-<N>.md and .json)",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 24,
+        "by_state": {
+          "verified": 14,
+          "open": 10
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-5 measureActualLines > an empty range measures zero\nerror: not implemented: measureActualLines\n(fail) ASDLC-1/AC-6 qualified AC references > every AC/TC reference in md and json is ASDLC-1/AC-<n>\nerror: not implemented: buildEvidenceAsset\n(fail) ASDLC-1/AC-12 redaction and size cap > masks seeded secrets, Bearer headers and home paths in md and json\nerror: not implemented: buildEvidenceAsset\n(fail) ASDLC-1/AC-12 redaction and size cap > masks secrets in the written files too\nerror: not implemented: writeEvidenceAssets\n(fail) ASDLC-1/AC-12 redaction and size cap > caps md and json at stack.state.max_bytes and keeps the json valid\nerror: not implemented: buildEvidenceAsset\n\n 1 pass\n 14 fail\nRan 15 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "evidence-asset.test.ts: 24 pass, 0 fail. check:types exit 0. Secret grep over packages/accord-core/tests: no match. biome on the task files (src/evidence, tests/evidence-asset.test.ts): clean. Repo-wide check:biome exit 1, on packages/accord-core/scripts/update-model-pricing.ts:84 (lint/complexity/useOptionalChain) and docs/dev/ASDLC-1/trace.json (format). Both are outside the task and unmodified in git status. Full bun test: 2116 pass, 1 fail (ASDLC-1/AC-31 check:biome exits 0), caused by the same biome failures. validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle and check:runtime all pass.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-5",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/evidence-asset.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/asset.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/lines.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/asset.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/lines.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/evidence-asset.test.ts"
+          }
         },
         {
           "id": "AC-6",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/evidence-asset.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/asset.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/asset.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/evidence-asset.test.ts"
+          }
         }
       ]
     },
@@ -2944,15 +3009,22 @@
       "tasks": [
         {
           "task": 12,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 13,
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/evidence-asset.test.ts",
+        "packages/accord-core/src/evidence/asset.ts",
+        "packages/accord-core/src/evidence/lines.ts"
+      ],
+      "tests": [
+        "evidence-asset.test.ts: ASDLC-1/AC-5 evidence asset content (ASDLC-1/TC-5) (json roll-up, md excerpts, merged PR one asset per task, byte-identical output, squash simulation, include_diffs)",
+        "evidence-asset.test.ts: ASDLC-1/AC-5 measureActualLines (ASDLC-1/TC-5)"
+      ],
       "verified": false
     },
     {
@@ -2966,7 +3038,7 @@
         },
         {
           "task": 12,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 27,
@@ -2978,13 +3050,17 @@
         "packages/accord-core/src/evidence/qualify-ac.ts",
         "packages/accord-core/src/artifacts/trace-artifact.ts",
         "packages/accord-core/schemas/trace-schema.json",
-        "packages/accord-core/src/queries/verify-summary.ts"
+        "packages/accord-core/src/queries/verify-summary.ts",
+        "packages/accord-core/tests/evidence-asset.test.ts",
+        "packages/accord-core/src/evidence/asset.ts"
       ],
       "tests": [
         "qualified-ac-refs.test.ts: ASDLC-1/AC-6 qualifyAcRef, qualifyTcRef, normalizeAcId, findBareAcRefs",
         "ASDLC-1/AC-6 written trace.json is qualified and schema-valid",
         "ASDLC-1/AC-26 bare/qualified verify-summary and renderAcTrace cases",
-        "trace-artifact.test.ts"
+        "trace-artifact.test.ts",
+        "evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) every AC/TC reference in md and json is ASDLC-1/AC-<n>",
+        "evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) a bare reference is detected"
       ],
       "verified": false
     },
@@ -4922,6 +4998,136 @@
         "outcome": "wont_fix_accepted",
         "note": "Enforcement belongs to phase-verify-task (bun run validate:schemas && bun run validate:assets). TC-31 belongs to another task. schemas/examples/trace.json is not in task.files."
       }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Multi-round test cannot tell 'render every review-to-fix patch' from 'render only the last patch per loop'. The T2-review..T3-phase diff carries the line '+R2-FIX' as unified-diff context (' +R2-FIX'), so toContain(\"R2-FIX\") holds even when the T1-review..T2-phase patch is dropped.",
+      "file": "packages/accord-core/tests/evidence-asset.test.ts",
+      "line": 457,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The 'default cap' row never proves its seed renders more than 262144 bytes uncapped. An impl that shortens each excerpt (e.g. last 200 lines) and applies no cap when stack.state.max_bytes is unset (`if (cfg.stack?.state?.max_bytes) truncate(...)`) produces about 110 KB and passes, although the default should be 262144 from resolveStackConfig.",
+      "file": "packages/accord-core/tests/evidence-asset.test.ts",
+      "line": 806,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Test-file classification uses a private globToRegExp with no brace support and no basename matching, so it misclassifies under the shipped default test pattern.",
+      "file": "packages/accord-core/src/evidence/lines.ts",
+      "line": 77,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Review-to-fix patches are emitted for every review commit, including clean reviews, and pair it with the next non-review commit of any loop.",
+      "file": "packages/accord-core/src/evidence/asset.ts",
+      "line": 199,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Git failures are swallowed, so the writer can commit a hollow evidence asset with no signal.",
+      "file": "packages/accord-core/src/evidence/asset.ts",
+      "line": 72,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Red/green excerpts, test counts, responses and acs depend on trailer keys and commit bodies that the only in-repo producer never emits.",
+      "file": "packages/accord-core/src/evidence/asset.ts",
+      "line": 161,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "plan.json is read from the working tree while commits and review files come from git, so planned size can change on regeneration.",
+      "file": "packages/accord-core/src/evidence/asset.ts",
+      "line": 172,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The excluded state/reviews/evidence paths are defined twice (PATCH_EXCLUDES here, STATE_PATH_RE in lines.ts) and ignore a configured stack.state.path.",
+      "file": "packages/accord-core/src/evidence/asset.ts",
+      "line": 53,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-5",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Math.max(2, ...runs) spreads an unbounded array and can throw RangeError on large inputs.",
+      "file": "packages/accord-core/src/evidence/asset.ts",
+      "line": 116,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 12,
+      "requirement": "AC-6",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "BARE_REF and qualifyText duplicate the regex already in evidence/qualify-ac.ts, so the two can drift apart.",
+      "file": "packages/accord-core/src/evidence/asset.ts",
+      "line": 51,
+      "raised": "C1/review-code"
     }
   ]
 }
