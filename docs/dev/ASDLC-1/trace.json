@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T13:16:52.088Z",
+  "generated_at": "2026-10-29T13:26:19.969Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -95,7 +95,9 @@
       "id": 2,
       "title": "[infra] Temp git repo, fake gh helpers and import-boundary test",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "a018167"
+      ],
       "rounds": {
         "T": 4,
         "C": 4,
@@ -192,12 +194,12 @@
     {
       "id": 3,
       "title": "[telemetry] Stack event catalogue and emitter on the shared logger",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 1,
+        "C": 1,
+        "V": 1
       },
       "retries": {
         "test_review": 0,
@@ -207,18 +209,49 @@
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 9,
+        "by_state": {
+          "open": 9
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-29 stack telemetry (ASDLC-1/TC-30) > default shared logger (stderr) > ASDLC-1/AC-29 debug snapshot is silent at default error level, error alert is not\nerror: not implemented: emitStackEvent\n\n 0 pass\n 51 fail\n 43 expect() calls\nRan 51 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "stack-telemetry.test.ts: 51 pass, 0 fail. bun test, check:types, validate:schemas/assets/okf/ste, check:bundle, check:runtime exit 0. biome on task files: clean. Repo-wide check:biome exit 1 (lint in a file the preflight output didn't name, trace.json format), outside task scope.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-29",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-telemetry.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/telemetry/stack-events.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/telemetry/stack-events.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 8,
+            "command": "bun test packages/accord-core/tests/stack-telemetry.test.ts"
+          }
         }
       ]
     },
@@ -2697,7 +2730,7 @@
       "tasks": [
         {
           "task": 3,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 6,
@@ -2720,8 +2753,20 @@
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/stack-telemetry.test.ts",
+        "packages/accord-core/src/telemetry/stack-events.ts"
+      ],
+      "tests": [
+        "packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields",
+        "ASDLC-1/AC-29 <event> catalogue entry declares exact level and fields",
+        "ASDLC-1/AC-29 <event> rejects an unknown field",
+        "ASDLC-1/AC-29 <event> rejects missing field <field>",
+        "ASDLC-1/AC-29 rejects non-numeric <key>=<value>",
+        "ASDLC-1/AC-29 emits through createLogger('stack') at debug level",
+        "bun run check:types",
+        "bunx biome check (task files)"
+      ],
       "verified": false
     },
     {
@@ -3068,6 +3113,123 @@
       "file": "packages/accord-core/tests/helpers/temp-git-repo.ts",
       "line": 37,
       "raised": "C4/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-001",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Unknown-field and missing-field tests only change the number of fields. A rename that keeps the same count, with one declared field swapped for an undeclared one, is never tested. 'Exactly the declared field names' is therefore not enforced.",
+      "file": "packages/accord-core/tests/stack-telemetry.test.ts",
+      "line": 65,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-002",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The counts-only test for stack.state.snapshot only tries string values. Numbers that are not valid counts are not rejected.",
+      "file": "packages/accord-core/tests/stack-telemetry.test.ts",
+      "line": 101,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-003",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Values are written into `key=value` with no escaping. A string field holding whitespace or a newline (stack.guard.rejected path, stack.commit.created ref) gives a log line that is ambiguous or forged. No test pins single-line output.",
+      "file": "packages/accord-core/tests/stack-telemetry.test.ts",
+      "line": 53,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-004",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-29 is architectural: events must go through the shared logging.ts. The console.error spy checks the format, but a deliberately bad emitter could write `[accord:stack:<level>]` directly and copy the getLogLevel() threshold.",
+      "file": "packages/accord-core/tests/stack-telemetry.test.ts",
+      "line": 135,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-005",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Values are interpolated raw, so a value containing whitespace, '=' or a newline makes the `key=value` line ambiguous or lets it split across lines.",
+      "file": "packages/accord-core/src/telemetry/stack-events.ts",
+      "line": 63,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-006",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`event` is a plain `string` and the field map is untyped, so a typo or wrong field at a call site is caught only at runtime. The emitter then throws, which could abort the commit or guard path it instruments.",
+      "file": "packages/accord-core/src/telemetry/stack-events.ts",
+      "line": 41,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Value validation is partial. task, est_lines and act_lines are unchecked, negative or fractional counts pass, and a runtime `undefined` value passes the presence check.",
+      "file": "packages/accord-core/src/telemetry/stack-events.ts",
+      "line": 14,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "StackEventLevel duplicates LogLevel minus 'silent'.",
+      "file": "packages/accord-core/src/telemetry/stack-events.ts",
+      "line": 3,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 3,
+      "requirement": "AC-29",
+      "finding_id": "F-009",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The docs describe telemetry/ as 'Usage accounting', which is now stale.",
+      "file": "docs/file-structure.md",
+      "line": 26,
+      "raised": "C1/review-code"
     }
   ]
 }
