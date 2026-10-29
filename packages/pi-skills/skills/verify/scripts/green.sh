@@ -188,7 +188,7 @@ case "$cmd" in
         exit 1
       fi
       if [[ "$((10#$open_critical))" -gt 0 && -z "$(field accepted)" ]]; then
-        echo "blocked: last review left $open_critical open Critical finding(s); fix them and re-review, or record the user's acceptance: green.sh mark review --source <local|branch> --critical $open_critical --accepted '<reason, single-quoted>'" >&2
+        echo "blocked: last review left $open_critical open Critical finding(s); fix them and re-review, or record the user's acceptance: green.sh mark review --source <local|branch> --critical $open_critical --accepted '<reason>' (single quotes; write an embedded ' as '\\''; never double quotes)" >&2
         exit 1
       fi
       review_source="$(field source)"

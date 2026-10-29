@@ -108,6 +108,20 @@ describe("worktree/scripts/wt-guard.sh", () => {
     expect(newline.out).toContain("newline");
   });
 
+  test("newlines in directory names and link targets fail closed", () => {
+    // A directory literally named "d\n" holding a link out of the root, and a link that points at it.
+    const odd = join(linked, "d\n");
+    mkdirSync(odd);
+    symlinkSync(repo, join(odd, "x"));
+    symlinkSync(`${odd}/x`, join(linked, "evil"));
+    for (const target of [join(linked, "evil", "README.md"), join(odd, "x", "README.md")]) {
+      const result = sh(repo, [script, "inside", linked, target]);
+      expect([target, result.code]).toEqual([target, 1]);
+    }
+    const viaLink = sh(repo, [script, "inside", linked, join(linked, "evil", "README.md")]);
+    expect(viaLink.out).toMatch(/newline/);
+  });
+
   test("a chain within the budget resolves; one ending outside the root is outside", () => {
     writeFileSync(join(repo, "outside.txt"), "x");
     symlinkSync(join(repo, "outside.txt"), join(linked, "o25"));

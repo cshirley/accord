@@ -151,6 +151,39 @@ describe("doc-verify.py", () => {
     }
   });
 
+  test("a document passed through a symlinked parent resolves links inside the repo", () => {
+    mkdirSync(join(dir, "docs"));
+    writeFileSync(join(dir, "docs", "b.md"), "# B\n\n## Part\n");
+    writeFileSync(
+      join(dir, "docs", "a.md"),
+      "# A [verified]\n\n[ok](b.md) [anchor](b.md#part) [self](#a-verified)\n",
+    );
+    const alias = `${dir}-alias`;
+    symlinkSync(dir, alias);
+    try {
+      const result = run(dir, [join(alias, "docs", "a.md")]);
+      expect(result.findings).toEqual([]);
+      expect(result.code).toBe(0);
+    } finally {
+      rmSync(alias, { force: true });
+    }
+  });
+
+  test("without a repo, a cwd that does not contain the document falls back to the document's directory", () => {
+    const plain = realpathSync(mkdtempSync(join(tmpdir(), "docv-cwd-")));
+    const elsewhere = realpathSync(mkdtempSync(join(tmpdir(), "docv-elsewhere-")));
+    try {
+      writeFileSync(join(plain, "b.md"), "# B [verified]\n");
+      writeFileSync(join(plain, "a.md"), "# A [verified]\n\n[ok](b.md) [up](../x.md)\n");
+      const result = run(elsewhere, [join(plain, "a.md")], { GIT_CEILING_DIRECTORIES: plain });
+      expect(result.findings.map((f) => f.code)).toEqual(["link-outside-repo"]);
+      expect(result.findings[0].message).toContain(plain);
+    } finally {
+      rmSync(plain, { recursive: true, force: true });
+      rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+
   test("without a git repo links are bounded by the current directory", () => {
     const plain = realpathSync(mkdtempSync(join(tmpdir(), "docv-norepo-")));
     try {
@@ -457,6 +490,25 @@ describe("doc-verify.py", () => {
       expect(result.code).toBe(1);
       expect(codes(result.findings)).toContain("mermaid-syntax");
       expect(codes(result.findings)).not.toContain("mermaid-unavailable");
+    });
+
+    test("Node warnings before the real environment error are skipped", () => {
+      writeFileSync(join(dir, "a.md"), block);
+      const env = withFakeMmdc(
+        'printf "(node:1234) [DEP0040] DeprecationWarning: The punycode module is deprecated.\\n(Use `node --trace-warnings ...` to show where the warning was created)\\nError: Could not find Chrome (ver. 131)\\n" >&2; exit 1',
+      );
+      const result = run(dir, ["a.md"], env);
+      expect(result.code).toBe(0);
+      expect(codes(result.findings)).toContain("mermaid-unavailable");
+    });
+
+    test("a parse error wins over environment-looking words after it", () => {
+      writeFileSync(join(dir, "a.md"), block);
+      const env = withFakeMmdc(
+        'printf "Error: Parse error on line 2:\\n... Failed to launch ...\\n" >&2; exit 1',
+      );
+      const result = run(dir, ["a.md"], env);
+      expect(codes(result.findings)).toContain("mermaid-syntax");
     });
 
     test("mmdc exiting 127 is an environment warning whatever it prints", () => {

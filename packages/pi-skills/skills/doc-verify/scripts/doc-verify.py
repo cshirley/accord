@@ -14,8 +14,10 @@ Checks (code: level):
     with --allow-repo (error). Front matter is untrusted input, so it cannot pick any directory.
   verified-paths-empty: `verified-paths` is set but yields no paths, so staleness cannot be checked
   verified-paths-unchecked: `git diff` failed for the listed paths (for example a malformed pathspec)
-  link-outside-repo: a relative link resolves outside the repo root, or the current directory
-    when there is no repo, the current directory (warning; the target is neither probed nor opened)
+  link-outside-repo: a relative link resolves outside the boundary: the repo root, or without a
+    repo the current directory (or the document's directory when the current directory is `/`, the
+    home directory, or does not contain the document). Warning; the target is neither probed nor
+    opened.
   stale-evidence: files listed in `verified-paths` changed since `verified-against` (error)
   unconfirmed-assumptions: [assumed] tags remain (warning)
   no-provenance-tags: no [verified]/[inferred]/[assumed] tags (info)
@@ -194,9 +196,21 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
     with open(path, encoding="utf-8", errors="replace") as handle:
         lines = handle.read().split("\n")
 
-    directory = os.path.dirname(os.path.abspath(path))
+    # Resolve the document's own path physically once: git reports a physical repo root, so a
+    # logical path (for example /tmp/... on macOS, /private/tmp/...) would otherwise look outside.
+    real_path = os.path.realpath(os.path.abspath(path))
+    directory = os.path.dirname(real_path)
     root = repo_override or repo_root(directory)
     front, body_start = parse_front_matter(lines)
+
+    # Link boundary: the repo root; without a repo, the current directory when it contains the
+    # document and is not `/` or the home directory (a boundary that wide checks nothing),
+    # otherwise the document's own directory.
+    boundary = root
+    if boundary is None:
+        cwd = os.path.realpath(os.getcwd())
+        too_wide = cwd in (os.sep, os.path.realpath(os.path.expanduser("~")))
+        boundary = cwd if (not too_wide and inside(cwd, directory)) else directory
 
     for key in ("date", "created", "updated"):
         value = front.get(key, "")
@@ -280,20 +294,20 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
             if file_part == "" and not fragment:
                 continue
             if file_part == "":
-                resolved = os.path.abspath(path)
+                resolved = real_path
             elif file_part.startswith("/"):
                 resolved = os.path.join(root or directory, file_part.lstrip("/"))
             else:
                 resolved = os.path.normpath(os.path.join(directory, file_part))
             # Targets outside the boundary (repo root, else the document's own directory) are
             # reported without touching the filesystem: no existence probing, no file opened.
-            if not inside(root or os.getcwd(), resolved):
-                add(offset, "warning", "link-outside-repo", f"{target} resolves outside the repo root; the link breaks when the document moves and was not checked")
+            if not inside(boundary, resolved):
+                add(offset, "warning", "link-outside-repo", f"{target} resolves outside {boundary}; the link breaks when the document moves and was not checked")
             elif not os.path.exists(resolved):
                 add(offset, "error", "broken-link", f"{target} does not exist")
             elif fragment and resolved.lower().endswith(".md"):
-                slugs = own_slugs if resolved == os.path.abspath(path) and own_slugs else heading_slugs(resolved)
-                if resolved == os.path.abspath(path):
+                slugs = own_slugs if resolved == real_path and own_slugs else heading_slugs(resolved)
+                if resolved == real_path:
                     own_slugs = slugs
                 if slugify(fragment.replace("-", " ")) not in slugs and fragment.lower() not in slugs:
                     add(offset, "warning", "broken-anchor", f"#{fragment} is not a heading in {os.path.relpath(resolved, directory)}")
@@ -331,12 +345,20 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                         continue
                     if proc.returncode != 0:
                         detail = (proc.stderr or proc.stdout).strip()
-                        first = detail.split("\n")[0][:200]
-                        # Classify on the exit status and the first line only: mmdc echoes the
-                        # diagram source after its message, so a diagram that merely contains a
-                        # word such as "env:" or "Browser" must not turn a syntax error into
-                        # an environment warning.
-                        if proc.returncode in (126, 127) or re.search(r"puppeteer|chrom|sandbox|ENOENT|browser process|Failed to launch|command not found|No such file", first, re.I):
+                        # Skip Node warning and stack noise, then classify on the first few lines
+                        # only: mmdc echoes the diagram source after its message, so a diagram
+                        # that merely contains a word such as "env:" or "Browser" must not turn
+                        # a syntax error into an environment warning.
+                        useful = [
+                            line
+                            for line in detail.split("\n")
+                            if line.strip() and not re.match(r"^\(node:\d+\)|^\(Use `node|^node:internal|^\s+at |^Node\.js v", line)
+                        ]
+                        head = "\n".join(useful[:3])
+                        first = (useful[0] if useful else "mmdc failed")[:200]
+                        parse_marker = re.search(r"parse error|lexical error|syntax error|UnknownDiagramError", head, re.I)
+                        env_marker = re.search(r"puppeteer|chrom|sandbox|ENOENT|browser process|Failed to launch|command not found|No such file|Cannot find module", head, re.I)
+                        if not parse_marker and (proc.returncode in (126, 127) or env_marker):
                             add(start, "warning", "mermaid-unavailable", f"mmdc could not run: {first}")
                         else:
                             add(start, "error", "mermaid-syntax", first or "mmdc failed")

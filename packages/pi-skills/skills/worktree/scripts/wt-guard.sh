@@ -41,18 +41,30 @@ abspath() {
         echo "wt-guard: too many levels of symbolic links: $1" >&2
         return 1
       fi
-      target="$(readlink "$candidate")" || {
+      # `$(...)` strips trailing newlines, so append a sentinel to keep a newline in a link target.
+      target="$(readlink "$candidate" && printf x)" || {
         echo "wt-guard: cannot read link $candidate" >&2
         return 1
       }
+      target="${target%x}"
+      target="${target%$'\n'}"
+      if [[ -z "$target" || "$target" == *$'\n'* ]]; then
+        echo "wt-guard: link target is empty or contains a newline: $candidate" >&2
+        return 1
+      fi
       if [[ "$target" == /* ]]; then current=""; fi
       rest="$target/$rest"
     elif [[ -d "$candidate" ]]; then
-      current="$(cd "$candidate" && pwd -P)" || {
+      current="$(cd "$candidate" && pwd -P && printf x)" || {
         echo "wt-guard: cannot enter directory $candidate" >&2
         return 1
       }
-      [[ -n "$current" ]] || return 1
+      current="${current%x}"
+      current="${current%$'\n'}"
+      if [[ -z "$current" || "$current" == *$'\n'* ]]; then
+        echo "wt-guard: directory name contains a newline or is empty: $candidate" >&2
+        return 1
+      fi
     else
       current="$candidate"
     fi
