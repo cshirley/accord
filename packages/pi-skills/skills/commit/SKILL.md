@@ -33,10 +33,17 @@ Decisions:
 
 Test areas:
 - What could break, edge cases to verify
+
+Verification: (only when the gate was skipped — reason)
 ```
 
 ## Process
 
+0. **Verify gate.** Run `../verify/scripts/green.sh check` (path relative to this skill; same worktree as the commit).
+   - Exit 0: continue.
+   - Exit 1 or 2 (edits since last green verify, or none recorded): run the `verify` skill, then continue. Do not commit unverified work.
+   - Exit 3 (not a git repo): skip.
+   - **Skip only** when the user explicitly says so (docs-only change, WIP checkpoint, verify not applicable). Put the reason in the commit body under `Verification:`.
 1. Call `git_commit_context` — gathers status, diff, log, branch, secrets, artifacts, ticket in one call
 2. Review response:
    - **secretWarnings** non-empty → warn user
@@ -60,6 +67,8 @@ Test areas:
 - Focus on info not obvious from the diff
 - Never amend unless user explicitly asks
 - Confirm before `git_commit_execute` only in the cases listed in step 4
+- Never commit when the verify gate fails without an explicit user-approved skip
+- Gate only: this skill does not add trailers or change the subject format; commit grammar is owned by the evidence-stack work (ASDLC-1 `commit-evidence`)
 
 ## Example
 

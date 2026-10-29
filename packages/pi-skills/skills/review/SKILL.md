@@ -190,6 +190,13 @@ Address **Critical** first, then warnings. Agent `findings[]` order is advisory;
 
 **Agent failures** (`exitCode !== 0`, parse errors): treat that agent as incomplete; do not assume “clean” for that dimension. Re-spawn failed agent or narrow scope if user asks.
 
+### Record the review
+
+When **every** reviewer agent completed (no agent failures), run `../verify/scripts/green.sh mark review`
+(same worktree as the diff). This stores a fingerprint of the reviewed working tree; the `pr` skill
+checks it. Mark even when findings exist: the mark means "reviewed", not "clean". Severity handling
+stays as above. Do not mark when an agent failed. After fixes, run `/review` again to refresh the mark.
+
 ### Suggested next steps (do not auto-run)
 
 1. Fix findings → stage if pre-commit → `/review` again (confirm `source` still matches intent).
