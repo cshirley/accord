@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -55,6 +55,60 @@ describe("worktree/scripts/wt-guard.sh", () => {
     expect(sh(repo, [script, "inside", linked, `${linked}-other/x`]).code).toBe(1);
   });
 
+  test("inside resolves .. even through directories that do not exist", () => {
+    const cases: Array<[string, number]> = [
+      [`${linked}/../../README.md`, 1],
+      [`${linked}/newdir/../../x`, 1],
+      [`${linked}/src/../a.ts`, 0],
+      [`${linked}/./src/./a.ts`, 0],
+      [`${linked}/..`, 1],
+    ];
+    for (const [target, code] of cases) {
+      expect([target, sh(repo, [script, "inside", linked, target]).code]).toEqual([target, code]);
+    }
+  });
+
+  test("inside resolves relative paths against the cwd", () => {
+    expect(sh(linked, [script, "inside", linked, "src/x.ts"]).code).toBe(0);
+    expect(sh(repo, [script, "inside", linked, "README.md"]).code).toBe(1);
+    expect(sh(linked, [script, "inside", linked, "../../README.md"]).code).toBe(1);
+  });
+
+  test("inside follows symlinks: a link to the main checkout is outside", () => {
+    writeFileSync(join(repo, "outside.txt"), "x");
+    symlinkSync(join(repo, "outside.txt"), join(linked, "link-to-file"));
+    symlinkSync(repo, join(linked, "link-to-dir"));
+    symlinkSync(join(linked, "inner"), join(linked, "link-inside"));
+    mkdirSync(join(linked, "inner"));
+    expect(sh(repo, [script, "inside", linked, join(linked, "link-to-file")]).code).toBe(1);
+    expect(sh(repo, [script, "inside", linked, join(linked, "link-to-dir", "x")]).code).toBe(1);
+    expect(sh(repo, [script, "inside", linked, join(linked, "link-inside", "f")]).code).toBe(0);
+  });
+
+  test("find prints the full path when the worktree directory contains a space", () => {
+    const spaced = join(repo, ".worktrees", "My Project");
+    sh(repo, ["git", "worktree", "add", "-q", "-b", "wt/spaced", spaced]);
+    const result = sh(repo, [script, "find", "wt/spaced"]);
+    expect(result.code).toBe(0);
+    expect(result.out.trim()).toBe(spaced);
+  });
+
+  test("find matches a branch-only query and lists every match", () => {
+    const other = join(repo, ".worktrees", "other");
+    sh(repo, ["git", "worktree", "add", "-q", "-b", "feature/ABC-2", other]);
+    expect(sh(repo, [script, "find", "ABC-2"]).out.trim()).toBe(other);
+    sh(repo, [
+      "git",
+      "worktree",
+      "add",
+      "-q",
+      "-b",
+      "wt/STEP-10",
+      join(repo, ".worktrees", "STEP-10"),
+    ]);
+    expect(sh(repo, [script, "find", "STEP-1"]).out.trim().split("\n").length).toBe(2);
+  });
+
   test("find matches by path or branch", () => {
     const byPath = sh(repo, [script, "find", "STEP-1"]);
     expect(byPath.code).toBe(0);
@@ -65,7 +119,14 @@ describe("worktree/scripts/wt-guard.sh", () => {
   test("outside a git repo exits 3; bad usage exits 64", () => {
     const plain = realpathSync(mkdtempSync(join(tmpdir(), "plain-")));
     try {
-      expect(sh(plain, [script, "where"]).code).toBe(3);
+      const env = { ...process.env, GIT_CEILING_DIRECTORIES: plain };
+      const proc = Bun.spawnSync([script, "where"], {
+        cwd: plain,
+        env,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(proc.exitCode).toBe(3);
     } finally {
       rmSync(plain, { recursive: true, force: true });
     }
