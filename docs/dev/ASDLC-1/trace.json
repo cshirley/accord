@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T13:58:47.332Z",
+  "generated_at": "2026-10-29T14:26:03.423Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -273,7 +273,9 @@
       "id": 4,
       "title": "[infra] accord/evidence check runner and workflow",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "fd02108"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -359,33 +361,75 @@
     {
       "id": 5,
       "title": "[commit-evidence] Commit grammar: Accord trailer build, parse, validate",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 13,
+        "by_state": {
+          "verified": 10,
+          "open": 3
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-2 subject > ASDLC-1/AC-2 parseSubject rejects \"random subject\"\nerror: not implemented: parseSubject\n(fail) ASDLC-1/AC-2 documented awk extraction over git log > awk extraction equals awk-extract.golden.txt and parseAccordTrailer sums\nerror: not implemented: buildCommitMessage\n\n 1 pass\n 68 fail\n 8 expect() calls\nRan 69 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "commit-grammar.test.ts: 512 pass, 0 fail. bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime all exit 0. check:biome exit 1: docs/dev/ASDLC-1/trace.json formatter diff (commits arrays). biome on task files: Checked 2 files, no fixes.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-2",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/commit-grammar.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/tests/fixtures/commit-grammar/messages.golden.txt",
+              "action": "add",
+              "kind": "fixture"
+            },
+            {
+              "file": "packages/accord-core/tests/fixtures/commit-grammar/awk-extract.golden.txt",
+              "action": "add",
+              "kind": "fixture"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-grammar.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-grammar.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 8,
+            "command": "bun test packages/accord-core/tests/commit-grammar.test.ts; bun run check:types"
+          }
         }
       ]
     },
@@ -2277,16 +2321,30 @@
     {
       "ac_id": "AC-2",
       "text": "Then it is one line of key=value pairs, required keys are present, counts equal the staged findings and tests, unknown x_ keys are ignored, and the documented awk extraction over git log returns the same values",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 5,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-core/tests/commit-grammar.test.ts",
+        "packages/accord-core/tests/fixtures/commit-grammar/messages.golden.txt",
+        "packages/accord-core/tests/fixtures/commit-grammar/awk-extract.golden.txt",
+        "packages/accord-core/src/commit/commit-grammar.ts"
+      ],
+      "tests": [
+        "commit-grammar.test.ts: 512 pass, 0 fail",
+        "ASDLC-1/AC-2 buildCommitMessage equals golden",
+        "ASDLC-1/AC-2 parseAccordTrailer round-trips golden",
+        "ASDLC-1/AC-2 missing required key fails validation",
+        "ASDLC-1/AC-2 crit+warn+sugg vs staged findings",
+        "ASDLC-1/AC-2 t_pass/t_fail vs recorded tests",
+        "ASDLC-1/AC-2 unknown x_ keys are ignored by validation and by counts",
+        "ASDLC-1/AC-2 awk extraction equals awk-extract.golden.txt and parseAccordTrailer sums"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-3",
@@ -3476,6 +3534,45 @@
       "issue": "Multi-line rule messages break the one-line `accord/evidence: <rule>: <message>` format and the status description.",
       "file": "packages/accord-ci/src/evidence-check.ts",
       "line": 44,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 5,
+      "requirement": "AC-2",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "parseAccordTrailer takes the first 'Accord: ' line anywhere in the message; git's documented extraction reads only the final trailer block.",
+      "file": "packages/accord-core/src/commit/commit-grammar.ts",
+      "line": 212,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 5,
+      "requirement": "AC-2",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Parser accepts duplicate keys (last wins) and any digit string for integer keys, so a trailer can parse to different counts than a single-pass reader would see.",
+      "file": "packages/accord-core/src/commit/commit-grammar.ts",
+      "line": 224,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 5,
+      "requirement": "AC-2",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Single-letter callback parameter `l`; also INTEGER_KEYS and KEY_ORDER repeat the same ~40 names in two hand-kept lists.",
+      "file": "packages/accord-core/src/commit/commit-grammar.ts",
+      "line": 195,
       "raised": "C1/review-code"
     }
   ]
