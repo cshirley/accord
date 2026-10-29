@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T14:26:03.423Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T15:11:48.940Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -11,8 +11,8 @@
 | 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | `a018167` | 4/4/1 | 21 (verified 15, wont_fix_accepted 1, waived 2, open 3) | 0 |
 | 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | `fcd446c` | 1/1/1 | 9 (open 9) | 0 |
 | 4 | [infra] accord/evidence check runner and workflow | done | `fd02108` | 2/1/1 | 21 (verified 9, reraised 1, wont_fix_accepted 1, open 10) | 0 |
-| 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | — | 2/1/1 | 13 (verified 10, open 3) | 0 |
-| 6 | [commit-evidence] Commit guard and content redaction | pending | — | 0/0/0 | 0 | 0 |
+| 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | `2194f4d` | 2/1/1 | 13 (verified 10, open 3) | 0 |
+| 6 | [commit-evidence] Commit guard and content redaction | done | — | 2/1/1 | 21 (verified 8, reraised 3, open 8, wont_fix_accepted 2) | 0 |
 | 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | pending | — | 0/0/0 | 0 | 0 |
 | 8 | [commit-evidence] Evidence timeline from git trailers | pending | — | 0/0/0 | 0 | 0 |
 | 9 | [commit-evidence] accord evidence CLI command | pending | — | 0/0/0 | 0 | 0 |
@@ -90,7 +90,13 @@
 
 > Then the out-of-scope path is not committed, a stack.guard.rejected log event is emitted, and a test edit respawns phase-test
 
-- Tasks: 6 (pending), 7 (pending)
+- Tasks: 6 (satisfied), 7 (pending)
+- Files: `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/tests/redact.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/src/state/redact.ts`
+- Tests verified (4):
+  - commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — review commits keep only reviews/** and state/**
+  - commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — code loop
+  - commit-guard.test.ts › ASDLC-1/AC-3 guardStagedPaths — state and evidence commits
+  - commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts
 
 ### AC-4 — pending (not verified)
 
@@ -258,9 +264,9 @@
 
 > The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…
 
-- Tasks: 3 (satisfied), 6 (pending), 7 (pending), 13 (pending), 34 (pending), 39 (pending)
-- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`
-- Tests verified (8):
+- Tasks: 3 (satisfied), 6 (satisfied), 7 (pending), 13 (pending), 34 (pending), 39 (pending)
+- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`
+- Tests verified (10):
   - packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields
   - ASDLC-1/AC-29 <event> catalogue entry declares exact level and fields
   - ASDLC-1/AC-29 <event> rejects an unknown field
@@ -269,6 +275,8 @@
   - ASDLC-1/AC-29 emits through createLogger('stack') at debug level
   - bun run check:types
   - bunx biome check (task files)
+  - commit-guard.test.ts › ASDLC-1/AC-29 guard rejection telemetry
+  - commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts > ASDLC-1/AC-29 trailer rejection emits stack.guard.rejected at warn
 
 ### AC-30 — pending (not verified)
 
@@ -331,6 +339,19 @@
 | 5 | AC-2 | F-011 | unresolved (advisory) | open | suggestion | parseAccordTrailer takes the first 'Accord: ' line anywhere in the message; git's documented extraction reads only the final trailer block. | packages/accord-core/src/commit/commit-grammar.ts:212 |  |
 | 5 | AC-2 | F-012 | unresolved (advisory) | open | suggestion | Parser accepts duplicate keys (last wins) and any digit string for integer keys, so a trailer can parse to different counts than a single-pass reader would see. | packages/accord-core/src/commit/commit-grammar.ts:224 |  |
 | 5 | AC-2 | F-013 | unresolved (advisory) | open | suggestion | Single-letter callback parameter `l`; also INTEGER_KEYS and KEY_ORDER repeat the same ~40 names in two hand-kept lists. | packages/accord-core/src/commit/commit-grammar.ts:195 |  |
+| 6 | AC-3 | F-005 | unresolved (advisory) | reraised | warning | For review, state and evidence rejections, `result.rule` is never asserted, and the logged rule= value is unchecked. Telemetry is asserted only for review-code with a single path. review-test, review-security, state and evidence rejections, and the per-path event count for multi-path review rejections, are untested. | packages/accord-core/tests/commit-guard.test.ts:189 | reraised by T2/review-test — Done-when unmet: phase-verify-task (now in the table with rejections) has no result.rule literal and no warn-line assertions; state lines (line 301) have no path check; evidence lines (line 312) have no [accord:stack:warn] check. |
+| 6 | AC-3 | F-006 | unresolved (advisory) | reraised | warning | The boundaries of the environment-value and home-path rules are untested: an env value of exactly 8 characters (only 7 and 20 are used), env values containing regex metacharacters, and usernames containing '.' or '-'. | packages/accord-core/tests/redact.test.ts:101 | reraised by T2/review-test — Target changed: my original 'full username absent' oracle was too weak. A \w+ username regex leaks '.shirley' and '-last2' and still passes. The new Done-when requires each name segment to be absent. The 8-char and metacharacter env rows are fine. |
+| 6 | AC-3 | F-010 | unresolved (advisory) | reraised | suggestion | guardTrailer asserts only `errors.length > 0`. Non-count validation failures (missing required key, v=2) have no pinned rule, so an impl that labels every validateTrailer failure 'trailer-counts', or logs 'ref=undefined' for a trailer missing ref, is green. | packages/accord-core/tests/commit-guard.test.ts:147 | reraised by T2/review-test — The exact errors text and the trailer-invalid rule are pinned, but the missing-ref 'no ref=undefined' loop is vacuous when no line is emitted, and neither trailer-invalid row asserts a stack.guard.rejected line exists. |
+| 6 | AC-3 | F-014 | unresolved (advisory) | open | suggestion | MASK allows any label text inside [REDACTED…], and the per-case loop (line 83) no longer asserts the secret is absent. A redactor that keeps a 'hint' of the secret in the label, e.g. [REDACTED:ghp_A1b2A1b2…], passes every per-case row. The T1 not.toContain oracle was removed when the anchored shape was added. | packages/accord-core/tests/redact.test.ts:33 |  |
+| 6 | AC-3 | F-015 | unresolved (advisory) | open | suggestion | The quoted KEY=value rows use a value with no spaces. A plausible impl =["']?[^\s"']+ masks only the first word of a quoted passphrase, e.g. API_KEY="correct horse battery staple", and leaks the rest. | packages/accord-core/tests/redact.test.ts:92 |  |
+| 6 | AC-3 | F-016 | unresolved (advisory) | open | suggestion | The test-directory union is pinned only for a nested 'packages/…/tests/helpers' path. Reusing TEST_DIR_PATTERN (/\/(test\|__tests__\|tests\|spec)\//, which needs a leading slash) misses repo-root dirs such as 'tests/conftest.py' or 'test/fixtures/x.json', so phase-code can edit root test helpers without a phase-test respawn. The comment names isTestFilePath, but the 'src/contest_api.py' kept row forbids its filename regex, which misleads the implementer. | packages/accord-core/tests/commit-guard.test.ts:109 |  |
+| 6 | AC-3 | F-017 | unresolved (advisory) | open | warning | HOME_RE matches `/home/<seg>/` and `/Users/<seg>/` anywhere in a path, so relative repo paths are corrupted and over-counted. | packages/accord-core/src/state/redact.ts:22 |  |
+| 6 | AC-3 | F-018 | unresolved (advisory) | open | warning | ASSIGNMENT_RE is case-sensitive, so lowercase or camelCase secret names are not masked. The env-name rule on line 8 uses the `i` flag, so the two rules are inconsistent. | packages/accord-core/src/state/redact.ts:11 |  |
+| 6 | AC-3 | F-019 | unresolved (advisory) | open | suggestion | BEARER_RE masks any word of 8 or more characters after `Bearer`, and matches only the exact casing `Bearer`. | packages/accord-core/src/state/redact.ts:15 |  |
+| 6 | AC-3 | F-020 | unresolved (advisory) | open | suggestion | guardTrailer decides `trailer-counts` versus `trailer-invalid` by substring-matching the error text `does not equal` from validateTrailer. | packages/accord-core/src/commit/commit-guard.ts:123 |  |
+| 6 | AC-29 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | The telemetry tests pin `ref=phase-code` (the commit type) in the `ref` field. The stack event catalogue, the trailer path and AC-1 use the round ref (for example 'review-C1' or 'C1/phase-code'), so path-guard rejections cannot be correlated to a round. | packages/accord-core/tests/commit-guard.test.ts:182 | wont_fix_accepted by T2/review-test — Sound: the task signature guardStagedPaths(commitType, workItemId, paths, pattern) has no round ref; a round-ref argument can come later. |
+| 6 | AC-29 | F-013 | accepted (advisory) | wont_fix_accepted | suggestion | The '[accord:stack:warn]' prefix assertion would also pass for a direct console.error call with a hand-formatted prefix, which bypasses emitStackEvent and the catalogue's field validation. Proving emission goes through logging.ts is an enforcement check, not a unit assertion. | packages/accord-core/tests/commit-guard.test.ts:175 | wont_fix_accepted by T2/review-test — This is an enforcement check for phase-verify-task (grep for no console. and for emitStackEvent in commit-guard.ts), not a unit assertion. |
+| 6 | _task | F-021 | unresolved (advisory) | open | suggestion | isTestPath recompiles the glob for every staged path, and an unbalanced `{` in test.file_pattern produces an invalid RegExp that throws a raw SyntaxError. | packages/accord-core/src/commit/commit-guard.ts:68 |  |
 
 ## Decisions
 
@@ -341,6 +362,8 @@ _None._
 - Task 2 (pending): layering.test.ts import-boundary tests pass without impl — accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations
 - Task 4 (pending): Added a test requiring an okf concept to list the evidence-check script or workflow as a source and mention accord/evidence. — F-005: the AC-31 clause 'update the affected okf/ concepts'. The natural file, okf/architecture/monorepo-packages.md, is not in task.files[]; the implementer must edit it, or another okf concept.
 - Task 4 (pending): Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files — Test requires an okf concept listing the evidence check as a source and describing accord/evidence
+- Task 6 (pending): Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented. — Spec names only rule/respawn/rejected; shape and per-type scopes inferred.
+- Task 6 (pending): redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution. — Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.
 
 ## Evidence by task
 
@@ -450,6 +473,18 @@ commit-grammar.test.ts: 512 pass, 0 fail. bun test, validate:schemas, validate:a
 ```
 
 ### Task 6: [commit-evidence] Commit guard and content redaction
+
+RED evidence (`T1/phase-test`):
+
+```text
+46 fail, 0 pass across 2 files; every failure: error: not implemented: guardStagedPaths / guardTrailer / redactText (stub throws). check:types clean; secret-literal grep over packages/accord-core/tests: no match.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+72 pass, 0 fail (commit-guard + redact). check:types ok. biome on task files clean; repo-wide check:biome fails only on untouched docs/dev/ASDLC-1/trace.json formatting and packages/accord-core/scripts/update-model-pricing.ts:84 useOptionalChain (pre-existing, not in task scope). Secret-token grep over packages/accord-core/tests: no match.
+```
 
 ### Task 7: [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase
 
