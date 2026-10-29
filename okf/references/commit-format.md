@@ -26,7 +26,7 @@ sources:
 Accord: v=1 id=<ID> task=<N> seq=<n> ref=<ref> agent=<agent> loop=<loop> round=<n> outcome=<outcome> …
 ```
 
-* `ref` is the harness ref `<round>/<actor>` (`T1/review-test`, `C2/phase-code`, `V1/phase-verify-task`), the same string as the task file `log[].ref`, so a commit joins to its log entry. Subject example: `[FEAT-ASDLC][task-2] T1/review-test: 1 critical, 2 warning`. The trailer wins if they differ.
+* `ref` is the harness ref `<round>/<actor>` (`T1/review-test`, `C2/phase-code`, `V1/phase-verify-task`), the same string as the task file `log[].ref`, so a commit joins to its log entry. Subject example: `[ASDLC-1][task-2] T1/review-test: 1 critical, 2 warning`. The trailer wins if they differ.
 * One `Accord:` trailer per commit: space-separated `key=value`, integers for counts, no spaces in values, absent keys omitted. Read it with `git log --format='%(trailers:key=Accord,valueonly,unfold)'`.
 * Only the orchestrator writes it. Values are measured or validated (usage log, return packets, test run, staged diff), never taken from an agent's claim.
 

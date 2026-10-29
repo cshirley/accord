@@ -96,13 +96,13 @@ evidence(task-2)
 Every commit has three parts: a human subject, a human body, and one `Accord:` trailer. The trailer is the only machine contract. It holds space-separated `key=value` pairs: integer counts, no spaces inside values, so `awk` can split on `=`. It follows git trailer rules, so `git log --format='%(trailers:key=Accord,valueonly,unfold)'` returns exactly that line.
 
 ```
-[FEAT-ASDLC][task-2] T1/review-test: 1 critical, 2 warning
+[ASDLC-1][task-2] T1/review-test: 1 critical, 2 warning
 
 F-001 critical tests/refresh.test.ts:42  asserts on the mock, not behaviour (AC-3)
 F-002 warning  tests/refresh.test.ts:70  no expired-token case (AC-4)
 F-003 warning  tests/refresh.test.ts:91  test name does not state the expected result
 
-Accord: v=1 id=FEAT-ASDLC task=2 seq=2 ref=T1/review-test agent=review-test loop=test round=1 outcome=findings crit=1 warn=2 sugg=0 open_crit=1 open_warn=2 findings=F-001,F-002,F-003 ac=AC-3,AC-4 files=1 harness=pi model=sonnet spawns=1 tok_in=18200 tok_out=1900 tok_cache_r=12000 tok_cache_w=0 usd_u=118000 ms=41200 usage=host
+Accord: v=1 id=ASDLC-1 task=2 seq=2 ref=T1/review-test agent=review-test loop=test round=1 outcome=findings crit=1 warn=2 sugg=0 open_crit=1 open_warn=2 findings=F-001,F-002,F-003 ac=AC-3,AC-4 files=1 harness=pi model=sonnet spawns=1 tok_in=18200 tok_out=1900 tok_cache_r=12000 tok_cache_w=0 usd_u=118000 ms=41200 usage=host
 ```
 
 **Subject regex:** `^\[([A-Z]+(-[A-Z]+)*-[0-9]+)\]\[task-([0-9]+)\] ([TCVS][0-9]+(\.[0-9]+)?)/([a-z-]+): ` (captures: work item, task, ref, actor). If subject and trailer disagree, the trailer wins.
@@ -207,12 +207,12 @@ Goal: an engineer commits `brief.md` and `spec.json` to a new branch and opens a
 
 `docs/dev/<ID>/` stays, as the **change record**: keyed by ticket or slug, immutable after merge. It holds brief, spec, plan, `contract.lock.json`, `evidence/`, `verify.*`, `trace.*`. A ticket key is right for audit and lineage and wrong for discovery. Moving it would break `rehydrate`, trace, and CI paths.
 
-A second layer, **feature knowledge**, is keyed by capability and describes what the system does now:
+A second layer, **feature knowledge**, is keyed by feature (a slug-keyed unit of system behaviour) and describes what the system does now:
 
 | Layer | Path | Keyed by | Mutability | Answers |
 |-------|------|----------|-----------|---------|
 | Change record | `docs/dev/<ID>/` | Ticket or slug | Immutable after merge | What was agreed, built, and proved? |
-| Feature knowledge | `<knowledge.root>/<slug>.md` (default `docs/features/`) plus generated `index.md` and `index.json` | Capability | Living; changed only by closeout PRs | What does the system do now, and what touches it? |
+| Feature knowledge | `<knowledge.root>/<slug>.md` (default `docs/features/`) plus generated `index.md` and `index.json` | Feature slug | Living; changed only by closeout PRs | What does the system do now, and what touches it? |
 
 Feature doc: OKF-style frontmatter so humans, agents, and validators share one format.
 
@@ -311,7 +311,7 @@ The harness never splits a task into several PRs. A flagged task is a planning d
 
 ### 4.3 Measure and adjust
 
-- After GREEN the harness measures actual changed lines (production, tests reported separately, generated excluded).
+- After GREEN the harness measures actual changed lines: net production plus test lines against the same budget as `est_lines`, reported separately in `trace.json`; generated files, lockfiles, `state/`, `reviews/` and `evidence/` are excluded.
 - If actual > `overrun_factor` × estimate, raise a `decisions[]` entry: re-plan now (a `contract-amend` PR replaces the task with smaller ones, section 4.2a) or accept with a reason.
 - Unplanned dependency: record a deviation; `contract-amend` if it changes the plan.
 - Planned vs actual per task goes into `trace.json`, to tune the defaults.
@@ -377,19 +377,23 @@ New, proposed. It follows the existing per-reviewer overrides (`review_test`, `r
 
 `severity_gate` is `advisory` (never gates; today's behaviour), `block` (critical only), `warn` (critical and warning), or `none` (any finding), the last three as for the other loops. Schema default: `advisory`, so existing projects do not change. With `stack.enabled: true` the effective default is `warn` unless set explicitly. Severity names are the existing `critical`, `warning`, `suggestion`; "major" means `warning`. There are no separate retry keys: security fixes use the `code_review` counter and its caps (`review_code`, or the `review_loop` defaults).
 
-## 6. Phasing
+## 6. Features and delivery order
 
-| Phase | Deliver | Exit check |
-|-------|---------|-----------|
-| 1 | Commit grammar (`commit/commit-grammar.ts`), orchestrator-only per-phase commits behind `stack.commits: "phase"`, `accord evidence` timeline. No stack yet. | every phase appears as a commit with loop and round trailers; findings are in review commits; timeline renders from git. |
-| 2 | Contract PR0, `contract.lock.json`, lock guard (hook + CI), `contract-amend`. | Edit to a locked file without amendment fails. |
-| 3 | Plan schema fields, `computeStack`, `stack/` provider port with the `gh` provider only, evidence asset writer (final `evidence(task-<N>)` commit), `accord stack`, stack map, PR brief. | Same plan gives same stack; golden-file tests. |
-| 4 | Tree state: `docs/dev/<ID>/state/` snapshots per typed commit, removal in `evidence(task-<N>)`, guard exemptions, redaction, reproducibility test. | Resume from a fresh clone at any typed commit; asset regenerates identically. |
-| 5 | Trunk hardening: flags in plan, depth cap, `accord/evidence` check, bottom-up merge automation, overrun decision. | Green-only-on-head CI; overrun raises a decision. |
-| 6 | Feature knowledge (§3.2c, §3.2d): feature doc schema, `index.json` generator, `spec.json` `features[]` and delta, impact analysis in PR0, closeout update, `validate:features`, drift check, `accord feature find/impact`. | A change touching an anchored file lists the feature in PR0; closeout updates the doc; drift check fails on an unreflected change. |
-| 7 | CI-driven mode (§3.2b): trigger on brief + spec commit, stateless resume, gates through PR comments. | A branch with only brief + spec yields PR0 with plan and stack table, with no local session. |
+Terms: a **work item** is the ticket-keyed change (`ASDLC-1`); a **feature** is a slug-keyed unit of system behaviour with a living doc in `docs/features/`, delivered by N tasks (one PR each) and composed through `depends_on`; a **task** is one plan unit; **phase** means only a harness agent step (`phase-test`, `phase-code`). The plan `kind: feature` is a task kind, not this term.
 
-Each phase ships behind `stack.enabled: false`. Phase 1 is the largest evidence gain for the least risk.
+| Feature | Deliver | Depends on | Exit check |
+|---------|---------|------------|-----------|
+| `commit-evidence` | Commit grammar (`commit/commit-grammar.ts`), orchestrator-only per-phase commits behind `stack.commits: "phase"`, `accord evidence` timeline. No stack yet. | none | Every phase appears as a commit with loop and round trailers; findings are in review commits; timeline renders from git. |
+| `evidence-asset` | Final `evidence(task-<N>)` commit and the evidence asset writer. | `commit-evidence` | Asset regenerates from commits; survives a squash simulation. |
+| `security-gate` | `review-security` gates inside the `C` loop via `review_loop.review_security.severity_gate`. | none | Gating by severity; advisory by default. |
+| `contract-lock` | Contract PR0, `contract.lock.json`, lock guard (hook + CI), `contract-amend`. | none | Edit to a locked file without amendment fails. |
+| `stack-compute` | Plan schema fields, plan agent prompt, `computeStack`, `stack/` provider port with the `gh` provider only, `accord stack`, stack map, PR brief. | `contract-lock`, `evidence-asset` | Same plan gives same stack; golden-file tests. |
+| `tree-state` | `docs/dev/<ID>/state/` snapshots per typed commit, removal in `evidence(task-<N>)`, closeout, guard exemptions, redaction, reproducibility test. | `commit-evidence`, `evidence-asset` | Resume from a fresh clone at any typed commit; asset regenerates identically. |
+| `trunk-hardening` | Flags in plan, open-PR depth cap, `accord/evidence` check, bottom-up merge automation, overrun decision. | `stack-compute`, `tree-state` | Green-only-on-head CI; overrun raises a decision. |
+| `feature-knowledge` | Feature docs (§3.2c, §3.2d): doc schema, `index.json` generator, `spec.json` `features[]` and delta, impact analysis in PR0, closeout update, `validate:features` (added to `verification_commands` in the same PR), drift check, `accord feature find/impact`. | `contract-lock`, `stack-compute` | A change touching an anchored file lists the feature in PR0; closeout updates the doc; drift check fails on an unreflected change. |
+| `ci-driven-mode` | CI-driven mode (§3.2b): trigger on brief + spec commit, stateless resume, gates through PR comments. | `contract-lock`, `stack-compute`, `tree-state`, `trunk-hardening` | A branch with only brief + spec yields PR0 with plan and stack table, with no local session. |
+
+Each feature ships behind `stack.enabled: false` (or `knowledge.enabled: false`). `commit-evidence` is the largest evidence gain for the least risk.
 
 ## 7. Work breakdown (layering rule: logic in `accord-core`)
 
@@ -414,7 +418,7 @@ Each phase ships behind `stack.enabled: false`. Phase 1 is the largest evidence 
 | Stacked PR tooling on GitHub is awkward | `StackProvider` port; budget for retarget and restack. |
 | State in git history (size, secrets) | Mandatory redaction, `max_bytes` cap, no raw packets, per-task dirs only. History keeps snapshots under rebase or merge, so redaction must be right the first time. |
 | Feature docs rot | `anchors` plus the drift check in CI; update is part of the closeout PR, not a follow-up. |
-| Feature granularity | A feature is a capability, not a file; `max_acs_per_feature` forces a split. |
+| Feature granularity | A feature is a unit of system behaviour, not a file; `max_acs_per_feature` forces a split. |
 | Feature doc duplicates the spec | Spec = intent and delta; feature doc = distilled current state, generated from spec plus evidence and human-reviewed in closeout. |
 | More commits per task (12 with one findings round in each of the test and code loops) | Trailers allow filtering. The reviewer reads the PR brief and net diff; the commit list is for audit. Every commit is non-empty and has a single purpose. |
 | Trailer line grows long with cost fields | One line per commit is the point (`awk`). Keep keys short; cost is summed per commit, never repeated. |
@@ -432,5 +436,5 @@ Each phase ships behind `stack.enabled: false`. Phase 1 is the largest evidence 
 | How is `verify` named? | Like every other phase: `phase-verify-task verify rN`. |
 | What is the machine-readable commit format? | Human subject and body plus one `Accord:` trailer of `key=value` pairs (section 3.2e). Cost, token, harness and model fields are on every commit that follows a spawn, summed over all spawns (including retries and failures) since the previous commit. |
 | Where does harness state live per commit? | In the tree (`stack.state.persist: "tree"`, default) under `docs/dev/<ID>/state/task-<N>/`, deleted by the final `evidence(task-<N>)` commit. Chosen so CI can resume statelessly and be triggered by committing brief + spec. `notes` stays as an option. |
-| Does `docs/dev/<ID>/` still make sense? | Yes, as the immutable change record (audit, lineage, evidence). A separate living, capability-keyed layer, `knowledge.root` (default `docs/features/`), serves discovery and cross-referencing by humans and agents. |
+| Does `docs/dev/<ID>/` still make sense? | Yes, as the immutable change record (audit, lineage, evidence). A separate living, feature-keyed layer, `knowledge.root` (default `docs/features/`), serves discovery and cross-referencing by humans and agents. |
 | Which stack provider first? | `gh`. The `provider` key stays configurable behind the `StackProvider` port; `git`, `graphite`, `spr` follow later. |

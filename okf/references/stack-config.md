@@ -33,7 +33,7 @@ sources:
 | `state.redact` | `true` | Redact secrets and raw packets before commit. Keep `true`: content enters git history |
 | `state.max_bytes` | `262144` | Max bytes of state per task snapshot |
 | `evidence.include_diffs` | `true` | Include `review..fix` patches and red/green output excerpts in the asset |
-| `sizing.max_pr_lines` | `400` | Changed lines per PR, excluding tests, generated files, lockfiles |
+| `sizing.max_pr_lines` | `400` | Changed lines per PR (net production and test lines, reported separately), excluding generated files, lockfiles, `state/`, `reviews/`, `evidence/` |
 | `sizing.min_pr_lines` | `30` | Below this a task merges into a same-concern neighbour (not refactor, schema, flag) |
 | `sizing.max_files` | `10` | Files per PR |
 | `sizing.max_depth` | `6` | Max *open* PRs in a `depends_on` chain; the next opens after a base merges. Chains that cannot fit split into milestone work items |

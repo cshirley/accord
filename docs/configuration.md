@@ -292,7 +292,7 @@ Top-level `stack` key in `accord.json` (global or project block). Splits a work 
 
 ## Feature knowledge (`knowledge`, proposed)
 
-Top-level `knowledge` key in `accord.json`. A living, capability-keyed layer (`docs/features/` by default) beside the ticket-keyed change record `docs/dev/<ID>/`, used for discovery and cross-referencing new changes against old. Validates against the schema today; the harness does not read it yet. Keys: [`okf/references/knowledge-config.md`](../okf/references/knowledge-config.md). Design: [`docs/plans/evidence-stack-plan.md`](plans/evidence-stack-plan.md).
+Top-level `knowledge` key in `accord.json`. A living, feature-keyed layer (`docs/features/` by default) beside the ticket-keyed change record `docs/dev/<ID>/`, used for discovery and cross-referencing new changes against old. Validates against the schema today; the harness does not read it yet. Keys: [`okf/references/knowledge-config.md`](../okf/references/knowledge-config.md). Design: [`docs/plans/evidence-stack-plan.md`](plans/evidence-stack-plan.md).
 
 ```json
 "knowledge": { "enabled": true, "root": "docs/features", "drift_check": "warn" }
