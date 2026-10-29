@@ -1,5 +1,6 @@
 export { runAnswerCommand } from "./answer.js";
 export { runBlockCommand } from "./block.js";
+export { runBootstrapCommand } from "./bootstrap.js";
 export { runCompletionCommand } from "./completion.js";
 export { runConfigInitCommand } from "./config.js";
 export { runDeviationsCommand } from "./deviations.js";

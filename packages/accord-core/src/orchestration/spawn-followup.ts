@@ -4,6 +4,7 @@
 
 import type { DevHarnessConfig } from "../config/index.js";
 import { loadWorkItem, mutateJson, now, workItemJsonPath } from "../work-items/io.js";
+import { isSyntheticWorkItemId } from "../work-items/synthetic.js";
 import type { WorkItem } from "../work-items/types.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
 import { maxGatherAttemptsFromDevConfig } from "./policy.js";
@@ -72,6 +73,23 @@ export function planSpawnFollowUp(input: PlanSpawnFollowUpInput): SpawnFollowUpP
   const status = extractReturnStatus(input.parsedReturn);
 
   if (input.agent === "phase-align" && status === "needs_gather") {
+    // A synthetic ADHOC id is not a tracker ticket: skip the lookup and re-run align without it.
+    if (isSyntheticWorkItemId(input.workItemId)) {
+      return {
+        agent: "phase-align",
+        task: buildAlignSpawnTask({
+          workItemId: input.workItemId,
+          title: input.title,
+          pattern: input.pattern,
+          variant: input.variant,
+          devConfig: input.devConfig,
+          gatherResult: {
+            status: "done",
+            context: `No external context: ${input.workItemId} is a synthetic ad-hoc work item, not a tracker ticket. Work from the description and the codebase.`,
+          },
+        }),
+      };
+    }
     return {
       agent: "phase-gather",
       task: buildGatherSpawnTask(

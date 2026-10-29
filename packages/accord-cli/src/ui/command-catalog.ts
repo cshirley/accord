@@ -17,6 +17,11 @@ export const TOP_LEVEL_COMMANDS: CommandSpec[] = [
   { name: "tasks", summary: "Work item dashboard", usage: "tasks [--select]" },
   { name: "retro", summary: "Retrospective insights" },
   { name: "tag", summary: "Tag active work item", usage: "tag [<label>]" },
+  {
+    name: "bootstrap",
+    summary: "Create a work item (use --adhoc for work with no ticket)",
+    usage: "bootstrap <ID> <title> | bootstrap --adhoc <title> [--pattern p] [--variant v]",
+  },
   { name: "rehydrate", summary: "Rebuild work item from artifacts", needsWorkItem: true },
   { name: "spec-gaps", summary: "Spec gap report", needsWorkItem: true },
   { name: "gaps", summary: "Implementation gap report", needsWorkItem: true },

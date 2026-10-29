@@ -185,3 +185,25 @@ describe("align gather spawn follow-up", () => {
     expect(out.lastRun.lastSpawn?.agent).toBe("phase-align");
   });
 });
+
+describe("synthetic ADHOC work items", () => {
+  test("align needs_gather for ADHOC id re-runs align without tracker lookup", () => {
+    const plan = planSpawnFollowUp({
+      workItemId: "ADHOC-2026102901",
+      agent: "phase-align",
+      exitCode: 0,
+      parsedReturn: {
+        status: "needs_gather",
+        gather_hint: { ticket_id: "ADHOC-2026102901", reason: "ticket context required" },
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      },
+      phase: "aligning",
+      title: "add token refresh",
+      pattern: "implement",
+      devConfig: minimalDevConfig(),
+    });
+    expect(plan?.agent).toBe("phase-align");
+    expect(plan?.task).toContain("synthetic ad-hoc work item");
+    expect(plan?.task).not.toContain("phase-gather");
+  });
+});

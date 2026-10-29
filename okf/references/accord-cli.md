@@ -31,6 +31,7 @@ Requires AGENTS.md with a `## Dev Harness` block (`accord init --write` creates 
 |---------|---------|
 | `tasks [--select] [--json]` | Work item dashboard; lists pending decisions with file/IDs to edit |
 | `run <text>` | Bootstrap from ticket or description |
+| `bootstrap <ID> <title…>` \| `bootstrap --adhoc <title…> [--pattern p] [--variant v]` | Create a work item without spawning. `--adhoc` generates a synthetic `ADHOC-<YYYYMMDD><NN>` id (no tracker lookup; gather is skipped for it). Title must describe the work, not be a ticket id. Then `accord align <ID>` |
 | `drive <ID>` | Drive work-item loop (`--finish` to close out, `--max-rounds <n>`) |
 | `resume <ID>` | Full resume loop with harness spawns |
 | `finish <ID>` | Closeout + verify-acceptance spawn |

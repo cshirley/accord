@@ -57,6 +57,44 @@ describe("accord-cli argv", () => {
     expect(parsed.rawArgs).toBe("sprint-42");
   });
 
+  test("parse bootstrap with id and title", () => {
+    const parsed = parseCli([
+      "bootstrap",
+      "STEP-1",
+      "add",
+      "token",
+      "refresh",
+      "--pattern",
+      "quick_fix",
+    ]);
+    expect(parsed.kind).toBe("bootstrap");
+    if (parsed.kind !== "bootstrap") return;
+    expect(parsed.args.workItemId).toBe("STEP-1");
+    expect(parsed.args.title).toBe("add token refresh");
+    expect(parsed.args.pattern).toBe("quick_fix");
+    expect(parsed.args.variant).toBe("standard");
+  });
+
+  test("parse bootstrap --adhoc has no id", () => {
+    const parsed = parseCli(["bootstrap", "--adhoc", "tidy", "docs"]);
+    expect(parsed.kind).toBe("bootstrap");
+    if (parsed.kind !== "bootstrap") return;
+    expect(parsed.args.adhoc).toBe(true);
+    expect(parsed.args.workItemId).toBeUndefined();
+    expect(parsed.args.title).toBe("tidy docs");
+  });
+
+  test("bootstrap rejects missing title, bad pattern and unknown flags", () => {
+    for (const argv of [
+      ["bootstrap", "STEP-1"],
+      ["bootstrap", "--adhoc"],
+      ["bootstrap", "STEP-1", "t", "--pattern", "nope"],
+      ["bootstrap", "STEP-1", "t", "--bogus"],
+    ]) {
+      expect(parseCli(argv).kind).toBe("error");
+    }
+  });
+
   test("parse rehydrate", () => {
     const parsed = parseCli(["rehydrate", "DEMO-1"]);
     expect(parsed.kind).toBe("rehydrate");
