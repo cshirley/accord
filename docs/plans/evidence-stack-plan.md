@@ -268,7 +268,7 @@ The body holds behaviour, key decisions with reasons (ADR style), constraints, a
 
 - Each task PR leaves `main` green and the feature unreachable (dark code or flag). The last task flips the flag.
 - Merge bottom-up as each PR is approved. Do not hold the stack for the top.
-- Tasks are planned independent, so each task PR branches from `main` and needs no restack. Only a real `depends_on` chain forms a stack: retarget the next PR to `main` after its base merges, and merge bottom-up. Evidence commits stay append-only (no amend, no force-push).
+- Tasks are planned independent, so each task PR branches from `main` and needs no restack. Only a real `depends_on` chain forms a stack: retarget the next PR to `main` after its base merges by merging `main` into it, and merge bottom-up. When the base PR was squash-merged, main holds its changes as one new commit while the child branch still holds the original base commits, so a file the child changed after the base added it is an add/add conflict on a plain merge. Resolution rule: for each conflicted path, if main's content equals the base PR head's content the child's version is kept (the child's changes sit on top of identical content); any other conflict stops the advance and raises a decisions[] entry, never a silent resolution. Evidence commits stay append-only (no amend, no force-push).
 - Depth caps *open* PRs in a chain (`stack.sizing.max_depth`, default 6). `computeStack` opens PR n+max_depth only after PR n merges. Total PRs are not capped. A chain that cannot fit splits into milestone work items, each with its own contract PR.
 
 ### 3.5 Navigation and noise control
