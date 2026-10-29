@@ -3,7 +3,11 @@
  * Analyze Pi session jsonl logs for workflow friction and skill gaps.
  *
  * Usage:
- *   bun packages/pi-skills/scripts/session-retro.ts [--json] [--sessions-root PATH]
+ *   bun packages/pi-skills/scripts/session-retro.ts [--json] [--sessions-root PATH] [--since YYYY-MM-DD]
+ *
+ * `--since` keeps sessions whose file name timestamp is on or after the date, so a pilot window
+ * can be compared with the sessions before it. The `gates` and `adoption` sections measure the
+ * checks that the verify, commit, pr, review, worktree and brief skills ask for.
  */
 
 import { readdir, readFile } from "node:fs/promises";
@@ -12,10 +16,10 @@ import { join } from "node:path";
 
 const DEFAULT_ROOT = join(homedir(), ".config/pi/agent/sessions");
 
-type Args = { json: boolean; sessionsRoot: string };
+type Args = { json: boolean; sessionsRoot: string; since: string | null };
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { json: false, sessionsRoot: DEFAULT_ROOT };
+  const args: Args = { json: false, sessionsRoot: DEFAULT_ROOT, since: null };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--json") args.json = true;
@@ -24,8 +28,15 @@ function parseArgs(argv: string[]): Args {
       if (!value) throw new Error("--sessions-root requires a path");
       args.sessionsRoot = value;
       index += 1;
+    } else if (arg === "--since") {
+      const value = argv[index + 1];
+      if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        throw new Error("--since requires YYYY-MM-DD");
+      }
+      args.since = value;
+      index += 1;
     } else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: session-retro.ts [--json] [--sessions-root PATH]");
+      console.log("Usage: session-retro.ts [--json] [--sessions-root PATH] [--since YYYY-MM-DD]");
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -69,8 +80,51 @@ function projectFromPath(filePath: string): string {
   return segment.replace(/^--/, "").replace(/--$/, "").replace(/--/g, "/");
 }
 
+/** Session file names start with an ISO timestamp, e.g. `2026-10-08T08-34-13-342Z_<id>.jsonl`. */
+function sessionDate(filePath: string): string | null {
+  const match = /(\d{4}-\d{2}-\d{2})T/.exec(filePath.split("/").pop() ?? "");
+  return match?.[1] ?? null;
+}
+
+const VERIFY_COMMAND =
+  /\b(jest|vitest|pytest|go test|cargo test|bun test|bun run check|npm (run )?(test|check|lint)|yarn (run )?(test|check|lint)|pnpm (run )?(test|check|lint)|tsc\b|biome check|eslint)\b/;
+const COMMIT_COMMAND = /\bgit commit\b/;
+const PR_COMMAND = /\bgh pr (create|edit)\b/;
+const CI_COMMAND = /\bgh (pr checks|run (view|watch|list))\b/;
+const REWORK_SIGNAL =
+  /\b(wrong|revert|still (not|see|seeing|fail|loop|only|return)|you forgot|forgot to|missed|not what i)\b/i;
+
 const args = parseArgs(process.argv.slice(2));
-const files = await walkJsonl(args.sessionsRoot);
+const allFiles = await walkJsonl(args.sessionsRoot);
+const files = args.since
+  ? allFiles.filter((file) => {
+      const date = sessionDate(file);
+      return date !== null && date >= (args.since as string);
+    })
+  : allFiles;
+
+const gates = {
+  sessionsWithEdits: 0,
+  sessionsEditedNeverVerified: 0,
+  commits: 0,
+  commitsWithUnverifiedEdits: 0,
+  commitsBeforeAnyReview: 0,
+  prSubmits: 0,
+  sessionsWithPrNoCiCheck: 0,
+  firstPromptsUnder100Chars: 0,
+  sessionsWithUserPrompt: 0,
+  reworkSignals: 0,
+};
+const adoption = {
+  greenMark: 0,
+  greenCheck: 0,
+  reviewMark: 0,
+  wtGuard: 0,
+  docVerify: 0,
+  adhocBootstrap: 0,
+  skillReads: {} as Record<string, number>,
+};
+const NEW_SKILLS = ["brief", "reuse-scout", "risk-checklist", "doc-verify", "worktree"];
 
 const toolCounts: Record<string, number> = {};
 const toolErrors: Record<string, number> = {};
@@ -106,6 +160,12 @@ for (const file of files) {
   let sessionCost = 0;
   let assistantTurns = 0;
   let model = "unknown";
+  let dirty = false;
+  let sawEdit = false;
+  let everVerified = false;
+  let reviewSeen = false;
+  let prPending = false;
+  let sawFirstPrompt = false;
 
   for (const line of (await readFile(file, "utf8")).split("\n").filter(Boolean)) {
     const event = JSON.parse(line);
@@ -116,6 +176,12 @@ for (const file of files) {
     if (message.role === "user") {
       totalUserTurns += 1;
       const text = textFromContent(message.content);
+      if (!sawFirstPrompt && text.trim()) {
+        sawFirstPrompt = true;
+        gates.sessionsWithUserPrompt += 1;
+        if (text.trim().length < 100) gates.firstPromptsUnder100Chars += 1;
+      }
+      if (REWORK_SIGNAL.test(text.slice(0, 400)) && text.length < 600) gates.reworkSignals += 1;
       for (const [label, pattern] of INTENT) {
         if (pattern.test(text)) inc(intentSignals, label);
       }
@@ -138,8 +204,61 @@ for (const file of files) {
         if (name.startsWith("wt_")) hadWt = true;
         if (name === "subagent") hadSubagent = true;
         if (name.startsWith("dev_")) hadDev = true;
+        if (name === "edit" || name === "write") {
+          dirty = true;
+          sawEdit = true;
+        }
+        if (name === "repo_verify") {
+          dirty = false;
+          everVerified = true;
+        }
+        if (
+          name === "git_review_context" ||
+          name === "git_review_tasks" ||
+          name === "pr_review_context" ||
+          (name === "subagent" &&
+            /review-(code|security|test)/.test(JSON.stringify(part.arguments)))
+        ) {
+          reviewSeen = true;
+        }
+        if (name === "git_commit_execute") {
+          gates.commits += 1;
+          if (dirty) gates.commitsWithUnverifiedEdits += 1;
+          if (!reviewSeen) gates.commitsBeforeAnyReview += 1;
+        }
+        if (name === "gh_pr_submit") {
+          gates.prSubmits += 1;
+          prPending = true;
+        }
+        if (name === "gh_ci_context") prPending = false;
+        if (name === "read") {
+          const readPath = String(part.arguments?.path ?? "");
+          for (const skill of NEW_SKILLS) {
+            if (readPath.includes(`/skills/${skill}/`)) inc(adoption.skillReads, skill);
+          }
+        }
         if (name === "bash" && part.arguments?.command) {
           const command = String(part.arguments.command).trim();
+          if (VERIFY_COMMAND.test(command)) {
+            dirty = false;
+            everVerified = true;
+          }
+          if (COMMIT_COMMAND.test(command)) {
+            gates.commits += 1;
+            if (dirty) gates.commitsWithUnverifiedEdits += 1;
+            if (!reviewSeen) gates.commitsBeforeAnyReview += 1;
+          }
+          if (PR_COMMAND.test(command)) {
+            gates.prSubmits += 1;
+            prPending = true;
+          }
+          if (CI_COMMAND.test(command)) prPending = false;
+          if (/green\.sh mark review/.test(command)) adoption.reviewMark += 1;
+          else if (/green\.sh mark/.test(command)) adoption.greenMark += 1;
+          if (/green\.sh check/.test(command)) adoption.greenCheck += 1;
+          if (/wt-guard\.sh/.test(command)) adoption.wtGuard += 1;
+          if (/doc-verify\.py/.test(command)) adoption.docVerify += 1;
+          if (/accord bootstrap --adhoc|adhoc-id\.sh/.test(command)) adoption.adhocBootstrap += 1;
           if (/^rg\b/.test(command)) rgBashInvocations += 1;
           if (/^cd\s+\S+\s*(&&|;)/.test(command)) cdPrefixBash += 1;
           const prefix = command.split(/\s+/).slice(0, 2).join(" ");
@@ -164,6 +283,11 @@ for (const file of files) {
       assistantTurns,
       Math.round(sessionCost * 100) / 100,
     ]);
+  if (sawEdit) {
+    gates.sessionsWithEdits += 1;
+    if (!everVerified) gates.sessionsEditedNeverVerified += 1;
+  }
+  if (prPending) gates.sessionsWithPrNoCiCheck += 1;
   if (hadDev) sessionsWithDev += 1;
   if (hadSubagent) sessionsWithSubagent += 1;
   if (hadWt) sessionsWithWt += 1;
@@ -171,6 +295,7 @@ for (const file of files) {
 
 const report = {
   sessionsRoot: args.sessionsRoot,
+  since: args.since,
   sessionFiles: files.length,
   totalUserTurns,
   totalToolCalls,
@@ -192,7 +317,15 @@ const report = {
   costByModel: top(costByModel, 8).map(([k, v]) => [k, Math.round(v)]),
   longSessionCount: longSessions.length,
   longSessions: longSessions.sort((a, b) => b[2] - a[2]).slice(0, 8),
+  gates,
+  adoption,
   suggestions: [
+    gates.commits > 0 && gates.commitsWithUnverifiedEdits / gates.commits > 0.2
+      ? "Commits with edits since the last verify — use the verify skill; commit gates on green.sh check"
+      : null,
+    gates.prSubmits > 0 && gates.sessionsWithPrNoCiCheck > 0
+      ? "PRs without a CI check afterwards — pr skill reports gh_ci_context after every submit"
+      : null,
     (toolCounts.bash ?? 0) > 500 && (toolErrors.bash ?? 0) / (toolCounts.bash ?? 1) > 0.12
       ? "High bash error rate — triage failed rg/cd/gh (pi.dev prefers rg in bash; do not push read/grep tool over rg)"
       : null,
@@ -228,6 +361,20 @@ if (args.json) {
   console.log("\nCost by model:", report.costByModel.map(([k, v]) => `${k} $${v}`).join(", "));
   console.log("Cost by project:", report.costByProject.map(([k, v]) => `${k} $${v}`).join(", "));
   console.log(`Long sessions (>200 turns): ${report.longSessionCount}`);
+  const pct = (part: number, whole: number): string =>
+    whole > 0 ? `${Math.round((part / whole) * 100)}%` : "n/a";
+  console.log(
+    `\nGates${args.since ? ` since ${args.since}` : ""}:` +
+      `\n  edited, never verified: ${gates.sessionsEditedNeverVerified}/${gates.sessionsWithEdits} sessions (${pct(gates.sessionsEditedNeverVerified, gates.sessionsWithEdits)})` +
+      `\n  commits with unverified edits: ${gates.commitsWithUnverifiedEdits}/${gates.commits} (${pct(gates.commitsWithUnverifiedEdits, gates.commits)})` +
+      `\n  commits before any review: ${gates.commitsBeforeAnyReview}/${gates.commits} (${pct(gates.commitsBeforeAnyReview, gates.commits)})` +
+      `\n  sessions with PR and no CI check after: ${gates.sessionsWithPrNoCiCheck} (PR submits ${gates.prSubmits})` +
+      `\n  first prompts under 100 chars: ${gates.firstPromptsUnder100Chars}/${gates.sessionsWithUserPrompt} (${pct(gates.firstPromptsUnder100Chars, gates.sessionsWithUserPrompt)})` +
+      `\n  rework signals in prompts: ${gates.reworkSignals}`,
+  );
+  console.log(
+    `Adoption: green.sh mark/check/review-mark ${adoption.greenMark}/${adoption.greenCheck}/${adoption.reviewMark}, wt-guard ${adoption.wtGuard}, doc-verify ${adoption.docVerify}, adhoc ${adoption.adhocBootstrap}, skill reads ${JSON.stringify(adoption.skillReads)}`,
+  );
   console.log("\nSuggestions:");
   for (const line of report.suggestions) console.log(`  - ${line}`);
 }
