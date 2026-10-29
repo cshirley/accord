@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T13:26:19.969Z",
+  "generated_at": "2026-10-29T13:58:47.332Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -16,6 +16,18 @@
       "task_id": 2,
       "description": "layering.test.ts import-boundary tests pass without impl",
       "reason": "accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations",
+      "resolution": null
+    },
+    {
+      "task_id": 4,
+      "description": "Added a test requiring an okf concept to list the evidence-check script or workflow as a source and mention accord/evidence.",
+      "reason": "F-005: the AC-31 clause 'update the affected okf/ concepts'. The natural file, okf/architecture/monorepo-packages.md, is not in task.files[]; the implementer must edit it, or another okf concept.",
+      "resolution": null
+    },
+    {
+      "task_id": 4,
+      "description": "Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files",
+      "reason": "Test requires an okf concept listing the evidence check as a source and describing accord/evidence",
       "resolution": null
     }
   ],
@@ -195,7 +207,9 @@
       "id": 3,
       "title": "[telemetry] Stack event catalogue and emitter on the shared logger",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "fcd446c"
+      ],
       "rounds": {
         "T": 1,
         "C": 1,
@@ -258,33 +272,87 @@
     {
       "id": 4,
       "title": "[infra] accord/evidence check runner and workflow",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 21,
+        "by_state": {
+          "verified": 9,
+          "reraised": 1,
+          "wont_fix_accepted": 1,
+          "open": 10
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-ci/tests/evidence-check-runner.test.ts\n(fail) runEvidenceCheck > zero rules passes ... Error: not implemented: runEvidenceCheck\n(fail) commit-status payload > ... Error: not implemented\n(fail) workflow and docs declaration > ... ENOENT .github/workflows/accord-evidence.yml\n(fail) docs/ci/pre-merge-smoke.md documents the accord-evidence workflow: Expected to contain \"accord-evidence\"\n(fail) okf/log.md has an entry naming the accord-evidence workflow: Expected to contain \"accord-evidence.yml\"\n 0 pass\n 15 fail\nRan 15 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "evidence-check-runner.test.ts: 26 pass, 0 fail. Preflight: bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime all exit 0; check:biome exit 1 (update-model-pricing.ts useOptionalChain; docs/dev/ASDLC-1/trace.json format). Workflow: fetch-depth: 0 at line 27; pull_request.head.sha at lines 37 and 44; only secrets.GITHUB_TOKEN referenced (line 43); no echo of the token.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/evidence-check.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/evidence-check.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": ".github/workflows/accord-evidence.yml",
+              "action": "add",
+              "kind": "config"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/architecture/monorepo-packages.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-ci/tests/evidence-check-runner.test.ts"
+          }
         }
       ]
     },
@@ -2826,7 +2894,7 @@
       "tasks": [
         {
           "task": 4,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 10,
@@ -2913,8 +2981,21 @@
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-ci/tests/evidence-check-runner.test.ts",
+        "packages/accord-ci/src/evidence-check.ts",
+        ".github/workflows/accord-evidence.yml",
+        "docs/ci/pre-merge-smoke.md",
+        "okf/log.md",
+        "okf/architecture/monorepo-packages.md"
+      ],
+      "tests": [
+        "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
+        "bun run validate:okf",
+        "bun run validate:ste",
+        "bun run check:types",
+        "grep fetch-depth: 0 / pull_request.head.sha / secrets in accord-evidence.yml"
+      ],
       "verified": false
     }
   ],
@@ -3229,6 +3310,172 @@
       "issue": "The docs describe telemetry/ as 'Usage accounting', which is now stale.",
       "file": "docs/file-structure.md",
       "line": 26,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-002",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The trigger and sha wiring is checked by substring presence only. Statuses can be posted to the merge sha, and either trigger can lack the main branch filter.",
+      "file": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+      "line": 110,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Unmet part of the Done-when: 'the status step's statuses/ URL uses that variable'. The test checks only that env contains the expression and bans only the literal `statuses/${{ github.sha }}`. `statuses/$GITHUB_SHA`, `${GITHUB_SHA}` and `${{github.sha}}` still pass, and so does `--head \"$GITHUB_SHA\"`. The other rows (trigger filters, no pull_request_target, fetch-depth 0, the base no-HEAD~1 check) are verified."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-011",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The tests pin the declarations (doc and log text). The tools that enforce AC-31 (validate:okf, validate:ste, check:biome) run outside the unit test.",
+      "file": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+      "line": 106,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Running validate:okf, validate:ste, check:biome and the grep checks belongs to phase-verify-task. The suite already asserts the parsed-YAML equivalents of the greps."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Later tasks will break these tests. The registry length is pinned to 0, and the subprocess run uses fake shas ('1'x40 and '2'x40). When a later task registers a git-backed rule, both tests fail, and that task's phase-code cannot edit them.",
+      "file": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+      "line": 200,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Only one argv validation case (--head missing) is tested. An implementation that validates only --head and defaults the others passes.",
+      "file": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+      "line": 186,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A05 — Security Misconfiguration: actions/checkout persists GITHUB_TOKEN (statuses: write) into .git/config before running PR-controlled code",
+      "file": ".github/workflows/accord-evidence.yml",
+      "line": 25,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A03 — Injection: --base/--head accepted unvalidated; later rules will pass them to git (argument/option injection)",
+      "file": "packages/accord-ci/src/evidence-check.ts",
+      "line": 86,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A08 — Software/Data Integrity: required check is self-attesting; PR-controlled workflow and runner decide their own accord/evidence status",
+      "file": ".github/workflows/accord-evidence.yml",
+      "line": 7,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Supply chain — third-party action tag-pinned and toolchain unpinned in a job holding statuses: write",
+      "file": ".github/workflows/accord-evidence.yml",
+      "line": 30,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Push base can be all-zero or unreachable, and the runner passes it to rules unchecked.",
+      "file": ".github/workflows/accord-evidence.yml",
+      "line": 24,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Trigger filter can leave a stacked PR without the required status after its base changes.",
+      "file": ".github/workflows/accord-evidence.yml",
+      "line": 8,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Job name and status context are both `accord/evidence`, and fork or Dependabot PRs get a read-only token.",
+      "file": ".github/workflows/accord-evidence.yml",
+      "line": 16,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 4,
+      "requirement": "AC-31",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Multi-line rule messages break the one-line `accord/evidence: <rule>: <message>` format and the status description.",
+      "file": "packages/accord-ci/src/evidence-check.ts",
+      "line": 44,
       "raised": "C1/review-code"
     }
   ]

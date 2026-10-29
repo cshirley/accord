@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T13:26:20.014Z",
+  "generated_at": "2026-10-29T13:58:47.384Z",
   "source_usage_file": ".tasks/ASDLC-1-usage.jsonl",
   "summary": {
-    "total_input_tokens": 241000,
-    "total_output_tokens": 37200,
+    "total_input_tokens": 320000,
+    "total_output_tokens": 54600,
     "total_cache_read_tokens": 0,
     "total_cache_write_tokens": 0,
-    "total_calls": 24,
-    "usage_missing_calls": 9,
+    "total_calls": 32,
+    "usage_missing_calls": 13,
     "carried_forward": false,
-    "total_cost_usd": 1.2810000000000004
+    "total_cost_usd": 1.7790000000000004
   },
   "rows": [
     {
@@ -192,6 +192,78 @@
       "cache_read_tokens": 0,
       "cache_write_tokens": 0,
       "usage_missing_calls": 1,
+      "cost_usd": 0
+    },
+    {
+      "scope": "Task 4",
+      "agent": "phase-code",
+      "task_id": 4,
+      "calls": 1,
+      "input_tokens": 30000,
+      "output_tokens": 4500,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.1575
+    },
+    {
+      "scope": "Task 4",
+      "agent": "phase-test",
+      "task_id": 4,
+      "calls": 2,
+      "input_tokens": 40000,
+      "output_tokens": 12000,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.3
+    },
+    {
+      "scope": "Task 4",
+      "agent": "phase-verify-task",
+      "task_id": 4,
+      "calls": 1,
+      "input_tokens": 9000,
+      "output_tokens": 900,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.0405
+    },
+    {
+      "scope": "Task 4",
+      "agent": "review-code",
+      "task_id": 4,
+      "calls": 1,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 1,
+      "cost_usd": 0
+    },
+    {
+      "scope": "Task 4",
+      "agent": "review-security",
+      "task_id": 4,
+      "calls": 1,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 1,
+      "cost_usd": 0
+    },
+    {
+      "scope": "Task 4",
+      "agent": "review-test",
+      "task_id": 4,
+      "calls": 2,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "usage_missing_calls": 2,
       "cost_usd": 0
     }
   ]

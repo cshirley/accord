@@ -1,5 +1,9 @@
 # Bundle Update Log
 
+## 2026-10-29
+
+* **Creation**: `accord/evidence` check runner (`packages/accord-ci/src/evidence-check.ts`) and required workflow `.github/workflows/accord-evidence.yml`: posts commit status `accord/evidence` over base..head with `GITHUB_TOKEN` only. Documented in [Monorepo packages](/architecture/monorepo-packages.md) and `docs/ci/pre-merge-smoke.md`.
+
 ## 2026-10-06
 
 * **Creation**: Telemetry/observability coverage closed from brief through code review. `phase-align.md` gains a 10th coverage dimension (`telemetry_and_observability`; `return-schemas/phase-align.json` + `examples/phase-align.json` updated). `phase-spec.md` gains topic 17 `telemetry_topology` (`log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`; new `spec-schema.json` property) \u2014 required items become an architectural AC or a justified `scope.out`, same as topics 13\u201316. `review-spec.md` 7b now includes `telemetry_topology` in the silent-omission check and gains 7j (metrics/log-events tied to `critical_path`/MUST ACs need a backing AC). `review-code.md`'s Observability dimension checks against `telemetry_topology` when present (AC-coverage drift, can reach `critical`) instead of pure judgment; falls back to the prior advisory behavior when the field is absent (standalone `/review`, or specs predating this change). Previously telemetry/logging requirements had no capture point before code review and could only be raised as a `suggestion`.

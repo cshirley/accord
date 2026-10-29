@@ -1,0 +1,51 @@
+# accord/evidence: required check. Runs the evidence rules over base..head and
+# posts one commit status (context accord/evidence) to the head sha.
+
+name: ACCORD evidence
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  evidence:
+    name: accord/evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run evidence rules
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: bun packages/accord-ci/src/evidence-check.ts --base "$BASE_SHA" --head "$HEAD_SHA" --status-out "$RUNNER_TEMP/evidence-status.json"
+
+      - name: Post commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -f "$RUNNER_TEMP/evidence-status.json" ]; then
+            gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" --method POST --input "$RUNNER_TEMP/evidence-status.json"
+          else
+            echo '{"context":"accord/evidence","state":"error","description":"Evidence check did not run"}' > "$RUNNER_TEMP/evidence-fail.json"
+            gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" --method POST --input "$RUNNER_TEMP/evidence-fail.json"
+          fi

@@ -1,7 +1,8 @@
 # Pre-merge autopipeline smoke
 
 Run this checklist before merging changes that touch `packages/accord-ci/`,
-`.github/actions/setup-accord/`, or `.github/workflows/autopipeline*.yml`.
+`.github/actions/setup-accord/`, or `.github/workflows/autopipeline*.yml`, or
+`.github/workflows/accord-evidence.yml`.
 
 ## 1 — Unit + contract (local, no secrets)
 
@@ -63,3 +64,17 @@ SMOKE_BRANCH=main SMOKE_ACCORD_REF=main bun run smoke:gh:autopipeline
 
 Sandbox Jira + real phase execution: `docs/ci/consumer-quickstart.md` and
 `dry_run=false` on a throwaway ticket. Not required for every PR.
+
+## accord/evidence — required workflow
+
+`.github/workflows/accord-evidence.yml` is a required workflow. It runs on
+`pull_request` to `main` and on `push` to `main`. It checks out full history
+(`fetch-depth: 0`), runs `packages/accord-ci/src/evidence-check.ts` over
+`base..head`, and posts one commit status with context `accord/evidence` to the
+head sha. On a pull request the head is `github.event.pull_request.head.sha`,
+not the merge sha. The workflow has `statuses: write` and uses only
+`GITHUB_TOKEN`. Mark `accord/evidence` as a required status check on `main`.
+
+```bash
+bun test packages/accord-ci/tests/evidence-check-runner.test.ts
+```
