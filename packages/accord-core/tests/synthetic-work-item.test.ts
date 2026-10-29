@@ -26,6 +26,41 @@ describe("synthetic work item ids", () => {
     expect(() => nextSyntheticWorkItemId(() => true, today)).toThrow(/No free ADHOC-20261029NN/);
   });
 
+  test("month and day are zero-padded", () => {
+    expect(nextSyntheticWorkItemId(() => false, new Date(2026, 0, 5))).toBe("ADHOC-2026010501");
+    expect(nextSyntheticWorkItemId(() => false, new Date(2026, 11, 31))).toBe("ADHOC-2026123101");
+  });
+
+  test("uses the local calendar date, not UTC", () => {
+    const original = process.env.TZ;
+    try {
+      for (const zone of ["Pacific/Auckland", "America/Los_Angeles"]) {
+        process.env.TZ = zone;
+        expect(nextSyntheticWorkItemId(() => false, new Date(2026, 0, 5, 0, 30))).toBe(
+          "ADHOC-2026010501",
+        );
+        expect(nextSyntheticWorkItemId(() => false, new Date(2026, 0, 5, 23, 30))).toBe(
+          "ADHOC-2026010501",
+        );
+      }
+    } finally {
+      if (original === undefined) delete process.env.TZ;
+      else process.env.TZ = original;
+    }
+  });
+
+  test("slot 99 is usable and slot 100 is never produced", () => {
+    expect(nextSyntheticWorkItemId((c) => !c.endsWith("99"), today)).toBe("ADHOC-2026102999");
+    let calls = 0;
+    expect(() =>
+      nextSyntheticWorkItemId(() => {
+        calls += 1;
+        return true;
+      }, today),
+    ).toThrow(/No free ADHOC-20261029NN/);
+    expect(calls).toBe(99);
+  });
+
   test("real tickets and malformed ids are not synthetic", () => {
     expect(isSyntheticWorkItemId("STEP-123")).toBe(false);
     expect(isSyntheticWorkItemId("ADHOC-1")).toBe(false);

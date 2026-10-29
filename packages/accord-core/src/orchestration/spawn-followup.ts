@@ -48,6 +48,12 @@ function parseGatherHint(parsedReturn: unknown): AlignGatherHint | undefined {
 export interface SpawnFollowUpPlan {
   agent: string;
   task: string;
+  /**
+   * True when this follow-up replaces a gather the harness chose not to run (synthetic id). It
+   * still spends the persisted gather budget so a looping align cannot respawn forever and the
+   * cap escalates to a human via `escalateGatherCapIfExhausted`.
+   */
+  consumesGatherBudget?: boolean;
 }
 
 export interface PlanSpawnFollowUpInput {
@@ -74,9 +80,13 @@ export function planSpawnFollowUp(input: PlanSpawnFollowUpInput): SpawnFollowUpP
 
   if (input.agent === "phase-align" && status === "needs_gather") {
     // A synthetic ADHOC id is not a tracker ticket: skip the lookup and re-run align without it.
-    if (isSyntheticWorkItemId(input.workItemId)) {
+    // A real ticket named in the hint (e.g. "fix CLD-4639 timeout") still gathers.
+    const hintTicket = parseGatherHint(input.parsedReturn)?.ticket_id?.trim();
+    const hintIsSynthetic = !hintTicket || isSyntheticWorkItemId(hintTicket);
+    if (isSyntheticWorkItemId(input.workItemId) && hintIsSynthetic) {
       return {
         agent: "phase-align",
+        consumesGatherBudget: true,
         task: buildAlignSpawnTask({
           workItemId: input.workItemId,
           title: input.title,
@@ -182,7 +192,7 @@ export function escalateGatherCapIfExhausted(
     question: `phase-align still needs more context after ${String(max)} phase-gather attempt(s). What additional context, source, or decision should alignment use?`,
     context:
       hint?.reason ?? "phase-align returned needs_gather again after the gather budget was spent.",
-    tried: `${String(max)} phase-gather spawn(s)${hint?.ticket_id ? ` for ${hint.ticket_id}` : ""}`,
+    tried: `${String(max)} gather attempt(s)${hint?.ticket_id ? ` for ${hint.ticket_id}` : ""}`,
   });
   mutateJson<WorkItem>(workItemJsonPath(workItemId), (wi) => {
     if (!wi) return undefined;
@@ -238,7 +248,7 @@ export async function runSpawnFollowUpChain(
       break;
     }
 
-    if (plan.agent === "phase-gather") {
+    if (plan.agent === "phase-gather" || plan.consumesGatherBudget) {
       // Persisted budget: an align↔gather cycle must stop across resumes / drive rounds too.
       if (gatherCapReached(input.workItemId, input.devConfig)) {
         break;

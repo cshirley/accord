@@ -1,15 +1,23 @@
 import fs from "node:fs";
-import path from "node:path";
 import { DEV_WORK_ITEM_ID_PATTERN } from "@clive.shirley/accord-core/commands/dispatch.js";
+import type { WorkItemPattern, WorkItemVariant } from "@clive.shirley/accord-core/types/domain.js";
+import { devArtifactDir } from "@clive.shirley/accord-core/work-items/artifact-discovery.js";
 import { loadWorkItem } from "@clive.shirley/accord-core/work-items/io.js";
 import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
 import { nextSyntheticWorkItemId } from "@clive.shirley/accord-core/work-items/synthetic.js";
 
-const PATTERNS = ["implement", "quick_fix", "investigate", "infra", "analyse"] as const;
-const VARIANTS = ["express", "standard", "orchestrated"] as const;
-
-type Pattern = (typeof PATTERNS)[number];
-type Variant = (typeof VARIANTS)[number];
+const PATTERNS = [
+  "implement",
+  "quick_fix",
+  "investigate",
+  "infra",
+  "analyse",
+] as const satisfies readonly WorkItemPattern[];
+const VARIANTS = [
+  "express",
+  "standard",
+  "orchestrated",
+] as const satisfies readonly WorkItemVariant[];
 
 export type BootstrapArgs = {
   /** Explicit work item id, or undefined with `adhoc` to generate `ADHOC-<YYYYMMDD><NN>`. */
@@ -22,7 +30,10 @@ export type BootstrapArgs = {
 
 export type BootstrapParse = { ok: true; args: BootstrapArgs } | { ok: false; message: string };
 
-/** Parse tokens after `bootstrap`: `<ID> <title…>` or `--adhoc <title…>`, plus `--pattern`/`--variant`. */
+/**
+ * Parse tokens after `bootstrap`: `<ID> <title…>` or `--adhoc <title…>`, plus `--pattern` and
+ * `--variant`. Tokens after a bare `--` are title text, so a title word may start with `--`.
+ */
 export function parseBootstrapArgs(tail: string[]): BootstrapParse {
   let pattern = "implement";
   let variant = "standard";
@@ -31,6 +42,10 @@ export function parseBootstrapArgs(tail: string[]): BootstrapParse {
 
   for (let index = 0; index < tail.length; index++) {
     const token = tail[index];
+    if (token === "--") {
+      positional.push(...tail.slice(index + 1));
+      break;
+    }
     if (token === "--adhoc") {
       adhoc = true;
     } else if (token === "--pattern" || token === "--variant") {
@@ -49,14 +64,20 @@ export function parseBootstrapArgs(tail: string[]): BootstrapParse {
     }
   }
 
-  if (!PATTERNS.includes(pattern as Pattern)) {
+  if (!(PATTERNS as readonly string[]).includes(pattern)) {
     return { ok: false, message: `--pattern must be one of: ${PATTERNS.join(", ")}` };
   }
-  if (!VARIANTS.includes(variant as Variant)) {
+  if (!(VARIANTS as readonly string[]).includes(variant)) {
     return { ok: false, message: `--variant must be one of: ${VARIANTS.join(", ")}` };
   }
 
   if (adhoc) {
+    if (positional.length > 0 && DEV_WORK_ITEM_ID_PATTERN.test(positional[0])) {
+      return {
+        ok: false,
+        message: `bootstrap --adhoc generates the id; "${positional[0]}" looks like a ticket id. Use: bootstrap ${positional[0]} <title>`,
+      };
+    }
     const title = positional.join(" ").trim();
     if (!title) return { ok: false, message: "bootstrap --adhoc requires a title" };
     return { ok: true, args: { adhoc, title, pattern, variant } };
@@ -71,7 +92,7 @@ export function parseBootstrapArgs(tail: string[]): BootstrapParse {
 }
 
 function idTaken(id: string): boolean {
-  return loadWorkItem(id) !== null || fs.existsSync(path.join("docs", "dev", id));
+  return loadWorkItem(id) !== null || fs.existsSync(devArtifactDir(id));
 }
 
 export function runBootstrapCommand(args: BootstrapArgs, options: { json?: boolean }): number {
@@ -99,10 +120,11 @@ export function runBootstrapCommand(args: BootstrapArgs, options: { json?: boole
     return 1;
   }
 
-  const boot = devBootstrap(id, args.title, args.pattern as Pattern, args.variant, {
+  const boot = devBootstrap(id, args.title, args.pattern as WorkItemPattern, args.variant, {
     expected_finish: args.title.slice(0, 240),
   });
-  const next = `accord align ${id}`;
+  // Only work items that start in `aligning` begin with align; the others enter a later phase.
+  const next = boot.work_item.phase === "aligning" ? `accord align ${id}` : `accord resume ${id}`;
 
   if (options.json) {
     console.log(
