@@ -1,14 +1,14 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T12:36:57.864Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T13:16:52.088Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
 
 | Task | Title | Status | Commits | Rounds T/C/V | Findings | Unblocks |
 | ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | [flags] Stack and knowledge switch resolver with default-off values | done | — | 1/1/1 | 8 (open 8) | 0 |
-| 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | pending | — | 0/0/0 | 0 | 0 |
+| 1 | [flags] Stack and knowledge switch resolver with default-off values | done | `0e9ed2e` | 1/1/1 | 8 (open 8) | 0 |
+| 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | — | 4/4/1 | 21 (verified 15, wont_fix_accepted 1, waived 2, open 3) | 0 |
 | 3 | [telemetry] Stack event catalogue and emitter on the shared logger | pending | — | 0/0/0 | 0 | 0 |
 | 4 | [infra] accord/evidence check runner and workflow | pending | — | 0/0/0 | 0 | 0 |
 | 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | pending | — | 0/0/0 | 0 | 0 |
@@ -236,7 +236,13 @@
 
 > Orchestration and domain logic (commit grammar, computeStack, evidence, state, feature knowledge) MUST live in packages/accord-core; pi-accord, accord-cli and accord-mcp stay thin adapters and Pi APIs never enter acco…
 
-- Tasks: 2 (pending), 9 (pending), 29 (pending), 31 (pending), 49 (pending)
+- Tasks: 2 (satisfied), 9 (pending), 29 (pending), 31 (pending), 49 (pending)
+- Files: `packages/accord-core/tests/helpers-git.test.ts`, `packages/accord-core/tests/layering.test.ts`, `packages/accord-core/tests/helpers/temp-git-repo.ts`, `packages/accord-core/tests/helpers/fake-gh.ts`
+- Tests verified (4):
+  - packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*
+  - packages/accord-core/tests/helpers-git.test.ts › ASDLC-1/AC-28 (temp git repo and fake gh)
+  - bun run check:types
+  - bun run check:bundle
 
 ### AC-29 — pending (not verified)
 
@@ -268,6 +274,12 @@
 | 1 | AC-26 | F-006 | unresolved (advisory) | open | suggestion | The 'stack enabled means warn' default is tested only with an orchestration.review_loop object present. A stack-enabled config with no orchestration key is not tested. Neither is the case where knowledge.enabled alone must not change the gate. | packages/accord-core/tests/stack-flags.test.ts:194 |  |
 | 1 | AC-26 | F-007 | unresolved (advisory) | open | suggestion | TC-27 (e2e regression: harness suite plus runtime-smoke with defaults produce no stack or knowledge files) has no test in this task. The plan assigns it to a later task that extends packages/pi-accord/scripts/runtime-smoke.ts (plan.json:500). Task 1 adds no consumers of the flags, so no files can be produced yet. |  |  |
 | 1 | AC-26 | F-008 | unresolved (advisory) | open | suggestion | Resolvers leave other documented schema defaults unfilled, so later tasks will re-implement them. | packages/accord-core/src/config/stack-flags.ts:31 |  |
+| 2 | AC-28 | F-010 | accepted (advisory) | wont_fix_accepted | suggestion | TC-29 also requires check:types and check:bundle on the change; unit test cannot prove them, and neither command actually enforces the core→Pi boundary | packages/accord-core/tests/layering.test.ts:38 | wont_fix_accepted by T2/review-test — A unit test cannot run check:types or check:bundle. phase-verify-task runs `bun run check:types && bun run check:bundle && bun test packages/accord-core/tests/layering.test.ts`. |
+| 2 | AC-28 | F-012 | accepted | waived | critical | phase-code modified test file packages/accord-core/tests/helpers/temp-git-repo.ts (tests are owned by phase-test) | packages/accord-core/tests/helpers/temp-git-repo.ts | waived by human — Plan task 2 deliverable: phase-code implements stub helpers under tests/helpers/ (plan.json files list). Ownership guard false positive; 52 tests pass |
+| 2 | AC-28 | F-013 | accepted | waived | critical | phase-code modified test file packages/accord-core/tests/helpers/fake-gh.ts (tests are owned by phase-test) | packages/accord-core/tests/helpers/fake-gh.ts | waived by human — Same as F-012 (fake-gh.ts helper implementation is the planned phase-code deliverable) |
+| 2 | AC-28 | F-019 | unresolved (advisory) | open | suggestion | Shebang embeds `process.execPath` unquoted; a Bun path containing a space, or longer than the kernel shebang limit, makes the fake `gh` fail to exec. | packages/accord-core/tests/helpers/fake-gh.ts:37 |  |
+| 2 | AC-28 | F-020 | unresolved (advisory) | open | suggestion | Monkey-patching of Bun.spawn/spawnSync restores correctly only in LIFO order, and PATH is restored to a snapshot. | packages/accord-core/tests/helpers/fake-gh.ts:60 |  |
+| 2 | AC-28 | F-021 | unresolved (advisory) | open | suggestion | Temp dir leaks if `git init` or `git config` throws, and `GIT_CONFIG_COUNT`/`GIT_CONFIG_PARAMETERS`/`GIT_TEMPLATE_DIR` from the host env are not scrubbed. | packages/accord-core/tests/helpers/temp-git-repo.ts:37 |  |
 
 ## Decisions
 
@@ -275,7 +287,7 @@ _None._
 
 ## Deviations
 
-_None._
+- Task 2 (pending): layering.test.ts import-boundary tests pass without impl — accord-core src currently has no Pi imports; AC-28 is a regression guard, and the scanner self-check proves it fails on violations
 
 ## Evidence by task
 
@@ -299,6 +311,26 @@ stack-flags.test.ts: 35 pass, 0 fail. Preflight: bun test, check:biome, validate
 ```
 
 ### Task 2: [infra] Temp git repo, fake gh helpers and import-boundary test
+
+- Human action `C4/unblock`: waive F-012; waive F-013 — all blockers resolved
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-28 fake gh helper > ... error: not implemented: installFakeGh (x5)
+(fail) ASDLC-1/AC-28 temp git repo helper > ... error: not implemented: createTempGitRepo (x5)
+
+ 17 pass
+ 10 fail
+ 17 expect() calls
+Ran 27 tests across 2 files.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+task tests: 52 pass, 0 fail (2 files). check:types, check:bundle and check:biome (1 warning) passed. Preflight: bun test, biome, validate:schemas/assets/okf/ste, check:types, check:bundle and check:runtime all exit 0.
+```
 
 ### Task 3: [telemetry] Stack event catalogue and emitter on the shared logger
 
