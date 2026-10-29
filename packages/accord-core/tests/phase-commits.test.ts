@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { validateReturn } from "../src/artifacts/validation.js";
 import { parseAccordTrailer, validateTrailer } from "../src/commit/commit-grammar.js";
+import { registerPrGroupResolver } from "../src/commit/hooks.js";
 import { tryCommitPhase } from "../src/commit/phase-commit.js";
 import type { DevHarnessConfig } from "../src/config/types.js";
 import { processSubagentToolResult } from "../src/harness/index.js";
@@ -840,8 +841,65 @@ describe("ASDLC-1/AC-1 orchestrator wiring (processSubagentToolResult)", () => {
     seedWorkItem("phase-verify-task");
     write(SRC_FILE, "export const foo = 1;\n");
     await run("phase-verify-task", verifyPacket, WIRE_CFG("phase"));
-    expect(subjects().at(-1)).toStartWith("[ASDLC-1][task-7] V1/phase-verify-task: ");
+    // ASDLC-1/AC-5: the V1 commit is followed by the final evidence commit.
+    expect(subjects().at(-2)).toStartWith("[ASDLC-1][task-7] V1/phase-verify-task: ");
+    expect(subjects().at(-1)).toContain("evidence(task-7)");
     expect(subjects().some((subject) => /^\[ASDLC-1\] Task 7:/.test(subject))).toBe(false);
+  });
+
+  it("ASDLC-1/AC-5 wiring A: single done task gets evidence(task-7) after V1, no per-task commit", async () => {
+    seedWorkItem("phase-verify-task");
+    write(SRC_FILE, "export const foo = 1;\n");
+    await run("phase-verify-task", verifyPacket, WIRE_CFG("phase"));
+    expect(subjects().at(-2)).toStartWith("[ASDLC-1][task-7] V1/phase-verify-task: ");
+    expect(subjects().at(-1)).toContain("evidence(task-7)");
+    expect(subjects().at(-1)).not.toContain("evidence(task-7,");
+    expect(git("ls-tree", "-r", "--name-only", "HEAD")).toContain(
+      `docs/dev/${ID}/evidence/task-7.json`,
+    );
+    expect(subjects().some((subject) => /^\[ASDLC-1\] Task 7:/.test(subject))).toBe(false);
+  });
+
+  it("ASDLC-1/AC-5 wiring B: merged group [7,8] with task 8 done gets evidence(task-7,8)", async () => {
+    seedWorkItem("phase-verify-task");
+    writeTaskFixture(
+      { workItemId: ID, taskId: 8, phase: "phase-verify-task", status: "done", coversAc: ["AC-1"] },
+      repo,
+    );
+    write(SRC_FILE, "export const foo = 1;\n");
+    try {
+      registerPrGroupResolver((taskId) => (taskId === 7 ? [7, 8] : [taskId]));
+      await run("phase-verify-task", verifyPacket, WIRE_CFG("phase"));
+    } finally {
+      registerPrGroupResolver((taskId) => [taskId]);
+    }
+    expect(subjects().at(-1)).toContain("evidence(task-7,8)");
+    const tracked = git("ls-tree", "-r", "--name-only", "HEAD");
+    expect(tracked).toContain(`docs/dev/${ID}/evidence/task-7.json`);
+    expect(tracked).toContain(`docs/dev/${ID}/evidence/task-8.json`);
+  });
+
+  it("ASDLC-1/AC-5 wiring C: merged group with task 8 in_progress makes no evidence commit", async () => {
+    seedWorkItem("phase-verify-task");
+    writeTaskFixture(
+      {
+        workItemId: ID,
+        taskId: 8,
+        phase: "phase-verify-task",
+        status: "in_progress",
+        coversAc: ["AC-1"],
+      },
+      repo,
+    );
+    write(SRC_FILE, "export const foo = 1;\n");
+    try {
+      registerPrGroupResolver((taskId) => (taskId === 7 ? [7, 8] : [taskId]));
+      await run("phase-verify-task", verifyPacket, WIRE_CFG("phase"));
+    } finally {
+      registerPrGroupResolver((taskId) => [taskId]);
+    }
+    expect(subjects().at(-1)).toStartWith("[ASDLC-1][task-7] V1/phase-verify-task: ");
+    expect(subjects().some((subject) => subject.includes("evidence("))).toBe(false);
   });
 
   it("ASDLC-1/AC-1 phase mode: phase-test result produces the T1/phase-test commit", async () => {

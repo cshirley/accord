@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T19:03:39.278Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-29T19:45:20.687Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -18,8 +18,8 @@
 | 9 | [commit-evidence] accord evidence CLI command | done | `831cf8e` | 1/1/1 | 11 (open 11) | 0 |
 | 10 | [commit-evidence] OKF docs and docs validation test | done | `cfb68a8` | 2/1/1 | 13 (verified 5, wont_fix_accepted 1, open 7) | 0 |
 | 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | done | `58b8d41` | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
-| 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | done | — | 2/1/1 | 24 (verified 14, open 10) | 0 |
-| 13 | [evidence-asset] Final evidence(task-<N>) commit | pending | — | 0/0/0 | 0 | 0 |
+| 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | done | `96e4fcd` | 2/1/1 | 24 (verified 14, open 10) | 0 |
+| 13 | [evidence-asset] Final evidence(task-<N>) commit | done | — | 2/1/1 | 22 (verified 10, open 12) | 0 |
 | 14 | [evidence-asset] OKF docs for the evidence asset | pending | — | 0/0/0 | 0 | 0 |
 | 15 | [security-gate] review-security gating inside the C loop | pending | — | 0/0/0 | 0 | 0 |
 | 16 | [security-gate] Route open or disputed gating security findings back to review-security | pending | — | 0/0/0 | 0 | 0 |
@@ -121,15 +121,17 @@
   - evidence-cli.test.ts › ASDLC-1/TC-4 tsv columns match the documented awk extraction (sum usd_u by task)
   - evidence-cli.test.ts › ASDLC-1/TC-4 unknown format exits non-zero naming the format and the valid values
 
-### AC-5 — pending (not verified)
+### AC-5 — satisfied
 
 > Then it is evidence(task-<N>) (evidence(task-<N>,<M>) for a merged PR), writes docs/dev/<ID>/evidence/task-<N>.{md,json} per task from commits and trailers (red and green excerpts, findings, review-to-fix patches, pla…
 
-- Tasks: 12 (satisfied), 13 (pending)
-- Files: `packages/accord-core/tests/evidence-asset.test.ts`, `packages/accord-core/src/evidence/asset.ts`, `packages/accord-core/src/evidence/lines.ts`
-- Tests verified (2):
+- Tasks: 12 (satisfied), 13 (satisfied)
+- Files: `packages/accord-core/tests/evidence-asset.test.ts`, `packages/accord-core/src/evidence/asset.ts`, `packages/accord-core/src/evidence/lines.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`, `packages/accord-core/src/commit/hooks.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/subagent/result/process.ts`
+- Tests verified (4):
   - evidence-asset.test.ts: ASDLC-1/AC-5 evidence asset content (ASDLC-1/TC-5) (json roll-up, md excerpts, merged PR one asset per task, byte-identical output, squash simulation, include_diffs)
   - evidence-asset.test.ts: ASDLC-1/AC-5 measureActualLines (ASDLC-1/TC-5)
+  - evidence-commit.test.ts: ASDLC-1/AC-5 single task, merged PR, state dir removal, outcome=done trailer, commit log entry, staging guards, resolver registry
+  - phase-commits.test.ts: ASDLC-1/AC-5 wiring A/B/C
 
 ### AC-6 — pending (not verified)
 
@@ -279,11 +281,13 @@
 
 > Evidence commits are append-only: the harness MUST NOT amend or force-push them, and a failed round adds commits and never rewrites them
 
-- Tasks: 7 (satisfied), 13 (pending), 19 (pending), 41 (pending), 53 (pending)
-- Files: `packages/accord-core/tests/append-only.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`
-- Tests verified (2):
+- Tasks: 7 (satisfied), 13 (satisfied), 19 (pending), 41 (pending), 53 (pending)
+- Files: `packages/accord-core/tests/append-only.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`
+- Tests verified (4):
   - append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD
   - an unchanged tree never rewrites the previous commit (no amend on empty round)
+  - ASDLC-1/AC-27 rerun adds no commit, no amend: evidence sha stays HEAD and reachable
+  - ASDLC-1/AC-27 a later phase commit goes on top; evidence commit is never rewritten
 
 ### AC-28 — pending (not verified)
 
@@ -304,9 +308,9 @@
 
 > The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…
 
-- Tasks: 3 (satisfied), 6 (satisfied), 7 (satisfied), 13 (pending), 34 (pending), 39 (pending)
-- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`
-- Tests verified (12):
+- Tasks: 3 (satisfied), 6 (satisfied), 7 (satisfied), 13 (satisfied), 34 (pending), 39 (pending)
+- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`
+- Tests verified (14):
   - packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields
   - ASDLC-1/AC-29 <event> catalogue entry declares exact level and fields
   - ASDLC-1/AC-29 <event> rejects an unknown field
@@ -319,6 +323,8 @@
   - commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts > ASDLC-1/AC-29 trailer rejection emits stack.guard.rejected at warn
   - phase-commits.test.ts › ASDLC-1/AC-29 emits info stack.commit.created with work_item_id, ref, outcome and sha for each commit
   - ASDLC-1/AC-3 rejection logged (stack.guard.rejected)
+  - ASDLC-1/AC-29 emits info event with work_item_id, ref, outcome=done and sha
+  - ASDLC-1/AC-29 no event on idempotent rerun
 
 ### AC-30 — pending (not verified)
 
@@ -458,6 +464,18 @@
 | 12 | AC-5 | F-023 | unresolved (advisory) | open | suggestion | The excluded state/reviews/evidence paths are defined twice (PATCH_EXCLUDES here, STATE_PATH_RE in lines.ts) and ignore a configured stack.state.path. | packages/accord-core/src/evidence/asset.ts:53 |  |
 | 12 | AC-5 | F-024 | unresolved (advisory) | open | suggestion | Math.max(2, ...runs) spreads an unbounded array and can throw RangeError on large inputs. | packages/accord-core/src/evidence/asset.ts:116 |  |
 | 12 | AC-6 | F-022 | unresolved (advisory) | open | suggestion | BARE_REF and qualifyText duplicate the regex already in evidence/qualify-ac.ts, so the two can drift apart. | packages/accord-core/src/evidence/asset.ts:51 |  |
+| 13 | AC-5 | F-011 | unresolved (advisory) | open | warning | The process.ts evidence wiring is tested only for a task that reaches done through a phase-verify-task result. In phase mode the per-task sweep is skipped (process.ts:572), so an implementation that calls commitTaskEvidence only when agentName === 'phase-verify-task' passes cases A-C. A task that reaches done through review-code with orchestration.verify_loop.enabled=false (review-code.ts:131) then gets neither the per-task commit nor an evidence commit, so the task PR is never closed. | packages/accord-core/tests/phase-commits.test.ts:850 |  |
+| 13 | AC-5 | F-012 | unresolved (advisory) | open | suggestion | The pre-staged test checks only that `git status --porcelain` lists src/staged.ts. This is also true if the implementation unstages the user's file, because it then appears as '?? src/staged.ts'. So an implementation that runs `git restore --staged .` or `git reset -- .` before staging evidence paths passes, and the user's index is lost. The pathspec reset form writes no reflog entry, so the reflog checks in the AC-27 tests do not catch it. | packages/accord-core/tests/evidence-commit.test.ts:229 |  |
+| 13 | AC-5 | F-013 | unresolved (advisory) | open | suggestion | Missed in round 1. No test covers a failed evidence commit. Suppose the implementation appends the commit/committed log entry or emits stack.commit.created before commitWithMessage succeeds. A failed commit then marks the task as committed. The idempotency check and commitDoneTasks then skip it forever, and the telemetry reports a commit that does not exist. | packages/accord-core/tests/evidence-commit.test.ts:395 |  |
+| 13 | AC-5 | F-015 | unresolved (advisory) | open | warning | The roll-up trailer omits tok_in, tok_out and usd_u, which the plan includes in the evidence(task-N) trailer. | packages/accord-core/src/commit/evidence-commit.ts:47 |  |
+| 13 | AC-5 | F-017 | unresolved (advisory) | open | warning | In phase mode the evidence commit is tried only for the task of the packet just processed, and the done-task sweep is off, so a failed or missed evidence commit is never retried. | packages/accord-core/src/subagent/result/process.ts:501 |  |
+| 13 | AC-5 | F-018 | unresolved (advisory) | open | suggestion | The evidence commit's own trailer (task=first task, loop=evidence) is included by readCommits on any later rebuild, so the asset is no longer reproducible from the PR head. | packages/accord-core/src/commit/evidence-commit.ts:141 |  |
+| 13 | AC-5 | F-021 | unresolved (advisory) | open | suggestion | CloseoutBranchHook is typed `(...args: unknown[]) => unknown`, so every consumer must cast. | packages/accord-core/src/commit/hooks.ts:14 |  |
+| 13 | AC-27 | F-014 | unresolved (advisory) | open | warning | Failure after the git commit leaves no idempotency marker, so a rerun adds a second evidence commit and the stack.commit.created event is lost. | packages/accord-core/src/commit/evidence-commit.ts:153 |  |
+| 13 | AC-29 | F-016 | unresolved (advisory) | open | warning | Stray pre-staged files are unstaged without emitting stack.guard.rejected, unlike phase-commit.ts. | packages/accord-core/src/commit/evidence-commit.ts:126 |  |
+| 13 | _task | F-019 | unresolved (advisory) | open | suggestion | Assets are built twice: buildEvidenceAsset, then writeEvidenceAssets builds them again internally. | packages/accord-core/src/commit/evidence-commit.ts:99 |  |
+| 13 | _task | F-020 | unresolved (advisory) | open | suggestion | nextSeq duplicates phase-commit's priorTrailers scan, is unbounded, and swallows errors. | packages/accord-core/src/commit/evidence-commit.ts:31 |  |
+| 13 | _task | F-022 | unresolved (advisory) | open | suggestion | OKF docs still say phase mode only skips the done-task sweep; they do not mention the final evidence(task-N) commit that process.ts now makes. | okf/architecture/orchestration.md:52 |  |
 
 ## Decisions
 
@@ -473,6 +491,8 @@ _None._
 - Task 8 (pending): Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'. — Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.
 - Task 9 (pending): Exported runEvidenceCommand from commands/index.ts (not in task.files) — dispatch.ts imports commands via the index barrel
 - Task 11 (pending): AC-30 has no dedicated test in qualified-ac-refs.test.ts; the trace-schema ac_id widening is covered indirectly via validateArtifact on a qualified trace.json. — AC-30 is enforced by bun run validate:schemas / validate:assets (phase-verify-task), and TC-31 lives in alignment.test.ts, which is outside this task's files.
+- Task 13 (pending): Edited phase-commits.test.ts (not in task.files) to add wiring cases and fix the V1-is-last assertion — F-001 required orchestrator wiring tests and removal of the V1-last assertion
+- Task 13 (pending): Stubbed registerCloseoutBranchHook(hook|undefined) and getCloseoutBranchHook() with an opaque hook type — F-010: spec leaves the closeout hook shape open; only default and registration identity are pinned
 
 ## Evidence by task
 
@@ -730,6 +750,24 @@ evidence-asset.test.ts: 24 pass, 0 fail. check:types exit 0. Secret grep over pa
 ```
 
 ### Task 13: [evidence-asset] Final evidence(task-<N>) commit
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-29 stack.commit.created for evidence commit > ASDLC-1/AC-29 no event on idempotent rerun
+error: not implemented: commitTaskEvidence
+error: not implemented: registerPrGroupResolver
+
+ 0 pass
+ 14 fail
+Ran 14 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+task tests: 54 pass 0 fail. check:types, check:bundle, check:runtime, validate:schemas/assets/okf/ste pass. check:biome FAIL (outside task files): docs/dev/ASDLC-1/trace.json format (harness-generated); packages/accord-core/scripts/update-model-pricing.ts:84 lint/complexity/useOptionalChain. Full bun test: 2139 pass, 1 fail (AC-31 check:biome exits 0, caused by the same biome failure).
+```
 
 ### Task 14: [evidence-asset] OKF docs for the evidence asset
 

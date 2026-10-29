@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T19:03:39.278Z",
+  "generated_at": "2026-10-29T19:45:20.687Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -58,6 +58,18 @@
       "task_id": 11,
       "description": "AC-30 has no dedicated test in qualified-ac-refs.test.ts; the trace-schema ac_id widening is covered indirectly via validateArtifact on a qualified trace.json.",
       "reason": "AC-30 is enforced by bun run validate:schemas / validate:assets (phase-verify-task), and TC-31 lives in alignment.test.ts, which is outside this task's files.",
+      "resolution": null
+    },
+    {
+      "task_id": 13,
+      "description": "Edited phase-commits.test.ts (not in task.files) to add wiring cases and fix the V1-is-last assertion",
+      "reason": "F-001 required orchestrator wiring tests and removal of the V1-last assertion",
+      "resolution": null
+    },
+    {
+      "task_id": 13,
+      "description": "Stubbed registerCloseoutBranchHook(hook|undefined) and getCloseoutBranchHook() with an opaque hook type",
+      "reason": "F-010: spec leaves the closeout hook shape open; only default and registration identity are pinned",
       "resolution": null
     }
   ],
@@ -1194,7 +1206,9 @@
       "id": 12,
       "title": "[evidence-asset] Evidence asset writer (task-<N>.md and .json)",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "96e4fcd"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -1295,45 +1309,144 @@
     {
       "id": 13,
       "title": "[evidence-asset] Final evidence(task-<N>) commit",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 22,
+        "by_state": {
+          "verified": 10,
+          "open": 12
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-29 stack.commit.created for evidence commit > ASDLC-1/AC-29 no event on idempotent rerun\nerror: not implemented: commitTaskEvidence\nerror: not implemented: registerPrGroupResolver\n\n 0 pass\n 14 fail\nRan 14 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "task tests: 54 pass 0 fail. check:types, check:bundle, check:runtime, validate:schemas/assets/okf/ste pass. check:biome FAIL (outside task files): docs/dev/ASDLC-1/trace.json format (harness-generated); packages/accord-core/scripts/update-model-pricing.ts:84 lint/complexity/useOptionalChain. Full bun test: 2139 pass, 1 fail (AC-31 check:biome exits 0, caused by the same biome failure).",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-5",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/evidence-commit.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/evidence-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/hooks.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/tests/phase-commits.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/evidence-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/commit/hooks.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/result/process.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/evidence-commit.test.ts packages/accord-core/tests/phase-commits.test.ts"
+          }
         },
         {
           "id": "AC-27",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/evidence-commit.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/evidence-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/commit/evidence-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/evidence-commit.test.ts"
+          }
         },
         {
           "id": "AC-29",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/evidence-commit.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/evidence-commit.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/tests/phase-commits.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/commit/evidence-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/evidence-commit.test.ts"
+          }
         }
       ]
     },
@@ -3005,7 +3118,7 @@
     {
       "ac_id": "AC-5",
       "text": "Then it is evidence(task-<N>) (evidence(task-<N>,<M>) for a merged PR), writes docs/dev/<ID>/evidence/task-<N>.{md,json} per task from commits and trailers (red and green excerpts, findings, review-to-fix patches, pla…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 12,
@@ -3013,19 +3126,26 @@
         },
         {
           "task": 13,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
         "packages/accord-core/tests/evidence-asset.test.ts",
         "packages/accord-core/src/evidence/asset.ts",
-        "packages/accord-core/src/evidence/lines.ts"
+        "packages/accord-core/src/evidence/lines.ts",
+        "packages/accord-core/tests/evidence-commit.test.ts",
+        "packages/accord-core/src/commit/evidence-commit.ts",
+        "packages/accord-core/src/commit/hooks.ts",
+        "packages/accord-core/tests/phase-commits.test.ts",
+        "packages/accord-core/src/subagent/result/process.ts"
       ],
       "tests": [
         "evidence-asset.test.ts: ASDLC-1/AC-5 evidence asset content (ASDLC-1/TC-5) (json roll-up, md excerpts, merged PR one asset per task, byte-identical output, squash simulation, include_diffs)",
-        "evidence-asset.test.ts: ASDLC-1/AC-5 measureActualLines (ASDLC-1/TC-5)"
+        "evidence-asset.test.ts: ASDLC-1/AC-5 measureActualLines (ASDLC-1/TC-5)",
+        "evidence-commit.test.ts: ASDLC-1/AC-5 single task, merged PR, state dir removal, outcome=done trailer, commit log entry, staging guards, resolver registry",
+        "phase-commits.test.ts: ASDLC-1/AC-5 wiring A/B/C"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-6",
@@ -3443,7 +3563,7 @@
         },
         {
           "task": 13,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 19,
@@ -3460,11 +3580,15 @@
       ],
       "files": [
         "packages/accord-core/tests/append-only.test.ts",
-        "packages/accord-core/src/commit/phase-commit.ts"
+        "packages/accord-core/src/commit/phase-commit.ts",
+        "packages/accord-core/tests/evidence-commit.test.ts",
+        "packages/accord-core/src/commit/evidence-commit.ts"
       ],
       "tests": [
         "append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD",
-        "an unchanged tree never rewrites the previous commit (no amend on empty round)"
+        "an unchanged tree never rewrites the previous commit (no amend on empty round)",
+        "ASDLC-1/AC-27 rerun adds no commit, no amend: evidence sha stays HEAD and reachable",
+        "ASDLC-1/AC-27 a later phase commit goes on top; evidence commit is never rewritten"
       ],
       "verified": false
     },
@@ -3532,7 +3656,7 @@
         },
         {
           "task": 13,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 34,
@@ -3549,7 +3673,9 @@
         "packages/accord-core/tests/commit-guard.test.ts",
         "packages/accord-core/src/commit/commit-guard.ts",
         "packages/accord-core/tests/phase-commits.test.ts",
-        "packages/accord-core/src/commit/phase-commit.ts"
+        "packages/accord-core/src/commit/phase-commit.ts",
+        "packages/accord-core/tests/evidence-commit.test.ts",
+        "packages/accord-core/src/commit/evidence-commit.ts"
       ],
       "tests": [
         "packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields",
@@ -3563,7 +3689,9 @@
         "commit-guard.test.ts › ASDLC-1/AC-29 guard rejection telemetry",
         "commit-guard.test.ts › ASDLC-1/AC-3 guardTrailer — trailer-counts > ASDLC-1/AC-29 trailer rejection emits stack.guard.rejected at warn",
         "phase-commits.test.ts › ASDLC-1/AC-29 emits info stack.commit.created with work_item_id, ref, outcome and sha for each commit",
-        "ASDLC-1/AC-3 rejection logged (stack.guard.rejected)"
+        "ASDLC-1/AC-3 rejection logged (stack.guard.rejected)",
+        "ASDLC-1/AC-29 emits info event with work_item_id, ref, outcome=done and sha",
+        "ASDLC-1/AC-29 no event on idempotent rerun"
       ],
       "verified": false
     },
@@ -5127,6 +5255,162 @@
       "issue": "BARE_REF and qualifyText duplicate the regex already in evidence/qualify-ac.ts, so the two can drift apart.",
       "file": "packages/accord-core/src/evidence/asset.ts",
       "line": 51,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-5",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The process.ts evidence wiring is tested only for a task that reaches done through a phase-verify-task result. In phase mode the per-task sweep is skipped (process.ts:572), so an implementation that calls commitTaskEvidence only when agentName === 'phase-verify-task' passes cases A-C. A task that reaches done through review-code with orchestration.verify_loop.enabled=false (review-code.ts:131) then gets neither the per-task commit nor an evidence commit, so the task PR is never closed.",
+      "file": "packages/accord-core/tests/phase-commits.test.ts",
+      "line": 850,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-5",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The pre-staged test checks only that `git status --porcelain` lists src/staged.ts. This is also true if the implementation unstages the user's file, because it then appears as '?? src/staged.ts'. So an implementation that runs `git restore --staged .` or `git reset -- .` before staging evidence paths passes, and the user's index is lost. The pathspec reset form writes no reflog entry, so the reflog checks in the AC-27 tests do not catch it.",
+      "file": "packages/accord-core/tests/evidence-commit.test.ts",
+      "line": 229,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-5",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Missed in round 1. No test covers a failed evidence commit. Suppose the implementation appends the commit/committed log entry or emits stack.commit.created before commitWithMessage succeeds. A failed commit then marks the task as committed. The idempotency check and commitDoneTasks then skip it forever, and the telemetry reports a commit that does not exist.",
+      "file": "packages/accord-core/tests/evidence-commit.test.ts",
+      "line": 395,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-5",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The roll-up trailer omits tok_in, tok_out and usd_u, which the plan includes in the evidence(task-N) trailer.",
+      "file": "packages/accord-core/src/commit/evidence-commit.ts",
+      "line": 47,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-5",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "In phase mode the evidence commit is tried only for the task of the packet just processed, and the done-task sweep is off, so a failed or missed evidence commit is never retried.",
+      "file": "packages/accord-core/src/subagent/result/process.ts",
+      "line": 501,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-5",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The evidence commit's own trailer (task=first task, loop=evidence) is included by readCommits on any later rebuild, so the asset is no longer reproducible from the PR head.",
+      "file": "packages/accord-core/src/commit/evidence-commit.ts",
+      "line": 141,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-5",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "CloseoutBranchHook is typed `(...args: unknown[]) => unknown`, so every consumer must cast.",
+      "file": "packages/accord-core/src/commit/hooks.ts",
+      "line": 14,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-27",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Failure after the git commit leaves no idempotency marker, so a rerun adds a second evidence commit and the stack.commit.created event is lost.",
+      "file": "packages/accord-core/src/commit/evidence-commit.ts",
+      "line": 153,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "AC-29",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Stray pre-staged files are unstaged without emitting stack.guard.rejected, unlike phase-commit.ts.",
+      "file": "packages/accord-core/src/commit/evidence-commit.ts",
+      "line": 126,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "_task",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Assets are built twice: buildEvidenceAsset, then writeEvidenceAssets builds them again internally.",
+      "file": "packages/accord-core/src/commit/evidence-commit.ts",
+      "line": 99,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "_task",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "nextSeq duplicates phase-commit's priorTrailers scan, is unbounded, and swallows errors.",
+      "file": "packages/accord-core/src/commit/evidence-commit.ts",
+      "line": 31,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 13,
+      "requirement": "_task",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "OKF docs still say phase mode only skips the done-task sweep; they do not mention the final evidence(task-N) commit that process.ts now makes.",
+      "file": "okf/architecture/orchestration.md",
+      "line": 52,
       "raised": "C1/review-code"
     }
   ]
