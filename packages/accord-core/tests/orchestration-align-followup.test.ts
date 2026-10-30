@@ -271,6 +271,55 @@ describe("synthetic ADHOC work items", () => {
     }
   });
 
+  test("a synthetic id whose align names a real ticket escalates with the gather wording", async () => {
+    writeWorkItem("ADHOC-2026102901", {
+      schema_version: "1.0",
+      id: "ADHOC-2026102901",
+      title: "fix STEP-123 timeout",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "aligning",
+      spec: null,
+      plan: null,
+      verify: null,
+      brief: null,
+      task_ids: [],
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    const host = {
+      notify: () => {},
+      spawnSubagent: async (input: { agent: string }) =>
+        input.agent === "phase-gather"
+          ? {
+              exitCode: 0,
+              parsedReturn: {
+                status: "done",
+                context: "c",
+                usage: { prompt_tokens: 1, completion_tokens: 1 },
+              },
+            }
+          : {
+              exitCode: 0,
+              parsedReturn: {
+                status: "needs_gather",
+                gather_hint: { ticket_id: "STEP-123", reason: "names a ticket" },
+                usage: { prompt_tokens: 1, completion_tokens: 1 },
+              },
+            },
+    };
+    const devConfig = { ...minimalDevConfig(), orchestration: { max_gather_attempts: 1 } };
+    const out = await runResumeOrchestrationWithReplans("ADHOC-2026102901", devConfig, host);
+    expect(out.stalledReason).toBe("stuck");
+    const saved = JSON.parse(readFileSync(join(".tasks", "ADHOC-2026102901.json"), "utf8"));
+    const text = JSON.stringify(saved.decisions[0]);
+    expect(text).toContain("phase-gather attempt");
+    expect(text).not.toContain("no tracker ticket");
+  });
+
   test("a real ticket in the hint still gathers for an ADHOC work item", () => {
     const plan = planSpawnFollowUp({
       workItemId: "ADHOC-2026102901",

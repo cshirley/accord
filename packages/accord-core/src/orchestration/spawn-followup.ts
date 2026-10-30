@@ -51,6 +51,22 @@ function parseGatherHint(parsedReturn: unknown): AlignGatherHint | undefined {
   return { ticket_id, reason };
 }
 
+/**
+ * True when an align `gather_hint` names a real tracker ticket. Only a well-formed id counts;
+ * filler such as "none" or "N/A", and synthetic ad-hoc ids, do not.
+ */
+function hintNamesRealTicket(hint: AlignGatherHint | undefined): boolean {
+  const ticket = hint?.ticket_id?.trim();
+  return !!ticket && WORK_ITEM_ID_EXACT.test(ticket) && !isSyntheticWorkItemId(ticket);
+}
+
+/** Notice shown when the gather budget is exhausted and the escalation was raised. */
+export function gatherEscalationNotice(workItemId: string): string {
+  return isSyntheticWorkItemId(workItemId)
+    ? `Align kept asking for external context for ad-hoc item ${workItemId} (no tracker ticket) — escalated to decisions[]. Answer it, then resume.`
+    : `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`;
+}
+
 export interface SpawnFollowUpPlan {
   agent: string;
   task: string;
@@ -87,11 +103,10 @@ export function planSpawnFollowUp(input: PlanSpawnFollowUpInput): SpawnFollowUpP
   if (input.agent === "phase-align" && status === "needs_gather") {
     // A synthetic ADHOC id is not a tracker ticket: skip the lookup and re-run align without it.
     // A real ticket named in the hint (e.g. "fix CLD-4639 timeout") still gathers.
-    const hintTicket = parseGatherHint(input.parsedReturn)?.ticket_id?.trim();
-    // Only a well-formed tracker id counts as a real ticket; filler such as "none" or "N/A" does not.
-    const hintIsRealTicket =
-      !!hintTicket && WORK_ITEM_ID_EXACT.test(hintTicket) && !isSyntheticWorkItemId(hintTicket);
-    if (isSyntheticWorkItemId(input.workItemId) && !hintIsRealTicket) {
+    if (
+      isSyntheticWorkItemId(input.workItemId) &&
+      !hintNamesRealTicket(parseGatherHint(input.parsedReturn))
+    ) {
       return {
         agent: "phase-align",
         consumesGatherBudget: true,
@@ -195,7 +210,8 @@ export function escalateGatherCapIfExhausted(
 
   const max = maxGatherAttemptsFromDevConfig(devConfig);
   const hint = parseGatherHint(lastSpawn.parsedReturn);
-  const synthetic = isSyntheticWorkItemId(workItemId);
+  // Synthetic wording only when no tracker lookup ran: a real ticket named in the hint does gather.
+  const synthetic = isSyntheticWorkItemId(workItemId) && !hintNamesRealTicket(hint);
   applyStuckPostResult(workItemId, "phase-align", {
     status: "stuck",
     question: synthetic

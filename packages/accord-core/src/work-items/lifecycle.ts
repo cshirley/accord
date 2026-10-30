@@ -64,13 +64,14 @@ export interface IntentContractInput {
   expected_finish?: string;
 }
 
-export function devBootstrap(
+/** Build (without writing) the work item `devBootstrap` would persist. */
+export function buildBootstrapWorkItem(
   id: string,
   title: string,
   pattern: WorkItemPattern,
   variant?: string,
   intent?: IntentContractInput,
-): { path: string; work_item: WorkItem } {
+): WorkItem {
   const phase = entryPhaseFor(pattern, variant);
   const timestamp = now();
 
@@ -101,7 +102,17 @@ export function devBootstrap(
   if (intent?.expected_finish) wi.expected_finish = intent.expected_finish;
 
   if (!wi.variant) wi.variant = undefined;
+  return wi;
+}
 
+export function devBootstrap(
+  id: string,
+  title: string,
+  pattern: WorkItemPattern,
+  variant?: string,
+  intent?: IntentContractInput,
+): { path: string; work_item: WorkItem } {
+  const wi = buildBootstrapWorkItem(id, title, pattern, variant, intent);
   const wiPath = workItemJsonPath(id);
   writeJson(wiPath, wi);
   return { path: wiPath, work_item: wi };

@@ -161,7 +161,8 @@ describe("accord bootstrap", () => {
     expect(run(["STEP-20", "why slow", "--pattern", "investigate"], true)).toBe(0);
     const out = JSON.parse(logged[logged.length - 1]) as { next: string; phase: string };
     expect(out.next).toBe("accord resume STEP-20");
-    expect(out.phase).toBe(workItem("STEP-20").phase as string);
+    expect(out.phase).toBe("gathering");
+    expect(workItem("STEP-20").phase).toBe("gathering");
   });
 
   test("refusals change nothing", () => {
