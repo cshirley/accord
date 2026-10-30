@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-30T13:01:43.411Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-30T13:38:40.907Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -21,8 +21,8 @@
 | 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | done | `96e4fcd` | 2/1/1 | 24 (verified 14, open 10) | 0 |
 | 13 | [evidence-asset] Final evidence(task-<N>) commit | done | `b946982` | 2/1/1 | 22 (verified 10, open 12) | 0 |
 | 14 | [evidence-asset] OKF docs for the evidence asset | done | `96f2bbd` | 2/1/1 | 12 (verified 4, wont_fix_accepted 1, open 7) | 0 |
-| 15 | [security-gate] review-security gating inside the C loop | done | — | 2/1/1 | 12 (verified 7, open 5) | 0 |
-| 16 | [security-gate] Route open or disputed gating security findings back to review-security | pending | — | 0/0/0 | 0 | 0 |
+| 15 | [security-gate] review-security gating inside the C loop | done | `3e86b17` | 2/1/1 | 12 (verified 7, open 5) | 0 |
+| 16 | [security-gate] Route open or disputed gating security findings back to review-security | done | — | 2/1/1 | 11 (verified 7, open 4) | 0 |
 | 17 | [security-gate] Schema description and OKF docs | pending | — | 0/0/0 | 0 | 0 |
 | 18 | [contract-lock] contract.lock.json writer, verifier and schema | pending | — | 0/0/0 | 0 | 0 |
 | 19 | [contract-lock] PR0 contract commit, tag and contract-amend | pending | — | 0/0/0 | 0 | 0 |
@@ -158,18 +158,24 @@
   - review-security-gate.test.ts: ASDLC-1/AC-7 repeated critical security findings never block under defaults
   - review-security-gate.test.ts: ASDLC-1/AC-7 default note reports advisory counts and no gating
 
-### AC-8 — pending (not verified)
+### AC-8 — satisfied
 
 > Then findings at or above the gate severity gate the round (block: critical; warn: critical and warning; none: any), suggestions stay advisory under warn and block, the next C round phase-code fixes security and code …
 
-- Tasks: 15 (satisfied), 16 (pending)
-- Files: `packages/accord-core/tests/review-security-gate-stack.test.ts`, `packages/accord-core/tests/helpers/security-gate-fixture.ts`, `packages/accord-core/src/tasks/record.ts`, `packages/accord-core/src/orchestration/post-result/review-security.ts`, `packages/accord-core/src/orchestration/post-result/review-code.ts`
-- Tests verified (5):
+- Tasks: 15 (satisfied), 16 (satisfied)
+- Files: `packages/accord-core/tests/review-security-gate-stack.test.ts`, `packages/accord-core/tests/helpers/security-gate-fixture.ts`, `packages/accord-core/src/tasks/record.ts`, `packages/accord-core/src/orchestration/post-result/review-security.ts`, `packages/accord-core/src/orchestration/post-result/review-code.ts`, `packages/accord-core/tests/review-security-routing.test.ts`, `packages/accord-core/src/orchestration/review-paths.ts`, `packages/accord-core/src/orchestration/post-result/phase-code.ts`
+- Tests verified (11):
   - review-security-gate-stack.test.ts: ASDLC-1/AC-8 gate severity table
   - review-security-gate-stack.test.ts: ASDLC-1/AC-8 next C round goes to phase-code with security and code findings together
   - review-security-gate-stack.test.ts: ASDLC-1/AC-8 review-code re-reviews the fix
   - review-security-gate-stack.test.ts: ASDLC-1/AC-8 at the code_review retry cap the task blocks for a human
   - review-security-gate-stack.test.ts: ASDLC-1/AC-8 configured code_review cap governs security-driven rounds
+  - review-security-routing.test.ts: ASDLC-1/AC-8 phase-code routes gating security findings to review-security
+  - review-security-routing.test.ts: ASDLC-1/AC-8 severity gate decides which security findings route back
+  - review-security-routing.test.ts: ASDLC-1/AC-8 review-security owns closing its findings
+  - review-security-routing.test.ts: ASDLC-1/AC-26 default advisory gate leaves routing unchanged
+  - review-security-gate-stack.test.ts (TC-8)
+  - loop-caps.test.ts: max_retries 1: second security→review-code round blocks and lists the security finding
 
 ### AC-9 — pending (not verified)
 
@@ -506,6 +512,10 @@
 | 15 | AC-8 | F-010 | unresolved (advisory) | open | warning | review-code's findings brief is restricted to findings it raised itself, so a gated review-security finding fixed by phase-code is never rechecked by review-code (AC-8: 'review-code re-reviews it'). | packages/accord-core/src/tasks/render.ts:128 |  |
 | 15 | AC-8 | F-011 | unresolved (advisory) | open | suggestion | Header comment says review-security findings are advisory and never gate, which is now false when the gate is not advisory. Agent-facing text has the same contradiction. | packages/accord-core/src/orchestration/post-result/review-security.ts:2 |  |
 | 15 | AC-8 | F-012 | unresolved (advisory) | open | suggestion | review-code.ts (securityGate pass-through) is modified but not listed in task.files[]. | packages/accord-core/src/orchestration/post-result/review-code.ts:48 |  |
+| 16 | AC-8 | F-008 | unresolved (advisory) | open | suggestion | Header doc says phase-code advances to review-security only for sensitive paths, and the nextPhaseAfterPhaseCode doc in review-paths.ts omits the new openGatingSecurityFindings option. | packages/accord-core/src/orchestration/post-result/phase-code.ts:6 |  |
+| 16 | AC-8 | F-009 | unresolved (advisory) | open | suggestion | The gating-state predicate is built inline and duplicates GATING_STATES from tasks/model.ts. The plan step said to use the severity gate from resolveReviewSecurityGate. | packages/accord-core/src/orchestration/post-result/phase-code.ts:150 |  |
+| 16 | AC-8 | F-010 | unresolved (advisory) | open | suggestion | When review-security is chosen only because of gating findings, the footer and decision log do not say why. | packages/accord-core/src/orchestration/post-result/phase-code.ts:158 |  |
+| 16 | AC-8 | F-011 | unresolved (advisory) | open | suggestion | The brief text sent to review-security and phase-code still says security findings are advisory and never block, which contradicts the gate. | packages/accord-core/src/tasks/render.ts:142 |  |
 
 ## Decisions
 
@@ -831,6 +841,23 @@ targeted: 39 pass, 0 fail (3 files). check:types, check:runtime, check:bundle, v
 ```
 
 ### Task 16: [security-gate] Route open or disputed gating security findings back to review-security
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/review-security-routing.test.ts: 13 pass, 13 fail. Failures: Expected "review-security", Received "review-code" after applyPhaseCodePostResult (e.g. fixed/disputed/unanswered gating security finding with non-sensitive path; gate table rows unset/block/warn/none). AC-26 advisory tests pass.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+task tests: 68 pass 0 fail (3 files)
+check:types exit 0
+check:runtime exit 0
+validate:schemas/assets/okf/ste, check:bundle exit 0
+check:biome exit 1: only docs/dev/ASDLC-1/trace.json format (array inlining); task files clean
+full bun test: 2214 pass, 1 fail (AC-31 check:biome exits 0, same trace.json cause)
+```
 
 ### Task 17: [security-gate] Schema description and OKF docs
 

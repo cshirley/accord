@@ -48,13 +48,16 @@ export function pathsIncludeSecuritySensitive(paths: ReadonlyArray<string>): boo
  */
 export function nextPhaseAfterPhaseCode(
   filesChanged: ReadonlyArray<string>,
-  options?: { testIssuesEmitted?: number },
+  options?: { testIssuesEmitted?: number; openGatingSecurityFindings?: number },
 ): "phase-test" | "review-security" | "review-code" {
   if (options?.testIssuesEmitted && options.testIssuesEmitted > 0) {
     return "phase-test";
   }
   if (pathsIncludeTestFiles(filesChanged)) {
     return "phase-test";
+  }
+  if (options?.openGatingSecurityFindings && options.openGatingSecurityFindings > 0) {
+    return "review-security";
   }
   if (pathsIncludeSecuritySensitive(filesChanged)) {
     return "review-security";

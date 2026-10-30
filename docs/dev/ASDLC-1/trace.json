@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-30T13:01:43.411Z",
+  "generated_at": "2026-10-30T13:38:40.907Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -1558,7 +1558,9 @@
       "id": 15,
       "title": "[security-gate] review-security gating inside the C loop",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "3e86b17"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -1691,33 +1693,65 @@
     {
       "id": 16,
       "title": "[security-gate] Route open or disputed gating security findings back to review-security",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 11,
+        "by_state": {
+          "verified": 7,
+          "open": 4
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/review-security-routing.test.ts: 13 pass, 13 fail. Failures: Expected \"review-security\", Received \"review-code\" after applyPhaseCodePostResult (e.g. fixed/disputed/unanswered gating security finding with non-sensitive path; gate table rows unset/block/warn/none). AC-26 advisory tests pass.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "task tests: 68 pass 0 fail (3 files)\ncheck:types exit 0\ncheck:runtime exit 0\nvalidate:schemas/assets/okf/ste, check:bundle exit 0\ncheck:biome exit 1: only docs/dev/ASDLC-1/trace.json format (array inlining); task files clean\nfull bun test: 2214 pass, 1 fail (AC-31 check:biome exits 0, same trace.json cause)",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-8",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/review-security-routing.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/orchestration/review-paths.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/orchestration/post-result/phase-code.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 6,
+            "command": "bun test packages/accord-core/tests/review-security-routing.test.ts packages/accord-core/tests/review-security-gate-stack.test.ts packages/accord-core/tests/loop-caps.test.ts"
+          }
         }
       ]
     },
@@ -3370,7 +3404,7 @@
     {
       "ac_id": "AC-8",
       "text": "Then findings at or above the gate severity gate the round (block: critical; warn: critical and warning; none: any), suggestions stay advisory under warn and block, the next C round phase-code fixes security and code …",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 15,
@@ -3378,7 +3412,7 @@
         },
         {
           "task": 16,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -3386,16 +3420,25 @@
         "packages/accord-core/tests/helpers/security-gate-fixture.ts",
         "packages/accord-core/src/tasks/record.ts",
         "packages/accord-core/src/orchestration/post-result/review-security.ts",
-        "packages/accord-core/src/orchestration/post-result/review-code.ts"
+        "packages/accord-core/src/orchestration/post-result/review-code.ts",
+        "packages/accord-core/tests/review-security-routing.test.ts",
+        "packages/accord-core/src/orchestration/review-paths.ts",
+        "packages/accord-core/src/orchestration/post-result/phase-code.ts"
       ],
       "tests": [
         "review-security-gate-stack.test.ts: ASDLC-1/AC-8 gate severity table",
         "review-security-gate-stack.test.ts: ASDLC-1/AC-8 next C round goes to phase-code with security and code findings together",
         "review-security-gate-stack.test.ts: ASDLC-1/AC-8 review-code re-reviews the fix",
         "review-security-gate-stack.test.ts: ASDLC-1/AC-8 at the code_review retry cap the task blocks for a human",
-        "review-security-gate-stack.test.ts: ASDLC-1/AC-8 configured code_review cap governs security-driven rounds"
+        "review-security-gate-stack.test.ts: ASDLC-1/AC-8 configured code_review cap governs security-driven rounds",
+        "review-security-routing.test.ts: ASDLC-1/AC-8 phase-code routes gating security findings to review-security",
+        "review-security-routing.test.ts: ASDLC-1/AC-8 severity gate decides which security findings route back",
+        "review-security-routing.test.ts: ASDLC-1/AC-8 review-security owns closing its findings",
+        "review-security-routing.test.ts: ASDLC-1/AC-26 default advisory gate leaves routing unchanged",
+        "review-security-gate-stack.test.ts (TC-8)",
+        "loop-caps.test.ts: max_retries 1: second security→review-code round blocks and lists the security finding"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-9",
@@ -5775,6 +5818,58 @@
       "issue": "review-code.ts (securityGate pass-through) is modified but not listed in task.files[].",
       "file": "packages/accord-core/src/orchestration/post-result/review-code.ts",
       "line": 48,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 16,
+      "requirement": "AC-8",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Header doc says phase-code advances to review-security only for sensitive paths, and the nextPhaseAfterPhaseCode doc in review-paths.ts omits the new openGatingSecurityFindings option.",
+      "file": "packages/accord-core/src/orchestration/post-result/phase-code.ts",
+      "line": 6,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 16,
+      "requirement": "AC-8",
+      "finding_id": "F-009",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The gating-state predicate is built inline and duplicates GATING_STATES from tasks/model.ts. The plan step said to use the severity gate from resolveReviewSecurityGate.",
+      "file": "packages/accord-core/src/orchestration/post-result/phase-code.ts",
+      "line": 150,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 16,
+      "requirement": "AC-8",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "When review-security is chosen only because of gating findings, the footer and decision log do not say why.",
+      "file": "packages/accord-core/src/orchestration/post-result/phase-code.ts",
+      "line": 158,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 16,
+      "requirement": "AC-8",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The brief text sent to review-security and phase-code still says security findings are advisory and never block, which contradicts the gate.",
+      "file": "packages/accord-core/src/tasks/render.ts",
+      "line": 142,
       "raised": "C1/review-code"
     }
   ]
