@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   realpathSync,
@@ -10,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ceilingFor, cleanEnv } from "./helpers.js";
 
 const script = join(import.meta.dir, "..", "skills", "doc-verify", "scripts", "doc-verify.py");
 
@@ -21,7 +23,7 @@ function git(cwd: string, args: string[]): string {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" },
+    env: cleanEnv(),
   });
   return proc.stdout.toString().trim();
 }
@@ -31,7 +33,7 @@ function run(cwd: string, args: string[], env: Record<string, string> = {}): Res
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, ...env },
+    env: cleanEnv(env),
   });
   const text = proc.stdout.toString();
   const stderr = proc.stderr.toString();
@@ -175,7 +177,9 @@ describe("doc-verify.py", () => {
     try {
       writeFileSync(join(plain, "b.md"), "# B [verified]\n");
       writeFileSync(join(plain, "a.md"), "# A [verified]\n\n[ok](b.md) [up](../x.md)\n");
-      const result = run(elsewhere, [join(plain, "a.md")], { GIT_CEILING_DIRECTORIES: plain });
+      const result = run(elsewhere, [join(plain, "a.md")], {
+        GIT_CEILING_DIRECTORIES: ceilingFor(plain),
+      });
       expect(result.findings.map((f) => f.code)).toEqual(["link-outside-repo"]);
       expect(result.findings[0].message).toContain(plain);
     } finally {
@@ -193,7 +197,7 @@ describe("doc-verify.py", () => {
         join(plain, "docs", "sub", "a.md"),
         "# A [verified]\n\n[ok](../b.md) [missing](../gone.md) [up](../../../../etc/hosts)\n",
       );
-      const result = run(plain, ["docs"], { GIT_CEILING_DIRECTORIES: plain });
+      const result = run(plain, ["docs"], { GIT_CEILING_DIRECTORIES: ceilingFor(plain) });
       expect(
         result.findings
           .filter((f) => f.level !== "info")
@@ -263,10 +267,93 @@ describe("doc-verify.py", () => {
     expect(codes(result.findings)).toContain("unclosed-fence");
   });
 
-  test("a non-UTF-8 file is read without a crash", () => {
-    writeFileSync(join(dir, "a.md"), Buffer.from([0x23, 0x20, 0x41, 0x0a, 0xff, 0xfe, 0x0a]));
+  test("a non-UTF-8 file is still checked: its broken link is reported", () => {
+    writeFileSync(
+      join(dir, "a.md"),
+      Buffer.concat([
+        Buffer.from("# A [verified]\n"),
+        Buffer.from([0xff, 0xfe, 0x0a]),
+        Buffer.from("[bad](missing.md)\n"),
+      ]),
+    );
+    const result = run(dir, ["a.md"]);
+    expect(result.code).toBe(1);
+    expect(result.findings.map((f) => [f.code, f.line])).toEqual([["broken-link", 3]]);
+  });
+
+  test("a NUL byte in a link target is a finding, not a crash", () => {
+    writeFileSync(join(dir, "a.md"), "# A [verified]\n\n[x](a%00.md) [ok](a.md)\n");
+    const result = run(dir, ["a.md"]);
+    expect(result.code).toBe(1);
+    expect(result.findings.map((f) => f.code)).toEqual(["broken-link"]);
+    expect(result.findings[0].message).toContain("NUL");
+  });
+
+  test("fences indented inside list items hide their content", () => {
+    writeFileSync(
+      join(dir, "a.md"),
+      "# A [verified]\n\n- a\n  - b\n    ```bash\n    [x](missing.md)\n    ```\n",
+    );
     const result = run(dir, ["a.md"]);
     expect(result.code).toBe(0);
+    expect(result.findings).toEqual([]);
+  });
+
+  test.skipIf(process.getuid?.() === 0)(
+    "one unreadable file is an error finding and the other files are still checked",
+    () => {
+      mkdirSync(join(dir, "docs"));
+      writeFileSync(join(dir, "docs", "a.md"), "# A [verified]\n\n[bad](nope.md)\n");
+      writeFileSync(join(dir, "docs", "b.md"), "# B [verified]\n");
+      writeFileSync(join(dir, "docs", "c.md"), "# C [verified]\n\n[bad](nope2.md)\n");
+      chmodSync(join(dir, "docs", "b.md"), 0o000);
+      try {
+        const result = run(dir, ["docs"]);
+        expect(result.code).toBe(1);
+        expect(result.findings.map((f) => f.code).sort()).toEqual([
+          "broken-link",
+          "broken-link",
+          "unreadable-file",
+        ]);
+      } finally {
+        chmodSync(join(dir, "docs", "b.md"), 0o644);
+      }
+    },
+  );
+
+  test("a symlinked .md pointing outside the scanned directory is skipped, not opened", () => {
+    const outside = join(realpathSync(tmpdir()), `docv-secret-${Date.now()}.md`);
+    writeFileSync(outside, "---\ndate: 2099-01-01\n---\n# S\n[leak](nope.md)\n");
+    try {
+      mkdirSync(join(dir, "docs"));
+      writeFileSync(join(dir, "docs", "a.md"), "# A [verified]\n");
+      symlinkSync(outside, join(dir, "docs", "linked.md"));
+      const result = run(dir, ["docs"]);
+      expect(result.findings.map((f) => f.code)).toEqual(["symlink-outside"]);
+      expect(result.code).toBe(0);
+    } finally {
+      rmSync(outside, { force: true });
+    }
+  });
+
+  test("the default today uses the local date, not UTC", () => {
+    // Pacific/Kiritimati is UTC+14: its local date is ahead of UTC for most of the day.
+    const env = { TZ: "Pacific/Kiritimati" };
+    const localToday = Bun.spawnSync(
+      ["python3", "-c", "import datetime;print(datetime.date.today())"],
+      { env: cleanEnv(env), stdout: "pipe" },
+    )
+      .stdout.toString()
+      .trim();
+    writeFileSync(join(dir, "a.md"), `---\ndate: ${localToday}\n---\n# A [verified]\n`);
+    const proc = Bun.spawnSync(["python3", script, "--json", "a.md"], {
+      cwd: dir,
+      env: cleanEnv(env),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(JSON.parse(proc.stdout.toString())).toEqual([]);
+    expect(proc.exitCode).toBe(0);
   });
 
   describe("verified-against", () => {
@@ -348,7 +435,7 @@ describe("doc-verify.py", () => {
           join(plain, "doc.md"),
           "---\nverified-against: abc1234\n---\n# D [verified]\n",
         );
-        const result = run(plain, ["doc.md"], { GIT_CEILING_DIRECTORIES: plain });
+        const result = run(plain, ["doc.md"], { GIT_CEILING_DIRECTORIES: ceilingFor(plain) });
         expect(result.code).toBe(1);
         expect(codes(result.findings)).toEqual(["verified-against"]);
         expect(result.findings[0].message).toContain("no git repo found");
@@ -401,6 +488,19 @@ describe("doc-verify.py", () => {
       } finally {
         rmSync(other, { recursive: true, force: true });
       }
+    });
+
+    test("the --allow-repo hint shell-quotes an untrusted path", () => {
+      writeFileSync(join(dir, "a.txt"), "1\n");
+      const sha = commit("one");
+      writeFileSync(
+        join(dir, "doc.md"),
+        `---\nverified-against: ${sha}\nverified-repo: ../x$(id)y\n---\n# D [verified]\n`,
+      );
+      const result = run(dir, ["doc.md"]);
+      expect(result.findings[0].code).toBe("verified-repo-not-allowed");
+      expect(result.findings[0].message).toMatch(/--allow-repo '[^']*x\$\(id\)y' /);
+      expect(result.findings[0].message).toContain("only after confirming");
     });
 
     test("verified-repo outside the repo needs --allow-repo; inside is fine", () => {
@@ -515,6 +615,26 @@ describe("doc-verify.py", () => {
       writeFileSync(join(dir, "a.md"), block);
       const env = withFakeMmdc('echo "something unrecognised" >&2; exit 127');
       const result = run(dir, ["a.md"], env);
+      expect(result.code).toBe(0);
+      expect(codes(result.findings)).toContain("mermaid-unavailable");
+    });
+
+    test("--no-mermaid never runs mmdc", () => {
+      writeFileSync(join(dir, "a.md"), block);
+      const marker = join(dir, "mmdc-ran");
+      const env = withFakeMmdc(`touch ${JSON.stringify(marker)}; exit 1`);
+      const result = run(dir, ["--no-mermaid", "a.md"], env);
+      expect(result.findings).toEqual([]);
+      expect(existsSync(marker)).toBe(false);
+    });
+
+    test("an mmdc that cannot be started is an environment warning", () => {
+      writeFileSync(join(dir, "a.md"), block);
+      const bin = join(dir, "bin-bad");
+      mkdirSync(bin);
+      writeFileSync(join(bin, "mmdc"), "#!/nonexistent/interpreter\n");
+      chmodSync(join(bin, "mmdc"), 0o755);
+      const result = run(dir, ["a.md"], { PATH: `${bin}:${process.env.PATH ?? ""}` });
       expect(result.code).toBe(0);
       expect(codes(result.findings)).toContain("mermaid-unavailable");
     });

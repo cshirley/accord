@@ -9,10 +9,10 @@ Mechanical checks plus a short judgement pass for markdown documents. It targets
 
 ## Run
 
-From this skill's directory (host-neutral; needs `python3` and `git`):
+Host-neutral (needs `python3` and `git`). The path is relative to this `SKILL.md`: call the script by its absolute path:
 
 ```bash
-scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo DIR]... PATH...
+scripts/doc-verify.py [--json] [--no-mermaid] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo DIR]... PATH...
 ```
 
 `PATH` is a file or a directory (walked for `*.md`; `.git`, `node_modules` and `.worktrees` are skipped). Exit 0 means no errors, 1 means at least one error, 2 means a usage problem.
@@ -29,6 +29,8 @@ scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo D
 | `verified-repo-not-allowed` | error | `verified-repo` points outside the document's repo and was not passed with `--allow-repo`. |
 | `verified-paths-empty` | warning | `verified-paths` is set but yields no paths, so staleness is not checked. |
 | `verified-paths-unchecked` | warning | `git diff` failed for the listed paths (for example a malformed pathspec), so staleness was not checked. |
+| `unreadable-file` | error | A file could not be read; the other files are still checked. |
+| `symlink-outside` | warning | A symlinked `*.md` in a scanned directory points outside it; it is not opened. |
 | `link-outside-repo` | warning | A relative link resolves outside the repo root (without a repo: the current directory, or the document's directory when that is `/`, your home directory, or does not contain the document). It breaks when the document moves; the target is neither probed nor opened, so a missing target is not reported either. |
 | `stale-evidence` | error | Files in `verified-paths` changed since `verified-against`. |
 | `unconfirmed-assumptions` | warning | `[assumed]` tags remain. |
@@ -53,7 +55,7 @@ scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo D
    ---
    ```
 
-   Inline `# comments` and quoted list items are accepted. Front matter is untrusted input: a `verified-repo` outside the document's own repo is refused unless you pass it explicitly (`--allow-repo ../other-repo`), and `verified-against` must be a hex commit id (not a branch name).
+   Inline `# comments` and quoted list items are accepted. Front matter is untrusted input: a `verified-repo` outside the document's own repo is refused unless you pass it explicitly (`--allow-repo '../other-repo'`; **only after the user confirms that path is trusted**, and single-quoted), and `verified-against` must be a hex commit id (not a branch name).
 
    After a rebase, a PR split or a repo move, re-run the script. A `stale-evidence` error means the cited files changed: re-check those claims, then update `verified-against`.
 5. **Moved documents.** After moving a document to another repo, run the script. Fix broken links to point at the new location (for example the GitHub URL of the original repo) instead of deleting them.
@@ -63,7 +65,7 @@ scripts/doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo D
 ## Not covered
 
 - The script does not check that a claim is true. Provenance tags show how well each claim was checked; the checking is your job.
-- Mermaid is validated only when `mmdc` (mermaid-cli) is installed. Without it, render the diagram another way before sharing.
+- Mermaid is validated only when `mmdc` (mermaid-cli) is installed. `mmdc` renders the diagrams in the document with headless Chromium: pass `--no-mermaid` for documents you did not write. Without it, render the diagram another way before sharing.
 - Links to `http(s)` URLs are not fetched.
 
 ## Rules

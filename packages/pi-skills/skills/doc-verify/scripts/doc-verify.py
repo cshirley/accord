@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mechanical checks for markdown documents (stdlib only).
 
-Usage: doc-verify.py [--json] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo DIR]... PATH...
+Usage: doc-verify.py [--json] [--no-mermaid] [--today YYYY-MM-DD] [--repo DIR] [--allow-repo DIR]... PATH...
 
 Checks (code: level):
   broken-link, broken-anchor: relative links and #anchors that do not resolve
@@ -18,6 +18,8 @@ Checks (code: level):
     repo the current directory (or the document's directory when the current directory is `/`, the
     home directory, or does not contain the document). Warning; the target is neither probed nor
     opened.
+  unreadable-file: a file could not be read (error; the other files are still checked)
+  symlink-outside: a symlinked .md in a scanned directory points outside it (warning; not opened)
   stale-evidence: files listed in `verified-paths` changed since `verified-against` (error)
   unconfirmed-assumptions: [assumed] tags remain (warning)
   no-provenance-tags: no [verified]/[inferred]/[assumed] tags (info)
@@ -34,6 +36,7 @@ import datetime as dt
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -42,7 +45,7 @@ import urllib.parse
 
 ISO_DATE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
 LINK = re.compile(r"(?<!\!)\[[^\]\n]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
-FENCE_RUN = re.compile(r"^\s{0,3}(`{3,}|~{3,})(.*)$")
+FENCE_RUN = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")  # any indent: fences inside list items are indented 4+
 INLINE_CODE = re.compile(r"`[^`\n]*`")
 PLAN_WORDS = re.compile(
     r"deadline|due|target|go-?live|launch|release|\bby\b|\beta\b|planned|scheduled|expected|until|"
@@ -170,6 +173,8 @@ def inside(root: str, target: str) -> bool:
     """True when `target` is within `root`. The text is checked first, so an outside target is
     rejected without any filesystem access (realpath would stat every component, which can wake
     autofs mounts or hang on a dead network share); only a lexically inside target is resolved."""
+    if "\x00" in target:
+        return False
     root_real = os.path.realpath(root)
     normalised = os.path.normpath(os.path.abspath(target))
     if os.path.commonpath([root_real, normalised]) != root_real:
@@ -187,7 +192,13 @@ def repo_root(start: str) -> str | None:
     return out if code == 0 else None
 
 
-def check_file(path: str, today: dt.date, repo_override: str | None, allowed_repos: list[str]) -> list[dict]:
+def check_file(
+    path: str,
+    today: dt.date,
+    repo_override: str | None,
+    allowed_repos: list[str],
+    check_mermaid: bool = True,
+) -> list[dict]:
     findings: list[dict] = []
 
     def add(line: int, level: str, code: str, message: str) -> None:
@@ -237,7 +248,7 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                 os.path.realpath(target_repo) == os.path.realpath(allowed) for allowed in allowed_repos
             )
             if not permitted:
-                add(1, "error", "verified-repo-not-allowed", f"verified-repo {declared_repo} is outside this repo; pass --allow-repo {target_repo} to permit it")
+                add(1, "error", "verified-repo-not-allowed", f"verified-repo {declared_repo} is outside this repo; pass --allow-repo {shlex.quote(target_repo)} to permit it (only after confirming the path is trusted)")
                 denied = True
         if not SHA_PATTERN.match(sha):
             add(1, "error", "verified-against", f"verified-against {sha!r} is not a 7-64 character hex commit id")
@@ -287,6 +298,9 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
 
         for match in LINK.finditer(prose):
             target = urllib.parse.unquote(match.group(1).strip("<>"))
+            if "\x00" in target:
+                add(offset, "error", "broken-link", "link target contains a NUL byte")
+                continue
             if re.match(r"^[a-z][a-z0-9+.-]*:", target, re.I):
                 continue
             file_part, _, fragment = target.partition("#")
@@ -328,7 +342,7 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
     if not any(tag_counts.values()):
         add(1, "info", "no-provenance-tags", "no [verified]/[inferred]/[assumed] tags")
 
-    if mermaid_blocks:
+    if mermaid_blocks and check_mermaid:
         mmdc = shutil.which("mmdc")
         if not mmdc:
             add(mermaid_blocks[0][0], "info", "mermaid-not-checked", f"{len(mermaid_blocks)} mermaid block(s); install mmdc to validate")
@@ -342,6 +356,9 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
                         proc = subprocess.run([mmdc, "-i", src, "-o", out], capture_output=True, text=True, timeout=60)
                     except subprocess.TimeoutExpired:
                         add(start, "warning", "mermaid-unavailable", "mmdc timed out after 60s")
+                        continue
+                    except OSError as error:
+                        add(start, "warning", "mermaid-unavailable", f"mmdc could not be started: {error}")
                         continue
                     if proc.returncode != 0:
                         detail = (proc.stderr or proc.stdout).strip()
@@ -365,19 +382,32 @@ def check_file(path: str, today: dt.date, repo_override: str | None, allowed_rep
     return findings
 
 
-def collect(paths: list[str]) -> list[str]:
+def collect(paths: list[str]) -> tuple[list[str], list[dict]]:
+    """Return the markdown files to check, plus findings for files that were skipped.
+
+    A symlinked `*.md` inside a scanned directory whose target is outside that directory is not
+    opened: a committed link must not make the checker read (and echo from) arbitrary files."""
     files: list[str] = []
+    skipped: list[dict] = []
     for path in paths:
         if os.path.isdir(path):
+            top = os.path.realpath(path)
             for current, dirs, names in os.walk(path):
                 dirs[:] = [d for d in dirs if d not in {".git", "node_modules", ".worktrees"}]
-                files += [os.path.join(current, n) for n in sorted(names) if n.endswith(".md")]
+                for name in sorted(names):
+                    if not name.endswith(".md"):
+                        continue
+                    candidate = os.path.join(current, name)
+                    if os.path.islink(candidate) and not inside(top, candidate):
+                        skipped.append({"path": candidate, "line": 1, "level": "warning", "code": "symlink-outside", "message": "symlink points outside the scanned directory; not opened"})
+                        continue
+                    files.append(candidate)
         elif os.path.isfile(path):
             files.append(path)
         else:
             print(f"doc-verify: no such path: {path}", file=sys.stderr)
             sys.exit(2)
-    return files
+    return files, skipped
 
 
 def main() -> int:
@@ -387,6 +417,7 @@ def main() -> int:
     parser.add_argument("--today")
     parser.add_argument("--repo")
     parser.add_argument("--allow-repo", action="append", default=[], dest="allow_repo")
+    parser.add_argument("--no-mermaid", action="store_true", help="never run mmdc (use for documents you did not write)")
     args = parser.parse_args()
     try:
         today = dt.date.fromisoformat(args.today) if args.today else dt.date.today()
@@ -394,13 +425,13 @@ def main() -> int:
         print("doc-verify: --today must be YYYY-MM-DD", file=sys.stderr)
         return 2
 
-    findings: list[dict] = []
-    for file_path in collect(args.paths):
+    files, findings = collect(args.paths)
+    for file_path in files:
         try:
-            findings += check_file(file_path, today, args.repo, args.allow_repo)
+            findings += check_file(file_path, today, args.repo, args.allow_repo, not args.no_mermaid)
         except OSError as error:
-            print(f"doc-verify: cannot read {file_path}: {error}", file=sys.stderr)
-            return 2
+            # One unreadable file must not discard the findings of the others.
+            findings.append({"path": file_path, "line": 1, "level": "error", "code": "unreadable-file", "message": str(error)})
 
     if args.json:
         print(json.dumps(findings, indent=2))
