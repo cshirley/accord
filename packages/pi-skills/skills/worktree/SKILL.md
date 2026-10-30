@@ -46,7 +46,7 @@ and state it in your next message:
 Worktree: <absolute path>   Branch: <branch>   Ticket: <id or none>
 ```
 
-1. Resolve it: `git_worktree_resolve`, or `scripts/wt-guard.sh find <ticket>` (path relative to this skill).
+1. Resolve it: `git_worktree_resolve`, or `scripts/wt-guard.sh find '<ticket>'` (path relative to this `SKILL.md`; call it by absolute path). **Single-quote every value you substitute** (ticket ids, paths) and write an embedded `'` as `'\''`; never use double quotes, where `$(…)` and backticks run.
 2. Inspect it: `scripts/wt-guard.sh where <path>` — shows `kind=linked-worktree|main-checkout` and all sibling worktrees.
 3. **Stop and ask** if any of these hold:
    - `kind=main-checkout` while a worktree matching the named ticket or branch exists.

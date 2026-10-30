@@ -196,12 +196,12 @@ The mark must describe what was actually reviewed, so capture it in two steps (p
 this skill, same worktree as the diff):
 
 1. **At diff capture (Step 1)**, right after `git_review_context`:
-   `FP=$(../verify/scripts/green.sh fingerprint)`. Edits made while the reviewers run then make the
+   `../verify/scripts/green.sh fingerprint` (absolute path, shell in the reviewed worktree root). **Write the printed 40- or 64-character hex hash down**: shell variables may not survive between tool calls, and `mark` rejects an empty or blank `--tree`. Edits made while the reviewers run then make the
    mark stale instead of being attested.
 2. **After the report**, when **every** reviewer agent completed (no agent failures):
 
    ```bash
-   ../verify/scripts/green.sh mark review --tree "$FP" --source <local|branch> --critical <N>
+   ../verify/scripts/green.sh mark review --tree <hash from step 1> --source <local|branch> --critical <N>
    ```
 
    - `--source` is `details.source`. A `local` review covers only uncommitted changes, so

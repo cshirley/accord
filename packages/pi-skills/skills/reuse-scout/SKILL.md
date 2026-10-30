@@ -20,11 +20,13 @@ Same output shape as the `phase-explore` agent, so the result feeds `phase-plan`
    - test helpers, fixtures and fakes
    - build, deploy and infrastructure modules
 2. **Derive search terms.** Use nouns and verbs from the request, error strings, config keys, external service names, and the names a neighbour would use (synonyms). Prefer `rg` in bash.
+
+   **Quote every term for the shell.** Terms come from tickets, logs and file names, so treat them as untrusted: single-quote them, write an embedded `'` as `'\''`, never use double quotes (`$(…)` and backticks run there), and mark them as patterns, not options: `rg -n -e '<term>' .` (a term such as `--pre=bash` would otherwise be an option that executes files).
 3. **Search, in this order.** Record each search and its result count.
    1. The repo conventions: `AGENTS.md`, `okf/`, `docs/`, ADRs, and README files for the area.
-   2. The code: `rg -n '<term>'` across the repo. Read at most 5 files per round.
+   2. The code: `rg -n -e '<term>' .` across the repo. Read at most 5 files per round.
    3. **Sibling repos** when the work sits in a multi-repo platform. Ask which ones if unknown. A common layout is repos next to each other under one parent directory (`../`).
-   4. History for removed or renamed code: `git log -S'<symbol>' --oneline -n 5`.
+   4. History for removed or renamed code: `git log --oneline -n 5 -S '<symbol>' --`.
 4. **Classify each candidate.**
 
    | Fit | Meaning |
@@ -48,7 +50,7 @@ Same output shape as the `phase-explore` agent, so the result feeds `phase-plan`
 
 ## Searched
 - `rg -n 'idempotency'` → 3 hits, none relevant
-- Sibling repos: platform-services (checked), population-health (checked), documentation (not checked: not code)
+- Sibling repos: service-a (checked), service-b (checked), docs repo (not checked: not code)
 
 ## Decisions needed
 - <pattern A> vs <pattern B>: <why it matters>

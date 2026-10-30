@@ -8,4 +8,4 @@ Phased roadmaps and migration history. Design docs live one level up in [`../`](
 | [`harness-orchestration-implementation-plan.md`](harness-orchestration-implementation-plan.md) | Complete — orchestration in core (phases 0–7) |
 | [`pi-sdk-upgrade-plan.md`](pi-sdk-upgrade-plan.md) | Complete — Pi SDK 0.83 adoption |
 | [`host-agnostic-plan.md`](host-agnostic-plan.md) | Active — Pi-optional hosts and agent backends |
-| [`evidence-based-workflow-plan.md`](evidence-based-workflow-plan.md) | Proposed — gaps alongside ASDLC-1 (loop budget, spawn preflight, interim skills) |
+| [`evidence-based-workflow-plan.md`](evidence-based-workflow-plan.md) | In progress — gaps alongside ASDLC-1 (loop budget, spawn preflight, interim skills) |

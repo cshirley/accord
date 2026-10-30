@@ -39,10 +39,11 @@ Verification: (only when the gate was skipped — reason)
 
 ## Process
 
-0. **Verify gate.** Run `../verify/scripts/green.sh check` (path relative to this skill; same worktree as the commit).
+0. **Verify gate.** Run `../verify/scripts/green.sh check` (path relative to this `SKILL.md`; call it by absolute path with the shell in the commit's worktree root).
    - Exit 0: continue.
    - Exit 1 or 2 (edits since last green verify, or none recorded): run the `verify` skill, then continue. Do not commit unverified work.
-   - Exit 3 (not a git repo): skip.
+   - Exit 4 (fingerprint failed) or 64 (usage error): stop, show stderr, do not proceed; skip only with the user's explicit approval.
+   - Exit 3 (not a git repo): the gate does not apply. Confirm with `git rev-parse --show-toplevel` in the intended directory; if that succeeds the directory is wrong, so fix it instead of skipping.
    - **Skip only** when the user explicitly says so (docs-only change, WIP checkpoint, verify not applicable). Put the reason in the commit body under `Verification:`.
 1. Call `git_commit_context` — gathers status, diff, log, branch, secrets, artifacts, ticket in one call
 2. Review response:

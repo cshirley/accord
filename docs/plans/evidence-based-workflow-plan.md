@@ -1,6 +1,6 @@
 # Evidence-based workflow — gap plan alongside ASDLC-1
 
-Status: **proposed** · Subordinate to `docs/plans/evidence-stack-plan.md` on branch `wt/FEAT-ASDLC` ([PR #18](https://github.com/cshirley/accord/pull/18), `ASDLC-1`; not yet on `main`).
+Status: **in progress** (iteration 1 skills and core items done; pilot and deferred items open) · Subordinate to `docs/plans/evidence-stack-plan.md` on branch `wt/FEAT-ASDLC` ([PR #18](https://github.com/cshirley/accord/pull/18), `ASDLC-1`; not yet on `main`).
 Owner: skills (`packages/pi-skills`) and harness core for the loop budget.
 
 This plan covers only what ASDLC-1 does **not**. It duplicates nothing in ASDLC-1.
@@ -19,7 +19,7 @@ Session analysis of 461 pi sessions (regex heuristics; patterns, not audited cou
 | Commits without review | 49/70 committing sessions |
 | PRs without CI check | 13/23 |
 | Stale artifacts | 26+ "do we still need X?" prompts |
-| Loop incident | Accord adversarial loop continued past retries=3 while run against `platform-services` (ticket CLD-4639; **not an accord ticket**) |
+| Loop incident | Accord adversarial loop continued past retries=3 while run against another repository (a non-accord ticket) |
 | Empty subagent output / unexpected default model | `cursor/composer-2.5` |
 | Tool errors | ENOENT ~287, non-unique edit `oldText` ~139 |
 
@@ -41,7 +41,7 @@ Session analysis of 461 pi sessions (regex heuristics; patterns, not audited cou
 
 | # | Gap | Evidence | Why ASDLC-1 does not cover it |
 |---|-----|----------|-------------------------------|
-| G1 | **Loop budget: cost cap and no-progress detection** | Accord loop run against `platform-services` CLD-4639 (not an accord ticket) went past retries=3 | Attempt caps now exist on `main` (see §6.3); a cost cap and no-progress detection were not found. ASDLC-1 has only a post-GREEN overrun re-plan decision |
+| G1 | **Loop budget: cost cap and no-progress detection** | Accord loop run against another repository (a non-accord ticket) went past retries=3 | Attempt caps now exist on `main` (see §6.3); a cost cap and no-progress detection were not found. ASDLC-1 has only a post-GREEN overrun re-plan decision |
 | G2 | **Spawn preflight outside pi** (CLI/MCP hosts) | Empty review-code output; wrong default model | Preflight, empty-response handling and no-silent-cursor-substitution exist on `main`; the preflight backend registers only in `pi-accord` (see §6.3) |
 | G3 | **Non-harness work** (dotfiles, docs, research, ad-hoc fixes) gets none of the evidence discipline | 142 short-brief sessions; many in `documentation`, `dotfiles`, `eng-practices` | ASDLC-1 only helps work run through accord |
 | G4 | **Gates before the harness exists** (verify before commit, review before PR, CI after PR) | 60/145, 49/70, 13/23 | ASDLC-1 is default-off and unimplemented |
@@ -106,11 +106,11 @@ Session analysis of 461 pi sessions (regex heuristics; patterns, not audited cou
 
 | # | Item | Outcome |
 |---|------|---------|
-| C1 | Ad-hoc work ID | **Decided:** the `brief` skill generates a synthetic ID `ADHOC-<YYYYMMDD><NN>` (NN 01–99), for example `ADHOC-2026102901`. A hyphenated counter (`-2`) would fail the anchored `DEV_WORK_ITEM_ID_PATTERN` and `WORK_ITEM_FILE_PATTERN`, so the counter is appended to the date. Matches `phase-align`'s own no-ticket convention (`AUTH-REFRESH-1`). |
-| C2 | `phase-align` outside `dev_*` | **Verified, partly.** See 6.1. |
-| C3 | Loop budget (A1) | **Decided:** separate ticket (ASDLC-1 brief is locked). |
-| C4 | Close PR #18 open items | **Decided:** handled inside the ASDLC-1 ticket. Not in this plan. |
-| C5 | `gh` retarget after parent squash | **Investigated.** See 6.2. |
+| D1 | Ad-hoc work ID | **Decided:** the `brief` skill generates a synthetic ID `ADHOC-<YYYYMMDD><NN>` (NN 01–99), for example `ADHOC-2026102901`. A hyphenated counter (`-2`) would fail the anchored `DEV_WORK_ITEM_ID_PATTERN` and `WORK_ITEM_FILE_PATTERN`, so the counter is appended to the date. Matches `phase-align`'s own no-ticket convention (`AUTH-REFRESH-1`). |
+| D2 | `phase-align` outside `dev_*` | **Verified, partly.** See 6.1. |
+| D3 | Loop budget (A1) | **Decided:** separate ticket (ASDLC-1 brief is locked). |
+| D4 | Close PR #18 open items | **Decided:** handled inside the ASDLC-1 ticket. Not in this plan. |
+| D5 | `gh` retarget after parent squash | **Investigated.** See 6.2. |
 
 ### 6.3 Corrections after reading `main` (A1, A2)
 
@@ -127,8 +127,8 @@ I earlier reported no loop cap. That was wrong. Code on `main` (PRs #11, #12, #1
 Not found: a **cost cap** per task or work item, a **no-progress detector** (same diff or same
 findings repeated), and a **preflight backend for CLI/MCP hosts** (`registerSpawnPreflightCheck`
 is called only from `pi-accord`; elsewhere it returns the permissive default).
-The incident ran accord against `~/src/emed/platform-services/.worktrees/CLD-4639` (CLD-4639 is a
-platform-services ticket, not an accord ticket). Its `.tasks/CLD-4639-task-1.json` is now schema 2.0,
+The incident ran accord against a worktree of another repository (`<other-repo>/.worktrees/<TICKET>`, a
+non-accord ticket). Its `.tasks/<TICKET>-task-1.json` is now schema 2.0,
 `status: done`, `retries.test_review {used:1, lifetime:1}`: the stuck state is not preserved, and the
 v2.0 format post-dates the loop fixes, so this file cannot show whether the old loop was fixed.
 Reproduce with a forced non-converging test↔review loop before opening the A1 ticket.
@@ -136,7 +136,7 @@ Reproduce with a forced non-converging test↔review loop before opening the A1 
 A1 therefore shrinks to: cost cap + no-progress detection. A2 shrinks to: register a real
 preflight for `accord-cli`/`accord-mcp`.
 
-### 6.1 `phase-align` outside the orchestrator (C2)
+### 6.1 `phase-align` outside the orchestrator (D2)
 
 Checked against `phase-align.md`, `align-task.ts`, `classify-dispatch.ts`, `lifecycle.ts`
 and a scratch run of `classifyPreflight` in an empty repo.
@@ -168,10 +168,10 @@ and a scratch run of `classifyPreflight` in an empty repo.
 | Harness | `accord` CLI installed (or `dev_bootstrap` via MCP/pi) | `accord bootstrap --adhoc -- '<real title>'` (or `dev_bootstrap(id, <real title>, implement, standard)`); then `accord align <ID>`. Title must not match the ticket pattern. |
 | Inline | CLI only | Skill follows `phase-align` rules directly, writes `docs/dev/<ID>/brief.md` in the same shape, and tells the user to run `accord plan resume <ID>` to continue. |
 
-**Core item A3 (done):** `accord bootstrap <ID> <title> [--pattern …]` (or `accord run --adhoc`),
+**Core item A3 (done):** `accord bootstrap <ID> <title> [--pattern …]` and `accord bootstrap --adhoc <title>` (core module `accord-core/src/work-items/bootstrap.ts`; the CLI only parses and prints),
 so CLI-only hosts get harness mode. Also make the gather trigger ignore IDs with an `ADHOC-` prefix.
 
-### 6.2 `gh` retarget after a parent squash-merge (C5)
+### 6.2 `gh` retarget after a parent squash-merge (D5)
 
 Repo settings (`cshirley/accord`): squash and rebase merges allowed, merge commits
 **not** allowed, `delete_branch_on_merge: false`. `gh` 2.103.3 has `gh pr edit --base`.
@@ -226,19 +226,19 @@ A standalone review of the branch (code, security, test) found one Critical and 
 
 ## 7. Order
 
-1. **No-conflict core and skills:** A2, then B1, B10.
-2. **Shift-left and research quality:** B8, B7, B6, then B5 (inline mode) and A3.
+1. **No-conflict core and skills:** A2 (open), B1 and B10 (done).
+2. **Shift-left and research quality:** B8, B7, B6, B5 and A3 (all done).
 3. **A1** loop budget (separate ticket), attached to ASDLC-1's task-7 handlers.
-4. **Gate-only** B2 and B3 (phase 1). B9 reuse compliance.
+4. **Gate-only** B2 and B3 (phase 1, done). B9 reuse compliance (open).
 5. **Pilot** (below). Instrument skipped checks via `session-retro`.
 6. **Phase 2, per ASDLC-1 feature as it ships:**
    - `commit-evidence` → B2 trailer and subject format.
    - `stack-compute` / `trunk-hardening` → B3 stack base and retarget (§6.2); feed §6.2 findings into task 37.
    - `evidence-asset` + `accord evidence` → drop B4 (never built).
-   - `accord/evidence` CI check → decide C2.
+   - `accord/evidence` CI check → decide the §5 C2 hooks.
    - Delete or thin any interim skill the harness replaces.
 
-C4 (closing PR #18) proceeds in the ASDLC-1 ticket, not here.
+D4 (closing PR #18) proceeds in the ASDLC-1 ticket, not here.
 
 ## 8. Pilot and exit criteria
 
@@ -266,7 +266,7 @@ Exit when, over the pilot:
 - zero "forgot X" corrections that a skill or check would have caught;
 - the research doc passes `doc-verify` with no unverified dates or links.
 
-Skipped despite the skill → promote to C2 or core.
+Skipped despite the skill → promote to the §5 C2 hooks or core.
 
 ## 9. Risks
 
@@ -274,6 +274,6 @@ Skipped despite the skill → promote to C2 or core.
 |------|------------|
 | Divergence from ASDLC-1 formats | Reuse its trailer and asset; review this plan against ASDLC-1 before each skill ships |
 | Interim skills linger after ASDLC-1 ships | `interim: true` marker; removal step in §7 |
-| Skills are advisory | Pilot measures skips; C2 promotes them |
+| Skills are advisory | Pilot measures skips; the §5 C2 hooks promote them |
 | ASDLC-1 changes under review | Depend only on stable parts (trailer key names, asset path); recheck after C4 |
 | Pi-specific tool names in skills | Host-agnostic wording; pi tools as optional shortcuts |
