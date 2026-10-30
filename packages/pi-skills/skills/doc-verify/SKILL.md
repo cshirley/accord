@@ -65,7 +65,7 @@ scripts/doc-verify.py [--json] [--no-mermaid] [--today YYYY-MM-DD] [--repo DIR] 
 ## Not covered
 
 - The script does not check that a claim is true. Provenance tags show how well each claim was checked; the checking is your job.
-- Mermaid is validated only when `mmdc` (mermaid-cli) is installed. `mmdc` renders the diagrams in the document with headless Chromium: pass `--no-mermaid` for documents you did not write. Without it, render the diagram another way before sharing.
+- Mermaid is validated only when `mmdc` (mermaid-cli) is installed. `mmdc` renders the diagrams in the document with headless Chromium: pass `--no-mermaid` for documents you did not write. Mermaid rendering is on by default: add `--no-mermaid` whenever the document is not yours. Without it, render the diagram another way before sharing.
 - Links to `http(s)` URLs are not fetched.
 
 ## Rules

@@ -44,7 +44,7 @@ Run **`verification_commands`** from `AGENTS.md` without hand-rolled `cd` + `yar
 | 0 | Working tree equals the last verified state | Continue |
 | 1 | Edits since last green verify | Run verify (step 3), then `mark` |
 | 2 | No green recorded in this worktree | Run verify, then `mark` |
-| 3 | Not a git repo | Skip the gate |
+| 3 | Not a git repo | The gate does not apply, but usually the directory is wrong: confirm with `git rev-parse --show-toplevel` in the intended directory and fix the directory instead of skipping |
 | 4 | Fingerprint failed (for example an unreadable untracked file or directory) | Fix the cause; the gate never records or compares a partial fingerprint |
 | 64 | Usage error (bad option, missing `--source`/`--critical`, blank value) | Fix the command; do not treat it as stale or green |
 

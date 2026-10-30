@@ -47,13 +47,13 @@ Worktree: <absolute path>   Branch: <branch>   Ticket: <id or none>
 ```
 
 1. Resolve it: `git_worktree_resolve`, or `scripts/wt-guard.sh find '<ticket>'` (path relative to this `SKILL.md`; call it by absolute path). **Single-quote every value you substitute** (ticket ids, paths) and write an embedded `'` as `'\''`; never use double quotes, where `$(…)` and backticks run.
-2. Inspect it: `scripts/wt-guard.sh where <path>` — shows `kind=linked-worktree|main-checkout` and all sibling worktrees.
+2. Inspect it: `scripts/wt-guard.sh where '<path>'` — shows `kind=linked-worktree|main-checkout` and all sibling worktrees.
 3. **Stop and ask** if any of these hold:
    - `kind=main-checkout` while a worktree matching the named ticket or branch exists.
    - More than one worktree matches the query.
    - The user named a worktree and you are not in it.
 4. Before each batch of edits, writes or commands that take paths, check them:
-   `scripts/wt-guard.sh inside <pinned-root> <path>...` — exit 1 lists the offenders. Do not edit
+   `scripts/wt-guard.sh inside '<pinned-root>' '<path>'...` — exit 1 lists the offenders. Do not edit
    them. Tell the user, and either switch the pin (with their confirmation) or fix the path.
 5. Subagent tasks: pass the pinned path as `cwd` and name it in the brief.
 6. Re-state the pin after context compaction or when switching tickets.

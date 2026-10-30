@@ -275,5 +275,5 @@ Skipped despite the skill → promote to the §5 C2 hooks or core.
 | Divergence from ASDLC-1 formats | Reuse its trailer and asset; review this plan against ASDLC-1 before each skill ships |
 | Interim skills linger after ASDLC-1 ships | `interim: true` marker; removal step in §7 |
 | Skills are advisory | Pilot measures skips; the §5 C2 hooks promote them |
-| ASDLC-1 changes under review | Depend only on stable parts (trailer key names, asset path); recheck after C4 |
+| ASDLC-1 changes under review | Depend only on stable parts (trailer key names, asset path); recheck after D4 |
 | Pi-specific tool names in skills | Host-agnostic wording; pi tools as optional shortcuts |
