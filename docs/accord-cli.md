@@ -27,7 +27,7 @@ Requires **AGENTS.md** with a `## Dev Harness` JSON block (or run `accord init -
 |---------|---------|
 | `accord tasks [--json]` | Work item dashboard (`devTasks`) |
 | `accord plan resume\|finish <ID> [--json]` | Orchestration plan only (same JSON as `dev_orchestrate`) |
-| `accord bootstrap <ID> <title…>` / `bootstrap --adhoc <title…>` | Create a work item. `--adhoc` generates `ADHOC-<YYYYMMDD><NN>` for work with no tracker ticket; align then skips the tracker lookup |
+| `accord bootstrap <ID> <title…>` / `bootstrap --adhoc [--] <title…>` | Create a work item. `--adhoc` allocates `ADHOC-<YYYYMMDD><NN>` for work with no tracker ticket (refused for `investigate`/`analyse`); the orchestrator skips the tracker lookup for that id, but a real ticket named in the align hint still gathers. Prints `Next:` (`accord align <ID>` when the item starts in `aligning`, else `accord resume <ID>`). A bare `--` ends flag parsing, so a title may contain `--` words |
 | `accord resume <ID>` | Full resume loop with harness spawns |
 | `accord finish <ID>` | Finish closeout + verify acceptance spawn |
 | `accord align\|spec\|plan\|check <ID>` | Forced phase subcommands (`runDevSubcommandOrchestrationWithReplans`) |

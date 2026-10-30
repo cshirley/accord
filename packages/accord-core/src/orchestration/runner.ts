@@ -18,6 +18,7 @@ import { devVerifySummary, validateVerifyReport } from "../queries/verify-summar
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
 import type { TerminalOutcome } from "../types/domain.js";
 import { devFinalizeWorkItem } from "../work-items/lifecycle.js";
+import { isSyntheticWorkItemId } from "../work-items/synthetic.js";
 import { commitWorkItemArtifacts, formatWorkItemArtifactsCommit } from "./commit-on-task-done.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
 import { isOrchestrationJudgmentConfigured, mergeResumeTaskWithJudgment } from "./judgment.js";
@@ -158,7 +159,9 @@ export async function runResumeOrchestrationWithReplans(
     if (escalateGatherCapIfExhausted(workItemId, devConfig, lastRun.lastSpawn)) {
       host.notify(
         "warning",
-        `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`,
+        isSyntheticWorkItemId(workItemId)
+          ? `Align kept asking for external context for ad-hoc item ${workItemId} (no tracker ticket) — escalated to decisions[]. Answer it, then resume.`
+          : `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`,
       );
       return {
         firstResolution: firstResolution ?? resolution,
@@ -302,7 +305,9 @@ export async function runDevSubcommandOrchestrationWithReplans(
     if (escalateGatherCapIfExhausted(workItemId, devConfig, lastRun.lastSpawn)) {
       host.notify(
         "warning",
-        `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`,
+        isSyntheticWorkItemId(workItemId)
+          ? `Align kept asking for external context for ad-hoc item ${workItemId} (no tracker ticket) — escalated to decisions[]. Answer it, then resume.`
+          : `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`,
       );
       return {
         firstResolution: firstResolution ?? resolution,

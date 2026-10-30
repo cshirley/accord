@@ -20,7 +20,7 @@ export const TOP_LEVEL_COMMANDS: CommandSpec[] = [
   {
     name: "bootstrap",
     summary: "Create a work item (use --adhoc for work with no ticket)",
-    usage: "bootstrap <ID> <title> | bootstrap --adhoc <title> [--pattern p] [--variant v]",
+    usage: "bootstrap <ID> <title> | bootstrap --adhoc [--pattern p] [--variant v] [--] <title>",
   },
   { name: "rehydrate", summary: "Rebuild work item from artifacts", needsWorkItem: true },
   { name: "spec-gaps", summary: "Spec gap report", needsWorkItem: true },

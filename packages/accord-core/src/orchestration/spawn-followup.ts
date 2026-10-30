@@ -7,7 +7,7 @@ import {
   loadWorkItem,
   mutateJson,
   now,
-  WORK_ITEM_ID_PATTERN,
+  WORK_ITEM_ID_EXACT,
   workItemJsonPath,
 } from "../work-items/io.js";
 import { isSyntheticWorkItemId } from "../work-items/synthetic.js";
@@ -51,9 +51,6 @@ function parseGatherHint(parsedReturn: unknown): AlignGatherHint | undefined {
   return { ticket_id, reason };
 }
 
-/** Anchored form of the canonical work item id pattern. */
-const TICKET_ID = new RegExp(`^${WORK_ITEM_ID_PATTERN.source}$`);
-
 export interface SpawnFollowUpPlan {
   agent: string;
   task: string;
@@ -93,7 +90,7 @@ export function planSpawnFollowUp(input: PlanSpawnFollowUpInput): SpawnFollowUpP
     const hintTicket = parseGatherHint(input.parsedReturn)?.ticket_id?.trim();
     // Only a well-formed tracker id counts as a real ticket; filler such as "none" or "N/A" does not.
     const hintIsRealTicket =
-      !!hintTicket && TICKET_ID.test(hintTicket) && !isSyntheticWorkItemId(hintTicket);
+      !!hintTicket && WORK_ITEM_ID_EXACT.test(hintTicket) && !isSyntheticWorkItemId(hintTicket);
     if (isSyntheticWorkItemId(input.workItemId) && !hintIsRealTicket) {
       return {
         agent: "phase-align",
@@ -198,12 +195,17 @@ export function escalateGatherCapIfExhausted(
 
   const max = maxGatherAttemptsFromDevConfig(devConfig);
   const hint = parseGatherHint(lastSpawn.parsedReturn);
+  const synthetic = isSyntheticWorkItemId(workItemId);
   applyStuckPostResult(workItemId, "phase-align", {
     status: "stuck",
-    question: `phase-align still needs more context after ${String(max)} phase-gather attempt(s). What additional context, source, or decision should alignment use?`,
+    question: synthetic
+      ? `phase-align kept asking for external context after ${String(max)} re-run(s), but ${workItemId} is an ad-hoc item with no tracker ticket to fetch. What context, source, or decision should alignment use?`
+      : `phase-align still needs more context after ${String(max)} phase-gather attempt(s). What additional context, source, or decision should alignment use?`,
     context:
       hint?.reason ?? "phase-align returned needs_gather again after the gather budget was spent.",
-    tried: `${String(max)} gather attempt(s)${hint?.ticket_id ? ` for ${hint.ticket_id}` : ""}`,
+    tried: synthetic
+      ? `${String(max)} align re-run(s) without a tracker lookup (synthetic id)`
+      : `${String(max)} gather attempt(s)${hint?.ticket_id ? ` for ${hint.ticket_id}` : ""}`,
   });
   mutateJson<WorkItem>(workItemJsonPath(workItemId), (wi) => {
     if (!wi) return undefined;

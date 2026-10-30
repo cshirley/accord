@@ -6,11 +6,11 @@ import {
   nextSyntheticWorkItemId,
 } from "@clive.shirley/accord-core/work-items/synthetic.js";
 
-const today = new Date(2026, 9, 29);
+const makeToday = () => new Date(2026, 9, 29);
 
 describe("synthetic work item ids", () => {
   test("first id of the day is NN=01 and matches core id patterns", () => {
-    const id = nextSyntheticWorkItemId(() => false, today);
+    const id = nextSyntheticWorkItemId(() => false, makeToday());
     expect(id).toBe("ADHOC-2026102901");
     expect(DEV_WORK_ITEM_ID_PATTERN.test(id)).toBe(true);
     expect(WORK_ITEM_FILE_PATTERN.test(`${id}.json`)).toBe(true);
@@ -19,11 +19,13 @@ describe("synthetic work item ids", () => {
 
   test("skips taken ids", () => {
     const taken = new Set(["ADHOC-2026102901", "ADHOC-2026102902"]);
-    expect(nextSyntheticWorkItemId((c) => taken.has(c), today)).toBe("ADHOC-2026102903");
+    expect(nextSyntheticWorkItemId((c) => taken.has(c), makeToday())).toBe("ADHOC-2026102903");
   });
 
   test("throws when the day is full", () => {
-    expect(() => nextSyntheticWorkItemId(() => true, today)).toThrow(/No free ADHOC-20261029NN/);
+    expect(() => nextSyntheticWorkItemId(() => true, makeToday())).toThrow(
+      /No free ADHOC-20261029NN/,
+    );
   });
 
   test("month and day are zero-padded", () => {
@@ -33,6 +35,7 @@ describe("synthetic work item ids", () => {
 
   test("uses the local calendar date, not UTC", () => {
     const original = process.env.TZ;
+    const effective = original ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
     try {
       const expectedOffsets: Record<string, number> = {
         "Pacific/Auckland": -780, // UTC+13 in January
@@ -50,18 +53,18 @@ describe("synthetic work item ids", () => {
         );
       }
     } finally {
-      process.env.TZ = original ?? "Etc/UTC";
+      process.env.TZ = effective;
     }
   });
 
   test("slot 99 is usable and slot 100 is never produced", () => {
-    expect(nextSyntheticWorkItemId((c) => !c.endsWith("99"), today)).toBe("ADHOC-2026102999");
+    expect(nextSyntheticWorkItemId((c) => !c.endsWith("99"), makeToday())).toBe("ADHOC-2026102999");
     let calls = 0;
     expect(() =>
       nextSyntheticWorkItemId(() => {
         calls += 1;
         return true;
-      }, today),
+      }, makeToday()),
     ).toThrow(/No free ADHOC-20261029NN/);
     expect(calls).toBe(99);
   });

@@ -1,23 +1,9 @@
-import fs from "node:fs";
 import { DEV_WORK_ITEM_ID_PATTERN } from "@clive.shirley/accord-core/commands/dispatch.js";
-import type { WorkItemPattern, WorkItemVariant } from "@clive.shirley/accord-core/types/domain.js";
-import { devArtifactDir } from "@clive.shirley/accord-core/work-items/artifact-discovery.js";
-import { loadWorkItem } from "@clive.shirley/accord-core/work-items/io.js";
-import { devBootstrap } from "@clive.shirley/accord-core/work-items/lifecycle.js";
-import { nextSyntheticWorkItemId } from "@clive.shirley/accord-core/work-items/synthetic.js";
-
-const PATTERNS = [
-  "implement",
-  "quick_fix",
-  "investigate",
-  "infra",
-  "analyse",
-] as const satisfies readonly WorkItemPattern[];
-const VARIANTS = [
-  "express",
-  "standard",
-  "orchestrated",
-] as const satisfies readonly WorkItemVariant[];
+import {
+  bootstrapWorkItem,
+  WORK_ITEM_PATTERNS,
+  WORK_ITEM_VARIANTS,
+} from "@clive.shirley/accord-core/work-items/bootstrap.js";
 
 export type BootstrapArgs = {
   /** Explicit work item id, or undefined with `adhoc` to generate `ADHOC-<YYYYMMDD><NN>`. */
@@ -30,9 +16,12 @@ export type BootstrapArgs = {
 
 export type BootstrapParse = { ok: true; args: BootstrapArgs } | { ok: false; message: string };
 
+const TERMINATOR_HINT = "Put a title word that starts with -- after a bare `--`.";
+
 /**
  * Parse tokens after `bootstrap`: `<ID> <title…>` or `--adhoc <title…>`, plus `--pattern` and
- * `--variant`. Tokens after a bare `--` are title text, so a title word may start with `--`.
+ * `--variant`. Tokens after a bare `--` are title text, so a title word may start with `--`
+ * (global flags such as `--json` are also title text there).
  */
 export function parseBootstrapArgs(tail: string[]): BootstrapParse {
   let pattern = "implement";
@@ -58,17 +47,17 @@ export function parseBootstrapArgs(tail: string[]): BootstrapParse {
     } else if (token.startsWith("--variant=")) {
       variant = token.slice("--variant=".length);
     } else if (token.startsWith("--")) {
-      return { ok: false, message: `Unknown bootstrap flag: ${token}` };
+      return { ok: false, message: `Unknown bootstrap flag: ${token}. ${TERMINATOR_HINT}` };
     } else {
       positional.push(token);
     }
   }
 
-  if (!(PATTERNS as readonly string[]).includes(pattern)) {
-    return { ok: false, message: `--pattern must be one of: ${PATTERNS.join(", ")}` };
+  if (!(WORK_ITEM_PATTERNS as readonly string[]).includes(pattern)) {
+    return { ok: false, message: `--pattern must be one of: ${WORK_ITEM_PATTERNS.join(", ")}` };
   }
-  if (!(VARIANTS as readonly string[]).includes(variant)) {
-    return { ok: false, message: `--variant must be one of: ${VARIANTS.join(", ")}` };
+  if (!(WORK_ITEM_VARIANTS as readonly string[]).includes(variant)) {
+    return { ok: false, message: `--variant must be one of: ${WORK_ITEM_VARIANTS.join(", ")}` };
   }
 
   if (adhoc) {
@@ -91,51 +80,31 @@ export function parseBootstrapArgs(tail: string[]): BootstrapParse {
   return { ok: true, args: { workItemId, adhoc, title, pattern, variant } };
 }
 
-function idTaken(id: string): boolean {
-  return loadWorkItem(id) !== null || fs.existsSync(devArtifactDir(id));
-}
-
+/** Thin adapter: call the core bootstrap and print the result. */
 export function runBootstrapCommand(args: BootstrapArgs, options: { json?: boolean }): number {
-  if (DEV_WORK_ITEM_ID_PATTERN.test(args.title)) {
-    console.error(
-      "bootstrap: title must describe the work, not be a ticket id. A ticket-shaped title makes align look it up in the tracker.",
-    );
-    return 1;
-  }
-
-  let id: string;
-  try {
-    id = args.workItemId ?? nextSyntheticWorkItemId(idTaken);
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    return 1;
-  }
-
-  if (!DEV_WORK_ITEM_ID_PATTERN.test(id)) {
-    console.error(`bootstrap: "${id}" is not a work item id (expected e.g. ACCORD-1234).`);
-    return 1;
-  }
-  if (idTaken(id)) {
-    console.error(`bootstrap: work item ${id} already exists. Use: accord resume ${id}`);
-    return 1;
-  }
-
-  const boot = devBootstrap(id, args.title, args.pattern as WorkItemPattern, args.variant, {
-    expected_finish: args.title.slice(0, 240),
+  const result = bootstrapWorkItem({
+    id: args.workItemId,
+    adhoc: args.adhoc,
+    title: args.title,
+    pattern: args.pattern,
+    variant: args.variant,
   });
-  // Only work items that start in `aligning` begin with align; the others enter a later phase.
-  const next = boot.work_item.phase === "aligning" ? `accord align ${id}` : `accord resume ${id}`;
+  if (!result.ok) {
+    console.error(result.error);
+    return 1;
+  }
+  const { id, path, work_item: workItem, next } = result.value;
 
   if (options.json) {
     console.log(
       JSON.stringify(
         {
           id,
-          title: args.title,
-          pattern: boot.work_item.pattern,
-          variant: boot.work_item.variant ?? null,
-          phase: boot.work_item.phase,
-          path: boot.path,
+          title: workItem.title,
+          pattern: workItem.pattern,
+          variant: workItem.variant ?? null,
+          phase: workItem.phase,
+          path,
           next,
         },
         null,
@@ -145,7 +114,7 @@ export function runBootstrapCommand(args: BootstrapArgs, options: { json?: boole
     return 0;
   }
 
-  console.log(`Created work item ${id} (${args.pattern}/${args.variant}) at ${boot.path}`);
+  console.log(`Created work item ${id} (${args.pattern}/${args.variant}) at ${path}`);
   console.log(`Next: ${next}`);
   return 0;
 }

@@ -49,6 +49,12 @@ const ENTRY_PHASES: Record<string, Record<string, string>> = {
   analyse: { _default: "researching" },
 };
 
+/** Coarse phase a new work item of this pattern/variant starts in. */
+export function entryPhaseFor(pattern: WorkItemPattern, variant?: string): string {
+  const phases = ENTRY_PHASES[pattern] || { _default: "speccing" };
+  return (variant && phases[variant]) || phases._default || "speccing";
+}
+
 export interface IntentContractInput {
   intent_mode?: IntentMode;
   intent_confidence?: IntentConfidence;
@@ -65,8 +71,7 @@ export function devBootstrap(
   variant?: string,
   intent?: IntentContractInput,
 ): { path: string; work_item: WorkItem } {
-  const phases = ENTRY_PHASES[pattern] || { _default: "speccing" };
-  const phase = (variant && phases[variant]) || phases._default || "speccing";
+  const phase = entryPhaseFor(pattern, variant);
   const timestamp = now();
 
   const wi: WorkItem = {

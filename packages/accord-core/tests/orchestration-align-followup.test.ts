@@ -247,6 +247,30 @@ describe("synthetic ADHOC work items", () => {
     }
   });
 
+  test("a different well-formed synthetic id in the hint (even padded) is not a real ticket", () => {
+    for (const ticket_id of ["ADHOC-2026102801", " ADHOC-2026102801 "]) {
+      const plan = planSpawnFollowUp({
+        workItemId: "ADHOC-2026102901",
+        agent: "phase-align",
+        exitCode: 0,
+        parsedReturn: {
+          status: "needs_gather",
+          gather_hint: { ticket_id, reason: "x" },
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        },
+        phase: "aligning",
+        title: "t",
+        pattern: "implement",
+        devConfig: minimalDevConfig(),
+      });
+      expect([ticket_id, plan?.agent, plan?.consumesGatherBudget]).toEqual([
+        ticket_id,
+        "phase-align",
+        true,
+      ]);
+    }
+  });
+
   test("a real ticket in the hint still gathers for an ADHOC work item", () => {
     const plan = planSpawnFollowUp({
       workItemId: "ADHOC-2026102901",
@@ -302,17 +326,17 @@ describe("synthetic ADHOC work items", () => {
       },
     };
 
-    const out = await runResumeOrchestrationWithReplans(
-      "ADHOC-2026102901",
-      minimalDevConfig(),
-      host,
-    );
-    expect(spawns).not.toContain("phase-gather");
-    expect(spawns.every((agent) => agent === "phase-align")).toBe(true);
-    // initial align + at most the gather budget of re-aligns, never the full follow-up chain
-    expect(spawns.length).toBeLessThanOrEqual(1 + 3);
+    // A budget of 2 is below the follow-up cap (4), so the exact spawn count proves the
+    // re-aligns spent the gather budget rather than hitting the chain cap.
+    const devConfig = { ...minimalDevConfig(), orchestration: { max_gather_attempts: 2 } };
+    const out = await runResumeOrchestrationWithReplans("ADHOC-2026102901", devConfig, host);
+    expect(spawns).toEqual(["phase-align", "phase-align", "phase-align"]);
     expect(out.stalledReason).toBe("stuck");
     const saved = JSON.parse(readFileSync(join(".tasks", "ADHOC-2026102901.json"), "utf8"));
     expect(saved.decisions.length).toBe(1);
+    expect(saved.gather_attempts).toBe(0); // reset when the escalation was raised
+    const text = JSON.stringify(saved.decisions[0]);
+    expect(text).toContain("ad-hoc item with no tracker ticket");
+    expect(text).not.toContain("phase-gather attempt");
   });
 });

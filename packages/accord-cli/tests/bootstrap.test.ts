@@ -129,6 +129,41 @@ describe("accord bootstrap", () => {
     if (!parsed.ok) expect(parsed.message).toContain("bootstrap STEP-5 <title>");
   });
 
+  test("parser partitions: equals forms, missing values, bad enums, unknown flags mention --", () => {
+    const ok = parseBootstrapArgs(["STEP-1", "t", "--pattern=quick_fix", "--variant=express"]);
+    expect(ok.ok && [ok.args.pattern, ok.args.variant]).toEqual(["quick_fix", "express"]);
+    const cases: Array<[string[], string]> = [
+      [["STEP-1", "t", "--pattern"], "--pattern requires a value"],
+      [["STEP-1", "t", "--variant"], "--variant requires a value"],
+      [["STEP-1", "t", "--variant", "nope"], "--variant must be one of"],
+      [["STEP-1", "t", "--pattern=nope"], "--pattern must be one of"],
+      [["STEP-1", "t", "--fix"], "bare `--`"],
+      [["STEP-1"], "requires <ID> <title>"],
+    ];
+    for (const [tail, message] of cases) {
+      const parsed = parseBootstrapArgs(tail);
+      expect([tail, parsed.ok]).toEqual([tail, false]);
+      if (!parsed.ok) expect(parsed.message).toContain(message);
+    }
+  });
+
+  test("an explicit id whose docs/dev/<ID> exists is refused", () => {
+    mkdirSync(join("docs", "dev", "STEP-4"), { recursive: true });
+    expect(run(["STEP-4", "x"])).toBe(1);
+    expect(errors.join("\n")).toContain("already exists");
+    expect(existsSync(join(".tasks", "STEP-4.json"))).toBe(false);
+  });
+
+  test("--adhoc with investigate or analyse is refused with guidance; explicit ids resume", () => {
+    expect(run(["--adhoc", "why slow", "--pattern", "investigate"])).toBe(1);
+    expect(errors.join("\n")).toContain("Use a real ticket id");
+    errors.length = 0;
+    expect(run(["STEP-20", "why slow", "--pattern", "investigate"], true)).toBe(0);
+    const out = JSON.parse(logged[logged.length - 1]) as { next: string; phase: string };
+    expect(out.next).toBe("accord resume STEP-20");
+    expect(out.phase).toBe(workItem("STEP-20").phase as string);
+  });
+
   test("refusals change nothing", () => {
     expect(run(["STEP-8", "one"])).toBe(0);
     const before = readdirSync(".tasks");
