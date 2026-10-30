@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-30T15:01:43.915Z",
+  "generated_at": "2026-10-30T15:54:24.837Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -111,6 +111,12 @@
       "task_id": 17,
       "description": "Edited okf/architecture/agents.md, okf/architecture/crucible-verification.md, okf/references/task-file.md outside task.files[]",
       "reason": "Tests require these concepts to stop saying review-security never gates",
+      "resolution": null
+    },
+    {
+      "task_id": 18,
+      "description": "Suite passes against the existing phase-code implementation, so red_confirmed is false.",
+      "reason": "This is a lint-fix retry round. The production code in lock.ts was already implemented in earlier rounds, so no stub is needed.",
       "resolution": null
     }
   ],
@@ -1773,7 +1779,9 @@
       "id": 17,
       "title": "[security-gate] Schema description and OKF docs",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "68d3fe7"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -1880,39 +1888,102 @@
     {
       "id": 18,
       "title": "[contract-lock] contract.lock.json writer, verifier and schema",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 3,
+        "C": 3,
+        "V": 2
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
-        "rgr": 0,
-        "verify": 0
+        "rgr": 1,
+        "verify": 1
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 16,
+        "by_state": {
+          "verified": 14,
+          "wont_fix_accepted": 2
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-9 amend marker > is not open when the marker nonce is wrong\nerror: not implemented: isAmendOpen\n(fail) ASDLC-1/AC-30 schema alignment for contract.lock.json > schema file exists in schemas/\nExpected: true\nReceived: false\n\n 0 pass\n 23 fail\nRan 23 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V2/phase-verify-task",
+        "excerpt": "contract-lock.test.ts: 49 pass, 0 fail. validate:schemas: 30 passed, 0 failed. check:types: OK. validate:assets, validate:okf, validate:ste, check:bundle and check:runtime: OK (preflight). biome on task files: clean. check:biome repo-wide: fails only on docs/dev/ASDLC-1/trace.json formatting (harness-owned).",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-9",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/contract-lock.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/contract/lock.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/contract/lock.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/schemas/contract-lock-schema.json",
+              "action": "add",
+              "kind": "config"
+            },
+            {
+              "file": "packages/accord-core/src/artifacts/validation.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V2/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/contract-lock.test.ts"
+          }
         },
         {
           "id": "AC-30",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/contract-lock.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/schemas/contract-lock-schema.json",
+              "action": "add",
+              "kind": "config"
+            },
+            {
+              "file": "packages/accord-core/src/artifacts/validation.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V2/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/contract-lock.test.ts && bun run validate:schemas && bun run check:types"
+          }
         }
       ]
     },
@@ -3530,7 +3601,7 @@
       "tasks": [
         {
           "task": 18,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 19,
@@ -3553,8 +3624,17 @@
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/contract-lock.test.ts",
+        "packages/accord-core/src/contract/lock.ts",
+        "packages/accord-core/schemas/contract-lock-schema.json",
+        "packages/accord-core/src/artifacts/validation.ts"
+      ],
+      "tests": [
+        "ASDLC-1/AC-9 contract lock writer",
+        "ASDLC-1/AC-9 contract lock verifier",
+        "ASDLC-1/AC-9 amend marker"
+      ],
       "verified": false
     },
     {
@@ -4024,7 +4104,7 @@
         },
         {
           "task": 18,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 25,
@@ -4060,7 +4140,10 @@
         "packages/accord-core/src/evidence/qualify-ac.ts",
         "packages/accord-core/schemas/trace-schema.json",
         "packages/accord-core/tests/alignment.test.ts",
-        "packages/accord-core/schemas/accord-schema.json"
+        "packages/accord-core/schemas/accord-schema.json",
+        "packages/accord-core/tests/contract-lock.test.ts",
+        "packages/accord-core/schemas/contract-lock-schema.json",
+        "packages/accord-core/src/artifacts/validation.ts"
       ],
       "tests": [
         "ASDLC-1/AC-30 accepts ac_id (table)",
@@ -4071,7 +4154,9 @@
         "bun run check:types (exit 0)",
         "packages/accord-core/tests/alignment.test.ts (all ASDLC-1/AC-30 cases, via bun test exit 0)",
         "bun run validate:schemas",
-        "bun run validate:assets"
+        "bun run validate:assets",
+        "ASDLC-1/AC-30 schema alignment for contract.lock.json",
+        "bun run check:types"
       ],
       "verified": false
     },
@@ -6062,6 +6147,42 @@
       "file": "docs/configuration.md",
       "line": 174,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 18,
+      "requirement": "AC-30",
+      "finding_id": "F-007",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-30 enforcement (validate:schemas / validate:assets) cannot be proven by a unit test. validate:schemas only checks files in schemas/examples/, so without an example contract-lock-schema.json is never exercised by it.",
+      "file": "packages/accord-core/tests/contract-lock.test.ts",
+      "line": 234,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Sound reason. validate:schemas and validate:assets enforcement is a phase-verify-task command, and schemas/examples/contract-lock.json is a production asset for the impl step. The unit test pins the declaration: the schema file exists and SCHEMA_MAP registration is proved by the negatives."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 18,
+      "requirement": "AC-30",
+      "finding_id": "F-014",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "New schema and SCHEMA_MAP entry are not reflected in the OKF schema reference or docs/schemas.md.",
+      "file": "packages/accord-core/src/artifacts/validation.ts",
+      "line": 71,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C3/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "OKF and docs/schemas.md updates are owned by the okf docs task; docs gap on non-critical surface, suggestion only."
+      }
     }
   ]
 }
