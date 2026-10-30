@@ -54,6 +54,7 @@ export async function runPiExecSpawn(
     stderr: result.stderr,
     parsedReturn: result.parsedReturn ?? parseSubagentReturnJson(result.output),
     model: result.model,
+    usage: result.usage,
   };
 }
 

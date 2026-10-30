@@ -29,6 +29,7 @@ sources:
 | `ACCORD_ALLOW_AGENT_WORKFLOW_WRITES` | off | `1`/`true`/`yes` lets agents write orchestrator-owned `.tasks/` state (legacy) |
 | `ACCORD_SUBAGENT_SPAWN_TIMEOUT_MS` | — | Orchestration default spawn timeout (else `subagent.json` `spawnTimeoutMs`) |
 | `ACCORD_LOG_LEVEL` | `error` | `debug`/`info`/`warn`/`error`/`silent`; overrides Dev Harness `log_level` |
+| `ACCORD_LOG_TIMESTAMP` | unset | `1`/`true` prefixes core log lines with an RFC 3339 UTC timestamp. The `accord` CLI always timestamps its own notifications |
 | `ACCORD_HARNESS` | — | Default harness backend id when not configured |
 
 # Pi extension

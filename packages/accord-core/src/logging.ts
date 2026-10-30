@@ -30,8 +30,19 @@ export interface Logger {
   error(message: string): void;
 }
 
+/** RFC 3339 UTC timestamp, e.g. `2026-10-30T12:20:15.806Z`. */
+export function rfc3339Now(): string {
+  return new Date().toISOString();
+}
+
+/** Opt-in (`ACCORD_LOG_TIMESTAMP=1`): prefix each core log line with an RFC 3339 timestamp. */
+function timestampPrefix(): string {
+  const flag = process.env.ACCORD_LOG_TIMESTAMP?.trim().toLowerCase();
+  return flag === "1" || flag === "true" ? `${rfc3339Now()} ` : "";
+}
+
 function fmt(level: string, tag: string, message: string): string {
-  return `[accord:${tag}:${level}] ${message}`;
+  return `${timestampPrefix()}[accord:${tag}:${level}] ${message}`;
 }
 
 /**

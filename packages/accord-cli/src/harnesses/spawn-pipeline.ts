@@ -23,6 +23,9 @@ export type SpawnExecutionResult = {
   output?: string;
   stderr?: string;
   parsedReturn?: unknown;
+  /** Host-measured usage from the child stream (tokens and cost). */
+  usage?: unknown;
+  model?: string;
 };
 
 export type SpawnPipelineOptions = {
@@ -91,6 +94,8 @@ export async function runSpawnPipeline(
         output: singleResult.output,
         stderr: singleResult.stderr,
         parsedReturn: singleResult.parsedReturn,
+        usage: singleResult.usage,
+        model: singleResult.model,
       },
     ],
   };

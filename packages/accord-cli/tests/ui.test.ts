@@ -56,3 +56,25 @@ describe("accord-cli UI", () => {
     expect(parsed.options.noColor).toBe(true);
   });
 });
+
+describe("cliNotify timestamps", () => {
+  test("prefixes each line with an RFC 3339 timestamp", async () => {
+    const { cliNotify } = await import("../src/notify.js");
+    const lines: string[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => {
+      lines.push(args.join(" "));
+    };
+    try {
+      cliNotify("info", "one\ntwo");
+    } finally {
+      console.error = original;
+    }
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: strip ANSI colour codes
+      const plain = line.replace(/\u001b\[[0-9;]*m/g, "");
+      expect(plain).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z \[accord:info\] (one|two)$/);
+    }
+  });
+});
