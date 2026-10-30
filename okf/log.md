@@ -2,6 +2,7 @@
 
 ## 2026-10-30
 
+* **Update**: ASDLC-1 evidence-asset: [Evidence stack](/architecture/evidence-stack.md) and [Artifacts and state](/references/artifacts-and-state.md) (`/references/artifacts-and-state.md`) now describe `evidence/task-<N>.{md,json}`, the `evidence(task-<N>)` commit, qualified `<ID>/AC-<n>` refs and squash survival.
 * **Update**: ASDLC-1 commit-evidence: [Commit message format](/references/commit-format.md) (commit guard rules), [Evidence stack](/architecture/evidence-stack.md) (`stack.commits` phase mode) and [accord CLI](/references/accord-cli.md) (`accord evidence`) now describe the implemented behaviour.
 
 ## 2026-10-29

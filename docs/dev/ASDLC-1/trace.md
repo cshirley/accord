@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-29T19:45:20.687Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-30T12:36:15.027Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -19,8 +19,8 @@
 | 10 | [commit-evidence] OKF docs and docs validation test | done | `cfb68a8` | 2/1/1 | 13 (verified 5, wont_fix_accepted 1, open 7) | 0 |
 | 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | done | `58b8d41` | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
 | 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | done | `96e4fcd` | 2/1/1 | 24 (verified 14, open 10) | 0 |
-| 13 | [evidence-asset] Final evidence(task-<N>) commit | done | — | 2/1/1 | 22 (verified 10, open 12) | 0 |
-| 14 | [evidence-asset] OKF docs for the evidence asset | pending | — | 0/0/0 | 0 | 0 |
+| 13 | [evidence-asset] Final evidence(task-<N>) commit | done | `b946982` | 2/1/1 | 22 (verified 10, open 12) | 0 |
+| 14 | [evidence-asset] OKF docs for the evidence asset | done | — | 2/1/1 | 12 (verified 4, wont_fix_accepted 1, open 7) | 0 |
 | 15 | [security-gate] review-security gating inside the C loop | pending | — | 0/0/0 | 0 | 0 |
 | 16 | [security-gate] Route open or disputed gating security findings back to review-security | pending | — | 0/0/0 | 0 | 0 |
 | 17 | [security-gate] Schema description and OKF docs | pending | — | 0/0/0 | 0 | 0 |
@@ -344,9 +344,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (pending), 17 (pending), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`
-- Tests verified (13):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (pending), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`
+- Tests verified (14):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -360,6 +360,7 @@
   - docs-validation.test.ts › ASDLC-1/AC-31 evidence-stack.md documents the implemented stack.commits phase mode
   - docs-validation.test.ts › ASDLC-1/AC-31 commit-format.md is bound to the implemented commit code
   - bun run check:biome
+  - packages/accord-core/tests/docs-validation.test.ts (11 pass, 0 fail)
 
 ## Accepted risks and unresolved findings
 
@@ -476,10 +477,19 @@
 | 13 | _task | F-019 | unresolved (advisory) | open | suggestion | Assets are built twice: buildEvidenceAsset, then writeEvidenceAssets builds them again internally. | packages/accord-core/src/commit/evidence-commit.ts:99 |  |
 | 13 | _task | F-020 | unresolved (advisory) | open | suggestion | nextSeq duplicates phase-commit's priorTrailers scan, is unbounded, and swallows errors. | packages/accord-core/src/commit/evidence-commit.ts:31 |  |
 | 13 | _task | F-022 | unresolved (advisory) | open | suggestion | OKF docs still say phase mode only skips the done-task sweep; they do not mention the final evidence(task-N) commit that process.ts now makes. | okf/architecture/orchestration.md:52 |  |
+| 14 | AC-31 | F-003 | accepted (advisory) | wont_fix_accepted | warning | The check:biome test fails on errors that existed before this task, in files outside task.files. A correct task-14 change cannot make it GREEN, so phase-code will stall. The trace.json format error may also come back after each harness rewrite. Task 14 changes only markdown, which Biome likely does not check, so this gate says little about the change. | packages/accord-core/tests/docs-validation.test.ts:40 | wont_fix_accepted by T2/review-test — Reason is sound: TC-32 requires the check:biome test, and both failing files (scripts/update-model-pricing.ts, docs/dev/ASDLC-1/trace.json) are outside task 14 and outside phase-test's scope. phase-test named both files. biome.json formats JSON and does not exclude docs/dev, so the harness-written trace.json is likely to fail again after each rewrite. A human or harness fix to the baseline is needed before this test can go green. |
+| 14 | AC-31 | F-006 | unresolved (advisory) | open | suggestion | The status-line check needs only the tokens 'evidence(task-<N>)' and 'evidence asset'. It passes when the line says the evidence asset is still proposed. The frontmatter 'status: proposed' is also unchecked. | packages/accord-core/tests/docs-validation.test.ts:96 |  |
+| 14 | AC-31 | F-007 | unresolved (advisory) | open | warning | Doc says the evidence asset and evidence(task-<N>) commit depend on `stack.enabled`; source gates them on `stack.commits: phase`. | okf/references/artifacts-and-state.md:42 |  |
+| 14 | AC-31 | F-008 | unresolved (advisory) | open | warning | Refs bullet says the asset uses qualified refs 'when `stack.enabled`'; the asset qualifies unconditionally, and only trace.json is gated on `stack.enabled`. | okf/architecture/evidence-stack.md:50 |  |
+| 14 | AC-31 | F-009 | unresolved (advisory) | open | suggestion | Commit grammar paragraph states twice that evidence(task-<N>) is the last commit and writes the asset, and squash survival is repeated again in the Evidence asset section. | okf/architecture/evidence-stack.md:44 |  |
+| 14 | AC-31 | F-010 | unresolved (advisory) | open | suggestion | Status paragraph: 'Without it, a work item is one branch...' now has no clear antecedent after the added evidence-asset sentences. Frontmatter still says `status: proposed` while the body says 'Partly implemented'. | okf/architecture/evidence-stack.md:29 |  |
+| 14 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | New bullet is inserted above the existing 2026-10-30 entry (log is append-only; other dates are in chronological order) and carries a redundant bare path in parentheses. | okf/log.md:5 |  |
+| 14 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Still says the harness does not read the `stack` key; commits, state, redact, include_diffs and evidence behaviour are now read. Outside task files; pre-existing from earlier features. | okf/references/stack-config.md:20 |  |
 
 ## Decisions
 
-_None._
+- **phase-code-stuck-1** (escalation, resolved): check:biome fails on files outside task scope: docs/dev/ASDLC-1/trace.json (format) and packages/accord-core/scripts/update-model-pricing.ts:84 (useOptionalChain). Authorize fixing them, or accept? → Do not fix out-of-scope files. Accept the baseline check:biome failures (docs/dev/ASDLC-1/trace.json, scripts/update-model-pricing.ts); task 14 is markdown-only.
+- **esc-ASDLC-1-14-T2/phase-test#0** (escalation, resolved): check:biome fails on the baseline for reasons outside task 14 files: lint error in packages/accord-core/scripts/update-model-pricing.ts and format error in docs/dev/ASDLC-1/trace.json. Fix both, or exclude generated docs/dev/**/trace.json from Biome, before phase-code can turn that test green. → Fixed both baseline biome failures manually (formatted trace.json, optional-chain in update-model-pricing.ts). check:biome is green; proceed.
 
 ## Deviations
 
@@ -488,11 +498,11 @@ _None._
 - Task 4 (accepted): Modified okf/architecture/monorepo-packages.md (sources + accord-ci row) outside task.files — Test requires an okf concept listing the evidence check as a source and describing accord/evidence
 - Task 6 (accepted): Pinned unspecified contract: guardStagedPaths returns {kept,rejected,rule?,respawn?}; guardTrailer(workItemId, trailer, ctx) returns {ok,rule,errors}; event ref = commitType (paths) / trailer.ref (trailer); phase-test unrestricted; state/evidence/verify scopes as documented. — Spec names only rule/respawn/rejected; shape and per-type scopes inferred.
 - Task 6 (accepted): redact.test.ts covers AC-12 (named in the plan step) though task covers_ac is AC-3/AC-29; ac_ids for it set to AC-3 only for attribution. — Plan step tags redaction tests as ASDLC-1/AC-12, which is outside this task's covers_ac.
-- Task 8 (pending): Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'. — Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.
-- Task 9 (pending): Exported runEvidenceCommand from commands/index.ts (not in task.files) — dispatch.ts imports commands via the index barrel
-- Task 11 (pending): AC-30 has no dedicated test in qualified-ac-refs.test.ts; the trace-schema ac_id widening is covered indirectly via validateArtifact on a qualified trace.json. — AC-30 is enforced by bun run validate:schemas / validate:assets (phase-verify-task), and TC-31 lives in alignment.test.ts, which is outside this task's files.
-- Task 13 (pending): Edited phase-commits.test.ts (not in task.files) to add wiring cases and fix the V1-is-last assertion — F-001 required orchestrator wiring tests and removal of the V1-last assertion
-- Task 13 (pending): Stubbed registerCloseoutBranchHook(hook|undefined) and getCloseoutBranchHook() with an opaque hook type — F-010: spec leaves the closeout hook shape open; only default and registration identity are pinned
+- Task 8 (accepted): Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'. — Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.
+- Task 9 (accepted): Exported runEvidenceCommand from commands/index.ts (not in task.files) — dispatch.ts imports commands via the index barrel
+- Task 11 (accepted): AC-30 has no dedicated test in qualified-ac-refs.test.ts; the trace-schema ac_id widening is covered indirectly via validateArtifact on a qualified trace.json. — AC-30 is enforced by bun run validate:schemas / validate:assets (phase-verify-task), and TC-31 lives in alignment.test.ts, which is outside this task's files.
+- Task 13 (accepted): Edited phase-commits.test.ts (not in task.files) to add wiring cases and fix the V1-is-last assertion — F-001 required orchestrator wiring tests and removal of the V1-last assertion
+- Task 13 (accepted): Stubbed registerCloseoutBranchHook(hook|undefined) and getCloseoutBranchHook() with an opaque hook type — F-010: spec leaves the closeout hook shape open; only default and registration identity are pinned
 
 ## Evidence by task
 
@@ -770,6 +780,18 @@ task tests: 54 pass 0 fail. check:types, check:bundle, check:runtime, validate:s
 ```
 
 ### Task 14: [evidence-asset] OKF docs for the evidence asset
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/docs-validation.test.ts: 6 pass, 5 fail. (fail) check:biome exits 0 (pre-existing: lint error in packages/accord-core/scripts/update-model-pricing.ts, format error in docs/dev/ASDLC-1/trace.json). (fail) evidence-stack.md documents the evidence asset, evidence(task-<N>) commit, qualified refs and squash survival. (fail) artifacts-and-state.md lists the evidence asset with a Commands row-style table entry. (fail) artifacts-and-state.md says trace.json uses qualified <ID>/AC-<n> refs. (fail) okf/log.md has a dated entry for the evidence asset docs.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+11 pass, 0 fail (docs-validation.test.ts); okf validation passed (38 files); ste lint passed; biome: Checked 647 files, no fixes applied. Preflight: all 9 verification commands exit 0.
+```
 
 ### Task 15: [security-gate] review-security gating inside the C loop
 
