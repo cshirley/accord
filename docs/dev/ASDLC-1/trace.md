@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-30T13:38:40.907Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-30T15:01:43.915Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -22,8 +22,8 @@
 | 13 | [evidence-asset] Final evidence(task-<N>) commit | done | `b946982` | 2/1/1 | 22 (verified 10, open 12) | 0 |
 | 14 | [evidence-asset] OKF docs for the evidence asset | done | `96f2bbd` | 2/1/1 | 12 (verified 4, wont_fix_accepted 1, open 7) | 0 |
 | 15 | [security-gate] review-security gating inside the C loop | done | `3e86b17` | 2/1/1 | 12 (verified 7, open 5) | 0 |
-| 16 | [security-gate] Route open or disputed gating security findings back to review-security | done | — | 2/1/1 | 11 (verified 7, open 4) | 0 |
-| 17 | [security-gate] Schema description and OKF docs | pending | — | 0/0/0 | 0 | 0 |
+| 16 | [security-gate] Route open or disputed gating security findings back to review-security | done | `e8393f1` | 2/1/1 | 11 (verified 7, open 4) | 0 |
+| 17 | [security-gate] Schema description and OKF docs | done | — | 2/1/1 | 13 (verified 6, dispute_upheld 1, open 6) | 0 |
 | 18 | [contract-lock] contract.lock.json writer, verifier and schema | pending | — | 0/0/0 | 0 | 0 |
 | 19 | [contract-lock] PR0 contract commit, tag and contract-amend | pending | — | 0/0/0 | 0 | 0 |
 | 20 | [contract-lock] Pre-write lock guard in the tool_call hook | pending | — | 0/0/0 | 0 | 0 |
@@ -352,23 +352,26 @@
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (pending), 18 (pending), 25 (pending), 32 (pending), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`
-- Tests verified (6):
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (pending), 25 (pending), 32 (pending), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`
+- Tests verified (9):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
   - bun run validate:schemas (30 passed, 0 failed)
   - bun run validate:assets (exit 0)
   - bun run check:types (exit 0)
+  - packages/accord-core/tests/alignment.test.ts (all ASDLC-1/AC-30 cases, via bun test exit 0)
+  - bun run validate:schemas
+  - bun run validate:assets
 
 ### AC-31 — pending (not verified)
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (pending), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`
-- Tests verified (14):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (pending), 22 (pending), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`
+- Tests verified (16):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -383,6 +386,8 @@
   - docs-validation.test.ts › ASDLC-1/AC-31 commit-format.md is bound to the implemented commit code
   - bun run check:biome
   - packages/accord-core/tests/docs-validation.test.ts (11 pass, 0 fail)
+  - packages/accord-core/tests/docs-validation.test.ts (all ASDLC-1/AC-31 cases, via bun test exit 0)
+  - bunx biome check on task-changed files (okf, accord-schema.json, both test files)
 
 ## Accepted risks and unresolved findings
 
@@ -516,6 +521,13 @@
 | 16 | AC-8 | F-009 | unresolved (advisory) | open | suggestion | The gating-state predicate is built inline and duplicates GATING_STATES from tasks/model.ts. The plan step said to use the severity gate from resolveReviewSecurityGate. | packages/accord-core/src/orchestration/post-result/phase-code.ts:150 |  |
 | 16 | AC-8 | F-010 | unresolved (advisory) | open | suggestion | When review-security is chosen only because of gating findings, the footer and decision log do not say why. | packages/accord-core/src/orchestration/post-result/phase-code.ts:158 |  |
 | 16 | AC-8 | F-011 | unresolved (advisory) | open | suggestion | The brief text sent to review-security and phase-code still says security findings are advisory and never block, which contradicts the gate. | packages/accord-core/src/tasks/render.ts:142 |  |
+| 17 | AC-30 | F-007 | accepted (advisory) | dispute_upheld | suggestion | TC-31 says 'a deliberately misaligned fixture fails' under validate:schemas and validate:assets. The negative fixture goes to Ajv directly, so the tests never show that the scripts detect misalignment. A no-op validate script (exit 0) passes the tests at lines 20 and 25. This is the enforcement half of an architectural AC. The declaration (enum and additionalProperties) is pinned, and task 17 does not change the scripts. | packages/accord-core/tests/alignment.test.ts:53 | dispute_upheld by T2/review-test — Task 17 does not change the validate scripts. Ajv rejects misaligned review_security configs ('major', 'WARN', '', extra key), which pins the declaration. Running the scripts end to end is phase-verify-task's job (`bun run validate:schemas && bun run validate:assets`). |
+| 17 | AC-31 | F-008 | unresolved (advisory) | open | suggestion | it.each over agents.md / crucible-verification.md / task-file.md only checks lines containing both 'review-security' and 'advisory'. Deleting 'advisory' from those lines passes without the concept ever saying review-security can gate. /gate/i is also a substring match, so 'Below-gate' on the same line satisfies it. | packages/accord-core/tests/docs-validation.test.ts:225 |  |
+| 17 | AC-31 | F-009 | unresolved (advisory) | open | suggestion | The review_security row in orchestration-policy.md does not pin the Default column. A row whose default cell says `"warn"` or `"block"` still passes, because `advisory` only has to appear somewhere in the row. | packages/accord-core/tests/docs-validation.test.ts:199 |  |
+| 17 | AC-31 | F-010 | unresolved (advisory) | open | suggestion | Doc says suggestion findings always stay advisory, but under severity_gate `none` they gate; the sentence also sits under `# verify_loop` and duplicates the review_security table row. | okf/references/orchestration-policy.md:55 |  |
+| 17 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | Intro still says the harness does not read `stack` except the security gate, but other stack keys are read. | okf/references/stack-config.md:23 |  |
+| 17 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Header comment still says review-security findings are advisory and never gate or consume a retry, contradicting the gate now documented. | packages/accord-core/src/orchestration/post-result/review-security.ts:2 |  |
+| 17 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | The review_loop key table documents review_test and review_code overrides but not review_security. | docs/configuration.md:174 |  |
 
 ## Decisions
 
@@ -536,6 +548,8 @@
 - Task 13 (accepted): Stubbed registerCloseoutBranchHook(hook|undefined) and getCloseoutBranchHook() with an opaque hook type — F-010: spec leaves the closeout hook shape open; only default and registration identity are pinned
 - Task 15 (pending): The review-code re-raise rows (F-001) pass review-code's own gate to applyRechecks and applyReviewFindings. Making them pass likely needs a change in review-code.ts, which is outside task.files. — Under the default review-code gate (block), a re-raised security warning would turn advisory again; the AC-8 re-raise rows expect it to stay gating.
 - Task 15 (pending): Modified review-code.ts (not in task.files) to pass securityGate to recordReview — review-code re-raising a security finding must apply the security gate for the AC-8 re-raise tests
+- Task 17 (pending): Added tests for okf/architecture/agents.md, okf/architecture/crucible-verification.md and okf/references/task-file.md, which are outside plan task 17 files[]. — F-003: these concepts still say review-security never gates; AC-31 requires updating all affected okf concepts. phase-code or a follow-up task must edit them.
+- Task 17 (pending): Edited okf/architecture/agents.md, okf/architecture/crucible-verification.md, okf/references/task-file.md outside task.files[] — Tests require these concepts to stop saying review-security never gates
 
 ## Evidence by task
 
@@ -860,6 +874,24 @@ full bun test: 2214 pass, 1 fail (AC-31 check:biome exits 0, same trace.json cau
 ```
 
 ### Task 17: [security-gate] Schema description and OKF docs
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-31 orchestration-policy.md documents the review-security gate, not 'always advisory'
+(fail) ASDLC-1/AC-31 stack-config.md security gate section is no longer marked proposed
+(fail) ASDLC-1/AC-31 okf/log.md has a dated entry for the security gate docs
+(fail) ASDLC-1/AC-30 review_security description says the harness reads it (no PROPOSED marker)
+(fail) ASDLC-1/AC-31 check:biome exits 0 (pre-existing formatting error in a .tasks JSON file, unrelated)
+ 15 pass
+ 5 fail
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+bun test exit 0; validate:schemas/assets/okf/ste exit 0; check:types/bundle/runtime exit 0; check:biome exit 1 (only docs/dev/ASDLC-1/trace.json format, harness-generated, outside task scope); biome check on task-changed files: clean.
+```
 
 ### Task 18: [contract-lock] contract.lock.json writer, verifier and schema
 

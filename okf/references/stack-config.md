@@ -6,6 +6,9 @@ tags: [configuration, accord-json, stack, sizing, proposed]
 status: proposed
 generated: { by: agent:pi, at: 2026-10-02T00:00:00Z }
 sources:
+  - id: review-security
+    resource: /packages/accord-core/src/orchestration/post-result/review-security.ts
+    title: review-security post-result handler (security gate)
   - id: accord-schema
     resource: /packages/accord-core/schemas/accord-schema.json
     title: Dev Harness config schema (stack)
@@ -17,7 +20,7 @@ sources:
     title: Project configuration
 ---
 
-**Proposed.** The key is in the schema, so it validates. The harness does not read it yet. Applies to `implement` and greenfield work items, not `quick_fix`. Design: [Evidence stack](/architecture/evidence-stack.md).
+**Proposed.** The key is in the schema, so it validates. The harness does not read it yet, except the security gate below. Applies to `implement` and greenfield work items, not `quick_fix`. Design: [Evidence stack](/architecture/evidence-stack.md).
 
 `stack` is a top-level key in `accord.json`: the global file (`~/.config/accord/accord.json`) or the project `## Dev Harness` block. Project overrides global ([Dev Harness configuration](/references/dev-harness-config.md)).
 
@@ -55,9 +58,9 @@ sources:
 }
 ```
 
-# Related: security gate (proposed)
+# Related: security gate
 
-`review-security` gates in this process: critical and warning ("major") findings must be fixed in code. It gates inside the existing `C` loop (`phase-code`, then `review-security`, then `review-code`); the fix is the next `C` round, re-reviewed by `review-code`, and uses the `code_review` retry counter. `suggestion` stays advisory. New key `orchestration.review_loop.review_security.severity_gate` (`advisory`, `block`, `warn`, `none`). Schema default is `advisory` (today's behaviour); with `stack.enabled: true` the effective default is `warn`. See the plan, section 5a.
+`review-security` gates in this process: critical and warning ("major") findings must be fixed in code. It gates inside the existing `C` loop (`phase-code`, then `review-security`, then `review-code`); the fix is the next `C` round, re-reviewed by `review-code`, and uses the `code_review` retry counter. `suggestion` stays advisory. New key `orchestration.review_loop.review_security.severity_gate` (`advisory`, `block`, `warn`, `none`). Schema default is `advisory` (today's behaviour); with `stack.enabled: true` the effective default is `warn`. The harness reads this key in `applyReviewSecurityPostResult`.
 
 ```json
 "orchestration": { "review_loop": { "review_security": { "severity_gate": "warn" } } }

@@ -63,7 +63,7 @@ Read-only. Shared packet: `verdict` (`clean` / `issues`) + `findings[]` with `se
 | `review-spec` | workhorse | Spec structure, AC↔TC integrity | After spec draft |
 | `review-plan` | reasoning | Plan ordering, task coverage, reuse | After plan draft |
 | `review-test` | reasoning | Test adequacy, adversarial gaps | **Pre-impl** after `phase-test`; `/review` post-impl |
-| `review-security` | reasoning | OWASP, authz, secrets, supply chain | Security-sensitive paths, after `phase-code` before `review-code`; findings advisory |
+| `review-security` | reasoning | OWASP, authz, secrets, supply chain | Security-sensitive paths, after `phase-code` before `review-code`; gate set by `severity_gate` |
 | `review-code` | workhorse | Correctness, plan drift, observability | **Post-impl** after `phase-code` |
 | `review-design` | workhorse | ADR / design reasoning | `analyse` pattern |
 | `review-investigation` | workhorse | Hypothesis quality, anti-anchoring | `investigate` pattern |

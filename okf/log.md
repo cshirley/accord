@@ -2,6 +2,7 @@
 
 ## 2026-10-30
 
+* **Update**: ASDLC-1 security-gate: [Orchestration policy](/references/orchestration-policy.md) and [Stack configuration](/references/stack-config.md) (`/references/stack-config.md`) now describe the review-security gate (`review_loop.review_security.severity_gate`); agents, crucible-verification and task-file concepts no longer say it never gates.
 * **Update**: ASDLC-1 evidence-asset: [Evidence stack](/architecture/evidence-stack.md) and [Artifacts and state](/references/artifacts-and-state.md) (`/references/artifacts-and-state.md`) now describe `evidence/task-<N>.{md,json}`, the `evidence(task-<N>)` commit, qualified `<ID>/AC-<n>` refs and squash survival.
 * **Update**: ASDLC-1 commit-evidence: [Commit message format](/references/commit-format.md) (commit guard rules), [Evidence stack](/architecture/evidence-stack.md) (`stack.commits` phase mode) and [accord CLI](/references/accord-cli.md) (`accord evidence`) now describe the implemented behaviour.
 

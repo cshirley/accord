@@ -542,7 +542,7 @@
             },
             "review_security": {
               "type": "object",
-              "description": "PROPOSED, not yet read by the harness. Gating override for **review-security** (runs in the code loop before review-code). advisory = never gates (current behaviour); block, warn, none as for the other loops. Fixes use the code_review retry counter. Schema default: advisory. With stack.enabled true the effective default is warn. See okf/references/stack-config.md.",
+              "description": "Read by the harness. Gating override for **review-security** (runs in the code loop before review-code). advisory = never gates; block, warn, none as for the other loops. Fixes use the code_review retry counter. Schema default: advisory. With stack.enabled true the effective default is warn. See okf/references/stack-config.md.",
               "additionalProperties": false,
               "properties": {
                 "severity_gate": {
