@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-10-29T19:45:20.687Z",
+  "generated_at": "2026-10-30T12:36:15.027Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -10,7 +10,24 @@
     "retro_summary": null,
     "shift_left_findings": []
   },
-  "decisions": [],
+  "decisions": [
+    {
+      "id": "phase-code-stuck-1",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "check:biome fails on files outside task scope: docs/dev/ASDLC-1/trace.json (format) and packages/accord-core/scripts/update-model-pricing.ts:84 (useOptionalChain). Authorize fixing them, or accept?",
+      "answer": "Do not fix out-of-scope files. Accept the baseline check:biome failures (docs/dev/ASDLC-1/trace.json, scripts/update-model-pricing.ts); task 14 is markdown-only.",
+      "phase": "implementing"
+    },
+    {
+      "id": "esc-ASDLC-1-14-T2/phase-test#0",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "check:biome fails on the baseline for reasons outside task 14 files: lint error in packages/accord-core/scripts/update-model-pricing.ts and format error in docs/dev/ASDLC-1/trace.json. Fix both, or exclude generated docs/dev/**/trace.json from Biome, before phase-code can turn that test green.",
+      "answer": "Fixed both baseline biome failures manually (formatted trace.json, optional-chain in update-model-pricing.ts). check:biome is green; proceed.",
+      "phase": "implementing"
+    }
+  ],
   "deviations": [
     {
       "task_id": 2,
@@ -46,31 +63,31 @@
       "task_id": 8,
       "description": "Pinned the row shape, column set, md/tsv exact text, and the chdir-based cwd for readTimeline in the test header. The spec only names ref, outcome, counts, tokens, cost and 'the documented awk extraction'.",
       "reason": "Spec leaves the concrete column contract open. The columns are the trailer keys the documented awk reads. The implementer must match them or ask to amend the tests.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 9,
       "description": "Exported runEvidenceCommand from commands/index.ts (not in task.files)",
       "reason": "dispatch.ts imports commands via the index barrel",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 11,
       "description": "AC-30 has no dedicated test in qualified-ac-refs.test.ts; the trace-schema ac_id widening is covered indirectly via validateArtifact on a qualified trace.json.",
       "reason": "AC-30 is enforced by bun run validate:schemas / validate:assets (phase-verify-task), and TC-31 lives in alignment.test.ts, which is outside this task's files.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 13,
       "description": "Edited phase-commits.test.ts (not in task.files) to add wiring cases and fix the V1-is-last assertion",
       "reason": "F-001 required orchestrator wiring tests and removal of the V1-last assertion",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 13,
       "description": "Stubbed registerCloseoutBranchHook(hook|undefined) and getCloseoutBranchHook() with an opaque hook type",
       "reason": "F-010: spec leaves the closeout hook shape open; only default and registration identity are pinned",
-      "resolution": null
+      "resolution": "accepted"
     }
   ],
   "tasks": [
@@ -1310,7 +1327,9 @@
       "id": 13,
       "title": "[evidence-asset] Final evidence(task-<N>) commit",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "b946982"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -1453,33 +1472,71 @@
     {
       "id": 14,
       "title": "[evidence-asset] OKF docs for the evidence asset",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 12,
+        "by_state": {
+          "verified": 4,
+          "wont_fix_accepted": 1,
+          "open": 7
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/docs-validation.test.ts: 6 pass, 5 fail. (fail) check:biome exits 0 (pre-existing: lint error in packages/accord-core/scripts/update-model-pricing.ts, format error in docs/dev/ASDLC-1/trace.json). (fail) evidence-stack.md documents the evidence asset, evidence(task-<N>) commit, qualified refs and squash survival. (fail) artifacts-and-state.md lists the evidence asset with a Commands row-style table entry. (fail) artifacts-and-state.md says trace.json uses qualified <ID>/AC-<n> refs. (fail) okf/log.md has a dated entry for the evidence asset docs.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "11 pass, 0 fail (docs-validation.test.ts); okf validation passed (38 files); ste lint passed; biome: Checked 647 files, no fixes applied. Preflight: all 9 verification commands exit 0.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/docs-validation.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "okf/architecture/evidence-stack.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/artifacts-and-state.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/docs-validation.test.ts && bun run validate:okf && bun run validate:ste && bun run check:biome"
+          }
         }
       ]
     },
@@ -3771,7 +3828,7 @@
         },
         {
           "task": 14,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 17,
@@ -3860,7 +3917,8 @@
         "packages/accord-core/tests/docs-validation.test.ts",
         "okf/references/commit-format.md",
         "okf/architecture/evidence-stack.md",
-        "okf/references/accord-cli.md"
+        "okf/references/accord-cli.md",
+        "okf/references/artifacts-and-state.md"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -3875,7 +3933,8 @@
         "docs-validation.test.ts › ASDLC-1/AC-31 accord-cli.md has an evidence Commands row with real syntax",
         "docs-validation.test.ts › ASDLC-1/AC-31 evidence-stack.md documents the implemented stack.commits phase mode",
         "docs-validation.test.ts › ASDLC-1/AC-31 commit-format.md is bound to the implemented commit code",
-        "bun run check:biome"
+        "bun run check:biome",
+        "packages/accord-core/tests/docs-validation.test.ts (11 pass, 0 fail)"
       ],
       "verified": false
     }
@@ -5411,6 +5470,115 @@
       "issue": "OKF docs still say phase mode only skips the done-task sweep; they do not mention the final evidence(task-N) commit that process.ts now makes.",
       "file": "okf/architecture/orchestration.md",
       "line": 52,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-003",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The check:biome test fails on errors that existed before this task, in files outside task.files. A correct task-14 change cannot make it GREEN, so phase-code will stall. The trace.json format error may also come back after each harness rewrite. Task 14 changes only markdown, which Biome likely does not check, so this gate says little about the change.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 40,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Reason is sound: TC-32 requires the check:biome test, and both failing files (scripts/update-model-pricing.ts, docs/dev/ASDLC-1/trace.json) are outside task 14 and outside phase-test's scope. phase-test named both files. biome.json formats JSON and does not exclude docs/dev, so the harness-written trace.json is likely to fail again after each rewrite. A human or harness fix to the baseline is needed before this test can go green."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-006",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The status-line check needs only the tokens 'evidence(task-<N>)' and 'evidence asset'. It passes when the line says the evidence asset is still proposed. The frontmatter 'status: proposed' is also unchecked.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 96,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Doc says the evidence asset and evidence(task-<N>) commit depend on `stack.enabled`; source gates them on `stack.commits: phase`.",
+      "file": "okf/references/artifacts-and-state.md",
+      "line": 42,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Refs bullet says the asset uses qualified refs 'when `stack.enabled`'; the asset qualifies unconditionally, and only trace.json is gated on `stack.enabled`.",
+      "file": "okf/architecture/evidence-stack.md",
+      "line": 50,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-009",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Commit grammar paragraph states twice that evidence(task-<N>) is the last commit and writes the asset, and squash survival is repeated again in the Evidence asset section.",
+      "file": "okf/architecture/evidence-stack.md",
+      "line": 44,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Status paragraph: 'Without it, a work item is one branch...' now has no clear antecedent after the added evidence-asset sentences. Frontmatter still says `status: proposed` while the body says 'Partly implemented'.",
+      "file": "okf/architecture/evidence-stack.md",
+      "line": 29,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "New bullet is inserted above the existing 2026-10-30 entry (log is append-only; other dates are in chronological order) and carries a redundant bare path in parentheses.",
+      "file": "okf/log.md",
+      "line": 5,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 14,
+      "requirement": "AC-31",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Still says the harness does not read the `stack` key; commits, state, redact, include_diffs and evidence behaviour are now read. Outside task files; pre-existing from earlier features.",
+      "file": "okf/references/stack-config.md",
+      "line": 20,
       "raised": "C1/review-code"
     }
   ]

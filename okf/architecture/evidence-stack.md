@@ -18,9 +18,15 @@ sources:
   - id: phase-commit
     resource: /packages/accord-core/src/commit/phase-commit.ts
     title: Per-phase orchestrator commit
+  - id: evidence-asset
+    resource: /packages/accord-core/src/evidence/asset.ts
+    title: Evidence asset builder
+  - id: evidence-commit
+    resource: /packages/accord-core/src/commit/evidence-commit.ts
+    title: Final evidence(task-<N>) commit
 ---
 
-**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The other features stay proposed. Without it, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
+**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The other features stay proposed. Without it, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
 
 # Shape
 
@@ -36,6 +42,12 @@ main ─ PR0 Contract ─ PR1 T1 ─ PR2 T2 ─ … ─ PRn Closeout
 # Commit grammar
 
 The orchestrator is the only committer; agents never commit. Every phase completion is one commit that names its harness ref (`<round>/<actor>`: `T<n>` test, `C<n>` code, `V<n>` verify), including the adversarial reviews: `T1/phase-test` (RED) → `T1/review-test` (findings) → `T2/phase-test` (answers) → `T2/review-test` (clean) → `C1/phase-code` (GREEN) → `C1/review-security` → `C1/review-code` → `C2/phase-code` (answers both) → `C2/review-security` → `C2/review-code` → `V1/phase-verify-task` → `evidence(task-<N>)`. The ref is the join key to the task file `log[]` ([Per-task file](/references/task-file.md)). `review-security` gates on critical and warning findings inside the existing `C` loop; its fix is the next `C` round, re-reviewed by `review-code`. Review and verify commits may touch only `reviews/**` and `docs/dev/<ID>/state/**`, so reviewers cannot alter what they review. Findings are committed before the next phase starts and read back from the tree, so a stateless runner never loses them. `state(task-<N>)` is only for orchestrator-originated changes (unblock, human answer, cap reached). The last commit is `evidence(task-<N>)`: it writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}` and removes the state; squash is allowed because the asset survives. Each carries one `Accord:` trailer of `key=value` pairs (loop, round, outcome, finding counts, test counts, tokens, model, cost) for grep and awk reporting: [Commit message format](/references/commit-format.md). Green commits touch no test files (guarded). Evidence commits are append-only. The last commit of every task PR is `evidence(task-<N>)`: it writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}` (red/green excerpts, findings, `review..fix` patches, planned vs actual size). The asset survives any merge strategy, so squash is allowed; rebase or merge also keeps the commits.
+
+# Evidence asset
+
+* **Path** — `docs/dev/<ID>/evidence/task-<N>.{md,json}`, written by the final `evidence(task-<N>)` commit (`evidence/asset.ts`, `commit/evidence-commit.ts`).
+* **Squash** — the evidence asset survives squash merge, because it is a file in the final commit. The typed commits do not survive a squash.
+* **Refs** — when `stack.enabled`, the asset and `trace.json` use qualified `<ID>/AC-<n>` refs (`trace.json` keeps bare `AC-n` when `stack.enabled` is off).
 
 # State persistence
 

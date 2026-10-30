@@ -21,6 +21,9 @@ sources:
   - id: verify-summary
     resource: /packages/accord-core/src/queries/verify-summary.ts
     title: verify.md rendering + discrepancies
+  - id: evidence-asset
+    resource: /packages/accord-core/src/evidence/asset.ts
+    title: Evidence asset builder
   - id: rehydrate
     resource: /packages/accord-core/src/work-items/rehydrate.ts
     title: Rehydrate from artifacts
@@ -36,10 +39,12 @@ sources:
 | `plan.json` | `phase-plan` | Tasks with `covers_ac`, `files`, `test_files`, steps, `challenge` |
 | `verify.json` | `phase-verify-acceptance` | Per-AC `criteria[]` + `summary`; schema-validated by the harness on return and before finalize (invalid → not applied / not finalized) |
 | `verify.md` | `dev_verify_summary` | **The single review document**: per-AC verdict + evidence merged with the trace (tasks, files, verified tests), task commits, accepted risks, decisions/deviations, verify-vs-trace discrepancies |
-| `trace.json` / `.md` | harness (task done, verify summary, finalize) | Committed projection of `.tasks/`: per-AC implementation + verification, accepted/unresolved findings, decisions, deviations, task commits, RED + final-verify output excerpts; regenerate, don't edit |
+| `evidence/task-<N>.{md,json}` | harness (`evidence(task-<N>)` commit, `stack.enabled`) | Per-task evidence: red/green excerpts, findings, planned vs actual size, with qualified `<ID>/AC-<n>` refs; survives squash merge |
+| `trace.json` / `.md` | harness (task done, verify summary, finalize) | Uses qualified `<ID>/AC-<n>` refs when `stack.enabled`. Committed projection of `.tasks/`: per-AC implementation + verification, accepted/unresolved findings, decisions, deviations, task commits, RED + final-verify output excerpts; regenerate, don't edit |
 | `workflow-cost.json` / `.md` | `dev_finalize` | Token/USD rollup from usage log; regenerate, don't edit |
 
-Each `done` task gets a harness commit (task files + `trace.*`); closeout commits the rest of
+Each `done` task gets a harness commit (task files + `trace.*`). With `stack.enabled`, the last
+commit of a task is `evidence(task-<N>)`, which writes the evidence asset. Closeout commits the rest of
 `docs/dev/<ID>/` — see `orchestration.commit` in [Orchestration policy](/references/orchestration-policy.md).
 
 Artifacts are immutable after their phase returns `done`; changes go through
