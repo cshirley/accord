@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,9 +40,24 @@ describe("ASDLC-1/AC-31 docs validation (ASDLC-1/TC-32)", () => {
     expect({ code, out: code === 0 ? "" : out }).toEqual({ code: 0, out: "" });
   }, 120_000);
 
-  it("ASDLC-1/AC-31 check:biome exits 0", () => {
-    const { code, out } = run("check:biome");
-    expect({ code, out: code === 0 ? "" : out }).toEqual({ code: 0, out: "" });
+  it("ASDLC-1/AC-31 check:biome exits 0 on the files this task changes (gitignored and harness-generated state excluded)", () => {
+    // Scoped to task-17 files: docs/dev/<ID>/trace.json is harness-generated and unrelated.
+    const files = [
+      "packages/accord-core/schemas/accord-schema.json",
+      "packages/accord-core/tests/alignment.test.ts",
+      "packages/accord-core/tests/docs-validation.test.ts",
+    ];
+    for (const file of files) expect(existsSync(join(ROOT, file))).toBe(true);
+    const proc = Bun.spawnSync(["bunx", "biome", "check", ...files], {
+      cwd: ROOT,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const out = `${proc.stdout.toString()}${proc.stderr.toString()}`;
+    expect({ code: proc.exitCode, out: proc.exitCode === 0 ? "" : out }).toEqual({
+      code: 0,
+      out: "",
+    });
   }, 120_000);
 
   it("ASDLC-1/AC-31 okf/log.md has a dated entry naming ASDLC-1, the evidence command and the updated concepts", () => {
@@ -150,6 +165,95 @@ describe("ASDLC-1/AC-31 docs validation (ASDLC-1/TC-32)", () => {
         new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
     );
     expect(datedBullets()).toContainEqual({ date: "2026-10-30", text: PRIOR_LOG_BULLET });
+    expect(matching.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // ASDLC-1/AC-31 (task 17): security gate documentation.
+  const reviewLoopSection = (): string => {
+    const text = read("okf/references/orchestration-policy.md");
+    const start = text.indexOf("# review_loop");
+    const end = text.indexOf("# quick_fix_loop");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    return text.slice(start, end);
+  };
+
+  it("ASDLC-1/AC-31 orchestration-policy.md documents the review-security gate, not 'always advisory'", () => {
+    const whole = read("okf/references/orchestration-policy.md");
+    expect(whole).not.toMatch(/always advisory/i);
+    expect(whole).not.toMatch(/recorded, briefed, never gate/i);
+    const rows = reviewLoopSection()
+      .split("\n")
+      .filter((line) => /^\|\s*`review_security(\.severity_gate)?`/.test(line));
+    expect(rows.length).toBe(1);
+    const row = rows[0] ?? "";
+    for (const token of [
+      "`advisory`",
+      "`warn`",
+      "`block`",
+      "`none`",
+      "stack.enabled",
+      "code_review",
+    ])
+      expect(row).toContain(token);
+    expect(row).toMatch(/effective default[^|]*`warn`/);
+    expect(row).not.toContain("max_retries");
+    // the per-loop override row must not claim review_security
+    const overrideRow = reviewLoopSection()
+      .split("\n")
+      .find((line) => /^\|\s*`review_test`/.test(line));
+    expect(overrideRow).toBeDefined();
+    expect(overrideRow).not.toContain("review_security");
+  });
+
+  it("ASDLC-1/AC-31 stack-config.md security gate section is no longer marked proposed", () => {
+    const text = read("okf/references/stack-config.md");
+    expect(text).toMatch(/^# Related: security gate\s*$/m);
+    const section = text.slice(text.search(/^# Related: security gate/m));
+    expect(section).not.toMatch(/proposed|not (yet )?read/i);
+    expect(section).toContain("orchestration.review_loop.review_security.severity_gate");
+    expect(section).toMatch(/Schema default is `advisory`/);
+    expect(section).toMatch(/effective default is `warn`/);
+    expect(text).toContain(
+      "resource: /packages/accord-core/src/orchestration/post-result/review-security.ts",
+    );
+    // intro must not claim the whole key set is unread without noting the gate
+    expect(text).not.toMatch(/The harness does not read it yet\.(?![^\n]*security gate)/);
+  });
+
+  // Plan gap: these concepts are outside plan task 17 files[] but still say review-security never gates.
+  it.each([
+    "okf/architecture/agents.md",
+    "okf/architecture/crucible-verification.md",
+    "okf/references/task-file.md",
+  ])("ASDLC-1/AC-31 %s does not say review-security never gates", (file) => {
+    const text = read(file);
+    expect(text).not.toMatch(
+      /review-security[^\n]*(never (gate|block)|always advisory)|all review-security findings are `advisory`/i,
+    );
+    for (const line of text.split("\n")) {
+      if (/review-security/i.test(line) && /advisory/i.test(line))
+        expect(line).toMatch(/severity_gate|stack-config|gate/i);
+    }
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated entry for the security gate docs", () => {
+    const EVIDENCE_ASSET_BULLET =
+      "* **Update**: ASDLC-1 evidence-asset: [Evidence stack](/architecture/evidence-stack.md) and [Artifacts and state](/references/artifacts-and-state.md) (`/references/artifacts-and-state.md`) now describe `evidence/task-<N>.{md,json}`, the `evidence(task-<N>)` commit, qualified `<ID>/AC-<n>` refs and squash survival.";
+    expect(datedBullets()).toContainEqual({ date: "2026-10-30", text: PRIOR_LOG_BULLET });
+    expect(datedBullets().map((bullet) => bullet.text)).toContain(EVIDENCE_ASSET_BULLET);
+    const matching = datedBullets().filter(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1") &&
+        bullet.text.includes("security-gate") &&
+        bullet.text.includes("/references/orchestration-policy.md") &&
+        bullet.text.includes("/references/stack-config.md") &&
+        bullet.text !== PRIOR_LOG_BULLET &&
+        bullet.text !== EVIDENCE_ASSET_BULLET &&
+        !bullet.text.includes("evidence/task-<N>") &&
+        !bullet.text.includes("accord evidence") &&
+        new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
+    );
     expect(matching.length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -32,6 +32,7 @@ All keys live under `orchestration` in the Dev Harness block (project) or global
 | `max_unblocks_per_task` | `1` | `/dev unblock` resets allowed per task, ever |
 | `max_lifetime_retries` | retries × (unblocks + 1) | Hard ceiling `/dev unblock` never resets |
 | `max_rgr_respawns` | `3` | `phase-code` → `phase-test` respawns (test_issue / touched tests) before block |
+| `review_security` | schema `advisory` | `severity_gate`: `advisory` (never gates), `warn`, `block`, `none`. With `stack.enabled` the effective default is `warn`. A gating finding is fixed in the next `C` round and uses the `code_review` retry counter. See [Stack configuration](/references/stack-config.md) |
 | `review_test`, `review_code` | — | Per-loop overrides (`severity_gate`, `max_retries`, `max_lifetime_retries`) |
 
 Findings persist under `requirements[].findings` on the task file ([Per-task file](/references/task-file.md)); counters are `control.retries.*`.
@@ -51,7 +52,7 @@ Findings persist under `requirements[].findings` on the task file ([Per-task fil
 | `max_retries` | `3` | Verify-fail → phase-code bounces (each a full code round) before the task blocks for a human |
 | `max_lifetime_retries` | retries × (unblocks + 1) | Never reset by unblock |
 
-review-security findings are always advisory (recorded, briefed, never gate).
+review-security gates only through `review_loop.review_security.severity_gate`; `suggestion` findings stay advisory.
 
 # resume
 
