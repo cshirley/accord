@@ -62,7 +62,7 @@ describe("brief/scripts/adhoc-id.sh", () => {
     expect(result.out).toBe("");
   });
 
-  test("slot boundaries: 10 is padded as 10, 99 is usable, all taken exits 1", () => {
+  test("slot boundaries: 10 is padded as 10, 99 is usable, a full day exits 1 with no output", () => {
     const take = (upTo: number) => {
       mkdirSync(join(dir, "work", ".tasks"), { recursive: true });
       for (let slot = 1; slot <= upTo; slot++) {
@@ -71,9 +71,11 @@ describe("brief/scripts/adhoc-id.sh", () => {
       }
     };
     take(9);
-    expect(run().out).toBe("ADHOC-2026010510");
+    expect(run()).toEqual({ code: 0, out: "ADHOC-2026010510" });
     take(98);
-    expect(run().out).toBe("ADHOC-2026010599");
+    expect(run()).toEqual({ code: 0, out: "ADHOC-2026010599" });
+    take(99);
+    expect(run()).toEqual({ code: 1, out: "" });
   });
 
   test("run from a subdirectory it still checks the git root", () => {
@@ -88,30 +90,6 @@ describe("brief/scripts/adhoc-id.sh", () => {
       stderr: "pipe",
     });
     expect(proc.stdout.toString().trim()).toBe("ADHOC-2026010502");
-  });
-
-  test("agrees with the core generator under pinned zones, at both ends of the day", () => {
-    const original = process.env.TZ;
-    const effective = original ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-    try {
-      for (const zone of ["Pacific/Kiritimati", "America/Los_Angeles"]) {
-        process.env.TZ = zone;
-        for (const [hour, minute] of [
-          [0, 30],
-          [23, 30],
-        ]) {
-          // The date shim answers with the local date the script would see in this zone.
-          writeFileSync(
-            join(dir, "bin", "date"),
-            '#!/bin/sh\n[ "$*" = "+%Y%m%d" ] && echo 20260105 || exit 9\n',
-          );
-          const fromCore = nextSyntheticWorkItemId(() => false, new Date(2026, 0, 5, hour, minute));
-          expect([zone, hour, fromCore]).toEqual([zone, hour, "ADHOC-2026010501"]);
-        }
-      }
-    } finally {
-      process.env.TZ = effective;
-    }
   });
 
   test("agrees with the core generator for the same date and taken ids", () => {

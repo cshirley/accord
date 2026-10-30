@@ -41,7 +41,11 @@ fingerprint() {
   # The temp object store holds copies of every untracked, non-ignored file (possibly secrets not
   # yet in .gitignore), so remove it even when interrupted.
   WORK_DIR="$work"
-  trap cleanup_work EXIT INT TERM HUP
+  # Clean up on every exit path, and stop on a signal instead of continuing with a deleted store.
+  trap cleanup_work EXIT
+  trap 'cleanup_work; exit 130' INT
+  trap 'cleanup_work; exit 143' TERM
+  trap 'cleanup_work; exit 129' HUP
   index="$work/index"
   objects="$work/objects"
   mkdir -p "$objects"
@@ -96,7 +100,19 @@ git rev-parse --show-toplevel >/dev/null 2>&1 || {
 cmd="${1:-check}"
 shift || true
 
+case "$cmd" in
+  mark | check | show | fingerprint) ;;
+  *)
+    echo "usage: green.sh mark|check|show [verify|review] | fingerprint" >&2
+    exit 64
+    ;;
+esac
+
 if [[ "$cmd" == "fingerprint" ]]; then
+  if [[ $# -gt 0 ]]; then
+    echo "green.sh: fingerprint takes no arguments" >&2
+    exit 64
+  fi
   fingerprint
   exit $?
 fi

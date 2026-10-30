@@ -104,7 +104,7 @@ shift || true
 case "$cmd" in
   where)
     dir="${1:-.}"
-    cd "$dir" 2>/dev/null || {
+    cd -- "$dir" 2>/dev/null || {
       echo "wt-guard: cannot enter $dir" >&2
       exit 3
     }

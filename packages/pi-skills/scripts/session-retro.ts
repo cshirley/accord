@@ -344,12 +344,15 @@ for (const file of files) {
           for (const segment of shellSegments(command)) {
             // Anchored to the start of a segment, like the gates: `rg 'green.sh check'` or
             // `cat wt-guard.sh` only mention the scripts. The script path may be any prefix.
-            const text = segment.text.replace(/^(?:bash|sh) /, "");
+            // Drop shell constructs and interpreters in front of the script name.
+            const text = segment.text
+              .replace(/^(?:(?:if|then|time|exec|sudo|!) )+/, "")
+              .replace(/^(?:(?:bash|sh|python3?) (?:-\S+ )*)/, "");
             if (/^\S*green\.sh mark review\b/.test(text)) adoption.reviewMark += 1;
             else if (/^\S*green\.sh mark\b/.test(text)) adoption.greenMark += 1;
             if (/^\S*green\.sh check\b/.test(text)) adoption.greenCheck += 1;
             if (/^\S*wt-guard\.sh\b/.test(text)) adoption.wtGuard += 1;
-            if (/^(?:python3? )?\S*doc-verify\.py\b/.test(text)) adoption.docVerify += 1;
+            if (/^\S*doc-verify\.py\b/.test(text)) adoption.docVerify += 1;
             if (/^accord bootstrap --adhoc\b|^\S*adhoc-id\.sh\b/.test(text)) {
               adoption.adhocBootstrap += 1;
             }

@@ -354,27 +354,59 @@ describe("verify/scripts/green.sh", () => {
     expect(result.out).toContain("origin/HEAD is not set");
   });
 
-  test("options apply to mark only; blank values are rejected; the temp store is cleaned up", () => {
-    expect(sh(repo, [script, "check", "review", "--critical", "0"]).code).toBe(64);
-    expect(sh(repo, [script, "show", "--tree", "a".repeat(40)]).code).toBe(64);
-    expect(
-      sh(repo, [
-        script,
-        "mark",
-        "review",
-        "--source",
-        "branch",
-        "--critical",
-        "2",
-        "--accepted",
-        "   ",
-      ]).code,
-    ).toBe(64);
-    expect(sh(repo, [script, "mark", "--tree", ""]).code).toBe(64);
-    const before = readdirSync(tmpdir()).filter((name) => name.startsWith("green."));
-    sh(repo, [script, "mark"]);
-    sh(repo, [script, "check"]);
-    expect(readdirSync(tmpdir()).filter((name) => name.startsWith("green."))).toEqual(before);
+  test("options apply to mark only and blank values are rejected, each with its own message", () => {
+    const cases: Array<[string[], string]> = [
+      [["check", "review", "--critical", "0"], "options apply to 'mark' only"],
+      [["show", "--tree", "a".repeat(40)], "options apply to 'mark' only"],
+      [
+        ["mark", "review", "--source", "branch", "--critical", "2", "--accepted", "   "],
+        "--accepted needs a non-blank value",
+      ],
+      [["mark", "--tree", ""], "--tree needs a non-blank value"],
+      [["fingerprint", "--tree", "x"], "fingerprint takes no arguments"],
+      [["bogus", "--tree", "a".repeat(40)], "usage: green.sh"],
+    ];
+    for (const [args, message] of cases) {
+      const result = sh(repo, [script, ...args]);
+      expect([args, result.code]).toEqual([args, 64]);
+      expect(result.out).toContain(message);
+    }
+  });
+
+  test("the temp store is removed after mark and check (private TMPDIR, so no other process interferes)", () => {
+    const store = mkdtempSync(join(tmpdir(), "green-store-"));
+    try {
+      expect(sh(repo, [script, "mark"], { TMPDIR: store }).code).toBe(0);
+      expect(sh(repo, [script, "check"], { TMPDIR: store }).code).toBe(0);
+      expect(readdirSync(store)).toEqual([]);
+    } finally {
+      rmSync(store, { recursive: true, force: true });
+    }
+  });
+
+  test("an interrupt during the fingerprint stops the script (130), removes the store and records nothing", () => {
+    const store = mkdtempSync(join(tmpdir(), "green-store-"));
+    const realGit = Bun.which("git") as string;
+    const bin = join(store, "bin");
+    mkdirSync(bin);
+    // The shim interrupts the shell that runs the fingerprint (the shim's grandparent: shim ->
+    // inner subshell -> fingerprint shell), exactly what Ctrl-C does to a foreground group.
+    writeFileSync(
+      join(bin, "git"),
+      `#!/bin/sh\nif [ "$1" = add ]; then kill -INT "$(ps -o ppid= -p "$PPID" | tr -d ' ')"; sleep 1; fi\nexec "${realGit}" "$@"\n`,
+    );
+    chmodSync(join(bin, "git"), 0o755);
+    try {
+      const result = sh(repo, [script, "mark"], {
+        TMPDIR: store,
+        PATH: `${bin}:${process.env.PATH ?? ""}`,
+      });
+      expect(result.code).toBe(130);
+      expect(readdirSync(store).filter((name) => name.startsWith("green."))).toEqual([]);
+      expect(sh(repo, [script, "check"]).code).toBe(2);
+    } finally {
+      rmSync(store, { recursive: true, force: true });
+    }
   });
 
   test("outside a git repo exits 3", () => {

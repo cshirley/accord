@@ -253,6 +253,8 @@ describe("session-retro gates", () => {
       bash("skills/verify/scripts/green.sh check review"),
       bash("bash skills/worktree/scripts/wt-guard.sh find STEP-1"),
       bash("python3 skills/doc-verify/scripts/doc-verify.py a.md"),
+      bash("if green.sh check; then echo ok; fi"),
+      bash("time bash -e skills/worktree/scripts/wt-guard.sh where ."),
     ]);
     const { adoption } = retro(root);
     expect([
@@ -260,12 +262,25 @@ describe("session-retro gates", () => {
       adoption.wtGuard,
       adoption.docVerify,
       adoption.adhocBootstrap,
-    ]).toEqual([1, 1, 1, 0]);
+    ]).toEqual([2, 2, 1, 0]);
   });
 
   test.each(["UTC", "America/Los_Angeles", "Pacific/Kiritimati"])(
     "--since and --until use the file name date, whatever the host zone (%s)",
     (TZ) => {
+      // The child really runs in that zone (the offset differs between the three).
+      const offset = Bun.spawnSync(
+        [process.execPath, "-e", "console.log(new Date(2026,0,5,12).getTimezoneOffset())"],
+        {
+          env: { ...process.env, TZ },
+          stdout: "pipe",
+        },
+      )
+        .stdout.toString()
+        .trim();
+      expect(offset).toBe(
+        { UTC: "0", "America/Los_Angeles": "480", "Pacific/Kiritimati": "-840" }[TZ],
+      );
       session("2026-09-30T23-59-59-999Z_late.jsonl", [{ tool: "edit" }]);
       session("2026-10-01T00-00-00-000Z_edge.jsonl", [{ tool: "edit" }]);
       expect(retro(root, ["--since", "2026-10-01"], { TZ }).sessionFiles).toBe(1);

@@ -218,6 +218,12 @@ describe("worktree/scripts/wt-guard.sh", () => {
     expect(sh(repo, [script, "find", "heads"]).code).toBe(1);
   });
 
+  test("where treats a dash as a directory name, not as cd -", () => {
+    const result = sh(repo, [script, "where", "-"]);
+    expect(result.code).toBe(3);
+    expect(result.out).toContain("cannot enter -");
+  });
+
   test("where on a missing directory exits 3 (not 1, which means offenders)", () => {
     expect(sh(repo, [script, "where", join(repo, "does-not-exist")]).code).toBe(3);
   });

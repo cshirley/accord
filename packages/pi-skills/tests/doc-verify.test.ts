@@ -339,6 +339,14 @@ describe("doc-verify.py", () => {
   test("the default today uses the local date, not UTC", () => {
     // Pacific/Kiritimati is UTC+14: its local date is ahead of UTC for most of the day.
     const env = { TZ: "Pacific/Kiritimati" };
+    // Prove the zone took effect in the child (UTC+14), or the test would pass under any zone.
+    const offset = Bun.spawnSync(["python3", "-c", "import time;print(time.strftime('%z'))"], {
+      env: cleanEnv(env),
+      stdout: "pipe",
+    })
+      .stdout.toString()
+      .trim();
+    expect(offset).toBe("+1400");
     const localToday = Bun.spawnSync(
       ["python3", "-c", "import datetime;print(datetime.date.today())"],
       { env: cleanEnv(env), stdout: "pipe" },
@@ -442,6 +450,19 @@ describe("doc-verify.py", () => {
       } finally {
         rmSync(plain, { recursive: true, force: true });
       }
+    });
+
+    test("a NUL byte in verified-paths does not abort the run", () => {
+      writeFileSync(join(dir, "a.txt"), "1\n");
+      const sha = commit("one");
+      writeFileSync(
+        join(dir, "doc.md"),
+        `---\nverified-against: ${sha}\nverified-paths: ["a\x00b"]\n---\n# D [verified]\n`,
+      );
+      writeFileSync(join(dir, "other.md"), "# O [verified]\n\n[bad](missing.md)\n");
+      const result = run(dir, ["doc.md", "other.md"]);
+      expect(result.code).toBe(1);
+      expect(codes(result.findings)).toEqual(["verified-paths-unchecked", "broken-link"]);
     });
 
     test("a pathspec git rejects is reported, not silently treated as no changes", () => {

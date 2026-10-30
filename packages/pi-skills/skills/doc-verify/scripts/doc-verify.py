@@ -26,6 +26,9 @@ Checks (code: level):
   mermaid-syntax: `mmdc` rejected a mermaid block (error); mermaid-unavailable when mmdc itself
     could not run or timed out (warning); mermaid-not-checked when mmdc is absent (info)
 
+Known limit: a fence indented 4+ spaces is read as a fence (needed for fences inside list items),
+so a plain indented code block that contains a ``` line is treated the same way.
+
 Exit: 0 when there are no errors, 1 when any error, 2 on usage problems.
 """
 
@@ -164,6 +167,9 @@ def git(repo: str, *args: str) -> tuple[int, str]:
         )
     except FileNotFoundError:
         return 127, "git is not installed"
+    except ValueError:
+        # For example an embedded NUL byte in a front-matter pathspec: git cannot be run with it.
+        return 2, "invalid argument (embedded NUL byte?)"
     except subprocess.TimeoutExpired:
         return 124, "git timed out"
     return proc.returncode, (proc.stdout + proc.stderr).strip()
@@ -429,7 +435,7 @@ def main() -> int:
     for file_path in files:
         try:
             findings += check_file(file_path, today, args.repo, args.allow_repo, not args.no_mermaid)
-        except OSError as error:
+        except (OSError, ValueError) as error:
             # One unreadable file must not discard the findings of the others.
             findings.append({"path": file_path, "line": 1, "level": "error", "code": "unreadable-file", "message": str(error)})
 
