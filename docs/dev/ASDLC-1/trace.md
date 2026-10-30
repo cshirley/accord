@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-30T15:01:43.915Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-10-30T15:54:24.837Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -23,8 +23,8 @@
 | 14 | [evidence-asset] OKF docs for the evidence asset | done | `96f2bbd` | 2/1/1 | 12 (verified 4, wont_fix_accepted 1, open 7) | 0 |
 | 15 | [security-gate] review-security gating inside the C loop | done | `3e86b17` | 2/1/1 | 12 (verified 7, open 5) | 0 |
 | 16 | [security-gate] Route open or disputed gating security findings back to review-security | done | `e8393f1` | 2/1/1 | 11 (verified 7, open 4) | 0 |
-| 17 | [security-gate] Schema description and OKF docs | done | — | 2/1/1 | 13 (verified 6, dispute_upheld 1, open 6) | 0 |
-| 18 | [contract-lock] contract.lock.json writer, verifier and schema | pending | — | 0/0/0 | 0 | 0 |
+| 17 | [security-gate] Schema description and OKF docs | done | `68d3fe7` | 2/1/1 | 13 (verified 6, dispute_upheld 1, open 6) | 0 |
+| 18 | [contract-lock] contract.lock.json writer, verifier and schema | done | — | 3/3/2 | 16 (verified 14, wont_fix_accepted 2) | 0 |
 | 19 | [contract-lock] PR0 contract commit, tag and contract-amend | pending | — | 0/0/0 | 0 | 0 |
 | 20 | [contract-lock] Pre-write lock guard in the tool_call hook | pending | — | 0/0/0 | 0 | 0 |
 | 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | pending | — | 0/0/0 | 0 | 0 |
@@ -181,7 +181,12 @@
 
 > Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each of brief.md, spec.json and plan.json (state/work-item.json is not locked because closeout…
 
-- Tasks: 18 (pending), 19 (pending), 20 (pending), 21 (pending), 22 (pending), 23 (pending)
+- Tasks: 18 (satisfied), 19 (pending), 20 (pending), 21 (pending), 22 (pending), 23 (pending)
+- Files: `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/src/contract/lock.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`
+- Tests verified (3):
+  - ASDLC-1/AC-9 contract lock writer
+  - ASDLC-1/AC-9 contract lock verifier
+  - ASDLC-1/AC-9 amend marker
 
 ### AC-10 — pending (not verified)
 
@@ -352,9 +357,9 @@
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (satisfied), 18 (pending), 25 (pending), 32 (pending), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`
-- Tests verified (9):
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (pending), 32 (pending), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`
+- Tests verified (11):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
@@ -364,6 +369,8 @@
   - packages/accord-core/tests/alignment.test.ts (all ASDLC-1/AC-30 cases, via bun test exit 0)
   - bun run validate:schemas
   - bun run validate:assets
+  - ASDLC-1/AC-30 schema alignment for contract.lock.json
+  - bun run check:types
 
 ### AC-31 — pending (not verified)
 
@@ -528,6 +535,8 @@
 | 17 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | Intro still says the harness does not read `stack` except the security gate, but other stack keys are read. | okf/references/stack-config.md:23 |  |
 | 17 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Header comment still says review-security findings are advisory and never gate or consume a retry, contradicting the gate now documented. | packages/accord-core/src/orchestration/post-result/review-security.ts:2 |  |
 | 17 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | The review_loop key table documents review_test and review_code overrides but not review_security. | docs/configuration.md:174 |  |
+| 18 | AC-30 | F-007 | accepted (advisory) | wont_fix_accepted | suggestion | AC-30 enforcement (validate:schemas / validate:assets) cannot be proven by a unit test. validate:schemas only checks files in schemas/examples/, so without an example contract-lock-schema.json is never exercised by it. | packages/accord-core/tests/contract-lock.test.ts:234 | wont_fix_accepted by T2/review-test — Sound reason. validate:schemas and validate:assets enforcement is a phase-verify-task command, and schemas/examples/contract-lock.json is a production asset for the impl step. The unit test pins the declaration: the schema file exists and SCHEMA_MAP registration is proved by the negatives. |
+| 18 | AC-30 | F-014 | accepted (advisory) | wont_fix_accepted | suggestion | New schema and SCHEMA_MAP entry are not reflected in the OKF schema reference or docs/schemas.md. | packages/accord-core/src/artifacts/validation.ts:71 | wont_fix_accepted by C3/review-code — OKF and docs/schemas.md updates are owned by the okf docs task; docs gap on non-critical surface, suggestion only. |
 
 ## Decisions
 
@@ -550,6 +559,7 @@
 - Task 15 (pending): Modified review-code.ts (not in task.files) to pass securityGate to recordReview — review-code re-raising a security finding must apply the security gate for the AC-8 re-raise tests
 - Task 17 (pending): Added tests for okf/architecture/agents.md, okf/architecture/crucible-verification.md and okf/references/task-file.md, which are outside plan task 17 files[]. — F-003: these concepts still say review-security never gates; AC-31 requires updating all affected okf concepts. phase-code or a follow-up task must edit them.
 - Task 17 (pending): Edited okf/architecture/agents.md, okf/architecture/crucible-verification.md, okf/references/task-file.md outside task.files[] — Tests require these concepts to stop saying review-security never gates
+- Task 18 (pending): Suite passes against the existing phase-code implementation, so red_confirmed is false. — This is a lint-fix retry round. The production code in lock.ts was already implemented in earlier rounds, so no stub is needed.
 
 ## Evidence by task
 
@@ -894,6 +904,26 @@ bun test exit 0; validate:schemas/assets/okf/ste exit 0; check:types/bundle/runt
 ```
 
 ### Task 18: [contract-lock] contract.lock.json writer, verifier and schema
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-9 amend marker > is not open when the marker nonce is wrong
+error: not implemented: isAmendOpen
+(fail) ASDLC-1/AC-30 schema alignment for contract.lock.json > schema file exists in schemas/
+Expected: true
+Received: false
+
+ 0 pass
+ 23 fail
+Ran 23 tests across 1 file.
+```
+
+Final verification (`V2/phase-verify-task`):
+
+```text
+contract-lock.test.ts: 49 pass, 0 fail. validate:schemas: 30 passed, 0 failed. check:types: OK. validate:assets, validate:okf, validate:ste, check:bundle and check:runtime: OK (preflight). biome on task files: clean. check:biome repo-wide: fails only on docs/dev/ASDLC-1/trace.json formatting (harness-owned).
+```
 
 ### Task 19: [contract-lock] PR0 contract commit, tag and contract-amend
 
