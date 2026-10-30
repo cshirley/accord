@@ -71,4 +71,17 @@ describe("pi exec spawn (mock)", () => {
     expect(String(spawnCalls[0]?.task)).toContain("Return packet smoke.");
     expect(result.parsedReturn).toEqual({ status: "done", summary: "mock" });
   });
+
+  test("passes host-measured usage and model through to the result", async () => {
+    const taskFile = writeExecTaskFile(process.cwd(), "phase-align", "Usage passthrough.");
+    const result = await runPiExec({
+      taskFile,
+      agentFile: PHASE_ALIGN,
+      agentId: "phase-align",
+      cwd: process.cwd(),
+    });
+
+    expect(result.usage).toMatchObject({ input: 1, output: 1, turns: 1 });
+    expect(result.model).toBe("anthropic/claude-opus-4-7");
+  });
 });

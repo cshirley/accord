@@ -81,8 +81,7 @@ async function fetchPricing(file: PricingFile, addMissing: boolean, dryRun: bool
   for (const [id, entry] of Object.entries(file.models)) {
     const upstreamEntry = upstream[id];
     if (
-      !upstreamEntry ||
-      upstreamEntry.litellm_provider !== "anthropic" ||
+      upstreamEntry?.litellm_provider !== "anthropic" ||
       typeof upstreamEntry.input_cost_per_token !== "number" ||
       typeof upstreamEntry.output_cost_per_token !== "number"
     ) {
