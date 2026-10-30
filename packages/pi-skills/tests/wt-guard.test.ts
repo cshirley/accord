@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ceilingFor, cleanEnv } from "./helpers.js";
 
 const script = join(import.meta.dir, "..", "skills", "worktree", "scripts", "wt-guard.sh");
 
@@ -18,7 +19,7 @@ function sh(cwd: string, args: string[]): { code: number; out: string } {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" },
+    env: cleanEnv(),
   });
   return { code: proc.exitCode ?? -1, out: proc.stdout.toString() + proc.stderr.toString() };
 }
@@ -209,6 +210,18 @@ describe("worktree/scripts/wt-guard.sh", () => {
     expect(sh(repo, [script, "find", "STEP-1"]).out.trim().split("\n").length).toBe(2);
   });
 
+  test("find matches a path-only query (branch has a different name)", () => {
+    const pathOnly = join(repo, ".worktrees", "PATHONLY-7");
+    sh(repo, ["git", "worktree", "add", "-q", "-b", "misc", pathOnly]);
+    expect(sh(repo, [script, "find", "PATHONLY-7"]).out.trim()).toBe(pathOnly);
+    // `heads` is part of the full ref name but not of any branch: it must not match everything.
+    expect(sh(repo, [script, "find", "heads"]).code).toBe(1);
+  });
+
+  test("where on a missing directory exits 3 (not 1, which means offenders)", () => {
+    expect(sh(repo, [script, "where", join(repo, "does-not-exist")]).code).toBe(3);
+  });
+
   test("find matches by path or branch", () => {
     const byPath = sh(repo, [script, "find", "STEP-1"]);
     expect(byPath.code).toBe(0);
@@ -219,7 +232,7 @@ describe("worktree/scripts/wt-guard.sh", () => {
   test("outside a git repo exits 3; bad usage exits 64", () => {
     const plain = realpathSync(mkdtempSync(join(tmpdir(), "plain-")));
     try {
-      const env = { ...process.env, GIT_CEILING_DIRECTORIES: plain };
+      const env = cleanEnv({ GIT_CEILING_DIRECTORIES: ceilingFor(plain) });
       const proc = Bun.spawnSync([script, "where"], {
         cwd: plain,
         env,

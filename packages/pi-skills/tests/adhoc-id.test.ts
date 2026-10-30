@@ -3,6 +3,7 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nextSyntheticWorkItemId } from "../../accord-core/src/work-items/synthetic.js";
+import { cleanEnv } from "./helpers.js";
 
 const script = join(import.meta.dir, "..", "skills", "brief", "scripts", "adhoc-id.sh");
 
@@ -21,7 +22,7 @@ describe("brief/scripts/adhoc-id.sh", () => {
       '#!/bin/sh\n[ "$*" = "+%Y%m%d" ] && echo 20260105 || exit 9\n',
     );
     chmodSync(join(bin, "date"), 0o755);
-    env = { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` } as Record<string, string>;
+    env = cleanEnv({ PATH: `${bin}:${process.env.PATH ?? ""}` });
     mkdirSync(join(dir, "work"));
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -59,6 +60,58 @@ describe("brief/scripts/adhoc-id.sh", () => {
     const result = run();
     expect(result.code).toBe(1);
     expect(result.out).toBe("");
+  });
+
+  test("slot boundaries: 10 is padded as 10, 99 is usable, all taken exits 1", () => {
+    const take = (upTo: number) => {
+      mkdirSync(join(dir, "work", ".tasks"), { recursive: true });
+      for (let slot = 1; slot <= upTo; slot++) {
+        const id = `ADHOC-20260105${String(slot).padStart(2, "0")}`;
+        writeFileSync(join(dir, "work", ".tasks", `${id}.json`), "{}");
+      }
+    };
+    take(9);
+    expect(run().out).toBe("ADHOC-2026010510");
+    take(98);
+    expect(run().out).toBe("ADHOC-2026010599");
+  });
+
+  test("run from a subdirectory it still checks the git root", () => {
+    Bun.spawnSync(["git", "init", "-q"], { cwd: join(dir, "work"), env });
+    mkdirSync(join(dir, "work", ".tasks"));
+    writeFileSync(join(dir, "work", ".tasks", "ADHOC-2026010501.json"), "{}");
+    mkdirSync(join(dir, "work", "src"));
+    const proc = Bun.spawnSync([script], {
+      cwd: join(dir, "work", "src"),
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(proc.stdout.toString().trim()).toBe("ADHOC-2026010502");
+  });
+
+  test("agrees with the core generator under pinned zones, at both ends of the day", () => {
+    const original = process.env.TZ;
+    const effective = original ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    try {
+      for (const zone of ["Pacific/Kiritimati", "America/Los_Angeles"]) {
+        process.env.TZ = zone;
+        for (const [hour, minute] of [
+          [0, 30],
+          [23, 30],
+        ]) {
+          // The date shim answers with the local date the script would see in this zone.
+          writeFileSync(
+            join(dir, "bin", "date"),
+            '#!/bin/sh\n[ "$*" = "+%Y%m%d" ] && echo 20260105 || exit 9\n',
+          );
+          const fromCore = nextSyntheticWorkItemId(() => false, new Date(2026, 0, 5, hour, minute));
+          expect([zone, hour, fromCore]).toEqual([zone, hour, "ADHOC-2026010501"]);
+        }
+      }
+    } finally {
+      process.env.TZ = effective;
+    }
   });
 
   test("agrees with the core generator for the same date and taken ids", () => {

@@ -3,7 +3,7 @@
  * Analyze Pi session jsonl logs for workflow friction and skill gaps.
  *
  * Usage:
- *   bun packages/pi-skills/scripts/session-retro.ts [--json] [--sessions-root PATH] [--since YYYY-MM-DD]
+ *   bun packages/pi-skills/scripts/session-retro.ts [--json] [--sessions-root PATH] [--since YYYY-MM-DD] [--until YYYY-MM-DD]
  *
  * `--since` keeps sessions whose file name timestamp is on or after the date and `--until` keeps
  * those strictly before it, so a pilot window can be compared with the sessions before it. The `gates` and `adoption` sections measure the
@@ -341,12 +341,19 @@ for (const file of files) {
             }
             if (CI_COMMAND.test(segment.text)) prPending = false;
           }
-          if (/green\.sh mark review/.test(command)) adoption.reviewMark += 1;
-          else if (/green\.sh mark/.test(command)) adoption.greenMark += 1;
-          if (/green\.sh check/.test(command)) adoption.greenCheck += 1;
-          if (/wt-guard\.sh/.test(command)) adoption.wtGuard += 1;
-          if (/doc-verify\.py/.test(command)) adoption.docVerify += 1;
-          if (/accord bootstrap --adhoc|adhoc-id\.sh/.test(command)) adoption.adhocBootstrap += 1;
+          for (const segment of shellSegments(command)) {
+            // Anchored to the start of a segment, like the gates: `rg 'green.sh check'` or
+            // `cat wt-guard.sh` only mention the scripts. The script path may be any prefix.
+            const text = segment.text.replace(/^(?:bash|sh) /, "");
+            if (/^\S*green\.sh mark review\b/.test(text)) adoption.reviewMark += 1;
+            else if (/^\S*green\.sh mark\b/.test(text)) adoption.greenMark += 1;
+            if (/^\S*green\.sh check\b/.test(text)) adoption.greenCheck += 1;
+            if (/^\S*wt-guard\.sh\b/.test(text)) adoption.wtGuard += 1;
+            if (/^(?:python3? )?\S*doc-verify\.py\b/.test(text)) adoption.docVerify += 1;
+            if (/^accord bootstrap --adhoc\b|^\S*adhoc-id\.sh\b/.test(text)) {
+              adoption.adhocBootstrap += 1;
+            }
+          }
           if (/^rg\b/.test(command)) rgBashInvocations += 1;
           if (/^cd\s+\S+\s*(&&|;)/.test(command)) cdPrefixBash += 1;
           const prefix = command.split(/\s+/).slice(0, 2).join(" ");

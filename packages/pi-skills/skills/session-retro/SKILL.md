@@ -27,7 +27,7 @@ bun packages/pi-skills/scripts/session-retro.ts --since 2026-11-01   # pilot win
 - Top tools, bash patterns, projects, intent signals
 - Tool error hotspots, harness/subagent adoption
 - **Gates** (order-aware per session): edited and never verified; commits made with edits since the last verify; commits before any review; PR submits with no CI check afterwards; first prompts under 100 characters; rework signals ("wrong", "revert", "still not…")
-- **Adoption** of the skill scripts: `green.sh` mark, check and review-mark; `wt-guard.sh`; `doc-verify.py`; `adhoc-id.sh` / `accord bootstrap --adhoc`; reads of the `brief`, `reuse-scout`, `risk-checklist`, `doc-verify` and `worktree` skills
+- **Adoption** of the skill scripts: `green.sh` mark, check and review-mark; `wt-guard.sh`; `doc-verify.py`; `adhoc-id.sh` / `accord bootstrap --adhoc`; reads of the `brief`, `reuse-scout`, `risk-checklist` and `doc-verify` skills (script calls are counted only when a command starts with them, so `rg 'green.sh'` or `cat wt-guard.sh` do not count)
 - Actionable gaps (same rubric as product retro)
 
 ## Rules

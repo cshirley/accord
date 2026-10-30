@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ceilingFor, cleanEnv } from "./helpers.js";
 
 const script = join(import.meta.dir, "..", "skills", "verify", "scripts", "green.sh");
 const REVIEW_FLAGS = ["--source", "branch", "--critical", "0"];
@@ -23,12 +24,7 @@ function sh(
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: {
-      ...process.env,
-      GIT_CONFIG_GLOBAL: "/dev/null",
-      GIT_CONFIG_SYSTEM: "/dev/null",
-      ...extraEnv,
-    },
+    env: cleanEnv(extraEnv),
   });
   return { code: proc.exitCode ?? -1, out: proc.stdout.toString() + proc.stderr.toString() };
 }
@@ -358,11 +354,36 @@ describe("verify/scripts/green.sh", () => {
     expect(result.out).toContain("origin/HEAD is not set");
   });
 
+  test("options apply to mark only; blank values are rejected; the temp store is cleaned up", () => {
+    expect(sh(repo, [script, "check", "review", "--critical", "0"]).code).toBe(64);
+    expect(sh(repo, [script, "show", "--tree", "a".repeat(40)]).code).toBe(64);
+    expect(
+      sh(repo, [
+        script,
+        "mark",
+        "review",
+        "--source",
+        "branch",
+        "--critical",
+        "2",
+        "--accepted",
+        "   ",
+      ]).code,
+    ).toBe(64);
+    expect(sh(repo, [script, "mark", "--tree", ""]).code).toBe(64);
+    const before = readdirSync(tmpdir()).filter((name) => name.startsWith("green."));
+    sh(repo, [script, "mark"]);
+    sh(repo, [script, "check"]);
+    expect(readdirSync(tmpdir()).filter((name) => name.startsWith("green."))).toEqual(before);
+  });
+
   test("outside a git repo exits 3", () => {
     const plain = mkdtempSync(join(tmpdir(), "plain-"));
     try {
-      // The ceiling keeps git from finding a repository above the temp dir when TMPDIR sits in one.
-      expect(sh(plain, [script, "check"], { GIT_CEILING_DIRECTORIES: plain }).code).toBe(3);
+      // The ceiling (the temp dir's parent) keeps git from finding a repository above it when TMPDIR sits in one.
+      expect(
+        sh(plain, [script, "check"], { GIT_CEILING_DIRECTORIES: ceilingFor(plain) }).code,
+      ).toBe(3);
     } finally {
       rmSync(plain, { recursive: true, force: true });
     }

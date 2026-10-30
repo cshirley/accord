@@ -104,7 +104,10 @@ shift || true
 case "$cmd" in
   where)
     dir="${1:-.}"
-    cd "$dir"
+    cd "$dir" 2>/dev/null || {
+      echo "wt-guard: cannot enter $dir" >&2
+      exit 3
+    }
     root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
       echo "wt-guard: not inside a git repository" >&2
       exit 3
@@ -118,7 +121,7 @@ case "$cmd" in
     echo "kind=$kind"
     echo "worktrees:"
     git worktree list --porcelain | awk '
-      /^worktree /{p=substr($0,10)} /^branch /{b=substr($0,8)} /^$/{if(p){print "  " p " " b}; p="";b=""} END{if(p)print "  " p " " b}'
+      /^worktree /{p=substr($0,10)} /^branch /{b=substr($0,8); sub(/^refs\/heads\//,"",b)} /^$/{if(p){print "  " p " " b}; p="";b=""} END{if(p)print "  " p " " b}'
     ;;
   inside)
     [[ $# -ge 2 ]] || { echo "usage: wt-guard.sh inside <root> <path>..." >&2; exit 64; }
@@ -146,7 +149,7 @@ case "$cmd" in
           found=0
           ;;
       esac
-    done < <(git worktree list --porcelain | awk '/^worktree /{p=substr($0,10)} /^branch /{b=substr($0,8)} /^$/{if(p)print p "\t" b; p="";b=""} END{if(p)print p "\t" b}')
+    done < <(git worktree list --porcelain | awk '/^worktree /{p=substr($0,10)} /^branch /{b=substr($0,8); sub(/^refs\/heads\//,"",b)} /^$/{if(p)print p "\t" b; p="";b=""} END{if(p)print p "\t" b}')
     exit "$found"
     ;;
   *)

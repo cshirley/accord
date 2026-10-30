@@ -57,15 +57,16 @@ type Report = {
   };
 };
 
-function runRetro(root: string, extra: string[] = []) {
+function runRetro(root: string, extra: string[] = [], env: Record<string, string> = {}) {
   return Bun.spawnSync([process.execPath, script, "--json", "--sessions-root", root, ...extra], {
     stdout: "pipe",
     stderr: "pipe",
+    env: { ...process.env, ...env },
   });
 }
 
-function retro(root: string, extra: string[] = []): Report {
-  const proc = runRetro(root, extra);
+function retro(root: string, extra: string[] = [], env: Record<string, string> = {}): Report {
+  const proc = runRetro(root, extra, env);
   expect(proc.exitCode).toBe(0);
   return JSON.parse(proc.stdout.toString()) as Report;
 }
@@ -244,6 +245,33 @@ describe("session-retro gates", () => {
     expect(before.sessionFiles).toBe(1);
     expect(before.until).toBe("2026-10-01");
   });
+
+  test("adoption counts script calls, not mentions of them", () => {
+    session("2026-10-07T10-00-00-000Z_k.jsonl", [
+      bash("rg 'green.sh check' skills/ && cat skills/worktree/scripts/wt-guard.sh"),
+      bash('echo "doc-verify.py" && grep -n adhoc-id.sh README.md'),
+      bash("skills/verify/scripts/green.sh check review"),
+      bash("bash skills/worktree/scripts/wt-guard.sh find STEP-1"),
+      bash("python3 skills/doc-verify/scripts/doc-verify.py a.md"),
+    ]);
+    const { adoption } = retro(root);
+    expect([
+      adoption.greenCheck,
+      adoption.wtGuard,
+      adoption.docVerify,
+      adoption.adhocBootstrap,
+    ]).toEqual([1, 1, 1, 0]);
+  });
+
+  test.each(["UTC", "America/Los_Angeles", "Pacific/Kiritimati"])(
+    "--since and --until use the file name date, whatever the host zone (%s)",
+    (TZ) => {
+      session("2026-09-30T23-59-59-999Z_late.jsonl", [{ tool: "edit" }]);
+      session("2026-10-01T00-00-00-000Z_edge.jsonl", [{ tool: "edit" }]);
+      expect(retro(root, ["--since", "2026-10-01"], { TZ }).sessionFiles).toBe(1);
+      expect(retro(root, ["--until", "2026-10-01"], { TZ }).sessionFiles).toBe(1);
+    },
+  );
 
   test("rework signals in user prompts are counted", () => {
     session("2026-10-06T10-00-00-000Z_g.jsonl", [

@@ -28,9 +28,20 @@
 
 set -euo pipefail
 
+# Temp directory of the fingerprint in progress. Global so the signal/exit trap can still see it
+# after the function has returned.
+WORK_DIR=""
+cleanup_work() {
+  if [[ -n "$WORK_DIR" ]]; then rm -rf "$WORK_DIR"; fi
+}
+
 fingerprint() {
   local work index objects real_objects status=0 tree
   work="$(mktemp -d "${TMPDIR:-/tmp}/green.XXXXXX")" || return 4
+  # The temp object store holds copies of every untracked, non-ignored file (possibly secrets not
+  # yet in .gitignore), so remove it even when interrupted.
+  WORK_DIR="$work"
+  trap cleanup_work EXIT INT TERM HUP
   index="$work/index"
   objects="$work/objects"
   mkdir -p "$objects"
@@ -107,6 +118,10 @@ while [[ $# -gt 0 ]]; do
         echo "green.sh: $1 needs a value" >&2
         exit 64
       fi
+      if [[ -z "${2//[[:space:]]/}" ]]; then
+        echo "green.sh: $1 needs a non-blank value" >&2
+        exit 64
+      fi
       case "$1" in
         --tree) tree_override="$2" ;;
         --source) source_kind="$2" ;;
@@ -144,6 +159,10 @@ if [[ -n "$critical" ]]; then
 fi
 if [[ -n "$tree_override" && ! "$tree_override" =~ ^[0-9a-f]{40,64}$ ]]; then
   echo "green.sh: --tree must be a tree hash from 'green.sh fingerprint'" >&2
+  exit 64
+fi
+if [[ "$cmd" != "mark" && ( -n "$tree_override" || -n "$source_kind" || -n "$critical" || -n "$accepted" ) ]]; then
+  echo "green.sh: options apply to 'mark' only" >&2
   exit 64
 fi
 if [[ "$kind" != "review" && ( -n "$source_kind" || -n "$critical" || -n "$accepted" ) ]]; then
