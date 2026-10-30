@@ -4,7 +4,9 @@
  * Always advances to **review-code**.
  */
 
+import { resolveReviewSecurityGate } from "../../config/stack-flags.js";
 import type { DevHarnessConfig } from "../../config/types.js";
+import { allFindings } from "../../tasks/model.js";
 import { claimRef, clearInFlight, recordReview } from "../../tasks/record.js";
 import { isReviewReturnPacket } from "../review-feedback.js";
 import { analysisFrom, footer, type PostResultContext, pipelineLabel } from "./pipeline.js";
@@ -16,12 +18,13 @@ import { advancePrimaryTask } from "./primary-task.js";
 export function applyReviewSecurityPostResult(
   workItemId: string,
   packet: unknown,
-  _devConfig?: DevHarnessConfig | null,
+  devConfig?: DevHarnessConfig | null,
   context?: PostResultContext,
 ): string {
   if (!isReviewReturnPacket(packet)) return "";
   const record = packet as unknown as Record<string, unknown>;
 
+  const gate = resolveReviewSecurityGate(devConfig);
   let out = "";
   const applied = advancePrimaryTask(workItemId, ({ workItem, task, timestamp }) => {
     const label = pipelineLabel(workItem);
@@ -30,9 +33,17 @@ export function applyReviewSecurityPostResult(
     if (!ref) return false;
 
     const rec = recordReview(task, ref, "review-security", record, timestamp, {
-      gate: "block",
+      gate,
       analysis: analysisFrom(record, context),
     });
+    const raisedIds = new Set([...rec.raised, ...rec.reraised]);
+    const raised = allFindings(task).filter(({ finding }) => raisedIds.has(finding.id));
+    const gatingCount = raised.filter(({ finding }) => !finding.advisory).length;
+    const advisoryCount = raised.length - gatingCount;
+    const countLabel =
+      gate === "advisory"
+        ? `${String(advisoryCount)} advisory finding(s)`
+        : `${String(gatingCount)} gating, ${String(advisoryCount)} advisory finding(s)`;
     clearInFlight(task, "review-security");
     task.control.phase = "review-code";
     task.control.status = "pending";
@@ -42,7 +53,7 @@ export function applyReviewSecurityPostResult(
       "",
       "- Task phase: `review-security` → `review-code`.",
       packet.verdict === "issues"
-        ? `- Verdict: \`issues\` — ${String(rec.raised.length + rec.reraised.length)} advisory finding(s) (${[...rec.raised, ...rec.reraised].join(", ")}); phase-code should respond on its next run.`
+        ? `- Verdict: \`issues\` — ${countLabel} (${[...rec.raised, ...rec.reraised].join(", ")}); phase-code responds on its next run.`
         : "- Verdict: `clean`.",
       "",
       "Run `/dev resume` to spawn **review-code**.",

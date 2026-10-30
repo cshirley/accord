@@ -4,6 +4,7 @@
  * retry **phase-code** (open next `C` round, consume a code_review slot), or block at the cap.
  */
 
+import { resolveReviewSecurityGate } from "../../config/stack-flags.js";
 import type { DevHarnessConfig } from "../../config/types.js";
 import { bumpRetry, capForKey, decideLoop } from "../../tasks/decide.js";
 import { claimRef, clearInFlight, logDecision, recordReview } from "../../tasks/record.js";
@@ -44,6 +45,7 @@ export function applyReviewCodePostResult(
     const policy = reviewRetryPolicyForAgent(devConfig, workItem.pattern, "review-code");
     const rec = recordReview(task, ref, "review-code", record, timestamp, {
       gate: policy.severityGate,
+      securityGate: resolveReviewSecurityGate(devConfig),
       analysis: analysisFrom(record, context),
     });
     clearInFlight(task, "review-code");

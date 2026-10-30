@@ -7,6 +7,7 @@
  */
 
 import {
+  allFindings,
   allocateRef,
   appendLog,
   applyChanges,
@@ -23,8 +24,10 @@ import {
   type RecheckInput,
   type ResponseInput,
   type ReviewFindingInput,
+  refActor,
   resolveAttribution,
   type SeverityGate,
+  severityMeetsGate,
 } from "./model.js";
 import type { LogEntry, LoopKind, TaskEvent, TaskFileV2 } from "./types.js";
 
@@ -265,14 +268,20 @@ export function recordReview(
   agent: "review-test" | "review-code" | "review-security",
   packet: Record<string, unknown>,
   at: string,
-  options: { gate: SeverityGate; analysis?: string },
+  options: {
+    gate: SeverityGate | "advisory";
+    analysis?: string;
+    /** review-code: gate applied when it re-raises a review-security finding. */
+    securityGate?: SeverityGate | "advisory";
+  },
 ): RecordReviewResult {
   const loop: LoopKind = agent === "review-test" ? "T" : "C";
-  const advisoryAll = agent === "review-security";
+  const advisoryAll = options.gate === "advisory";
+  const gate: SeverityGate = options.gate === "advisory" ? "block" : options.gate;
   const raise = applyReviewFindings(task, objectArray<ReviewFindingInput>(packet.findings), {
     by: ref,
     loop,
-    gate: options.gate,
+    gate,
     advisoryAll,
   });
   const recheck = applyRechecks(task, objectArray<RecheckInput>(packet.rechecks), {
@@ -280,10 +289,22 @@ export function recordReview(
     // review-test also rechecks harness guard findings and phase-code test_issue findings (T loop).
     loops: [loop],
     reviewerActor: agent === "review-test" ? "*" : agent,
-    gate: options.gate,
+    gate,
     advisoryAll,
     reraisedThisRun: raise.reraised,
   });
+  if (agent === "review-code" && options.securityGate) {
+    for (const { finding } of allFindings(task)) {
+      if (refActor(finding.raised) !== "review-security") continue;
+      if (finding.history[finding.history.length - 1]?.by !== ref) continue;
+      if (finding.state !== "reraised") continue;
+      finding.advisory =
+        options.securityGate === "advisory" ||
+        !severityMeetsGate(finding.severity, options.securityGate)
+          ? true
+          : undefined;
+    }
+  }
   const warnings = [...raise.warnings, ...recheck.warnings];
   const verdict = String(packet.verdict ?? "issues");
   const analysis =
