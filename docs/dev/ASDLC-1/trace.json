@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-01T13:34:22.734Z",
+  "generated_at": "2026-11-01T13:47:00.116Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -2495,7 +2495,9 @@
       "id": 23,
       "title": "[contract-lock] Contract-lock rule in the accord/evidence CI check",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "e448106"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -2613,33 +2615,75 @@
     {
       "id": 24,
       "title": "[contract-lock] OKF docs for contract PR0 and amendment",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 1,
+        "C": 2,
+        "V": 2
       },
       "retries": {
         "test_review": 0,
         "code_review": 0,
         "rgr": 0,
-        "verify": 0
+        "verify": 1
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 10,
+        "by_state": {
+          "open": 5,
+          "verified": 5
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-31 evidence-stack.md says the lock covers brief.md, spec.json and plan.json but not state/work-item.json: expect(line).toBeDefined() Received: undefined\n(fail) artifacts-and-state.md documents contract.lock.json...: Expected to contain: \"contract.lock.json\"\n(fail) dev-command.md amend-spec row mentions the contract-amend and its flags: Expected to contain: \"contract-amend\" Received: \"| `/dev amend-spec <ID>` | Controlled spec amendment |\"\n(fail) okf/log.md has a dated entry for the contract PR0 and amendment docs: Expected >= 1, Received: 0\n(fail) evidence-stack.md documents PR0... (missing src/contract/ source)\n 20 pass\n 5 fail\nRan 25 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V2/phase-verify-task",
+        "excerpt": "docs-validation.test.ts: 25 pass, 0 fail\nokf validation passed (38 files)\nste lint passed\ncheck:biome: only error docs/dev/ASDLC-1/trace.json format",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/docs-validation.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "okf/architecture/evidence-stack.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/artifacts-and-state.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/dev-command.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V2/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/docs-validation.test.ts && bun run validate:okf && bun run validate:ste && bun run check:biome"
+          }
         }
       ]
     },
@@ -4683,7 +4727,7 @@
         },
         {
           "task": 24,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 25,
@@ -4761,7 +4805,8 @@
         "okf/references/task-file.md",
         "okf/architecture/hooks.md",
         "packages/accord-core/tests/contract-amend-session.test.ts",
-        "packages/accord-ci/tests/contract-lock-check.test.ts"
+        "packages/accord-ci/tests/contract-lock-check.test.ts",
+        "okf/references/dev-command.md"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -4788,7 +4833,9 @@
         "ASDLC-1/AC-31 pre-merge-smoke.md accord/evidence section documents the contract-lock rule",
         "ASDLC-1/AC-31 okf/log.md has a dated entry naming contract-lock and accord/evidence",
         "ASDLC-1/AC-31 an okf concept listing evidence-check.ts as a source describes contract-lock",
-        "bunx biome check packages/accord-ci okf docs/ci"
+        "bunx biome check packages/accord-ci okf docs/ci",
+        "packages/accord-core/tests/docs-validation.test.ts (25 pass, incl. ASDLC-1/AC-31 cases)",
+        "bun run check:biome (task files clean)"
       ],
       "verified": false
     }
@@ -7389,6 +7436,71 @@
       "file": "okf/log.md",
       "line": 78,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 24,
+      "requirement": "AC-31",
+      "finding_id": "F-001",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "evidence-stack.md test is satisfied mostly by text that already exists. Only `outcome=amend` and a `src/contract/` source prefix are new requirements. The status line and Layering section can still say contract-lock is proposed.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 300,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 24,
+      "requirement": "AC-31",
+      "finding_id": "F-002",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Lock-exclusion negation `/not|no |exclud/i` is substring-loose. It matches 'note', 'notes', 'annotated', 'another' and 'no other'. A line saying the lock DOES hash state/work-item.json passes.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 316,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 24,
+      "requirement": "AC-31",
+      "finding_id": "F-003",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "artifacts-and-state.md test checks 4 tokens anywhere in the file. contract.lock.json is a committed docs/dev/<ID>/ artifact but does not have to appear in the Committed table. The test does not check its contents (sha256 of the 3 files plus the preceding commit), its condition (stack.enabled) or a source binding.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 319,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 24,
+      "requirement": "AC-31",
+      "finding_id": "F-004",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "dev-command.md amend-spec row checks flag tokens one by one. It does not check the syntax order. It does not require the row to say the contract-amend flow runs only with stack.enabled and an existing contract.lock.json (otherwise behaviour is unchanged, AC-26). dev-command.md sources do not cover the amend code.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 327,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 24,
+      "requirement": "AC-31",
+      "finding_id": "F-005",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The log test does not require a NEW appended entry. Editing the existing 2026-10-30 hooks contract-lock bullet in place passes both this test and the task-20 lock-guard log test, which violates AC-31 'append a dated entry' and the append-only log rule.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 338,
+      "raised": "T1/review-test"
     }
   ]
 }

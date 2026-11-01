@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-01T13:34:22.734Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-01T13:47:00.116Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -29,8 +29,8 @@
 | 20 | [contract-lock] Pre-write lock guard in the tool_call hook | done | `a076d02` | 2/2/2 | 13 (verified 9, open 3, wont_fix_accepted 1) | 0 |
 | 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | done | `7e4b1c0` | 4/2/1 | 24 (verified 17, open 7) | 0 |
 | 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | done | `f98ce01` | 2/1/1 | 29 (verified 12, wont_fix_accepted 2, open 15) | 0 |
-| 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | done | — | 2/1/1 | 24 (verified 12, reraised 1, wont_fix_accepted 1, open 10) | 0 |
-| 24 | [contract-lock] OKF docs for contract PR0 and amendment | pending | — | 0/0/0 | 0 | 0 |
+| 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | done | `e448106` | 2/1/1 | 24 (verified 12, reraised 1, wont_fix_accepted 1, open 10) | 0 |
+| 24 | [contract-lock] OKF docs for contract PR0 and amendment | done | — | 1/2/2 | 10 (open 5, verified 5) | 0 |
 | 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | pending | — | 0/0/0 | 0 | 0 |
 | 26 | [stack-compute] computeStack: deterministic pack, flag and order | pending | — | 0/0/0 | 0 | 0 |
 | 27 | [stack-compute] PR brief, stack map, stack table and report renderers | pending | — | 0/0/0 | 0 | 0 |
@@ -405,9 +405,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`
-- Tests verified (25):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`
+- Tests verified (27):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -433,6 +433,8 @@
   - ASDLC-1/AC-31 okf/log.md has a dated entry naming contract-lock and accord/evidence
   - ASDLC-1/AC-31 an okf concept listing evidence-check.ts as a source describes contract-lock
   - bunx biome check packages/accord-ci okf docs/ci
+  - packages/accord-core/tests/docs-validation.test.ts (25 pass, incl. ASDLC-1/AC-31 cases)
+  - bun run check:biome (task files clean)
 
 ## Accepted risks and unresolved findings
 
@@ -627,6 +629,11 @@
 | 23 | AC-9 | F-022 | unresolved (advisory) | open | suggestion | The amend scope is a second source of truth next to the `owned` list in `applyContractAmend`. | packages/accord-ci/src/checks/contract-lock.ts:102 |  |
 | 23 | AC-9 | F-023 | unresolved (advisory) | open | suggestion | Merge-commit intersection is O(n·m) with `Array.includes`. | packages/accord-ci/src/checks/contract-lock.ts:49 |  |
 | 23 | AC-31 | F-024 | unresolved (advisory) | open | suggestion | The new entry sits under a second `## 2026-10-06` heading at the end of the file, while the sibling ASDLC-1 entries (security-gate, evidence-asset, commit-evidence, contract-lock hook) are under `## 2026-10-30` at the top. | okf/log.md:78 |  |
+| 24 | AC-31 | F-001 | unresolved (advisory) | open | warning | evidence-stack.md test is satisfied mostly by text that already exists. Only `outcome=amend` and a `src/contract/` source prefix are new requirements. The status line and Layering section can still say contract-lock is proposed. | packages/accord-core/tests/docs-validation.test.ts:300 |  |
+| 24 | AC-31 | F-002 | unresolved (advisory) | open | warning | Lock-exclusion negation `/not\|no \|exclud/i` is substring-loose. It matches 'note', 'notes', 'annotated', 'another' and 'no other'. A line saying the lock DOES hash state/work-item.json passes. | packages/accord-core/tests/docs-validation.test.ts:316 |  |
+| 24 | AC-31 | F-003 | unresolved (advisory) | open | warning | artifacts-and-state.md test checks 4 tokens anywhere in the file. contract.lock.json is a committed docs/dev/<ID>/ artifact but does not have to appear in the Committed table. The test does not check its contents (sha256 of the 3 files plus the preceding commit), its condition (stack.enabled) or a source binding. | packages/accord-core/tests/docs-validation.test.ts:319 |  |
+| 24 | AC-31 | F-004 | unresolved (advisory) | open | warning | dev-command.md amend-spec row checks flag tokens one by one. It does not check the syntax order. It does not require the row to say the contract-amend flow runs only with stack.enabled and an existing contract.lock.json (otherwise behaviour is unchanged, AC-26). dev-command.md sources do not cover the amend code. | packages/accord-core/tests/docs-validation.test.ts:327 |  |
+| 24 | AC-31 | F-005 | unresolved (advisory) | open | warning | The log test does not require a NEW appended entry. Editing the existing 2026-10-30 hooks contract-lock bullet in place passes both this test and the task-20 lock-guard log test, which violates AC-31 'append a dated entry' and the append-only log rule. | packages/accord-core/tests/docs-validation.test.ts:338 |  |
 
 ## Decisions
 
@@ -1115,6 +1122,28 @@ Final verification (`V1/phase-verify-task`):
 ```
 
 ### Task 24: [contract-lock] OKF docs for contract PR0 and amendment
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-31 evidence-stack.md says the lock covers brief.md, spec.json and plan.json but not state/work-item.json: expect(line).toBeDefined() Received: undefined
+(fail) artifacts-and-state.md documents contract.lock.json...: Expected to contain: "contract.lock.json"
+(fail) dev-command.md amend-spec row mentions the contract-amend and its flags: Expected to contain: "contract-amend" Received: "| `/dev amend-spec <ID>` | Controlled spec amendment |"
+(fail) okf/log.md has a dated entry for the contract PR0 and amendment docs: Expected >= 1, Received: 0
+(fail) evidence-stack.md documents PR0... (missing src/contract/ source)
+ 20 pass
+ 5 fail
+Ran 25 tests across 1 file.
+```
+
+Final verification (`V2/phase-verify-task`):
+
+```text
+docs-validation.test.ts: 25 pass, 0 fail
+okf validation passed (38 files)
+ste lint passed
+check:biome: only error docs/dev/ASDLC-1/trace.json format
+```
 
 ### Task 25: [stack-compute] Plan schema fields, phase-plan prompt and alignment test
 

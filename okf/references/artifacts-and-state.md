@@ -39,6 +39,7 @@ sources:
 | `plan.json` | `phase-plan` | Tasks with `covers_ac`, `files`, `test_files`, steps, `challenge` |
 | `verify.json` | `phase-verify-acceptance` | Per-AC `criteria[]` + `summary`; schema-validated by the harness on return and before finalize (invalid → not applied / not finalized) |
 | `verify.md` | `dev_verify_summary` | **The single review document**: per-AC verdict + evidence merged with the trace (tasks, files, verified tests), task commits, accepted risks, decisions/deviations, verify-vs-trace discrepancies |
+| `contract.lock.json` | harness (PR0 commit; again at each contract-amend) | sha256 of `brief.md`, `spec.json` and `plan.json`; tag `accord/<ID>/contract` marks PR0. Later changes need a contract-amend commit (`/dev amend-spec`) |
 | `evidence/task-<N>.{md,json}` | harness (`evidence(task-<N>)` commit, `stack.enabled`) | Per-task evidence: red/green excerpts, findings, planned vs actual size, with qualified `<ID>/AC-<n>` refs; survives squash merge |
 | `trace.json` / `.md` | harness (task done, verify summary, finalize) | Uses qualified `<ID>/AC-<n>` refs when `stack.enabled`. Committed projection of `.tasks/`: per-AC implementation + verification, accepted/unresolved findings, decisions, deviations, task commits, RED + final-verify output excerpts; regenerate, don't edit |
 | `workflow-cost.json` / `.md` | `dev_finalize` | Token/USD rollup from usage log; regenerate, don't edit |
@@ -48,7 +49,7 @@ commit of a task is `evidence(task-<N>)`, which writes the evidence asset. Close
 `docs/dev/<ID>/` — see `orchestration.commit` in [Orchestration policy](/references/orchestration-policy.md).
 
 Artifacts are immutable after their phase returns `done`; changes go through
-`/dev amend-spec` or a replan.
+`/dev amend-spec` (a contract-amend) or a replan.
 
 # Transient — `.tasks/` (gitignored)
 
