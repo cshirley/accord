@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-01T13:06:29.876Z",
+  "generated_at": "2026-11-01T13:34:22.734Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -173,6 +173,12 @@
       "task_id": 22,
       "description": "Phase-spec and phase-plan done packets in the tests omit spec_path and plan_path so the amended fixture files are not schema-validated. Stale tasks are asserted as status=blocked with a blocked.reason containing 'stale after contract-amend'; blocked.kind is not asserted. Unblock is tested via unblockTask(..., {force}).",
       "reason": "The spec fixes only the blocker text and the 'existing blocked mechanism'; it does not name the block kind or the unblock options.",
+      "resolution": null
+    },
+    {
+      "task_id": 23,
+      "description": "Edited evidence-check-runner.test.ts: registry-empty assertion now expects the contract-lock rule, and main() is called with rules: [] so the real rule does not run on fake shas.",
+      "reason": "Registering the contract-lock rule makes the old 'registry.length === 0' assertion contradict AC-9; phase-code cannot edit tests.",
       "resolution": null
     }
   ],
@@ -2389,7 +2395,9 @@
       "id": 22,
       "title": "[contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "f98ce01"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -2486,39 +2494,119 @@
     {
       "id": 23,
       "title": "[contract-lock] Contract-lock rule in the accord/evidence CI check",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 24,
+        "by_state": {
+          "verified": 12,
+          "reraised": 1,
+          "wont_fix_accepted": 1,
+          "open": 10
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-9 locked-file edits without a contract-amend fail > non-amend commit after the lock editing spec.json fails and names the file\nerror: not implemented: createContractLockRule\n      at createContractLockRule (packages/accord-ci/src/checks/contract-lock.ts:5:13)\n(fail) ASDLC-1/AC-31 docs/ci/pre-merge-smoke.md documents the contract-lock rule > pre-merge-smoke.md mentions the contract-lock rule\nExpected to contain: \"contract-lock\"\n\n26 tests failed (24 'not implemented: createContractLockRule', 2 assertion failures: registry lacks contract-lock, doc lacks contract-lock)\n 25 pass\n 26 fail\nRan 51 tests across 2 files.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "78 pass, 0 fail (contract-lock-check + evidence-check-runner). preflight: bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle and check:runtime exit 0. check:biome exit 1 only on docs/dev/ASDLC-1/trace.json format. bunx biome check packages/accord-ci okf docs/ci: Checked 40 files, no fixes.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-9",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/contract-lock-check.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/checks/contract-lock.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/checks/contract-lock.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/evidence-check.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-ci/tests/contract-lock-check.test.ts packages/accord-ci/tests/evidence-check-runner.test.ts"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/contract-lock-check.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/tests/evidence-check-runner.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/architecture/monorepo-packages.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 6,
+            "command": "bun test packages/accord-ci/tests/contract-lock-check.test.ts packages/accord-ci/tests/evidence-check-runner.test.ts"
+          }
         }
       ]
     },
@@ -3943,7 +4031,7 @@
     {
       "ac_id": "AC-9",
       "text": "Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each of brief.md, spec.json and plan.json (state/work-item.json is not locked because closeout…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 18,
@@ -3967,7 +4055,7 @@
         },
         {
           "task": 23,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -3990,7 +4078,12 @@
         "packages/accord-core/src/commit/commit-guard.ts",
         "packages/accord-core/tests/contract-amend-session.test.ts",
         "packages/accord-core/src/contract/amend-session.ts",
-        "packages/accord-core/src/orchestration/resolve/subcommand.ts"
+        "packages/accord-core/src/orchestration/resolve/subcommand.ts",
+        "packages/accord-ci/tests/contract-lock-check.test.ts",
+        "packages/accord-ci/tests/evidence-check-runner.test.ts",
+        "packages/accord-ci/src/checks/contract-lock.ts",
+        "packages/accord-ci/src/evidence-check.ts",
+        "docs/ci/pre-merge-smoke.md"
       ],
       "tests": [
         "ASDLC-1/AC-9 contract lock writer",
@@ -4020,9 +4113,11 @@
         "contract-amend-session.test.ts: ASDLC-1/AC-9 affectedAcsFromSpecDiff",
         "contract-amend-session.test.ts: ASDLC-1/AC-9 /dev amend-spec routing",
         "contract-amend-session.test.ts: ASDLC-1/AC-9 amend completion via processSubagentToolResult",
-        "contract-amend.test.ts"
+        "contract-amend.test.ts",
+        "packages/accord-ci/tests/contract-lock-check.test.ts (all ASDLC-1/AC-9 cases: non-amend edit fails, amend passes, forged lock fails, PR0 passes, squash amend trusted, tag informational, no-lock passes, fail-closed refs)",
+        "packages/accord-ci/tests/evidence-check-runner.test.ts"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-10",
@@ -4584,7 +4679,7 @@
         },
         {
           "task": 23,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 24,
@@ -4665,7 +4760,8 @@
         "okf/architecture/crucible-verification.md",
         "okf/references/task-file.md",
         "okf/architecture/hooks.md",
-        "packages/accord-core/tests/contract-amend-session.test.ts"
+        "packages/accord-core/tests/contract-amend-session.test.ts",
+        "packages/accord-ci/tests/contract-lock-check.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -4688,7 +4784,11 @@
         "docs-validation.test.ts › ASDLC-1/AC-31 hooks.md sources the lock guard module",
         "docs-validation.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the lock guard docs",
         "bun run check:runtime",
-        "biome check on task files"
+        "biome check on task files",
+        "ASDLC-1/AC-31 pre-merge-smoke.md accord/evidence section documents the contract-lock rule",
+        "ASDLC-1/AC-31 okf/log.md has a dated entry naming contract-lock and accord/evidence",
+        "ASDLC-1/AC-31 an okf concept listing evidence-check.ts as a source describes contract-lock",
+        "bunx biome check packages/accord-ci okf docs/ci"
       ],
       "verified": false
     }
@@ -7122,6 +7222,172 @@
       "issue": "Log entry is appended under the stale `## 2026-10-02` heading and claims Evidence stack and Hooks concepts were updated, but neither describes the amend session.",
       "file": "okf/log.md",
       "line": 76,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-003",
+      "state": "reraised",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Changes to contract.lock.json itself are untested. A rule that discovers locks only at head (or that treats any lock added in the range as PR0, or that trusts the head lock's preceding_commit when the lock is not on base) passes every test. A PR that deletes or replaces the lock then edits locked files freely.",
+      "file": "packages/accord-ci/tests/contract-lock-check.test.ts",
+      "line": 217,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Original Done-when met: all five cases exist with exitCode 1 and path assertions. Target changed: my original list missed a valid-JSON lock rewrite with no deletion and no locked-file edit. That gap allows a two-PR bypass if the rule only detects a missing or unreadable lock and trusts the base-tree lock. Downgraded to non-gating suggestion. See findings[0] for the two extra lockCases entries."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-012",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The push-to-main run is unspecified. The workflow also runs on push with base=github.event.before and head=the squash commit. A squash-merged amend commit (no trailer, touches locked files) will likely fail the status on main, which conflicts with the 'main green' constraint. Only later PRs are tested.",
+      "file": "packages/accord-ci/tests/contract-lock-check.test.ts",
+      "line": 267,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Sound: the spec does not define the result of the push-to-main run over a squash-merged amend, and a squash without a trailer cannot be told apart from a forged edit. Needs a human or spec decision; flagged in analysis. The later-PR behaviour stays covered."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Merge tests cover an evil merge and a benign merge of main. A merge of a side branch (not base) that carries a regular locked-file edit in its own commit is untested.",
+      "file": "packages/accord-ci/tests/contract-lock-check.test.ts",
+      "line": 444,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every amend test has a single amend as the last commit in the PR. Nothing checks that the rule moves its trusted lock forward after an in-PR amend.",
+      "file": "packages/accord-ci/tests/contract-lock-check.test.ts",
+      "line": 182,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "On the push-to-main run, a squash-merged amend PR can fail the check because only a commit trailer marks an amend, and trailers do not reliably survive squash.",
+      "file": "packages/accord-ci/src/checks/contract-lock.ts",
+      "line": 171,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`git ls-tree -r --name-only <base>` lists only the cwd subtree with cwd-relative names, so the guard fails open when the rule runs from a subdirectory.",
+      "file": "packages/accord-ci/src/checks/contract-lock.ts",
+      "line": 145,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Step drift: the plan says the rule calls `verifyContractLock` over the PR head, but the impl never calls it.",
+      "file": "packages/accord-ci/src/checks/contract-lock.ts",
+      "line": 138,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Parallel implementations of existing core helpers.",
+      "file": "packages/accord-ci/src/checks/contract-lock.ts",
+      "line": 68,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`hashAt` writes each blob to a fresh temp dir only to call `hashLocked(rel, dir)`.",
+      "file": "packages/accord-ci/src/checks/contract-lock.ts",
+      "line": 77,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The amend scope is a second source of truth next to the `owned` list in `applyContractAmend`.",
+      "file": "packages/accord-ci/src/checks/contract-lock.ts",
+      "line": 102,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-9",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Merge-commit intersection is O(n·m) with `Array.includes`.",
+      "file": "packages/accord-ci/src/checks/contract-lock.ts",
+      "line": 49,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 23,
+      "requirement": "AC-31",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The new entry sits under a second `## 2026-10-06` heading at the end of the file, while the sibling ASDLC-1 entries (security-gate, evidence-asset, commit-evidence, contract-lock hook) are under `## 2026-10-30` at the top.",
+      "file": "okf/log.md",
+      "line": 78,
       "raised": "C1/review-code"
     }
   ]

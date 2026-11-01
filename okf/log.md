@@ -77,3 +77,7 @@
 * **Update**: [Orchestration](/architecture/orchestration.md), [Orchestration policy](/references/orchestration-policy.md): `commit/phase-commit.ts` makes one orchestrator commit per phase when `stack.commits` is `phase`; the done-task sweep is skipped in that mode.
 * **Update**: [Environment variables](/references/environment-variables.md): `accord` CLI notifications carry an RFC 3339 timestamp; core logger timestamps are opt-in via `ACCORD_LOG_TIMESTAMP`. Pi harness now passes host-measured usage and model into the result hook.
 * **Update**: [Evidence stack](/architecture/evidence-stack.md), [Hooks](/architecture/hooks.md): `/dev amend-spec <reason> [--replan|--cancel]` with a contract lock and `stack.enabled` opens an amend session (`contract/amend-session.ts`: snapshot in `.tasks/<ID>-amend/`, nonce marker, orchestrator-owned `.tasks/<ID>-amend.json`). The last amended `phase-spec` or `phase-plan` done commits one `outcome=amend` commit through `applyContractAmend`, blocks tasks whose covered ACs changed ("stale after contract-amend"), and clears the marker; `stuck` or `--cancel` closes it. Without a lock or `stack.enabled`, behaviour is unchanged.
+
+## 2026-10-06
+
+* **Update**: [Monorepo packages](/architecture/monorepo-packages.md): the `accord/evidence` check runs the `contract-lock` rule (`packages/accord-ci/src/checks/contract-lock.ts`). It fails a PR commit after the lock commit that changes a locked file without an `outcome=amend` commit.
