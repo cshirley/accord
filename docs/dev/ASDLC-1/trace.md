@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-01T12:03:28.819Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-01T12:39:07.891Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -26,8 +26,8 @@
 | 17 | [security-gate] Schema description and OKF docs | done | `68d3fe7` | 2/1/1 | 13 (verified 6, dispute_upheld 1, open 6) | 0 |
 | 18 | [contract-lock] contract.lock.json writer, verifier and schema | done | `3d58371` | 3/3/2 | 16 (verified 14, wont_fix_accepted 2) | 0 |
 | 19 | [contract-lock] PR0 contract commit, tag and contract-amend | done | `fea6e0a` | 2/1/1 | 24 (reraised 1, verified 12, open 11) | 0 |
-| 20 | [contract-lock] Pre-write lock guard in the tool_call hook | done | — | 2/2/2 | 13 (verified 9, open 3, wont_fix_accepted 1) | 0 |
-| 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | pending | — | 0/0/0 | 0 | 0 |
+| 20 | [contract-lock] Pre-write lock guard in the tool_call hook | done | `a076d02` | 2/2/2 | 13 (verified 9, open 3, wont_fix_accepted 1) | 0 |
+| 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | done | — | 4/2/1 | 24 (verified 17, open 7) | 0 |
 | 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | pending | — | 0/0/0 | 0 | 0 |
 | 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | pending | — | 0/0/0 | 0 | 0 |
 | 24 | [contract-lock] OKF docs for contract PR0 and amendment | pending | — | 0/0/0 | 0 | 0 |
@@ -181,9 +181,9 @@
 
 > Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each of brief.md, spec.json and plan.json (state/work-item.json is not locked because closeout…
 
-- Tasks: 18 (satisfied), 19 (satisfied), 20 (satisfied), 21 (pending), 22 (pending), 23 (pending)
-- Files: `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/src/contract/lock.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`, `packages/accord-core/src/subagent/result/process.ts`, `packages/accord-core/tests/contract-lock-guard.test.ts`, `packages/accord-core/src/contract/lock-guard.ts`, `packages/pi-accord/tests/pi-contract-lock-hook.test.ts`, `packages/pi-accord/src/pi-hook-listeners.ts`, `okf/architecture/hooks.md`
-- Tests verified (20):
+- Tasks: 18 (satisfied), 19 (satisfied), 20 (satisfied), 21 (satisfied), 22 (pending), 23 (pending)
+- Files: `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/src/contract/lock.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`, `packages/accord-core/src/subagent/result/process.ts`, `packages/accord-core/tests/contract-lock-guard.test.ts`, `packages/accord-core/src/contract/lock-guard.ts`, `packages/pi-accord/tests/pi-contract-lock-hook.test.ts`, `packages/pi-accord/src/pi-hook-listeners.ts`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-lock-restore.test.ts`, `packages/accord-core/src/contract/lock-verify.ts`, `packages/accord-core/src/commit/commit-guard.ts`
+- Tests verified (23):
   - ASDLC-1/AC-9 contract lock writer
   - ASDLC-1/AC-9 contract lock verifier
   - ASDLC-1/AC-9 amend marker
@@ -204,6 +204,9 @@
   - pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 edit of locked spec.json is blocked
   - pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 non-locked spec.md passes
   - pi-contract-lock-hook.test.ts › ASDLC-1/AC-26 without contract.lock.json spec.json passes
+  - contract-lock-restore.test.ts: ASDLC-1/AC-9 (restore, open amend, nonce, guidance-only, guardStagedPaths locked-path, forged lock, processSubagentToolResult wiring)
+  - contract-lock-guard.test.ts
+  - commit-guard.test.ts
 
 ### AC-10 — pending (not verified)
 
@@ -575,6 +578,13 @@
 | 20 | AC-9 | F-007 | unresolved (advisory) | open | suggestion | Lock lookup is only tested relative to cwd after the path prefix is stripped. No test covers a write into another tree (such as a .worktrees/<X> checkout) whose lock lives at the file's real location while cwd has no lock. | packages/accord-core/tests/contract-lock-guard.test.ts:51 |  |
 | 20 | AC-31 | F-008 | unresolved (advisory) | open | suggestion | The check:biome test is scoped to task-17 files, so this task's changed files are never biome-checked by TC-32. This is a round-1 miss on lines that did not change. | packages/accord-core/tests/docs-validation.test.ts:44 |  |
 | 20 | AC-31 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | The user-facing hook tables in `docs/hooks-and-tools.md` and `docs/accord-workflow.md:375` still omit the contract lock guard, and the Principle paragraph still says hook logic lives only in `harness/` and `subagent/`. | okf/architecture/hooks.md:39 | wont_fix_accepted by C2/review-code — Advisory docs gap. docs/hooks-and-tools.md and docs/accord-workflow.md are outside task.files, and the okf concept (the AC-31 target) is updated. Tracked as follow-up, not a correctness bug. |
+| 21 | AC-9 | F-018 | unresolved (advisory) | open | suggestion | The 'valid done packet' wiring row only checks that the output lacks 'Return packet validation failed'. That check also passes if the packet is never extracted (the no-packet path), so the row does not prove the validated branch ran. | packages/accord-core/tests/contract-lock-restore.test.ts:620 |  |
+| 21 | AC-9 | F-019 | unresolved (advisory) | open | warning | trustedContractLock is called with the raw cwd, but the rest of the function uses the git toplevel, so a non-root cwd silently disables the whole check. | packages/accord-core/src/contract/lock-verify.ts:28 |  |
+| 21 | AC-9 | F-020 | unresolved (advisory) | open | warning | A restore of locked files is invisible to the orchestrator and, at the default log level, to the user. A failed restore is swallowed and emits no rejection event. | packages/accord-core/src/subagent/result/process.ts:329 |  |
+| 21 | AC-9 | F-021 | unresolved (advisory) | open | suggestion | Restoring plan.json from the lock commit overwrites the whole file, including guidance[] entries added after PR0. | packages/accord-core/src/contract/lock-verify.ts:58 |  |
+| 21 | AC-9 | F-022 | unresolved (advisory) | open | suggestion | Provenance by commit trailer conflicts with 'the lock file is the durable record and survives squash'. | packages/accord-core/src/contract/lock.ts:92 |  |
+| 21 | AC-9 | F-023 | unresolved (advisory) | open | suggestion | The locked-path list duplicates lockedPaths() in contract/lock.ts, and the lock path string is repeated again. | packages/accord-core/src/commit/commit-guard.ts:79 |  |
+| 21 | AC-9 | F-024 | unresolved (advisory) | open | suggestion | The Commit guard rule list omits the new `locked-path` rule and the existing `amend-scope` rule. Neither the `locked-file-written` restore nor the new rules appear in okf/log.md. | okf/references/commit-format.md:63 |  |
 
 ## Decisions
 
@@ -603,6 +613,8 @@
 - Task 19 (pending): Amend tests assert the amended contract.lock.json is schema-valid, which needs an `amendments` array ({diff, reason, affected_acs, stale_task_ids}) in contract-lock-schema.json. — F-009. The schema file is outside task 19 files[]; phase-code must extend it and the example under schemas/examples/.
 - Task 19 (pending): Tests expect buildContractPr0 to derive and redact docs/dev/<ID>/state/work-item.json from .tasks/<ID>.json (id, pattern), via redactText in state/redact.ts. — F-003. No other planned task writes this file into PR0.
 - Task 19 (pending): Added optional amendments[] to contract-lock-schema.json — Tests validate the amended lock through its schema; the schema had no amendments property
+- Task 21 (pending): Assumed verifyAfterSpawn(workItemId, cwd, agent?: string) with a third agent-name argument, and commit type 'amend' for guardStagedPaths; rules locked-file-written / locked-path. — Spec signature lacks the agent input needed for the phase-spec/phase-plan exception; the amend commit type name is not specified.
+- Task 21 (pending): process.ts calls verifyAfterSpawn for every attributed result rather than only when contract.lock.json exists on disk — a spawn that deletes the lock would otherwise skip verification; verifyAfterSpawn is a no-op for never-locked items
 
 ## Evidence by task
 
@@ -1004,6 +1016,21 @@ Final verification (`V2/phase-verify-task`):
 ```
 
 ### Task 21: [contract-lock] Post-spawn lock verification, restore and amend-only commits
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/contract-lock-restore.test.ts: 8 pass, 33 fail. Failures: 'error: not implemented: verifyAfterSpawn' (25 verifyAfterSpawn tests); 'error: unknown commit type: amend' (guardStagedPaths amend tests); phase-test/phase-code locked-path tests fail on assertion; forged-lock tests 'Expected: false Received: true' on verifyContractLock().unchanged.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+targeted tests: 144 pass, 0 fail
+bun test: exit 0
+check:types, check:runtime, check:bundle, validate:schemas/assets/okf/ste: exit 0
+check:biome: exit 1, 'docs/dev/ASDLC-1/trace.json format'. Checked 664 files. Found 1 error.
+```
 
 ### Task 22: [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks
 

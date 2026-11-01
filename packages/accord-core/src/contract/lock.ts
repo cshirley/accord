@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parseAccordTrailer } from "../commit/commit-grammar.js";
 import { git } from "../git/helpers.js";
 import { readJson, writeJson } from "../work-items/io.js";
 import { resolveTasksDir } from "../work-items/tasks-dir.js";
@@ -10,7 +11,7 @@ export interface ContractLockVerification {
   changed: string[];
 }
 
-interface ContractLock {
+export interface ContractLock {
   schema_version: "1.0";
   work_item_id: string;
   preceding_commit: string;
@@ -69,11 +70,62 @@ export async function writeContractLock(workItemId: string, cwd: string): Promis
   return lock;
 }
 
+export interface TrustedContractLock {
+  commit: string;
+  lock: ContractLock;
+  raw: string;
+}
+
+function isAmendCommit(message: string, workItemId: string): boolean {
+  try {
+    const trailer = parseAccordTrailer(message);
+    return trailer?.outcome === "amend" && trailer.id === workItemId;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The lock recorded by the commit that first added it, or by the latest commit changing it whose
+ * trailer is outcome=amend for this work item. Null when no commit ever added the lock.
+ */
+export async function trustedContractLock(
+  workItemId: string,
+  cwd: string,
+): Promise<TrustedContractLock | null> {
+  const lockRel = `docs/dev/${workItemId}/contract.lock.json`;
+  let history: string;
+  try {
+    history = await git(["log", "--format=%H%x00%B%x01", "--", lockRel], cwd);
+  } catch {
+    return null;
+  }
+  const entries = history
+    .split("\x01")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "")
+    .map((entry) => {
+      const separator = entry.indexOf("\x00");
+      return { commit: entry.slice(0, separator), message: entry.slice(separator + 1) };
+    });
+  for (const [index, entry] of entries.entries()) {
+    const isRoot = index === entries.length - 1;
+    if (!isRoot && !isAmendCommit(entry.message, workItemId)) continue;
+    try {
+      const raw = await git(["show", `${entry.commit}:${lockRel}`], cwd);
+      return { commit: entry.commit, lock: JSON.parse(raw) as ContractLock, raw };
+    } catch {}
+  }
+  return null;
+}
+
 export async function verifyContractLock(
   workItemId: string,
   cwd: string,
 ): Promise<ContractLockVerification> {
-  const lock = readJson<ContractLock>(lockPath(workItemId, cwd));
+  const lock =
+    (await trustedContractLock(workItemId, cwd))?.lock ??
+    readJson<ContractLock>(lockPath(workItemId, cwd));
   if (!lock) throw new Error(`contract.lock.json missing or unreadable for ${workItemId}`);
   const changed: string[] = [];
   for (const relPath of lockedPaths(workItemId)) {
@@ -84,6 +136,10 @@ export async function verifyContractLock(
     }
   }
   return { unchanged: changed.length === 0, changed };
+}
+
+export function hashLocked(relPath: string, cwd: string): string {
+  return hashLockedFile(relPath, cwd);
 }
 
 export function amendSessionPath(workItemId: string, cwd: string): string {

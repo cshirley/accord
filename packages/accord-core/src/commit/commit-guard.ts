@@ -76,6 +76,13 @@ function isTestPath(path: string, pattern: string): boolean {
   return matcher.test(target);
 }
 
+function lockedPathsOf(workItemId: string): string[] {
+  const base = `docs/dev/${workItemId}`;
+  return ["brief.md", "spec.json", "plan.json", "contract.lock.json"].map(
+    (name) => `${base}/${name}`,
+  );
+}
+
 function reject(workItemId: string, ref: string, rule: string, path: string): void {
   emitStackEvent("stack.guard.rejected", { work_item_id: workItemId, ref, rule, path });
 }
@@ -87,12 +94,21 @@ export function guardStagedPaths(
   testFilePattern: string,
   ref?: string,
 ): GuardResult {
+  const locked = lockedPathsOf(workItemId);
+  const refName = ref ?? commitType;
   let rule: string;
   let allowed: (path: string) => boolean;
   let respawn: string | undefined;
 
-  if (commitType === "phase-test") return { kept: [...paths], rejected: [] };
-  if (commitType === "phase-code") {
+  if (commitType === "amend") {
+    rule = "amend-scope";
+    const extra = `docs/dev/${workItemId}/spec.md`;
+    allowed = (path) =>
+      locked.includes(path) || path === extra || inScope(path, workItemId, ["state"]);
+  } else if (commitType === "phase-test") {
+    rule = "";
+    allowed = () => true;
+  } else if (commitType === "phase-code") {
     rule = "code-touches-test";
     respawn = "phase-test";
     allowed = (path) => !isTestPath(path, testFilePattern);
@@ -105,13 +121,24 @@ export function guardStagedPaths(
 
   const kept: string[] = [];
   const rejected: string[] = [];
+  let scopeRejected = false;
   for (const path of paths) {
-    if (allowed(path)) kept.push(path);
-    else rejected.push(path);
+    if (commitType !== "amend" && locked.includes(path)) {
+      rejected.push(path);
+      reject(workItemId, refName, "locked-path", path);
+    } else if (allowed(path)) {
+      kept.push(path);
+    } else {
+      rejected.push(path);
+      scopeRejected = true;
+      reject(workItemId, refName, rule, path);
+    }
   }
-  for (const path of rejected) reject(workItemId, ref ?? commitType, rule, path);
   if (rejected.length === 0) return { kept, rejected };
-  return respawn ? { kept, rejected, rule, respawn } : { kept, rejected, rule };
+  const finalRule = scopeRejected ? rule : "locked-path";
+  return respawn && scopeRejected
+    ? { kept, rejected, rule: finalRule, respawn }
+    : { kept, rejected, rule: finalRule };
 }
 
 export function guardTrailer(

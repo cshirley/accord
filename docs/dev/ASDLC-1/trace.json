@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-01T12:03:28.819Z",
+  "generated_at": "2026-11-01T12:39:07.891Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -149,6 +149,18 @@
       "task_id": 19,
       "description": "Added optional amendments[] to contract-lock-schema.json",
       "reason": "Tests validate the amended lock through its schema; the schema had no amendments property",
+      "resolution": null
+    },
+    {
+      "task_id": 21,
+      "description": "Assumed verifyAfterSpawn(workItemId, cwd, agent?: string) with a third agent-name argument, and commit type 'amend' for guardStagedPaths; rules locked-file-written / locked-path.",
+      "reason": "Spec signature lacks the agent input needed for the phase-spec/phase-plan exception; the amend commit type name is not specified.",
+      "resolution": null
+    },
+    {
+      "task_id": 21,
+      "description": "process.ts calls verifyAfterSpawn for every attributed result rather than only when contract.lock.json exists on disk",
+      "reason": "a spawn that deletes the lock would otherwise skip verification; verifyAfterSpawn is a no-op for never-locked items",
       "resolution": null
     }
   ],
@@ -2155,7 +2167,9 @@
       "id": 20,
       "title": "[contract-lock] Pre-write lock guard in the tool_call hook",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "a076d02"
+      ],
       "rounds": {
         "T": 2,
         "C": 2,
@@ -2275,33 +2289,85 @@
     {
       "id": 21,
       "title": "[contract-lock] Post-spawn lock verification, restore and amend-only commits",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 4,
+        "C": 2,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 2,
         "code_review": 0,
-        "rgr": 0,
+        "rgr": 1,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 24,
+        "by_state": {
+          "verified": 17,
+          "open": 7
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/contract-lock-restore.test.ts: 8 pass, 33 fail. Failures: 'error: not implemented: verifyAfterSpawn' (25 verifyAfterSpawn tests); 'error: unknown commit type: amend' (guardStagedPaths amend tests); phase-test/phase-code locked-path tests fail on assertion; forged-lock tests 'Expected: false Received: true' on verifyContractLock().unchanged.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "targeted tests: 144 pass, 0 fail\nbun test: exit 0\ncheck:types, check:runtime, check:bundle, validate:schemas/assets/okf/ste: exit 0\ncheck:biome: exit 1, 'docs/dev/ASDLC-1/trace.json format'. Checked 664 files. Found 1 error.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-9",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/contract-lock-restore.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/contract/lock-verify.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/contract/lock-verify.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/contract/lock.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/commit/commit-guard.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/result/process.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/schemas/contract-lock-schema.json",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/contract-lock-restore.test.ts packages/accord-core/tests/contract-lock-guard.test.ts packages/accord-core/tests/commit-guard.test.ts"
+          }
         }
       ]
     },
@@ -3820,7 +3886,7 @@
         },
         {
           "task": 21,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 22,
@@ -3845,7 +3911,10 @@
         "packages/accord-core/src/contract/lock-guard.ts",
         "packages/pi-accord/tests/pi-contract-lock-hook.test.ts",
         "packages/pi-accord/src/pi-hook-listeners.ts",
-        "okf/architecture/hooks.md"
+        "okf/architecture/hooks.md",
+        "packages/accord-core/tests/contract-lock-restore.test.ts",
+        "packages/accord-core/src/contract/lock-verify.ts",
+        "packages/accord-core/src/commit/commit-guard.ts"
       ],
       "tests": [
         "ASDLC-1/AC-9 contract lock writer",
@@ -3867,7 +3936,10 @@
         "pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 write of locked spec.json is blocked",
         "pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 edit of locked spec.json is blocked",
         "pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 non-locked spec.md passes",
-        "pi-contract-lock-hook.test.ts › ASDLC-1/AC-26 without contract.lock.json spec.json passes"
+        "pi-contract-lock-hook.test.ts › ASDLC-1/AC-26 without contract.lock.json spec.json passes",
+        "contract-lock-restore.test.ts: ASDLC-1/AC-9 (restore, open amend, nonce, guidance-only, guardStagedPaths locked-path, forged lock, processSubagentToolResult wiring)",
+        "contract-lock-guard.test.ts",
+        "commit-guard.test.ts"
       ],
       "verified": false
     },
@@ -6645,6 +6717,97 @@
         "outcome": "wont_fix_accepted",
         "note": "Advisory docs gap. docs/hooks-and-tools.md and docs/accord-workflow.md are outside task.files, and the okf concept (the AC-31 target) is updated. Tracked as follow-up, not a correctness bug."
       }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 21,
+      "requirement": "AC-9",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The 'valid done packet' wiring row only checks that the output lacks 'Return packet validation failed'. That check also passes if the packet is never extracted (the no-packet path), so the row does not prove the validated branch ran.",
+      "file": "packages/accord-core/tests/contract-lock-restore.test.ts",
+      "line": 620,
+      "raised": "T4/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 21,
+      "requirement": "AC-9",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "trustedContractLock is called with the raw cwd, but the rest of the function uses the git toplevel, so a non-root cwd silently disables the whole check.",
+      "file": "packages/accord-core/src/contract/lock-verify.ts",
+      "line": 28,
+      "raised": "C2/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 21,
+      "requirement": "AC-9",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A restore of locked files is invisible to the orchestrator and, at the default log level, to the user. A failed restore is swallowed and emits no rejection event.",
+      "file": "packages/accord-core/src/subagent/result/process.ts",
+      "line": 329,
+      "raised": "C2/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 21,
+      "requirement": "AC-9",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Restoring plan.json from the lock commit overwrites the whole file, including guidance[] entries added after PR0.",
+      "file": "packages/accord-core/src/contract/lock-verify.ts",
+      "line": 58,
+      "raised": "C2/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 21,
+      "requirement": "AC-9",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Provenance by commit trailer conflicts with 'the lock file is the durable record and survives squash'.",
+      "file": "packages/accord-core/src/contract/lock.ts",
+      "line": 92,
+      "raised": "C2/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 21,
+      "requirement": "AC-9",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The locked-path list duplicates lockedPaths() in contract/lock.ts, and the lock path string is repeated again.",
+      "file": "packages/accord-core/src/commit/commit-guard.ts",
+      "line": 79,
+      "raised": "C2/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 21,
+      "requirement": "AC-9",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The Commit guard rule list omits the new `locked-path` rule and the existing `amend-scope` rule. Neither the `locked-file-written` restore nor the new rules appear in okf/log.md.",
+      "file": "okf/references/commit-format.md",
+      "line": 63,
+      "raised": "C2/review-code"
     }
   ]
 }
