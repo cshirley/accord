@@ -10,6 +10,7 @@ import { commitTaskEvidence } from "../../commit/evidence-commit.js";
 import { resolvePrGroup } from "../../commit/hooks.js";
 import { tryCommitPhase } from "../../commit/phase-commit.js";
 import { resolveStackConfig } from "../../config/stack-flags.js";
+import { buildContractPr0 } from "../../contract/pr0.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
 import { commitDoneTasks, formatDoneTaskCommits } from "../../orchestration/commit-on-task-done.js";
@@ -92,6 +93,26 @@ async function commitPhaseResult(
     );
   }
   return "";
+}
+
+async function buildContractPr0IfPlanned(
+  workItemId: string,
+  agentName: string,
+  packet: Record<string, unknown>,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (agentName !== "phase-plan" || packet.status !== "done") return "";
+  if (!resolveStackConfig(devConfig).enabled) return "";
+  try {
+    const result = await buildContractPr0(workItemId, devConfig, process.cwd());
+    if (!result.ok)
+      return `\n\n**PR0 contract commit failed:** ${result.reason ?? "unknown error"}`;
+    if (result.skipped) return "";
+    const tagNote = result.tag ? `, tag \`${result.tag}\`` : "";
+    return `\n\n**PR0 contract commit:** \`${result.hash}\`${tagNote}`;
+  } catch (error) {
+    return `\n\n**PR0 contract commit failed:** ${error instanceof Error ? error.message : String(error)}`;
+  }
 }
 
 async function commitEvidenceIfDone(
@@ -490,6 +511,12 @@ export async function processSubagentToolResult(
           subagentResult: result,
           ...(validation.droppedEvents.length ? { droppedEvents: validation.droppedEvents } : {}),
         });
+        contentAppend += await buildContractPr0IfPlanned(
+          workItemId,
+          agentName,
+          packet as Record<string, unknown>,
+          state.devConfig,
+        );
         if (resolveStackConfig(state.devConfig).commits === "phase") {
           contentAppend += await commitPhaseResult(
             workItemId,

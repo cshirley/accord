@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-10-30T15:54:24.837Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-01T11:45:25.875Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -24,8 +24,8 @@
 | 15 | [security-gate] review-security gating inside the C loop | done | `3e86b17` | 2/1/1 | 12 (verified 7, open 5) | 0 |
 | 16 | [security-gate] Route open or disputed gating security findings back to review-security | done | `e8393f1` | 2/1/1 | 11 (verified 7, open 4) | 0 |
 | 17 | [security-gate] Schema description and OKF docs | done | `68d3fe7` | 2/1/1 | 13 (verified 6, dispute_upheld 1, open 6) | 0 |
-| 18 | [contract-lock] contract.lock.json writer, verifier and schema | done | — | 3/3/2 | 16 (verified 14, wont_fix_accepted 2) | 0 |
-| 19 | [contract-lock] PR0 contract commit, tag and contract-amend | pending | — | 0/0/0 | 0 | 0 |
+| 18 | [contract-lock] contract.lock.json writer, verifier and schema | done | `3d58371` | 3/3/2 | 16 (verified 14, wont_fix_accepted 2) | 0 |
+| 19 | [contract-lock] PR0 contract commit, tag and contract-amend | done | — | 2/1/1 | 24 (reraised 1, verified 12, open 11) | 0 |
 | 20 | [contract-lock] Pre-write lock guard in the tool_call hook | pending | — | 0/0/0 | 0 | 0 |
 | 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | pending | — | 0/0/0 | 0 | 0 |
 | 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | pending | — | 0/0/0 | 0 | 0 |
@@ -181,12 +181,20 @@
 
 > Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each of brief.md, spec.json and plan.json (state/work-item.json is not locked because closeout…
 
-- Tasks: 18 (satisfied), 19 (pending), 20 (pending), 21 (pending), 22 (pending), 23 (pending)
-- Files: `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/src/contract/lock.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`
-- Tests verified (3):
+- Tasks: 18 (satisfied), 19 (satisfied), 20 (pending), 21 (pending), 22 (pending), 23 (pending)
+- Files: `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/src/contract/lock.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`, `packages/accord-core/src/subagent/result/process.ts`
+- Tests verified (11):
   - ASDLC-1/AC-9 contract lock writer
   - ASDLC-1/AC-9 contract lock verifier
   - ASDLC-1/AC-9 amend marker
+  - contract-pr0.test.ts: ASDLC-1/AC-9 builds one commit with exactly brief, spec, plan, state/work-item.json and contract.lock.json
+  - contract-pr0.test.ts: ASDLC-1/AC-9 lock holds sha256 of brief/spec/plan (not work-item.json) and the preceding commit sha
+  - contract-pr0.test.ts: ASDLC-1/AC-9 tags the lock commit accord/<ID>/contract pointing at HEAD
+  - contract-pr0.test.ts: ASDLC-1/AC-9 hooks run before writeContractLock so the lock matches the final files
+  - contract-pr0.test.ts: ASDLC-1/AC-9 a failing commit or tag is reported, never swallowed
+  - contract-amend.test.ts: ASDLC-1/AC-9 commits as one orchestrator commit with Accord trailer outcome=amend
+  - contract-amend.test.ts: ASDLC-1/AC-9 stale_task_ids covers only tasks covering the affected ACs
+  - contract-amend.test.ts: ASDLC-1/AC-9 missing, empty and whitespace-only reasons are rejected
 
 ### AC-10 — pending (not verified)
 
@@ -308,13 +316,15 @@
 
 > Evidence commits are append-only: the harness MUST NOT amend or force-push them, and a failed round adds commits and never rewrites them
 
-- Tasks: 7 (satisfied), 13 (satisfied), 19 (pending), 41 (pending), 53 (pending)
-- Files: `packages/accord-core/tests/append-only.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`
-- Tests verified (4):
+- Tasks: 7 (satisfied), 13 (satisfied), 19 (satisfied), 41 (pending), 53 (pending)
+- Files: `packages/accord-core/tests/append-only.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`
+- Tests verified (6):
   - append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD
   - an unchanged tree never rewrites the previous commit (no amend on empty round)
   - ASDLC-1/AC-27 rerun adds no commit, no amend: evidence sha stays HEAD and reachable
   - ASDLC-1/AC-27 a later phase commit goes on top; evidence commit is never rewritten
+  - contract-pr0.test.ts: ASDLC-1/AC-27 existing tag is left as is (not forced) and PR0 still commits
+  - contract-amend.test.ts: ASDLC-1/AC-27 amend adds a commit and never rewrites history
 
 ### AC-28 — pending (not verified)
 
@@ -537,11 +547,24 @@
 | 17 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | The review_loop key table documents review_test and review_code overrides but not review_security. | docs/configuration.md:174 |  |
 | 18 | AC-30 | F-007 | accepted (advisory) | wont_fix_accepted | suggestion | AC-30 enforcement (validate:schemas / validate:assets) cannot be proven by a unit test. validate:schemas only checks files in schemas/examples/, so without an example contract-lock-schema.json is never exercised by it. | packages/accord-core/tests/contract-lock.test.ts:234 | wont_fix_accepted by T2/review-test — Sound reason. validate:schemas and validate:assets enforcement is a phase-verify-task command, and schemas/examples/contract-lock.json is a production asset for the impl step. The unit test pins the declaration: the schema file exists and SCHEMA_MAP registration is proved by the negatives. |
 | 18 | AC-30 | F-014 | accepted (advisory) | wont_fix_accepted | suggestion | New schema and SCHEMA_MAP entry are not reflected in the OKF schema reference or docs/schemas.md. | packages/accord-core/src/artifacts/validation.ts:71 | wont_fix_accepted by C3/review-code — OKF and docs/schemas.md updates are owned by the okf docs task; docs gap on non-critical surface, suggestion only. |
+| 19 | AC-9 | F-001 | unresolved (advisory) | reraised | warning | The wiring tests use a schema-invalid plan.json. processSubagentToolResult -> validateReturnedArtifact('phase-plan') validates plan_path against plan-schema.json. PLAN lacks the required `spec`, and its tasks lack `challenge`, `files` and `steps`, so validation.valid=false and applyWorkflowStateFromValidatedReturn never runs. The positive wiring test can pass only if PR0 is built for a REJECTED plan. The negative wiring tests (amend open, stack disabled, lock unset) pass vacuously for a correct implementation because the plan is rejected anyway. | packages/accord-core/tests/contract-pr0.test.ts:28 | reraised by T2/review-test — Target changed. My original 'Done when' did not require each negative fixture to be schema-valid. PLAN now validates and all 4 negatives exist. But the phase-spec negative uses SPEC, which does not match spec-schema.json, and the needs_input packet uses stage 'plan', which is not in the enum. Both are rejected before the post-result runs, which is the root cause F-001 named. Downgraded to warning because the valid 'stuck' case catches status-agnostic code. New 'Done when' is in the finding. |
+| 19 | AC-9 | F-014 | unresolved (advisory) | open | suggestion | The tag-failure wiring check `/accord\/TESTLOCK-1\/contract\|tag/i` also matches a success message, because the success test expects `out` to contain TAG. Wiring that ignores result.ok and always prints 'PR0 committed, tag accord/TESTLOCK-1/contract' passes. This regex came from my own F-004 recommendation. | packages/accord-core/tests/contract-pr0.test.ts:630 |  |
+| 19 | AC-9 | F-015 | unresolved (advisory) | open | suggestion | Only quick_fix is tested as an excluded work-item pattern. Code that checks `pattern !== 'quick_fix'` passes, but builds PR0 for investigate, infra and analyse work items. The spec says the contract PR is for implement and greenfield work only. Also, the greenfield test (line 224) seeds `pattern: 'greenfield'`, which is not a value in the work-item-schema.json pattern enum [implement, quick_fix, investigate, infra, analyse]. This is a gap in round-1 code that I missed. | packages/accord-core/tests/contract-pr0.test.ts:311 |  |
+| 19 | AC-9 | F-016 | unresolved (advisory) | open | suggestion | Pre-lock hooks are tested as not running only for the quick_fix skip. Code that runs hooks before checking for an existing lock or an open amend passes every test. A hook such as the feature-knowledge impact analysis would then change spec.json after the lock is written, without an amend, and the CI lock check would fail. This is a gap in round-1 code that I missed. | packages/accord-core/tests/contract-pr0.test.ts:443 |  |
+| 19 | AC-9 | F-017 | unresolved (advisory) | open | suggestion | The lock written by PR0 is never schema-validated. Code that adds an extra top-level field such as `tag` writes a lock that fails contract-lock-schema.json (additionalProperties:false), and every PR0 test still passes. This is a gap in round-1 code that I missed. | packages/accord-core/tests/contract-pr0.test.ts:165 |  |
+| 19 | AC-9 | F-018 | unresolved (advisory) | open | suggestion | The test title says 'lock and files unchanged', but a rejected amend is checked only for HEAD and the lock. Code that clears the amend marker or rewrites spec.md before it checks the reason passes the test, and the open amend session is lost. This is a gap in round-1 code that I missed. | packages/accord-core/tests/contract-amend.test.ts:260 |  |
+| 19 | AC-9 | F-019 | unresolved (advisory) | open | warning | A failed amend commit leaves contract.lock.json rewritten and files staged, so a retry appends a duplicate amendment record. | packages/accord-core/src/contract/amend.ts:57 |  |
+| 19 | AC-9 | F-020 | unresolved (advisory) | open | warning | Unstaging foreign paths misses the old side of a staged rename, so an unrelated deletion enters the PR0 commit. The same pattern is in amend.ts:74. | packages/accord-core/src/contract/pr0.ts:71 |  |
+| 19 | AC-9 | F-021 | unresolved (advisory) | open | warning | The amend commit emits no stack.commit.created event. | packages/accord-core/src/contract/amend.ts:91 |  |
+| 19 | AC-9 | F-022 | unresolved (advisory) | open | suggestion | emitStackEvent is not guarded here, unlike the sibling commit modules. | packages/accord-core/src/contract/pr0.ts:94 |  |
+| 19 | AC-9 | F-023 | unresolved (advisory) | open | suggestion | A tag-only failure is reported as 'PR0 contract commit failed'. Failures in this path are also not logged. | packages/accord-core/src/subagent/result/process.ts:108 |  |
+| 19 | AC-9 | F-024 | unresolved (advisory) | open | suggestion | state/work-item.json is written without the stack.state.max_bytes cap. | packages/accord-core/src/contract/pr0.ts:65 |  |
 
 ## Decisions
 
 - **phase-code-stuck-1** (escalation, resolved): check:biome fails on files outside task scope: docs/dev/ASDLC-1/trace.json (format) and packages/accord-core/scripts/update-model-pricing.ts:84 (useOptionalChain). Authorize fixing them, or accept? → Do not fix out-of-scope files. Accept the baseline check:biome failures (docs/dev/ASDLC-1/trace.json, scripts/update-model-pricing.ts); task 14 is markdown-only.
 - **esc-ASDLC-1-14-T2/phase-test#0** (escalation, resolved): check:biome fails on the baseline for reasons outside task 14 files: lint error in packages/accord-core/scripts/update-model-pricing.ts and format error in docs/dev/ASDLC-1/trace.json. Fix both, or exclude generated docs/dev/**/trace.json from Biome, before phase-code can turn that test green. → Fixed both baseline biome failures manually (formatted trace.json, optional-chain in update-model-pricing.ts). check:biome is green; proceed.
+- **phase-code-stuck-2** (escalation, resolved): 2 tests write .git/hooks/pre-commit without creating .git/hooks (absent here because the git template dir is missing). Fix tests (mkdir -p hooks) so they can pass? → Yes: tests must mkdir -p .git/hooks before writing pre-commit (git template dir may be absent). Respawn phase-test to fix those 2 tests; phase-code must not edit tests.
 
 ## Deviations
 
@@ -555,11 +578,15 @@
 - Task 11 (accepted): AC-30 has no dedicated test in qualified-ac-refs.test.ts; the trace-schema ac_id widening is covered indirectly via validateArtifact on a qualified trace.json. — AC-30 is enforced by bun run validate:schemas / validate:assets (phase-verify-task), and TC-31 lives in alignment.test.ts, which is outside this task's files.
 - Task 13 (accepted): Edited phase-commits.test.ts (not in task.files) to add wiring cases and fix the V1-is-last assertion — F-001 required orchestrator wiring tests and removal of the V1-last assertion
 - Task 13 (accepted): Stubbed registerCloseoutBranchHook(hook|undefined) and getCloseoutBranchHook() with an opaque hook type — F-010: spec leaves the closeout hook shape open; only default and registration identity are pinned
-- Task 15 (pending): The review-code re-raise rows (F-001) pass review-code's own gate to applyRechecks and applyReviewFindings. Making them pass likely needs a change in review-code.ts, which is outside task.files. — Under the default review-code gate (block), a re-raised security warning would turn advisory again; the AC-8 re-raise rows expect it to stay gating.
-- Task 15 (pending): Modified review-code.ts (not in task.files) to pass securityGate to recordReview — review-code re-raising a security finding must apply the security gate for the AC-8 re-raise tests
-- Task 17 (pending): Added tests for okf/architecture/agents.md, okf/architecture/crucible-verification.md and okf/references/task-file.md, which are outside plan task 17 files[]. — F-003: these concepts still say review-security never gates; AC-31 requires updating all affected okf concepts. phase-code or a follow-up task must edit them.
-- Task 17 (pending): Edited okf/architecture/agents.md, okf/architecture/crucible-verification.md, okf/references/task-file.md outside task.files[] — Tests require these concepts to stop saying review-security never gates
-- Task 18 (pending): Suite passes against the existing phase-code implementation, so red_confirmed is false. — This is a lint-fix retry round. The production code in lock.ts was already implemented in earlier rounds, so no stub is needed.
+- Task 15 (accepted): The review-code re-raise rows (F-001) pass review-code's own gate to applyRechecks and applyReviewFindings. Making them pass likely needs a change in review-code.ts, which is outside task.files. — Under the default review-code gate (block), a re-raised security warning would turn advisory again; the AC-8 re-raise rows expect it to stay gating.
+- Task 15 (accepted): Modified review-code.ts (not in task.files) to pass securityGate to recordReview — review-code re-raising a security finding must apply the security gate for the AC-8 re-raise tests
+- Task 17 (accepted): Added tests for okf/architecture/agents.md, okf/architecture/crucible-verification.md and okf/references/task-file.md, which are outside plan task 17 files[]. — F-003: these concepts still say review-security never gates; AC-31 requires updating all affected okf concepts. phase-code or a follow-up task must edit them.
+- Task 17 (accepted): Edited okf/architecture/agents.md, okf/architecture/crucible-verification.md, okf/references/task-file.md outside task.files[] — Tests require these concepts to stop saying review-security never gates
+- Task 18 (accepted): Suite passes against the existing phase-code implementation, so red_confirmed is false. — This is a lint-fix retry round. The production code in lock.ts was already implemented in earlier rounds, so no stub is needed.
+- Task 19 (pending): Spec leaves the API of buildContractPr0, registerPreLockHook and applyContractAmend open. Tests fix it: buildContractPr0(id, devConfig, cwd) returns {ok, skipped?, reason?, hash?, tag?}; applyContractAmend(id, {diff: string, reason, affected_acs}, cwd) records amendments[] in contract.lock.json; state/work-item.json is seeded by the test, not generated by PR0. — Needed concrete contracts to write assertions; chosen to match existing helpers (commitTaskEvidence argument order, lock.ts verify semantics).
+- Task 19 (pending): Amend tests assert the amended contract.lock.json is schema-valid, which needs an `amendments` array ({diff, reason, affected_acs, stale_task_ids}) in contract-lock-schema.json. — F-009. The schema file is outside task 19 files[]; phase-code must extend it and the example under schemas/examples/.
+- Task 19 (pending): Tests expect buildContractPr0 to derive and redact docs/dev/<ID>/state/work-item.json from .tasks/<ID>.json (id, pattern), via redactText in state/redact.ts. — F-003. No other planned task writes this file into PR0.
+- Task 19 (pending): Added optional amendments[] to contract-lock-schema.json — Tests validate the amended lock through its schema; the schema had no amendments property
 
 ## Evidence by task
 
@@ -926,6 +953,18 @@ contract-lock.test.ts: 49 pass, 0 fail. validate:schemas: 30 passed, 0 failed. c
 ```
 
 ### Task 19: [contract-lock] PR0 contract commit, tag and contract-amend
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test contract-pr0 + contract-amend: 3 pass, 30 fail. Failures are 'error: not implemented: buildContractPr0' / 'registerPreLockHook' / 'applyContractAmend' (stubs), plus a wiring assertion (HEAD has no PR0 files after the plan post-result) and /reason/i matches against 'not implemented: applyContractAmend'. The 3 passes are wiring negatives (amend open, stack disabled, contract.lock unset). check:types and biome clean.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+task tests: 52 pass, 0 fail. Preflight: bun test exit 0; validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime all exit 0. check:biome exit 1: docs/dev/ASDLC-1/trace.json format only (arrays expanded across lines in commits[]); bunx biome check on the 6 task files is clean.
+```
 
 ### Task 20: [contract-lock] Pre-write lock guard in the tool_call hook
 
