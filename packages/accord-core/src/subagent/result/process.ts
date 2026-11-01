@@ -10,6 +10,7 @@ import { commitTaskEvidence } from "../../commit/evidence-commit.js";
 import { resolvePrGroup } from "../../commit/hooks.js";
 import { tryCommitPhase } from "../../commit/phase-commit.js";
 import { resolveStackConfig } from "../../config/stack-flags.js";
+import { verifyAfterSpawn } from "../../contract/lock-verify.js";
 import { buildContractPr0 } from "../../contract/pr0.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
@@ -321,6 +322,16 @@ export async function processSubagentToolResult(
       state.costCache.set(workItemId, totalCost);
       updateWorkItemCost(workItemId, totalCost);
       billableTotals.set(workItemId, totalCost);
+    }
+
+    if (workItemId && agentName) {
+      try {
+        await verifyAfterSpawn(workItemId, process.cwd(), agentName);
+      } catch (error) {
+        log.error(
+          `contract lock verification failed for ${workItemId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
 
     const msgs = Array.isArray(result.messages) ? result.messages : [];
