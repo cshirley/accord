@@ -2,8 +2,12 @@
  * Map `/dev` subcommands to harness orchestration resolutions.
  */
 
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { parseKnownDevSubcommandArgs } from "../../commands/dispatch.js";
 import type { DevHarnessConfig } from "../../config/index.js";
+import { resolveStackConfig } from "../../config/stack-flags.js";
+import { cancelAmend, openAmend, readAmendSession } from "../../contract/amend-session.js";
 import type { ResumeOrchestrationResolution } from "../types.js";
 import { resolveFinishOrchestration } from "./finish.js";
 import { resolveForcedAgentOrchestration } from "./forced.js";
@@ -87,6 +91,75 @@ export function planDevSubcommandOrchestration(
   return { kind: "forced", agentId };
 }
 
+function parseAmendArgs(
+  workItemId: string,
+  rawArgs: string,
+): { reason: string; replan: boolean; cancel: boolean } {
+  const tokens = rawArgs.trim().split(/\s+/).filter(Boolean);
+  if (tokens[0] === workItemId) tokens.shift();
+  const rest = tokens.filter((token) => token !== "--replan" && token !== "--cancel");
+  return {
+    reason: rest.join(" "),
+    replan: tokens.includes("--replan"),
+    cancel: tokens.includes("--cancel"),
+  };
+}
+
+function resolveLockedAmendSpec(
+  workItemId: string,
+  rawArgs: string,
+  devConfig: DevHarnessConfig | null,
+  forcedSuffix: string | undefined,
+): ResumeOrchestrationResolution {
+  const cwd = process.cwd();
+  const parsed = parseAmendArgs(workItemId, rawArgs);
+  if (parsed.cancel) {
+    const wasOpen = readAmendSession(workItemId, cwd) !== null;
+    cancelAmend(workItemId, cwd);
+    return {
+      outcome: "blocked",
+      messages: [
+        {
+          level: "info",
+          text: wasOpen
+            ? `Contract amend cancelled for ${workItemId}.`
+            : `No open contract amend to cancel for ${workItemId}.`,
+        },
+      ],
+    };
+  }
+  const wasOpen = readAmendSession(workItemId, cwd) !== null;
+  const opened = openAmend(workItemId, { reason: parsed.reason, replan: parsed.replan }, cwd);
+  if (!opened.ok) {
+    return {
+      outcome: "blocked",
+      messages: [
+        {
+          level: "warning",
+          text: `/dev amend-spec ${workItemId} <reason> [--replan]: ${opened.reason}.`,
+        },
+      ],
+    };
+  }
+  const resolution = resolveForcedAgentOrchestration(
+    workItemId,
+    FORCED_AGENT_BY_SUBCOMMAND["amend-spec"] as string,
+    devConfig,
+    {
+      subcommand: "amend-spec",
+      taskSuffix: [
+        forcedSuffix,
+        `Amend reason: ${parsed.reason}`,
+        parsed.replan ? "Replan follows (--replan)." : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    },
+  );
+  if (resolution.outcome !== "spawn" && !wasOpen) cancelAmend(workItemId, cwd);
+  return resolution;
+}
+
 export function resolveDevSubcommandOrchestration(
   subcommand: string,
   workItemId: string,
@@ -101,6 +174,13 @@ export function resolveDevSubcommandOrchestration(
     case "finish":
       return resolveFinishOrchestration(workItemId, devConfig);
     case "forced":
+      if (
+        subcommand === "amend-spec" &&
+        resolveStackConfig(devConfig).enabled &&
+        existsSync(join(process.cwd(), "docs", "dev", workItemId, "contract.lock.json"))
+      ) {
+        return resolveLockedAmendSpec(workItemId, rawArgs, devConfig, plan.taskSuffix);
+      }
       return resolveForcedAgentOrchestration(workItemId, plan.agentId, devConfig, {
         subcommand,
         taskSuffix: plan.taskSuffix,
