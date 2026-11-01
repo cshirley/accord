@@ -37,7 +37,7 @@ sources:
 | `/dev resume <ID> [--allow-pending-decisions]` | Continue from current phase + checkpoint; replans in one command |
 | `/dev finish <ID>` | verify-acceptance → `dev_verify_summary` → `dev_finalize` |
 | `/dev check <ID>` | Rerun lower-level acceptance checks |
-| `/dev amend-spec <ID>` | Controlled spec amendment |
+| `/dev amend-spec <ID> <reason> [--replan] [--cancel]` | Controlled spec amendment; needs `stack.enabled` and a present lock; commits a contract-amend and writes the contract lock again (`--cancel` closes an open amend) |
 | `/dev gaps <ID> [--tickets]` | List verify gaps; optionally draft follow-up tickets |
 | `/dev deviations <ID>` | List / accept / revert / review plan deviations |
 | `/dev review [<ID>]` | Decision queue — answer pending questions in one pass |

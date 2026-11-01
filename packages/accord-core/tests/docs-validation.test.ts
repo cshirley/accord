@@ -295,4 +295,57 @@ describe("ASDLC-1/AC-31 docs validation (ASDLC-1/TC-32)", () => {
     );
     expect(matching.length).toBeGreaterThanOrEqual(1);
   });
+
+  // ASDLC-1/AC-31 (task 24): contract PR0 and contract-amend documentation.
+  it("ASDLC-1/AC-31 evidence-stack.md documents PR0, the lock file, the contract tag and amend-spec as contract-amend", () => {
+    const text = read("okf/architecture/evidence-stack.md");
+    expect(text).toContain("PR0");
+    expect(text).toContain("contract.lock.json");
+    expect(text).toContain("accord/<ID>/contract");
+    expect(text).toContain("/dev amend-spec");
+    expect(text).toContain("contract-amend");
+    expect(text).toMatch(/outcome=amend/);
+    expect(text).toContain("resource: /packages/accord-core/src/contract/");
+  });
+
+  it("ASDLC-1/AC-31 evidence-stack.md says the lock covers brief.md, spec.json and plan.json but not state/work-item.json", () => {
+    const text = read("okf/architecture/evidence-stack.md");
+    const line = text.split("\n").find((l) => /lock/i.test(l) && /state\/work-item\.json/.test(l));
+    expect(line).toBeDefined();
+    for (const name of ["brief.md", "spec.json", "plan.json"]) expect(line).toContain(name);
+    expect(line).toMatch(/not|no |exclud/i);
+  });
+
+  it("ASDLC-1/AC-31 artifacts-and-state.md documents contract.lock.json, the contract tag and amend", () => {
+    const text = read("okf/references/artifacts-and-state.md");
+    expect(text).toContain("contract.lock.json");
+    expect(text).toContain("accord/<ID>/contract");
+    expect(text).toContain("contract-amend");
+    expect(text).toContain("sha256");
+  });
+
+  it("ASDLC-1/AC-31 dev-command.md amend-spec row mentions the contract-amend and its flags", () => {
+    const row = read("okf/references/dev-command.md")
+      .split("\n")
+      .find((l) => /^\|\s*`\/dev amend-spec/.test(l));
+    expect(row).toBeDefined();
+    expect(row).toContain("contract-amend");
+    expect(row).toContain("--replan");
+    expect(row).toContain("--cancel");
+    expect(row).toContain("<reason>");
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated entry for the contract PR0 and amendment docs", () => {
+    const matching = datedBullets().filter(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1") &&
+        bullet.text.includes("contract-lock") &&
+        bullet.text.includes("/architecture/evidence-stack.md") &&
+        bullet.text.includes("/references/artifacts-and-state.md") &&
+        bullet.text.includes("/references/dev-command.md") &&
+        /amend/i.test(bullet.text) &&
+        new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(1);
+  });
 });

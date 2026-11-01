@@ -21,12 +21,15 @@ sources:
   - id: evidence-asset
     resource: /packages/accord-core/src/evidence/asset.ts
     title: Evidence asset builder
+  - id: contract
+    resource: /packages/accord-core/src/contract/
+    title: Contract lock, PR0 and contract-amend
   - id: evidence-commit
     resource: /packages/accord-core/src/commit/evidence-commit.ts
     title: Final evidence(task-<N>) commit
 ---
 
-**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The other features stay proposed. Without it, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
+**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The contract lock (PR0, lock file, tag, lock guard and contract-amend) and the `review-security` gate are also implemented. The other features stay proposed. Without `stack.enabled`, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
 
 # Shape
 
@@ -34,14 +37,21 @@ sources:
 main ─ PR0 Contract ─ PR1 T1 ─ PR2 T2 ─ … ─ PRn Closeout
 ```
 
-* **PR0 Contract** — `docs/dev/<ID>/{brief,spec,plan}` and `contract.lock.json` (sha256). Docs only. Tagged `accord/<ID>/contract`. Locked: later changes need a `contract-amend` PR (`/dev amend-spec`).
+* **PR0 Contract** — `docs/dev/<ID>/{brief,spec,plan}` and `contract.lock.json` (sha256). Docs only. Tagged `accord/<ID>/contract`. Locked: later changes need a `contract-amend` commit (`/dev amend-spec`).
 * **Task PRs** — one concern each, leave `main` green, feature unreachable until the last task flips a flag. Independent tasks are siblings.
 * **Scope** — `implement` and greenfield work items only. `quick_fix` keeps one branch and one PR (no PR0).
 * **Closeout** — `verify.md`, `trace.*`, `workflow-cost.*`.
 
+# Contract PR0 and amendment
+
+* **PR0** — the harness commits `brief.md`, `spec.json`, `plan.json`, `contract.lock.json` and the redacted, transient work-item state file as one docs-only commit (loop `contract`, ref `contract-pr0`, outcome `locked`). It then sets the tag `accord/<ID>/contract` on that commit. Key `stack.contract.tag` turns off the tag. `contract.lock: false` skips PR0 entirely.
+* **Lock file** — `contract.lock.json` holds a sha256 for each locked file. The `plan.json` hash is over canonical JSON without `guidance`. The lock covers `brief.md`, `spec.json` and `plan.json`; it does not cover `state/work-item.json`, because closeout deletes that file.
+* **Lock guard** — the pre-write hook rejects a change to a locked file unless an amend session is open. The CI check rejects a change to a locked file unless the commit has `outcome=amend`.
+* **Amendment** — `/dev amend-spec <ID> <reason>` opens a contract-amend. It needs `stack.enabled` and a present lock. The harness commits the changed contract as one commit (loop `amend`, ref `contract-amend`, `outcome=amend`), writes the lock again, and blocks tasks that the change makes stale. Flags: `--replan` and `--cancel`.
+
 # Commit grammar
 
-The orchestrator is the only committer; agents never commit. Every phase completion is one commit that names its harness ref (`<round>/<actor>`: `T<n>` test, `C<n>` code, `V<n>` verify), including the adversarial reviews: `T1/phase-test` (RED) → `T1/review-test` (findings) → `T2/phase-test` (answers) → `T2/review-test` (clean) → `C1/phase-code` (GREEN) → `C1/review-security` → `C1/review-code` → `C2/phase-code` (answers both) → `C2/review-security` → `C2/review-code` → `V1/phase-verify-task` → `evidence(task-<N>)`. The ref is the join key to the task file `log[]` ([Per-task file](/references/task-file.md)). `review-security` gates on critical and warning findings inside the existing `C` loop; its fix is the next `C` round, re-reviewed by `review-code`. Review and verify commits may touch only `reviews/**` and `docs/dev/<ID>/state/**`, so reviewers cannot alter what they review. Findings are committed before the next phase starts and read back from the tree, so a stateless runner never loses them. `state(task-<N>)` is only for orchestrator-originated changes (unblock, human answer, cap reached). The last commit is `evidence(task-<N>)`: it writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}` and removes the state; squash is allowed because the asset survives. Each carries one `Accord:` trailer of `key=value` pairs (loop, round, outcome, finding counts, test counts, tokens, model, cost) for grep and awk reporting: [Commit message format](/references/commit-format.md). Green commits touch no test files (guarded). Evidence commits are append-only. The last commit of every task PR is `evidence(task-<N>)`: it writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}` (red/green excerpts, findings, `review..fix` patches, planned vs actual size). The asset survives any merge strategy, so squash is allowed; rebase or merge also keeps the commits.
+The orchestrator is the only committer; agents never commit. Every phase completion is one commit that names its harness ref (`<round>/<actor>`: `T<n>` test, `C<n>` code, `V<n>` verify), including the adversarial reviews: `T1/phase-test` (RED) → `T1/review-test` (findings) → `T2/phase-test` (answers) → `T2/review-test` (clean) → `C1/phase-code` (GREEN) → `C1/review-security` → `C1/review-code` → `C2/phase-code` (answers both) → `C2/review-security` → `C2/review-code` → `V1/phase-verify-task` → `evidence(task-<N>)`. The ref is the join key to the task file `log[]` ([Per-task file](/references/task-file.md)). `review-security` gates on critical and warning findings inside the existing `C` loop; its fix is the next `C` round, re-reviewed by `review-code`. Review and verify commits may touch only `reviews/**` and `docs/dev/<ID>/state/**`, so reviewers cannot alter what they review. Findings are committed before the next phase starts and read back from the tree, so a stateless runner never loses them. `state(task-<N>)` is only for orchestrator-originated changes (unblock, human answer, cap reached). The last commit is `evidence(task-<N>)`: it writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}` and removes the state; squash is allowed because the asset survives. Each carries one `Accord:` trailer of `key=value` pairs (loop, round, outcome, finding counts, test counts, tokens, model, cost) for grep and awk reporting: [Commit message format](/references/commit-format.md). Green commits touch no test files (guarded). Evidence commits are append-only. The asset holds red/green excerpts, findings, `review..fix` patches, and planned vs actual size. It survives any merge strategy; rebase or merge also keeps the commits.
 
 # Evidence asset
 
