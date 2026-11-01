@@ -256,4 +256,43 @@ describe("ASDLC-1/AC-31 docs validation (ASDLC-1/TC-32)", () => {
     );
     expect(matching.length).toBeGreaterThanOrEqual(1);
   });
+
+  // ASDLC-1/AC-31 (task 20): pre-write lock guard documentation.
+  it("ASDLC-1/AC-31 hooks.md has exactly one Hook-table row for the pre-write lock guard", () => {
+    const rows = read("okf/architecture/hooks.md")
+      .split("\n")
+      .filter(
+        (line) =>
+          /^\|/.test(line) &&
+          line.includes("tool_call") &&
+          line.includes("write") &&
+          line.includes("edit") &&
+          line.includes("contract.lock.json") &&
+          line.includes("contract-amend"),
+      );
+    expect(rows.length).toBe(1);
+  });
+
+  it("ASDLC-1/AC-31 hooks.md sources the lock guard module", () => {
+    expect(read("okf/architecture/hooks.md")).toContain(
+      "resource: /packages/accord-core/src/contract/lock-guard.ts",
+    );
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated entry for the lock guard docs", () => {
+    const EVIDENCE_ASSET_BULLET =
+      "* **Update**: ASDLC-1 evidence-asset: [Evidence stack](/architecture/evidence-stack.md) and [Artifacts and state](/references/artifacts-and-state.md) (`/references/artifacts-and-state.md`) now describe `evidence/task-<N>.{md,json}`, the `evidence(task-<N>)` commit, qualified `<ID>/AC-<n>` refs and squash survival.";
+    const matching = datedBullets().filter(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1") &&
+        bullet.text.includes("/architecture/hooks.md") &&
+        /lock guard|contract-lock/i.test(bullet.text) &&
+        bullet.text !== PRIOR_LOG_BULLET &&
+        bullet.text !== EVIDENCE_ASSET_BULLET &&
+        !bullet.text.includes("security-gate") &&
+        !bullet.text.includes("evidence/task-<N>") &&
+        new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(1);
+  });
 });

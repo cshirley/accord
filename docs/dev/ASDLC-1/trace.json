@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-01T11:45:25.875Z",
+  "generated_at": "2026-11-01T12:03:28.819Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -2025,7 +2025,9 @@
       "id": 19,
       "title": "[contract-lock] PR0 contract commit, tag and contract-amend",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "fea6e0a"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -2152,38 +2154,120 @@
     {
       "id": 20,
       "title": "[contract-lock] Pre-write lock guard in the tool_call hook",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 2,
+        "V": 2
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
-        "verify": 0
+        "verify": 1
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 13,
+        "by_state": {
+          "verified": 9,
+          "open": 3,
+          "wont_fix_accepted": 1
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "error: not implemented: contractLockToolCallBlock\n(fail) ASDLC-1/AC-9 lock guard pass-through > missing path or non-object input is untouched\n(fail) ASDLC-1/AC-26 no lock file means every write passes > all locked paths pass without contract.lock.json\n(fail) ASDLC-1/AC-26 no lock file means every write passes > an open amend without a lock file also passes everything\n\n 0 pass\n 23 fail\nRan 23 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V2/phase-verify-task",
+        "excerpt": "61 pass, 0 fail across the 3 task test files; biome: Checked 662 files, no fixes applied; preflight: bun test, check:biome, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle and check:runtime all exit 0.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-9",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/contract-lock-guard.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/contract/lock-guard.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/pi-accord/tests/pi-contract-lock-hook.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/contract/lock-guard.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/pi-accord/src/pi-hook-listeners.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "okf/architecture/hooks.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V2/phase-verify-task",
+            "result": "pass",
+            "test_count": 9,
+            "command": "bun test packages/accord-core/tests/contract-lock-guard.test.ts packages/pi-accord/tests/pi-contract-lock-hook.test.ts; bun run check:types; bun run check:bundle; bun run check:runtime"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/docs-validation.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "okf/architecture/hooks.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V2/phase-verify-task",
+            "result": "pass",
+            "test_count": 6,
+            "command": "bun test packages/accord-core/tests/docs-validation.test.ts; bun run validate:okf; bun run validate:ste; bun run check:biome"
+          }
+        },
+        {
+          "id": "_task",
+          "text": "Changes/findings not attributable to one AC",
+          "status": "n/a",
+          "changes": [
+            {
+              "file": "docs/dev/ASDLC-1/trace.json",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
           "verification": null
         }
       ]
@@ -3732,7 +3816,7 @@
         },
         {
           "task": 20,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 21,
@@ -3756,7 +3840,12 @@
         "packages/accord-core/tests/contract-amend.test.ts",
         "packages/accord-core/src/contract/pr0.ts",
         "packages/accord-core/src/contract/amend.ts",
-        "packages/accord-core/src/subagent/result/process.ts"
+        "packages/accord-core/src/subagent/result/process.ts",
+        "packages/accord-core/tests/contract-lock-guard.test.ts",
+        "packages/accord-core/src/contract/lock-guard.ts",
+        "packages/pi-accord/tests/pi-contract-lock-hook.test.ts",
+        "packages/pi-accord/src/pi-hook-listeners.ts",
+        "okf/architecture/hooks.md"
       ],
       "tests": [
         "ASDLC-1/AC-9 contract lock writer",
@@ -3769,7 +3858,16 @@
         "contract-pr0.test.ts: ASDLC-1/AC-9 a failing commit or tag is reported, never swallowed",
         "contract-amend.test.ts: ASDLC-1/AC-9 commits as one orchestrator commit with Accord trailer outcome=amend",
         "contract-amend.test.ts: ASDLC-1/AC-9 stale_task_ids covers only tasks covering the affected ACs",
-        "contract-amend.test.ts: ASDLC-1/AC-9 missing, empty and whitespace-only reasons are rejected"
+        "contract-amend.test.ts: ASDLC-1/AC-9 missing, empty and whitespace-only reasons are rejected",
+        "contract-lock-guard.test.ts › ASDLC-1/AC-9 lock guard blocks without open amend",
+        "contract-lock-guard.test.ts › ASDLC-1/AC-9 lock guard with an open amend",
+        "contract-lock-guard.test.ts › ASDLC-1/AC-9 lock guard pass-through",
+        "contract-lock-guard.test.ts › ASDLC-1/AC-26 no lock file means every write passes",
+        "contract-lock-guard.test.ts › ASDLC-1/AC-9 lock guard path shapes and lock states",
+        "pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 write of locked spec.json is blocked",
+        "pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 edit of locked spec.json is blocked",
+        "pi-contract-lock-hook.test.ts › ASDLC-1/AC-9 non-locked spec.md passes",
+        "pi-contract-lock-hook.test.ts › ASDLC-1/AC-26 without contract.lock.json spec.json passes"
       ],
       "verified": false
     },
@@ -4325,7 +4423,7 @@
         },
         {
           "task": 20,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 22,
@@ -4412,7 +4510,8 @@
         "okf/references/stack-config.md",
         "okf/architecture/agents.md",
         "okf/architecture/crucible-verification.md",
-        "okf/references/task-file.md"
+        "okf/references/task-file.md",
+        "okf/architecture/hooks.md"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -4430,7 +4529,10 @@
         "bun run check:biome",
         "packages/accord-core/tests/docs-validation.test.ts (11 pass, 0 fail)",
         "packages/accord-core/tests/docs-validation.test.ts (all ASDLC-1/AC-31 cases, via bun test exit 0)",
-        "bunx biome check on task-changed files (okf, accord-schema.json, both test files)"
+        "bunx biome check on task-changed files (okf, accord-schema.json, both test files)",
+        "docs-validation.test.ts › ASDLC-1/AC-31 hooks.md has exactly one Hook-table row for the pre-write lock guard",
+        "docs-validation.test.ts › ASDLC-1/AC-31 hooks.md sources the lock guard module",
+        "docs-validation.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the lock guard docs"
       ],
       "verified": false
     }
@@ -6486,6 +6588,63 @@
       "file": "packages/accord-core/src/contract/pr0.ts",
       "line": 65,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 20,
+      "requirement": "AC-9",
+      "finding_id": "F-006",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Open-amend pass-through is only tested with cwd at the repo root. The new subdirectory test covers only the lock side, so the amend side is untested from a subdirectory cwd.",
+      "file": "packages/accord-core/tests/contract-lock-guard.test.ts",
+      "line": 91,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 20,
+      "requirement": "AC-9",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Lock lookup is only tested relative to cwd after the path prefix is stripped. No test covers a write into another tree (such as a .worktrees/<X> checkout) whose lock lives at the file's real location while cwd has no lock.",
+      "file": "packages/accord-core/tests/contract-lock-guard.test.ts",
+      "line": 51,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 20,
+      "requirement": "AC-31",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The check:biome test is scoped to task-17 files, so this task's changed files are never biome-checked by TC-32. This is a round-1 miss on lines that did not change.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 44,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 20,
+      "requirement": "AC-31",
+      "finding_id": "F-012",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The user-facing hook tables in `docs/hooks-and-tools.md` and `docs/accord-workflow.md:375` still omit the contract lock guard, and the Principle paragraph still says hook logic lives only in `harness/` and `subagent/`.",
+      "file": "okf/architecture/hooks.md",
+      "line": 39,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Advisory docs gap. docs/hooks-and-tools.md and docs/accord-workflow.md are outside task.files, and the okf concept (the AC-31 target) is updated. Tracked as follow-up, not a correctness bug."
+      }
     }
   ]
 }

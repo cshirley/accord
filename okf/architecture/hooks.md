@@ -12,6 +12,9 @@ sources:
   - id: listeners
     resource: /packages/pi-accord/src/pi-hook-listeners.ts
     title: Pi hook listeners
+  - id: lock-guard
+    resource: /packages/accord-core/src/contract/lock-guard.ts
+    title: Pre-write contract lock guard
   - id: harness
     resource: /packages/accord-core/src/harness/
     title: Host-neutral hook callables
@@ -33,6 +36,7 @@ scripts. **MCP does not run hooks** — add host hooks or CI steps for parity.
 |------|----------|-----------|
 | Schema validation | `tool_result` write/edit on `.tasks/*.json`, `docs/dev/**/*.json` | Pick schema via `SCHEMA_MAP`; reject malformed writes. Regenerates `spec.md` from `spec.json` |
 | Workflow-state write guard | write/edit on orchestrator-owned state | Blocks agent writes to work-item/task/checkpoint JSON (`ACCORD_ALLOW_AGENT_WORKFLOW_WRITES=1` to bypass) |
+| Contract lock guard | `tool_call` write/edit on `docs/dev/<ID>/{brief.md,spec.json,plan.json}`, `contract.lock.json`, `state/contract-amend.open` | When `contract.lock.json` exists, block the write before it happens with a reason naming `contract-amend`. While an amend is open (valid nonce) the three contract files pass; `contract.lock.json` and the marker stay orchestrator-only. No lock file: every write passes. Logic in `contractLockToolCallBlock` (accord-core) |
 | Config auto-refresh | write/edit to `AGENTS.md` | Reload cached `devConfig` |
 | Config guard + brief inject | `tool_call` `subagent` | Block `requiresConfig` agents without config; set `agentFile`, `systemAppend` (project stack), `response` contract |
 | Gather preflight | `tool_call` `phase-gather` | Provider availability + playbook paths ([Providers](/architecture/providers.md)) |
