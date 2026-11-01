@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-01T12:39:07.891Z",
+  "generated_at": "2026-11-01T13:06:29.876Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -161,6 +161,18 @@
       "task_id": 21,
       "description": "process.ts calls verifyAfterSpawn for every attributed result rather than only when contract.lock.json exists on disk",
       "reason": "a spawn that deletes the lock would otherwise skip verification; verifyAfterSpawn is a no-op for never-locked items",
+      "resolution": null
+    },
+    {
+      "task_id": 22,
+      "description": "Test contract chosen for amend-session.ts: openAmend(id,{reason,replan},cwd) returns {ok:true,nonce}|{ok:false,reason}; closeAmend(id,cwd); cancelAmend(id,cwd); affectedAcsFromSpecDiff(id,cwd) compares .tasks/<ID>-amend/spec.json with docs/dev/<ID>/spec.json. `/dev amend-spec` rawArgs are '<ID> <reason words> [--replan] | --cancel', via the synchronous resolveDevSubcommandOrchestration.",
+      "reason": "The spec names these functions but not their signatures; the stub carries the signatures the tests call.",
+      "resolution": null
+    },
+    {
+      "task_id": 22,
+      "description": "Phase-spec and phase-plan done packets in the tests omit spec_path and plan_path so the amended fixture files are not schema-validated. Stale tasks are asserted as status=blocked with a blocked.reason containing 'stale after contract-amend'; blocked.kind is not asserted. Unblock is tested via unblockTask(..., {force}).",
+      "reason": "The spec fixes only the blocker text and the 'existing blocked mechanism'; it does not name the block kind or the unblock options.",
       "resolution": null
     }
   ],
@@ -2290,7 +2302,9 @@
       "id": 21,
       "title": "[contract-lock] Post-spawn lock verification, restore and amend-only commits",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "7e4b1c0"
+      ],
       "rounds": {
         "T": 4,
         "C": 2,
@@ -2374,39 +2388,98 @@
     {
       "id": 22,
       "title": "[contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 29,
+        "by_state": {
+          "verified": 12,
+          "wont_fix_accepted": 2,
+          "open": 15
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test contract-amend-session.test.ts: 31 fail (error: not implemented: openAmend; plus assertion failures: expected amend commit count 3 received 2, isAmendOpen expected true received false, task status expected 'blocked' received 'pending', ...), 4 pass (ASDLC-1/AC-26 no-lock / no-stack / stack.enabled=false / no-config guards, which pin existing behaviour), plus 'phase-spec done with no amend open commits no amend'. bun run check:types: clean.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "95 pass, 0 fail across the 3 task test files; bun test (full) exit 0; validate:schemas/assets/okf/ste, check:types/bundle/runtime exit 0; check:biome exit 1 only for docs/dev/ASDLC-1/trace.json formatting (not a task file); biome check on task files: no fixes needed.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-9",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/contract/amend-session.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/contract/amend-session.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/orchestration/resolve/subcommand.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/result/process.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 6,
+            "command": "bun test packages/accord-core/tests/contract-amend-session.test.ts packages/accord-core/tests/contract-lock-guard.test.ts packages/accord-core/tests/contract-amend.test.ts"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun run validate:okf && bun run validate:ste && bun run check:types && bun run check:runtime"
+          }
         }
       ]
     },
@@ -3890,7 +3963,7 @@
         },
         {
           "task": 22,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 23,
@@ -3914,7 +3987,10 @@
         "okf/architecture/hooks.md",
         "packages/accord-core/tests/contract-lock-restore.test.ts",
         "packages/accord-core/src/contract/lock-verify.ts",
-        "packages/accord-core/src/commit/commit-guard.ts"
+        "packages/accord-core/src/commit/commit-guard.ts",
+        "packages/accord-core/tests/contract-amend-session.test.ts",
+        "packages/accord-core/src/contract/amend-session.ts",
+        "packages/accord-core/src/orchestration/resolve/subcommand.ts"
       ],
       "tests": [
         "ASDLC-1/AC-9 contract lock writer",
@@ -3939,7 +4015,12 @@
         "pi-contract-lock-hook.test.ts › ASDLC-1/AC-26 without contract.lock.json spec.json passes",
         "contract-lock-restore.test.ts: ASDLC-1/AC-9 (restore, open amend, nonce, guidance-only, guardStagedPaths locked-path, forged lock, processSubagentToolResult wiring)",
         "contract-lock-guard.test.ts",
-        "commit-guard.test.ts"
+        "commit-guard.test.ts",
+        "contract-amend-session.test.ts: ASDLC-1/AC-9 openAmend / closeAmend / cancelAmend",
+        "contract-amend-session.test.ts: ASDLC-1/AC-9 affectedAcsFromSpecDiff",
+        "contract-amend-session.test.ts: ASDLC-1/AC-9 /dev amend-spec routing",
+        "contract-amend-session.test.ts: ASDLC-1/AC-9 amend completion via processSubagentToolResult",
+        "contract-amend.test.ts"
       ],
       "verified": false
     },
@@ -4499,7 +4580,7 @@
         },
         {
           "task": 22,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 23,
@@ -4583,7 +4664,8 @@
         "okf/architecture/agents.md",
         "okf/architecture/crucible-verification.md",
         "okf/references/task-file.md",
-        "okf/architecture/hooks.md"
+        "okf/architecture/hooks.md",
+        "packages/accord-core/tests/contract-amend-session.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -4604,7 +4686,9 @@
         "bunx biome check on task-changed files (okf, accord-schema.json, both test files)",
         "docs-validation.test.ts › ASDLC-1/AC-31 hooks.md has exactly one Hook-table row for the pre-write lock guard",
         "docs-validation.test.ts › ASDLC-1/AC-31 hooks.md sources the lock guard module",
-        "docs-validation.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the lock guard docs"
+        "docs-validation.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the lock guard docs",
+        "bun run check:runtime",
+        "biome check on task files"
       ],
       "verified": false
     }
@@ -6808,6 +6892,237 @@
       "file": "okf/references/commit-format.md",
       "line": 63,
       "raised": "C2/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-011",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Stuck, and cancel after needs_input, never test what happens to locked files already edited during the amend, e.g. spec.json amended by phase-spec before phase-plan gets stuck in --replan.",
+      "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+      "line": 504,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "The spec and the task steps say only that stuck clears the marker and snapshot; restore-on-stuck is not specified. A test would invent behaviour. If this matters, the engineer should decide it as a spec question, not phase-test."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The tampered-working-copy test checks only that no snapshot exists when openAmend refuses. It does not check that the amend is still closed, so a refusal can leave the marker and session in place and the lock guard then allows writes to locked files.",
+      "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+      "line": 285,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "No test runs a second amend after one completes. The done path can leave the session file behind, and openAmend can snapshot from the contract tag instead of the trusted lock, and both still pass.",
+      "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+      "line": 533,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Today's no-reason form `/dev amend-spec <ID>` is not tested when there is no lock or no stack. Every AC-26 test passes 'some reason', so an impl that refuses a blank reason before it checks for the lock or stack breaks backward compatibility.",
+      "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+      "line": 502,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "amendments[0].diff is checked only for the new wording, so storing the full new spec.json (not a diff) passes.",
+      "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+      "line": 552,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "affectedAcsFromSpecDiff is not tested for changes to AC fields other than requirement, type, criterion and scenario, such as `enforcement` or `feature`.",
+      "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+      "line": 359,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`applyContractAmend` and the steps after it are not guarded. A throw rejects the whole `processSubagentToolResult` batch.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 208,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`stuck` and `--cancel` delete the snapshot but leave the amended spec.json and plan.json in the working tree. A follow-up `/dev amend-spec` is then refused.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 89,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The amend commit emits no `stack.commit.created`, unlike every other orchestrator commit.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 208,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The handoff note says `blocked stale tasks: …` but lists every stale id from `applyContractAmend`.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 220,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-025",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Affected ACs come only from `acceptance_criteria` entries by id, so other spec changes get an empty diff and no stale tasks.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 131,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-026",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`blockStaleTasks` re-implements the block mutation from queries/block-task.ts `blockOne`.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 165,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-027",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`setCoarsePhase` does an unlocked read-modify-write of the work item file with an untyped cast.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 178,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-028",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`AMEND_AGENTS` and the lock path are duplicated.",
+      "file": "packages/accord-core/src/contract/amend-session.ts",
+      "line": 163,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-9",
+      "finding_id": "F-029",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`parseAmendArgs` hand-rolls a whitespace split. Quotes stay in the reason, `--replan` and `--cancel` are stripped from any position, and spaces collapse.",
+      "file": "packages/accord-core/src/orchestration/resolve/subcommand.ts",
+      "line": 94,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 22,
+      "requirement": "AC-31",
+      "finding_id": "F-014",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-31 is claimed in ac_covered but has no runtime test, which is acceptable for an architectural AC. validate:okf checks structure but does not check that an amend-spec entry was appended. okf/references/dev-command.md:40 still documents `/dev amend-spec <ID>` without the reason, --replan and --cancel arguments.",
+      "file": "packages/accord-core/tests/contract-amend-session.test.ts",
+      "line": 30,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "AC-31 is architectural. Enforcement belongs to phase-verify-task: bun run validate:okf, validate:ste and check:biome, plus a grep for the amend-spec entry in okf/log.md."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 22,
+      "requirement": "AC-31",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Log entry is appended under the stale `## 2026-10-02` heading and claims Evidence stack and Hooks concepts were updated, but neither describes the amend session.",
+      "file": "okf/log.md",
+      "line": 76,
+      "raised": "C1/review-code"
     }
   ]
 }

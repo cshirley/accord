@@ -10,6 +10,7 @@ import { commitTaskEvidence } from "../../commit/evidence-commit.js";
 import { resolvePrGroup } from "../../commit/hooks.js";
 import { tryCommitPhase } from "../../commit/phase-commit.js";
 import { resolveStackConfig } from "../../config/stack-flags.js";
+import { advanceAmendAfterPhase } from "../../contract/amend-session.js";
 import { verifyAfterSpawn } from "../../contract/lock-verify.js";
 import { buildContractPr0 } from "../../contract/pr0.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
@@ -522,12 +523,20 @@ export async function processSubagentToolResult(
           subagentResult: result,
           ...(validation.droppedEvents.length ? { droppedEvents: validation.droppedEvents } : {}),
         });
-        contentAppend += await buildContractPr0IfPlanned(
+        const amendNote = await advanceAmendAfterPhase(
           workItemId,
           agentName,
-          packet as Record<string, unknown>,
-          state.devConfig,
+          (packet as { status?: unknown }).status,
+          process.cwd(),
         );
+        if (amendNote !== null) contentAppend += amendNote;
+        else
+          contentAppend += await buildContractPr0IfPlanned(
+            workItemId,
+            agentName,
+            packet as Record<string, unknown>,
+            state.devConfig,
+          );
         if (resolveStackConfig(state.devConfig).commits === "phase") {
           contentAppend += await commitPhaseResult(
             workItemId,
