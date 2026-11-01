@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -200,10 +201,12 @@ describe("ASDLC-1/AC-31 entry point (main)", () => {
   test("ASDLC-1/AC-31 evidenceRules() is an array and main defaults to it", async () => {
     const registry = evidenceRules();
     expect(Array.isArray(registry)).toBe(true);
-    expect(registry.length).toBe(0); // rules are added by later tasks
+    expect(registry.map((rule) => rule.name)).toContain("contract-lock");
     const statusOut = tmpFile();
+    // registered rules need a real repo; main's wiring is checked with an empty rule set
     const code = await main({
       argv: ["--base", A, "--head", B, "--status-out", statusOut],
+      rules: [],
       out: () => {},
     });
     expect(code).toBe(0);
@@ -215,6 +218,8 @@ describe("ASDLC-1/AC-31 entry point (main)", () => {
 
   test("ASDLC-1/AC-31 bun entry point (import.meta.main) writes a success payload", () => {
     const statusOut = tmpFile();
+    const A = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
+    const B = A;
     const proc = Bun.spawnSync(
       [
         "bun",

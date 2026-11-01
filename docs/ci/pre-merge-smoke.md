@@ -75,6 +75,19 @@ head sha. On a pull request the head is `github.event.pull_request.head.sha`,
 not the merge sha. The workflow has `statuses: write` and uses only
 `GITHUB_TOKEN`. Mark `accord/evidence` as a required status check on `main`.
 
+The `contract-lock` rule (`packages/accord-ci/src/checks/contract-lock.ts`)
+guards `brief.md`, `spec.json`, `plan.json` and `contract.lock.json` of each
+work item under `docs/dev/<ID>/` that has a `contract.lock.json`. It checks
+only the commits in `base..head` that come after the lock commit. The lock and
+amendment records already on the base branch are trusted. A commit that changes
+a locked file fails unless it is a contract-amend commit: an `Accord:` trailer
+with `outcome=amend` and the same work item id, touching only the locked files,
+`spec.md`, `contract.lock.json` and `state/**`, with a lock that matches the
+file hashes and a new amendment record. The rule fails when `base` or `head`
+cannot be resolved. The `accord/<ID>/contract` tag is informational and is
+never required. A repository without `contract.lock.json` passes.
+
 ```bash
 bun test packages/accord-ci/tests/evidence-check-runner.test.ts
+bun test packages/accord-ci/tests/contract-lock-check.test.ts
 ```

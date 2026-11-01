@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-01T13:06:29.876Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-01T13:34:22.734Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -28,8 +28,8 @@
 | 19 | [contract-lock] PR0 contract commit, tag and contract-amend | done | `fea6e0a` | 2/1/1 | 24 (reraised 1, verified 12, open 11) | 0 |
 | 20 | [contract-lock] Pre-write lock guard in the tool_call hook | done | `a076d02` | 2/2/2 | 13 (verified 9, open 3, wont_fix_accepted 1) | 0 |
 | 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | done | `7e4b1c0` | 4/2/1 | 24 (verified 17, open 7) | 0 |
-| 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | done | — | 2/1/1 | 29 (verified 12, wont_fix_accepted 2, open 15) | 0 |
-| 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | pending | — | 0/0/0 | 0 | 0 |
+| 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | done | `f98ce01` | 2/1/1 | 29 (verified 12, wont_fix_accepted 2, open 15) | 0 |
+| 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | done | — | 2/1/1 | 24 (verified 12, reraised 1, wont_fix_accepted 1, open 10) | 0 |
 | 24 | [contract-lock] OKF docs for contract PR0 and amendment | pending | — | 0/0/0 | 0 | 0 |
 | 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | pending | — | 0/0/0 | 0 | 0 |
 | 26 | [stack-compute] computeStack: deterministic pack, flag and order | pending | — | 0/0/0 | 0 | 0 |
@@ -177,13 +177,13 @@
   - review-security-gate-stack.test.ts (TC-8)
   - loop-caps.test.ts: max_retries 1: second security→review-code round blocks and lists the security finding
 
-### AC-9 — pending (not verified)
+### AC-9 — satisfied
 
 > Then PR0 contains docs/dev/<ID>/{brief.md,spec.json,plan.json}, state/work-item.json and contract.lock.json with sha256 of each of brief.md, spec.json and plan.json (state/work-item.json is not locked because closeout…
 
-- Tasks: 18 (satisfied), 19 (satisfied), 20 (satisfied), 21 (satisfied), 22 (satisfied), 23 (pending)
-- Files: `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/src/contract/lock.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`, `packages/accord-core/src/subagent/result/process.ts`, `packages/accord-core/tests/contract-lock-guard.test.ts`, `packages/accord-core/src/contract/lock-guard.ts`, `packages/pi-accord/tests/pi-contract-lock-hook.test.ts`, `packages/pi-accord/src/pi-hook-listeners.ts`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-lock-restore.test.ts`, `packages/accord-core/src/contract/lock-verify.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-core/src/contract/amend-session.ts`, `packages/accord-core/src/orchestration/resolve/subcommand.ts`
-- Tests verified (28):
+- Tasks: 18 (satisfied), 19 (satisfied), 20 (satisfied), 21 (satisfied), 22 (satisfied), 23 (satisfied)
+- Files: `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/src/contract/lock.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`, `packages/accord-core/src/subagent/result/process.ts`, `packages/accord-core/tests/contract-lock-guard.test.ts`, `packages/accord-core/src/contract/lock-guard.ts`, `packages/pi-accord/tests/pi-contract-lock-hook.test.ts`, `packages/pi-accord/src/pi-hook-listeners.ts`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-lock-restore.test.ts`, `packages/accord-core/src/contract/lock-verify.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-core/src/contract/amend-session.ts`, `packages/accord-core/src/orchestration/resolve/subcommand.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/checks/contract-lock.ts`, `packages/accord-ci/src/evidence-check.ts`, `docs/ci/pre-merge-smoke.md`
+- Tests verified (30):
   - ASDLC-1/AC-9 contract lock writer
   - ASDLC-1/AC-9 contract lock verifier
   - ASDLC-1/AC-9 amend marker
@@ -212,6 +212,8 @@
   - contract-amend-session.test.ts: ASDLC-1/AC-9 /dev amend-spec routing
   - contract-amend-session.test.ts: ASDLC-1/AC-9 amend completion via processSubagentToolResult
   - contract-amend.test.ts
+  - packages/accord-ci/tests/contract-lock-check.test.ts (all ASDLC-1/AC-9 cases: non-amend edit fails, amend passes, forged lock fails, PR0 passes, squash amend trusted, tag informational, no-lock passes, fail-closed refs)
+  - packages/accord-ci/tests/evidence-check-runner.test.ts
 
 ### AC-10 — pending (not verified)
 
@@ -403,9 +405,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (pending), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`
-- Tests verified (21):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (pending), 25 (pending), 31 (pending), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`
+- Tests verified (25):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -427,6 +429,10 @@
   - docs-validation.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the lock guard docs
   - bun run check:runtime
   - biome check on task files
+  - ASDLC-1/AC-31 pre-merge-smoke.md accord/evidence section documents the contract-lock rule
+  - ASDLC-1/AC-31 okf/log.md has a dated entry naming contract-lock and accord/evidence
+  - ASDLC-1/AC-31 an okf concept listing evidence-check.ts as a source describes contract-lock
+  - bunx biome check packages/accord-ci okf docs/ci
 
 ## Accepted risks and unresolved findings
 
@@ -609,6 +615,18 @@
 | 22 | AC-9 | F-029 | unresolved (advisory) | open | suggestion | `parseAmendArgs` hand-rolls a whitespace split. Quotes stay in the reason, `--replan` and `--cancel` are stripped from any position, and spaces collapse. | packages/accord-core/src/orchestration/resolve/subcommand.ts:94 |  |
 | 22 | AC-31 | F-014 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 is claimed in ac_covered but has no runtime test, which is acceptable for an architectural AC. validate:okf checks structure but does not check that an amend-spec entry was appended. okf/references/dev-command.md:40 still documents `/dev amend-spec <ID>` without the reason, --replan and --cancel arguments. | packages/accord-core/tests/contract-amend-session.test.ts:30 | wont_fix_accepted by T2/review-test — AC-31 is architectural. Enforcement belongs to phase-verify-task: bun run validate:okf, validate:ste and check:biome, plus a grep for the amend-spec entry in okf/log.md. |
 | 22 | AC-31 | F-020 | unresolved (advisory) | open | warning | Log entry is appended under the stale `## 2026-10-02` heading and claims Evidence stack and Hooks concepts were updated, but neither describes the amend session. | okf/log.md:76 |  |
+| 23 | AC-9 | F-003 | unresolved (advisory) | reraised | suggestion | Changes to contract.lock.json itself are untested. A rule that discovers locks only at head (or that treats any lock added in the range as PR0, or that trusts the head lock's preceding_commit when the lock is not on base) passes every test. A PR that deletes or replaces the lock then edits locked files freely. | packages/accord-ci/tests/contract-lock-check.test.ts:217 | reraised by T2/review-test — Original Done-when met: all five cases exist with exitCode 1 and path assertions. Target changed: my original list missed a valid-JSON lock rewrite with no deletion and no locked-file edit. That gap allows a two-PR bypass if the rule only detects a missing or unreadable lock and trusts the base-tree lock. Downgraded to non-gating suggestion. See findings[0] for the two extra lockCases entries. |
+| 23 | AC-9 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | The push-to-main run is unspecified. The workflow also runs on push with base=github.event.before and head=the squash commit. A squash-merged amend commit (no trailer, touches locked files) will likely fail the status on main, which conflicts with the 'main green' constraint. Only later PRs are tested. | packages/accord-ci/tests/contract-lock-check.test.ts:267 | wont_fix_accepted by T2/review-test — Sound: the spec does not define the result of the push-to-main run over a squash-merged amend, and a squash without a trailer cannot be told apart from a forged edit. Needs a human or spec decision; flagged in analysis. The later-PR behaviour stays covered. |
+| 23 | AC-9 | F-015 | unresolved (advisory) | open | suggestion | Merge tests cover an evil merge and a benign merge of main. A merge of a side branch (not base) that carries a regular locked-file edit in its own commit is untested. | packages/accord-ci/tests/contract-lock-check.test.ts:444 |  |
+| 23 | AC-9 | F-016 | unresolved (advisory) | open | suggestion | Every amend test has a single amend as the last commit in the PR. Nothing checks that the rule moves its trusted lock forward after an in-PR amend. | packages/accord-ci/tests/contract-lock-check.test.ts:182 |  |
+| 23 | AC-9 | F-017 | unresolved (advisory) | open | warning | On the push-to-main run, a squash-merged amend PR can fail the check because only a commit trailer marks an amend, and trailers do not reliably survive squash. | packages/accord-ci/src/checks/contract-lock.ts:171 |  |
+| 23 | AC-9 | F-018 | unresolved (advisory) | open | suggestion | `git ls-tree -r --name-only <base>` lists only the cwd subtree with cwd-relative names, so the guard fails open when the rule runs from a subdirectory. | packages/accord-ci/src/checks/contract-lock.ts:145 |  |
+| 23 | AC-9 | F-019 | unresolved (advisory) | open | suggestion | Step drift: the plan says the rule calls `verifyContractLock` over the PR head, but the impl never calls it. | packages/accord-ci/src/checks/contract-lock.ts:138 |  |
+| 23 | AC-9 | F-020 | unresolved (advisory) | open | suggestion | Parallel implementations of existing core helpers. | packages/accord-ci/src/checks/contract-lock.ts:68 |  |
+| 23 | AC-9 | F-021 | unresolved (advisory) | open | suggestion | `hashAt` writes each blob to a fresh temp dir only to call `hashLocked(rel, dir)`. | packages/accord-ci/src/checks/contract-lock.ts:77 |  |
+| 23 | AC-9 | F-022 | unresolved (advisory) | open | suggestion | The amend scope is a second source of truth next to the `owned` list in `applyContractAmend`. | packages/accord-ci/src/checks/contract-lock.ts:102 |  |
+| 23 | AC-9 | F-023 | unresolved (advisory) | open | suggestion | Merge-commit intersection is O(n·m) with `Array.includes`. | packages/accord-ci/src/checks/contract-lock.ts:49 |  |
+| 23 | AC-31 | F-024 | unresolved (advisory) | open | suggestion | The new entry sits under a second `## 2026-10-06` heading at the end of the file, while the sibling ASDLC-1 entries (security-gate, evidence-asset, commit-evidence, contract-lock hook) are under `## 2026-10-30` at the top. | okf/log.md:78 |  |
 
 ## Decisions
 
@@ -641,6 +659,7 @@
 - Task 21 (pending): process.ts calls verifyAfterSpawn for every attributed result rather than only when contract.lock.json exists on disk — a spawn that deletes the lock would otherwise skip verification; verifyAfterSpawn is a no-op for never-locked items
 - Task 22 (pending): Test contract chosen for amend-session.ts: openAmend(id,{reason,replan},cwd) returns {ok:true,nonce}|{ok:false,reason}; closeAmend(id,cwd); cancelAmend(id,cwd); affectedAcsFromSpecDiff(id,cwd) compares .tasks/<ID>-amend/spec.json with docs/dev/<ID>/spec.json. `/dev amend-spec` rawArgs are '<ID> <reason words> [--replan] | --cancel', via the synchronous resolveDevSubcommandOrchestration. — The spec names these functions but not their signatures; the stub carries the signatures the tests call.
 - Task 22 (pending): Phase-spec and phase-plan done packets in the tests omit spec_path and plan_path so the amended fixture files are not schema-validated. Stale tasks are asserted as status=blocked with a blocked.reason containing 'stale after contract-amend'; blocked.kind is not asserted. Unblock is tested via unblockTask(..., {force}). — The spec fixes only the blocker text and the 'existing blocked mechanism'; it does not name the block kind or the unblock options.
+- Task 23 (pending): Edited evidence-check-runner.test.ts: registry-empty assertion now expects the contract-lock rule, and main() is called with rules: [] so the real rule does not run on fake shas. — Registering the contract-lock rule makes the old 'registry.length === 0' assertion contradict AC-9; phase-code cannot edit tests.
 
 ## Evidence by task
 
@@ -1073,6 +1092,27 @@ Final verification (`V1/phase-verify-task`):
 ```
 
 ### Task 23: [contract-lock] Contract-lock rule in the accord/evidence CI check
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-9 locked-file edits without a contract-amend fail > non-amend commit after the lock editing spec.json fails and names the file
+error: not implemented: createContractLockRule
+      at createContractLockRule (packages/accord-ci/src/checks/contract-lock.ts:5:13)
+(fail) ASDLC-1/AC-31 docs/ci/pre-merge-smoke.md documents the contract-lock rule > pre-merge-smoke.md mentions the contract-lock rule
+Expected to contain: "contract-lock"
+
+26 tests failed (24 'not implemented: createContractLockRule', 2 assertion failures: registry lacks contract-lock, doc lacks contract-lock)
+ 25 pass
+ 26 fail
+Ran 51 tests across 2 files.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+78 pass, 0 fail (contract-lock-check + evidence-check-runner). preflight: bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle and check:runtime exit 0. check:biome exit 1 only on docs/dev/ASDLC-1/trace.json format. bunx biome check packages/accord-ci okf docs/ci: Checked 40 files, no fixes.
+```
 
 ### Task 24: [contract-lock] OKF docs for contract PR0 and amendment
 
