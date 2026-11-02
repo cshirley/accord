@@ -738,6 +738,19 @@ describe("ASDLC-1/AC-12 secret masked in every finding field", () => {
 });
 
 describe("ASDLC-1/AC-1 orchestrator wiring (processSubagentToolResult)", () => {
+  // ASDLC-1/AC-12: with a task fixture and default state config every typed commit also
+  // stages the redacted state snapshot; the other staged files are pinned separately.
+  const STATE_PREFIX = `docs/dev/${ID}/state/`;
+  const expectNonStateFiles = (expected: string[]): void => {
+    expect(filesOf("HEAD").filter((file) => !file.startsWith(STATE_PREFIX))).toEqual(expected);
+  };
+  const expectWiringState = (): void => {
+    expect(
+      filesOf("HEAD")
+        .filter((file) => file.startsWith(STATE_PREFIX))
+        .sort(),
+    ).toEqual([`${STATE_PREFIX}task-7/STATE.md`, `${STATE_PREFIX}task-7/task.json`]);
+  };
   const WIRE_CFG = (commits?: string | null, stackEnabled?: boolean): DevHarnessConfig | null =>
     commits === null
       ? null
@@ -938,7 +951,8 @@ describe("ASDLC-1/AC-1 orchestrator wiring (processSubagentToolResult)", () => {
     expect(git("log", "-1", "--format=%s").trim()).toStartWith(
       "[ASDLC-1][task-7] T1/review-test: ",
     );
-    expect(filesOf("HEAD")).toEqual([`${REVIEWS}/T1-review-test.md`]);
+    expectNonStateFiles([`${REVIEWS}/T1-review-test.md`]);
+    expectWiringState();
   });
 
   it("ASDLC-1/AC-1 phase mode: critical review-test finding then retry commits T1/review-test then T2/phase-test", async () => {
@@ -952,7 +966,8 @@ describe("ASDLC-1/AC-1 orchestrator wiring (processSubagentToolResult)", () => {
     );
     const afterReview = subjects();
     expect(afterReview.at(-1)).toStartWith("[ASDLC-1][task-7] T1/review-test: ");
-    expect(filesOf("HEAD")).toEqual([`${REVIEWS}/T1-review-test.md`]);
+    expectNonStateFiles([`${REVIEWS}/T1-review-test.md`]);
+    expectWiringState();
     write(TEST_FILE, "// red, strengthened\n");
     await run("phase-test", testPacket, WIRE_CFG("phase"));
     const all = subjects();
@@ -986,7 +1001,8 @@ describe("ASDLC-1/AC-1 orchestrator wiring (processSubagentToolResult)", () => {
       subject.startsWith("[ASDLC-1][task-7] C1/phase-code: "),
     );
     expect(codeCommits.length).toBe(1);
-    expect(filesOf("HEAD")).toEqual([SRC_FILE]);
+    expectNonStateFiles([SRC_FILE]);
+    expectWiringState();
     write(TEST_FILE, "// red, re-owned\n");
     await run("phase-test", testPacket, WIRE_CFG("phase"));
     // Fixture has no earlier test round, so the re-owned phase-test is round T1.
@@ -1002,7 +1018,8 @@ describe("ASDLC-1/AC-1 orchestrator wiring (processSubagentToolResult)", () => {
       WIRE_CFG("phase"),
     );
     expect(subjects().at(-1)).toStartWith("[ASDLC-1][task-7] C1/review-security: ");
-    expect(filesOf("HEAD")).toEqual([`${REVIEWS}/C1-review-security.md`]);
+    expectNonStateFiles([`${REVIEWS}/C1-review-security.md`]);
+    expectWiringState();
   });
 
   for (const [label, commits, stackEnabled] of [

@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T14:49:47.715Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T15:25:49.171Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -39,8 +39,8 @@
 | 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | done | `f7abffb` | 2/1/1 | 25 (verified 10, wont_fix_accepted 1, reraised 2, open 12) | 0 |
 | 31 | [stack-compute] accord stack CLI command | done | `b7c7b0e` | 2/1/1 | 15 (verified 12, open 2, wont_fix_accepted 1) | 0 |
 | 32 | [stack-compute] Schema description and OKF docs for the stack | done | `2efaca7` | 2/1/1 | 14 (verified 6, open 8) | 0 |
-| 33 | [tree-state] State size cap and task-file redaction | done | — | 2/1/1 | 15 (verified 7, open 8) | 0 |
-| 34 | [tree-state] State snapshot writer staged with every typed commit | pending | — | 0/0/0 | 0 | 0 |
+| 33 | [tree-state] State size cap and task-file redaction | done | `fcba02c` | 2/1/1 | 15 (verified 7, open 8) | 0 |
+| 34 | [tree-state] State snapshot writer staged with every typed commit | done | — | 2/1/1 | 21 (verified 11, open 10) | 0 |
 | 35 | [tree-state] Stateless resume from committed state | pending | — | 0/0/0 | 0 | 0 |
 | 36 | [tree-state] Closeout commit builds artifacts then removes state | pending | — | 0/0/0 | 0 | 0 |
 | 37 | [tree-state] Leftover-state rule in the accord/evidence check | pending | — | 0/0/0 | 0 | 0 |
@@ -266,17 +266,27 @@
   - stack-cli.test.ts › ASDLC-1/AC-11 unsupported provider fails with a clear error and exit 1
   - stack-cli.test.ts › ASDLC-1/AC-11 `accord --help` lists the stack command
 
-### AC-12 — pending (not verified)
+### AC-12 — satisfied
 
 > Then docs/dev/<ID>/state/task-<N>/ in the same commit holds STATE.md (the accord trace rendering) and a redacted task.json valid against task-schema.json with in_flight null, test output is redacted (secrets and token…
 
-- Tasks: 33 (satisfied), 34 (pending)
-- Files: `packages/accord-core/tests/state-redact.test.ts`, `packages/accord-core/src/state/redact.ts`
-- Tests verified (4):
+- Tasks: 33 (satisfied), 34 (satisfied)
+- Files: `packages/accord-core/tests/state-redact.test.ts`, `packages/accord-core/src/state/redact.ts`, `packages/accord-core/tests/state-snapshot.test.ts`, `packages/accord-core/src/state/snapshot.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`
+- Tests verified (14):
   - bun test packages/accord-core/tests/state-redact.test.ts (34 pass, 0 fail)
   - bun run check:types
   - bunx biome check on task files (exit 0)
   - secret-pattern grep over packages/accord-core/tests: no match
+  - state-snapshot.test.ts › ASDLC-1/AC-12 writes exactly STATE.md and task.json under state/task-<N>/
+  - state-snapshot.test.ts › ASDLC-1/AC-12 STATE.md equals renderTaskTrace of the redacted task
+  - state-snapshot.test.ts › ASDLC-1/AC-12 task.json validates against task-schema.json with in_flight null and a reset owner_nonce
+  - state-snapshot.test.ts › ASDLC-1/AC-12 every seeded secret, token, env value and home path is redacted from both files
+  - state-snapshot.test.ts › ASDLC-1/AC-12 test output is capped at stack.state.max_bytes and task.json stays valid JSON
+  - state-snapshot.test.ts › ASDLC-1/AC-12 redact false: no state is written
+  - state-snapshot.test.ts › ASDLC-1/AC-12 the final evidence commit leaves no state/task-<N>/
+  - state-snapshot.test.ts › ASDLC-1/AC-12 snapshot files contain no secret assignment and no home path
+  - state-snapshot.test.ts › ASDLC-1/AC-12 a phase commit stages STATE.md and task.json, redacted, and no raw packet
+  - phase-commits.test.ts (4 tests, all pass)
 
 ### AC-13 — pending (not verified)
 
@@ -414,9 +424,9 @@
 
 > The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…
 
-- Tasks: 3 (satisfied), 6 (satisfied), 7 (satisfied), 13 (satisfied), 34 (pending), 39 (pending)
-- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`
-- Tests verified (14):
+- Tasks: 3 (satisfied), 6 (satisfied), 7 (satisfied), 13 (satisfied), 34 (satisfied), 39 (pending)
+- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`, `packages/accord-core/tests/state-snapshot.test.ts`, `packages/accord-core/src/state/snapshot.ts`
+- Tests verified (19):
   - packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields
   - ASDLC-1/AC-29 <event> catalogue entry declares exact level and fields
   - ASDLC-1/AC-29 <event> rejects an unknown field
@@ -431,6 +441,11 @@
   - ASDLC-1/AC-3 rejection logged (stack.guard.rejected)
   - ASDLC-1/AC-29 emits info event with work_item_id, ref, outcome=done and sha
   - ASDLC-1/AC-29 no event on idempotent rerun
+  - state-snapshot.test.ts › ASDLC-1/AC-29 emits debug stack.state.snapshot with exact fields and counts only
+  - state-snapshot.test.ts › ASDLC-1/AC-29 event line carries no content: no seed, path or note text
+  - state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted at info level (debug only)
+  - state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when persist is none or notes
+  - state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when redact is false and nothing is written
 
 ### AC-30 — pending (not verified)
 
@@ -771,6 +786,16 @@
 | 33 | AC-12 | F-013 | unresolved (advisory) | open | suggestion | capBytes duplicates the byte-cap logic already in evidence/asset.ts capText, with a different marker. | packages/accord-core/src/state/redact.ts:120 |  |
 | 33 | AC-12 | F-014 | unresolved (advisory) | open | suggestion | redactTaskFile calls redactText once per string node; each call rescans process.env, sorts, and compiles a RegExp per sensitive env value. | packages/accord-core/src/state/redact.ts:93 |  |
 | 33 | AC-12 | F-015 | unresolved (advisory) | open | suggestion | capBytes is text-only: applied to serialized task.json it yields invalid JSON, and redactTaskFile has no per-string cap, so no helper here bounds task.json size while keeping it schema-valid. | packages/accord-core/src/state/redact.ts:120 |  |
+| 34 | AC-12 | F-012 | unresolved (advisory) | open | warning | The size-cap tests (lines 322, 344 and 355; the last two were added in T2) do not check the trace or schema contract when output is over the cap. They check only that each file is at most max_bytes, that log[0].note matches /truncated/i and that 'tail-marker' is absent. Plausible wrong implementation: cap the oversized note in task.json, but write STATE.md = capBytes(renderTaskTrace(redactedUncappedTask), max).value. capBytes is a text helper that already exists, so capping the whole file is a natural choice. This passes all three tests. But STATE.md is then no longer 'exactly renderTaskTrace' output, and every trace line after the cut is silently lost: log[0].events and warnings, later log entries and the in-flight line. Related gaps in the same input partition: (1) the capped task.json is never checked with Ajv, so a cap that breaks schema shape passes; (2) only one oversized field is seeded, so a cap that trims only log[0].note, or trims each note to the same budget, passes when several notes are large. | packages/accord-core/tests/state-snapshot.test.ts:322 |  |
+| 34 | AC-12 | F-013 | unresolved (advisory) | open | suggestion | The decoy test (task-8/STATE.md and contract-amend.open) covers only the phase-test commit. Review agents and phase-verify-task already stage the whole `${devDir}/state/` folder, so task 7's review and verify commits would also pick up task 8's snapshot. Wrong implementation that passes: stage exact task-7 snapshot paths only for phase-test and phase-code, and keep the whole-folder sweep elsewhere. This was missed in round 1 (the review and verify state staging did not change), so it is a suggestion only. | packages/accord-core/tests/state-snapshot.test.ts:495 |  |
+| 34 | AC-12 | F-014 | unresolved (advisory) | open | suggestion | Only the direct commitTaskEvidence test checks that state/task-<N>/ is removed after the evidence commit. The real wiring path (V1 phase commit, then evidence commit through processSubagentToolResult) never checks this. A wiring change that writes the snapshot again after the evidence commit would leave an untracked state folder, and all tests would still pass. This test did not change since round 1, so it is a suggestion only. | packages/accord-core/tests/phase-commits.test.ts:863 |  |
+| 34 | AC-12 | F-015 | unresolved (advisory) | open | warning | Cap loop exits at the 64-byte string floor with task.json still over max_bytes, then truncates STATE.md independently, so the written snapshot exceeds the cap and STATE.md no longer equals renderTaskTrace(task.json). | packages/accord-core/src/state/snapshot.ts:61 |  |
+| 34 | AC-12 | F-016 | unresolved (advisory) | open | suggestion | Missing live task returns silently, and the raw untyped loader plus an `as never` cast hide v1/legacy files from renderTaskTrace. | packages/accord-core/src/state/snapshot.ts:47 |  |
+| 34 | AC-12 | F-018 | unresolved (advisory) | open | suggestion | The persist/redact gate is duplicated outside writeStateSnapshot, and a snapshot exception fails the whole phase commit. | packages/accord-core/src/commit/phase-commit.ts:186 |  |
+| 34 | AC-12 | F-019 | unresolved (advisory) | open | suggestion | Review and verify commits stage the whole docs/dev/<ID>/state/ tree, not just this task's snapshot. | packages/accord-core/src/commit/phase-commit.ts:200 |  |
+| 34 | AC-12 | F-020 | unresolved (advisory) | open | suggestion | The cap is applied per file with a fixed max_bytes/4 per-string ceiling, though the schema describes max_bytes as per task snapshot. | packages/accord-core/src/state/snapshot.ts:50 |  |
+| 34 | AC-12 | F-021 | unresolved (advisory) | open | suggestion | stack.state.path is in the schema and resolveStackConfig but the snapshot directory is hardcoded to docs/dev/<ID>/state/task-<N>. | packages/accord-core/src/state/snapshot.ts:15 |  |
+| 34 | AC-29 | F-017 | unresolved (advisory) | open | suggestion | Empty catch swallows emitStackEvent failures; the sibling call in phase-commit.ts logs a warn. | packages/accord-core/src/state/snapshot.ts:86 |  |
 
 ## Decisions
 
@@ -1454,6 +1479,18 @@ state-redact.test.ts: 34 pass, 0 fail. check:types ok. biome (task files) exit 0
 ```
 
 ### Task 34: [tree-state] State snapshot writer staged with every typed commit
+
+RED evidence (`T1/phase-test`):
+
+```text
+18 fail, 2 pass. Failures: 'error: not implemented: writeStateSnapshot' at src/state/snapshot.ts:8 (direct writeStateSnapshot tests, AC-29 emission tests); phase-commit tests fail on assertions e.g. Expected to contain "docs/dev/ASDLC-1/state/task-7/STATE.md" Received: ".gitignore\nREADME.md\ntests/foo.test.ts\n" and ENOENT on state/task-7/STATE.md. The 2 passing tests are negative (redact false / persist none stage no state).
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+bun test (2 files): 61 pass, 0 fail, 556 expect() calls. bun run check:types: exit 0. bunx biome check on the 4 task files: clean. Repo-wide check:biome fails only on pre-existing, untouched files: packages/accord-core/tests/state-redact.test.ts:43 (useTemplate) and docs/dev/ASDLC-1/trace.json (format). validate:schemas/assets/okf/ste, check:bundle, check:runtime all exit 0. Full `bun test` hit the 120s preflight timeout with no failures seen.
+```
 
 ### Task 35: [tree-state] Stateless resume from committed state
 
