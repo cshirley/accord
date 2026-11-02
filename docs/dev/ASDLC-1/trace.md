@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T10:18:10.398Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T10:35:36.076Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -32,8 +32,8 @@
 | 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | done | `e448106` | 2/1/1 | 24 (verified 12, reraised 1, wont_fix_accepted 1, open 10) | 0 |
 | 24 | [contract-lock] OKF docs for contract PR0 and amendment | done | `7940f3b` | 1/2/2 | 10 (open 5, verified 5) | 0 |
 | 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | done | `50242d8` | 1/4/5 | 15 (open 8, verified 7) | 1 |
-| 26 | [stack-compute] computeStack: deterministic pack, flag and order | done | — | 3/3/2 | 23 (verified 20, wont_fix_accepted 3) | 0 |
-| 27 | [stack-compute] PR brief, stack map, stack table and report renderers | pending | — | 0/0/0 | 0 | 0 |
+| 26 | [stack-compute] computeStack: deterministic pack, flag and order | done | `89b79ee` | 3/3/2 | 23 (verified 20, wont_fix_accepted 3) | 0 |
+| 27 | [stack-compute] PR brief, stack map, stack table and report renderers | done | — | 2/1/1 | 16 (verified 13, reraised 1, open 2) | 0 |
 | 28 | [stack-compute] StackProvider port and gh provider | pending | — | 0/0/0 | 0 | 0 |
 | 29 | [stack-compute] Stack service and dev_stack_* MCP tools | pending | — | 0/0/0 | 0 | 0 |
 | 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | pending | — | 0/0/0 | 0 | 0 |
@@ -133,19 +133,23 @@
   - evidence-commit.test.ts: ASDLC-1/AC-5 single task, merged PR, state dir removal, outcome=done trailer, commit log entry, staging guards, resolver registry
   - phase-commits.test.ts: ASDLC-1/AC-5 wiring A/B/C
 
-### AC-6 — pending (not verified)
+### AC-6 — satisfied
 
 > Every AC or TC reference outside spec.json (evidence asset .md and .json, trace.json, the PR brief and the stack map) MUST be work-item-qualified as <work_item_id>/AC-<n>, never a bare AC-<n>, so it resolves once many…
 
-- Tasks: 11 (satisfied), 12 (satisfied), 27 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/src/artifacts/trace-artifact.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/src/queries/verify-summary.ts`, `packages/accord-core/tests/evidence-asset.test.ts`, `packages/accord-core/src/evidence/asset.ts`
-- Tests verified (6):
+- Tasks: 11 (satisfied), 12 (satisfied), 27 (satisfied)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/src/artifacts/trace-artifact.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/src/queries/verify-summary.ts`, `packages/accord-core/tests/evidence-asset.test.ts`, `packages/accord-core/src/evidence/asset.ts`, `packages/accord-core/tests/stack-render.test.ts`, `packages/accord-core/src/stack/render.ts`
+- Tests verified (10):
   - qualified-ac-refs.test.ts: ASDLC-1/AC-6 qualifyAcRef, qualifyTcRef, normalizeAcId, findBareAcRefs
   - ASDLC-1/AC-6 written trace.json is qualified and schema-valid
   - ASDLC-1/AC-26 bare/qualified verify-summary and renderAcTrace cases
   - trace-artifact.test.ts
   - evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) every AC/TC reference in md and json is ASDLC-1/AC-<n>
   - evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) a bare reference is detected
+  - stack-render.test.ts: ASDLC-1/AC-6 qualifies bare and already-qualified AC ids, no bare refs
+  - stack-render.test.ts: ASDLC-1/AC-6 stack map has no bare AC refs
+  - stack-render.test.ts: ASDLC-1/AC-6 table has no bare AC refs
+  - stack-render.test.ts: ASDLC-1/AC-6 report has no bare AC refs even when trailers carry ac=
 
 ### AC-7 — satisfied
 
@@ -233,7 +237,13 @@
 
 > Then PRs are created or updated with a stack map comment and a generated PR brief (contract link first, ACs and proving tests, process summary, reading order), one accord/evidence status check replaces bot comments, a…
 
-- Tasks: 27 (pending), 28 (pending), 29 (pending), 30 (pending), 31 (pending)
+- Tasks: 27 (satisfied), 28 (pending), 29 (pending), 30 (pending), 31 (pending)
+- Files: `packages/accord-core/tests/stack-render.test.ts`, `packages/accord-core/src/stack/render.ts`
+- Tests verified (4):
+  - stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order
+  - stack-render.test.ts: ASDLC-1/AC-11 header columns are exactly PR, Tasks, Concern, ACs, Est. LOC, Depends on
+  - stack-render.test.ts: ASDLC-1/AC-11 one row per PR and loop with rolled-up values from trailers
+  - stack-render.test.ts: ASDLC-1/AC-11 lists position, PR link and qualified AC coverage per PR in order
 
 ### AC-12 — pending (not verified)
 
@@ -660,6 +670,9 @@
 | 26 | AC-10 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | The tests read 'flag' in pass B ('unless the task is a refactor, schema, or flag') as 'task.flag is set, so the task never merges'. AC-17 says that under require_flag every non-final task carries a flag. With this reading, merging is turned off for those stacks. kind 'enable' (the task that flips the flag) is also not tested. | packages/accord-core/tests/compute-stack.test.ts:154 | wont_fix_accepted by T2/review-test — Sound reason: plan section 4.2 pass B does not say whether 'flag' means task.flag or kind 'enable', and the tests apply the task.flag reading consistently. A human should confirm, because with require_flag (AC-17) this reading disables merging. |
 | 26 | AC-10 | F-019 | accepted (advisory) | wont_fix_accepted | suggestion | A missing est_lines counts as 0, so unknown-size same-concern tasks always merge as 'below min_pr_lines' and bypass the line budget. | packages/accord-core/src/stack/compute-stack.ts:62 | wont_fix_accepted by C3/review-code — Advisory suggestion. A missing est_lines counts as 0, which a legacy-tasks test relies on. Not a correctness bug. |
 | 26 | AC-10 | F-021 | accepted (advisory) | wont_fix_accepted | suggestion | StackSizing duplicates the sizing shape in config/stack-flags.ts and config/types.ts, so the three can drift. | packages/accord-core/src/stack/types.ts:15 | wont_fix_accepted by C3/review-code — Reason is scope: deriving StackSizing from the resolved config type belongs to the task that wires resolveStackConfig into computeStack. The finding is not a correctness bug. |
+| 27 | AC-11 | F-006 | unresolved (advisory) | reraised | warning | Absent optional fields are never checked for leaking as NaN/undefined. Trailers omit absent keys (commit-grammar: 'absent keys are omitted, never null'), but every trailer in the roll-up fixture carries crit/warn/sugg/tok_in/tok_out/usd_u. A brief AC without text is also never checked for 'undefined'. | packages/accord-core/tests/stack-render.test.ts:357 | reraised by T2/review-test — Unmet: 'In the line 80 test add expect(md).not.toContain("undefined")'. It was added to the section-order test, where all ACs have text. The test with an AC that has no text still does not check for 'undefined'. The report half is met. |
+| 27 | AC-11 | F-015 | unresolved (advisory) | open | suggestion | The tests cannot tell the 'tests' cell built from the latest test-bearing trailer apart from one built from the latest trailer. No T-loop trailer without t_pass or t_fail comes after the trailers that have them. In real T loops a review-test trailer (no t_* keys) usually comes last. This gap was missed in round 1 (the loop T fixture has not changed). | packages/accord-core/tests/stack-render.test.ts:452 |  |
+| 27 | AC-11 | F-016 | unresolved (advisory) | open | suggestion | The stack map is never checked for leaked null or undefined, but the contract entry has `concern: null`, `acs: []` and no depends_on_prs. This gap was missed in round 1 (the entries fixture has not changed). | packages/accord-core/tests/stack-render.test.ts:185 |  |
 
 ## Decisions
 
@@ -1223,6 +1236,24 @@ compute-stack.test.ts: 40 pass, 0 fail. check:types exit 0. biome on task files:
 ```
 
 ### Task 27: [stack-compute] PR brief, stack map, stack table and report renderers
+
+RED evidence (`T1/phase-test`):
+
+```text
+error: not implemented: renderStackReport
+  at renderStackReport (packages/accord-core/src/stack/render.ts:51:55)
+(fail) ASDLC-1/AC-11 renderStackReport > ASDLC-1/AC-6 report has no bare AC refs even when trailers carry ac=
+
+ 0 pass
+ 16 fail
+Ran 16 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+stack-render.test.ts: 27 pass, 0 fail. check:types, validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle, check:runtime and full bun test: pass. check:biome fails only on docs/dev/ASDLC-1/trace.json (format); the task's two files are Biome-clean.
+```
 
 ### Task 28: [stack-compute] StackProvider port and gh provider
 
