@@ -43,6 +43,7 @@ export interface StackProvider {
   listPrs(input?: ListPrsInput): Promise<StackPr[]>;
   ensureBranch(input: { branch: string; base: string }): Promise<void>;
   pushBranch(input: { branch: string }): Promise<void>;
+  retarget(pr: number, base: string): Promise<void>;
 }
 
 export interface ResolveStackProviderOptions {

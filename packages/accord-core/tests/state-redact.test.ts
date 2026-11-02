@@ -40,7 +40,7 @@ function seeded(): Record<string, unknown> {
     control: {
       phase: "phase-test",
       in_flight: null,
-      last_prompt: "do thing with " + ghToken,
+      last_prompt: `do thing with ${ghToken}`,
       prompt: `use ${patToken}`,
     },
     log: [

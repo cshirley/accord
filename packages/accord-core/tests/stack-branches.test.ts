@@ -501,6 +501,7 @@ describe("ASDLC-1/AC-11 preflight integration", () => {
       listPrs: async () => [],
       ensureBranch: async () => {},
       pushBranch: async () => {},
+      retarget: async () => {},
     };
 
     await stackShow(ID, ENABLED, { cwd: repo, provider });
@@ -527,6 +528,7 @@ describe("ASDLC-1/AC-11 ensureCloseoutBranch", () => {
         ),
       ensureBranch: async () => {},
       pushBranch: async () => {},
+      retarget: async () => {},
     };
   }
   const allMerged = () => [pr(1, "merged"), pr(2, "merged"), pr(3, "merged"), pr(4, "merged")];
