@@ -11,7 +11,7 @@ export interface MeasureLinesOptions {
 }
 
 const DEFAULT_TEST_PATTERN = "**/*.test.ts";
-const STATE_PATH_RE = /^docs\/dev\/[^/]+\/(?:state|reviews|evidence)\//;
+const STATE_PATH_RE = /^(?:docs\/dev\/[^/]+\/(?:state|reviews|evidence)|\.tasks)\//;
 const LOCK_NAMES = new Set([
   "bun.lock",
   "bun.lockb",

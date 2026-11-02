@@ -28,6 +28,7 @@ import {
   recordTaskAgentMissingReturn,
   recordTaskAgentReturn,
 } from "../../orchestration/task-agent-audit.js";
+import { checkOverrun, resolveTaskDiffRange } from "../../stack/overrun.js";
 import { latestLogFor } from "../../tasks/model.js";
 import { loadTaskV2 } from "../../tasks/store.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
@@ -114,6 +115,35 @@ async function buildContractPr0IfPlanned(
     return `\n\n**PR0 contract commit:** \`${result.hash}\`${tagNote}`;
   } catch (error) {
     return `\n\n**PR0 contract commit failed:** ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+async function checkOverrunAfterGreen(
+  workItemId: string,
+  taskId: number | null,
+  agentName: string,
+  packet: Record<string, unknown>,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (agentName !== "phase-code" || packet.status !== "done" || packet.tests_passing !== true) {
+    return "";
+  }
+  if (taskId == null || !resolveStackConfig(devConfig).enabled) return "";
+  try {
+    const range = await resolveTaskDiffRange(workItemId, taskId, process.cwd());
+    if (!range) return "";
+    const result = await checkOverrun(workItemId, taskId, {
+      cwd: process.cwd(),
+      config: devConfig,
+      ...range,
+    });
+    if (!result.overrun) return "";
+    return `\n\n**Overrun:** task ${String(taskId)} changed ${String(result.act_lines)} lines against est_lines ${String(result.est_lines)}; decision \`${result.decision_id ?? ""}\` raised.`;
+  } catch (error) {
+    log.warn(
+      `overrun check failed for ${workItemId} task ${String(taskId)}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return "";
   }
 }
 
@@ -542,6 +572,13 @@ export async function processSubagentToolResult(
             workItemId,
             agentName,
             extractTaskIdFromTaskText(task),
+            packet as Record<string, unknown>,
+            state.devConfig,
+          );
+          contentAppend += await checkOverrunAfterGreen(
+            workItemId,
+            extractTaskIdFromTaskText(task),
+            agentName,
             packet as Record<string, unknown>,
             state.devConfig,
           );
