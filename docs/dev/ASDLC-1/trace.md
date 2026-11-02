@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T15:57:55.977Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T16:32:51.467Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -41,8 +41,8 @@
 | 32 | [stack-compute] Schema description and OKF docs for the stack | done | `2efaca7` | 2/1/1 | 14 (verified 6, open 8) | 0 |
 | 33 | [tree-state] State size cap and task-file redaction | done | `fcba02c` | 2/1/1 | 15 (verified 7, open 8) | 0 |
 | 34 | [tree-state] State snapshot writer staged with every typed commit | done | `b7c261f` | 2/1/1 | 21 (verified 11, open 10) | 0 |
-| 35 | [tree-state] Stateless resume from committed state | done | — | 2/1/1 | 10 (verified 4, reraised 1, open 5) | 0 |
-| 36 | [tree-state] Closeout commit builds artifacts then removes state | pending | — | 0/0/0 | 0 | 0 |
+| 35 | [tree-state] Stateless resume from committed state | done | `f299bdb` | 2/1/1 | 10 (verified 4, reraised 1, open 5) | 0 |
+| 36 | [tree-state] Closeout commit builds artifacts then removes state | done | — | 2/1/1 | 18 (verified 9, wont_fix_accepted 1, open 8) | 0 |
 | 37 | [tree-state] Leftover-state rule in the accord/evidence check | pending | — | 0/0/0 | 0 | 0 |
 | 38 | [tree-state] OKF docs for committed state and closeout | pending | — | 0/0/0 | 0 | 0 |
 | 39 | [trunk-hardening] Overrun measurement and re-plan decision | pending | — | 0/0/0 | 0 | 0 |
@@ -311,11 +311,17 @@
 
 - Tasks: 37 (pending)
 
-### AC-15 — pending (not verified)
+### AC-15 — satisfied
 
 > Then verify.*, trace.* and workflow-cost.* are built, the remaining docs/dev/<ID>/state/ (including work-item.json) is deleted after they are built, and the closeout PR is the last PR of the stack
 
-- Tasks: 36 (pending)
+- Tasks: 36 (satisfied)
+- Files: `packages/accord-core/tests/closeout.test.ts`, `packages/accord-core/src/state/closeout.ts`, `packages/accord-core/src/orchestration/commit-on-task-done.ts`
+- Tests verified (4):
+  - closeout.test.ts: 26 tests pass, including ASDLC-1/AC-15 mtime order, outcome=closeout trailer, state/ removed after verify/trace/cost built, branch hook and clean-tree precondition, on_finalize=false refusal, and stack-disabled unchanged (AC-26)
+  - bun run check:types
+  - bun run check:runtime
+  - bunx biome check on the 3 task files
 
 ### AC-16 — pending (not verified)
 
@@ -813,6 +819,15 @@
 | 35 | AC-13 | F-008 | unresolved (advisory) | open | suggestion | A corrupt state/task-N/task.json (e.g. merge-conflict markers after a stack rebase) is skipped silently, and so is a corrupt state/work-item.json. Task writes also come after the work item write. | packages/accord-core/src/state/restore.ts:38 |  |
 | 35 | AC-13 | F-009 | unresolved (advisory) | open | suggestion | The restore branch skips carryForwardUsageFromCommittedRollup, which the inference branch runs, so usage and cost rows are inconsistent between the two rehydrate paths. | packages/accord-core/src/work-items/rehydrate.ts:168 |  |
 | 35 | AC-13 | F-010 | unresolved (advisory) | open | suggestion | The evidence asset path is a hand-built literal in a third place. | packages/accord-core/src/work-items/artifact-discovery.ts:265 |  |
+| 36 | AC-15 | F-010 | accepted (advisory) | wont_fix_accepted | suggestion | Only v, id and outcome of the closeout trailer are pinned. The required trailer keys (task, seq, ref, agent, loop, round) and the subject format are left open, so a hand-written `Accord: v=1 id=ASDLC-1 outcome=closeout` passes. Downstream consumers (evidence timeline, leftover-state check, CI resume 'from the last typed commit') may reject or ignore it. | packages/accord-core/tests/closeout.test.ts:170 | wont_fix_accepted by T2/review-test — The spec and plan pin only v, id and outcome=closeout. The chosen shape is recorded in the comment at line 66. Sound reason. |
+| 36 | AC-15 | F-011 | unresolved (advisory) | open | suggestion | The 'state/ deleted after build' spy test runs only with a verify report (commitVerifyFixture). The no-verify branch of commitWorkItemArtifacts calls devPersistWorkflowCost and writeWorkItemTrace directly, and their order against the state removal is not observed there. The task sweep already gives true records for trace and cost, so the length > 0 checks pass in that branch whatever the closeout does. | packages/accord-core/tests/closeout.test.ts:233 |  |
+| 36 | AC-15 | F-012 | unresolved (advisory) | open | warning | prepareCloseout mutates the worktree (writes marker, deletes state/) before the commit, with no rollback. If the commit fails, the clean-tree guard then blocks every retry. | packages/accord-core/src/orchestration/commit-on-task-done.ts:341 |  |
+| 36 | AC-15 | F-013 | unresolved (advisory) | open | warning | Closeout still sweeps done tasks via commitDoneTasks when stack.commits is 'phase'. The per-result sweep skips this mode, so closeout adds legacy `[<ID>] Task N:` commits. | packages/accord-core/src/orchestration/commit-on-task-done.ts:311 |  |
+| 36 | AC-15 | F-014 | unresolved (advisory) | open | warning | The closeout commit does not emit the `stack.commit.created` telemetry event that every other typed-commit path emits. | packages/accord-core/src/orchestration/commit-on-task-done.ts:359 |  |
+| 36 | AC-15 | F-015 | unresolved (advisory) | open | suggestion | Spec conflict for a human decision: the clean-tree-first guard is refused by both real callers, so stack closeout can never run end to end. | packages/accord-core/src/orchestration/commit-on-task-done.ts:281 |  |
+| 36 | AC-15 | F-016 | unresolved (advisory) | open | suggestion | A stack closeout refusal is surfaced as success by both callers; the work item is already finalized. | packages/accord-core/src/orchestration/runner.ts:421 |  |
+| 36 | AC-15 | F-017 | unresolved (advisory) | open | suggestion | The marker is rewritten with a fresh `closed_at` on every call, so re-running closeout after success creates another closeout commit. | packages/accord-core/src/state/closeout.ts:35 |  |
+| 36 | AC-15 | F-018 | unresolved (advisory) | open | suggestion | `hash` format differs by mode (full SHA when stack is on, short when off), and the stack preflight is inlined in an already long function. | packages/accord-core/src/orchestration/commit-on-task-done.ts:360 |  |
 
 ## Decisions
 
@@ -856,6 +871,7 @@
 - Task 31 (pending): Added the stack entry to packages/accord-cli/src/ui/command-catalog.ts — Needed for `accord --help` to list stack (AC-11 help test); the file is not in task.files[]
 - Task 35 (pending): Pinned restoreStateFromTree(id, cwd?) -> Result<{restored, task_ids}> and next ref = allocateRef(task, nextAgent); spec leaves both open. — Spec gives no signature or next-ref definition; tests need a concrete public contract.
 - Task 35 (pending): No test for artifact-discovery.ts 'skip state/' step. — Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.
+- Task 36 (pending): Closeout commit returns full HEAD sha (not short) when stack.enabled — Test compares result.hash to git rev-parse HEAD
 
 ## Evidence by task
 
@@ -1536,6 +1552,18 @@ Final verification (`V1/phase-verify-task`):
 ```
 
 ### Task 36: [tree-state] Closeout commit builds artifacts then removes state
+
+RED evidence (`T1/phase-test`):
+
+```text
+8 fail / 4 pass. Failing: stack-enabled closeout (state not deleted, no closeout.json, no trailer), hook awaited/called once (Expected 1, Received 0), dirty tree refusal (Expected ok false, Received true), on_finalize=false with stack enabled refusal (Expected ok false, Received true). Passing: the 4 stack-disabled backward-compat tests.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+closeout.test.ts: 26 pass, 0 fail (204 expect calls). check:types OK. check:runtime: runtime smoke passed. biome on the 3 task files: Checked 3 files, no fixes applied. validate:schemas, validate:assets, validate:okf, validate:ste and check:bundle passed in preflight.
+```
 
 ### Task 37: [tree-state] Leftover-state rule in the accord/evidence check
 
