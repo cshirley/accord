@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T17:24:38.702Z",
+  "generated_at": "2026-11-02T18:17:04.183Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -253,6 +253,18 @@
       "task_id": 38,
       "description": "Added task-38 tests to existing packages/accord-core/tests/docs-validation.test.ts (TC-32 glob) rather than a new file; no stub needed (docs-only task).",
       "reason": "task.files lists only okf docs; TC-32 test_name_glob names this file.",
+      "resolution": null
+    },
+    {
+      "task_id": 39,
+      "description": "Size persisted in task sidecar size.json instead of task file; trace-artifact reads it",
+      "reason": "task-schema.json is additionalProperties:false; avoids widening task file schema",
+      "resolution": null
+    },
+    {
+      "task_id": 39,
+      "description": "measureActualLines (evidence/lines.ts) now excludes .tasks/",
+      "reason": "Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored",
       "resolution": null
     }
   ],
@@ -4010,7 +4022,9 @@
       "id": 38,
       "title": "[tree-state] OKF docs for committed state and closeout",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "85f7289"
+      ],
       "rounds": {
         "T": 1,
         "C": 1,
@@ -4083,45 +4097,135 @@
     {
       "id": 39,
       "title": "[trunk-hardening] Overrun measurement and re-plan decision",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 20,
+        "by_state": {
+          "reraised": 1,
+          "verified": 8,
+          "open": 11
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test overrun-decision.test.ts: 1 pass, 11 fail. Failures: error: not implemented: checkOverrun at checkOverrun (packages/accord-core/src/stack/overrun.ts:27:13). Passing: 'trace without a measurement has no size block' (negative check, passes against stub).",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "overrun-decision + trace-artifact: 35 pass, 0 fail. validate:schemas 0, validate:assets 0, check:types 0, check:runtime 0. check:biome exit 1, only in files outside task 39: docs/dev/ASDLC-1/trace.json (format) and packages/accord-core/tests/state-redact.test.ts:43 (useTemplate). Biome on the 6 task-39 files is clean. Full `bun test` preflight timed out at 120s with no failures shown.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-16",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/overrun-decision.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/overrun.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/overrun.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/result/process.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/artifacts/trace-artifact.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/schemas/trace-schema.json",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "packages/accord-core/src/evidence/lines.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-core/tests/overrun-decision.test.ts packages/accord-core/tests/trace-artifact.test.ts"
+          }
         },
         {
           "id": "AC-29",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/overrun-decision.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/overrun.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/overrun.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/overrun-decision.test.ts"
+          }
         },
         {
           "id": "AC-30",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/overrun-decision.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/schemas/trace-schema.json",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun run validate:schemas && bun run validate:assets"
+          }
         }
       ]
     },
@@ -5275,16 +5379,29 @@
     {
       "ac_id": "AC-16",
       "text": "Then a decisions[] entry is raised with the options to re-plan through contract-amend or accept with a reason, a stack.overrun.detected log event is emitted, and planned vs actual size (production and test lines separ…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 39,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-core/tests/overrun-decision.test.ts",
+        "packages/accord-core/src/stack/overrun.ts",
+        "packages/accord-core/src/subagent/result/process.ts",
+        "packages/accord-core/src/artifacts/trace-artifact.ts",
+        "packages/accord-core/schemas/trace-schema.json",
+        "packages/accord-core/src/evidence/lines.ts"
+      ],
+      "tests": [
+        "ASDLC-1/AC-16 above 1.5x est: reports overrun with separate prod/test counts",
+        "ASDLC-1/AC-16 raises one pending decision offering re-plan and accept-with-reason",
+        "ASDLC-1/AC-16 trace records est_lines, act_prod_lines, act_test_lines per task",
+        "ASDLC-1/AC-16 stack enabled: GREEN with est 10 and a 40-line src raises one pending overrun decision and records size",
+        "ASDLC-1/AC-16 excludes lockfiles, generated, state, reviews and evidence from the count"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-17",
@@ -5580,7 +5697,7 @@
     {
       "ac_id": "AC-29",
       "text": "The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 3,
@@ -5604,7 +5721,7 @@
         },
         {
           "task": 39,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -5617,7 +5734,9 @@
         "packages/accord-core/tests/evidence-commit.test.ts",
         "packages/accord-core/src/commit/evidence-commit.ts",
         "packages/accord-core/tests/state-snapshot.test.ts",
-        "packages/accord-core/src/state/snapshot.ts"
+        "packages/accord-core/src/state/snapshot.ts",
+        "packages/accord-core/tests/overrun-decision.test.ts",
+        "packages/accord-core/src/stack/overrun.ts"
       ],
       "tests": [
         "packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields",
@@ -5638,9 +5757,12 @@
         "state-snapshot.test.ts › ASDLC-1/AC-29 event line carries no content: no seed, path or note text",
         "state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted at info level (debug only)",
         "state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when persist is none or notes",
-        "state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when redact is false and nothing is written"
+        "state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when redact is false and nothing is written",
+        "ASDLC-1/AC-29 emits at warn with work_item_id, task, est_lines, act_lines",
+        "ASDLC-1/AC-29 event carries the task id of the checked task",
+        "ASDLC-1/AC-29 goes through the shared logger: silent at error level, decision still raised"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-30",
@@ -5669,7 +5791,7 @@
         },
         {
           "task": 39,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 43,
@@ -5699,7 +5821,8 @@
         "packages/accord-core/src/artifacts/validation.ts",
         "packages/accord-core/schemas/plan-schema.json",
         "packages/accord-assets/agents/accord/phase-plan.md",
-        "packages/accord-core/src/orchestration/resolve/interview-task.ts"
+        "packages/accord-core/src/orchestration/resolve/interview-task.ts",
+        "packages/accord-core/tests/overrun-decision.test.ts"
       ],
       "tests": [
         "ASDLC-1/AC-30 accepts ac_id (table)",
@@ -5717,7 +5840,8 @@
         "alignment.test.ts: ASDLC-1/AC-30 plan field schema tests",
         "bun run validate:schemas (exit 0)",
         "packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack description says the harness reads the keys and that they default off",
-        "packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack default values are unchanged (enabled stays off, no new defaults)"
+        "packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack default values are unchanged (enabled stays off, no new defaults)",
+        "ASDLC-1/AC-30 written trace.json carries size, is schema-valid, malformed size is rejected"
       ],
       "verified": false
     },
@@ -10155,6 +10279,167 @@
       "file": "okf/references/artifacts-and-state.md",
       "line": 20,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-001",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "process.ts is in task.files[] (after GREEN, when stack.enabled and est_lines are present, await checkOverrun), but no test goes through processSubagentToolResult. The AC's 'When the harness measures the diff' is unpinned: wiring, the stack.enabled gate (backward-compat constraint), the GREEN-only trigger and base/head choice can all be wrong while every test stays green.",
+      "file": "packages/accord-core/tests/overrun-decision.test.ts",
+      "line": 10,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Target changed. All four Done-when rows exist (GREEN stack-enabled, RED-only, stack absent/false/missing, est omitted) with the requested assertions. But the GREEN case sets up phase-code without a RED commit, so the base choice that the original recommendation's (d) aimed at is still unpinned for the RED→GREEN sequence: measuring only the GREEN commit drops the test lines. New Done-when: a RED-then-GREEN wiring test asserts size toEqual({est_lines:10, act_prod_lines:5, act_test_lines:40}), one pending decision, and an event with act_lines=45. Line 582 asserts the exact size {10,40,0} and act_lines=40."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The only GREEN packet used is status 'done' with tests_passing true. An implementation that measures after every phase-code result, including stuck or failing ones, passes, and would raise overrun decisions before GREEN.",
+      "file": "packages/accord-core/tests/overrun-decision.test.ts",
+      "line": 566,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every positive wiring case uses commits:'phase'. resolveStackConfig defaults commits to 'task' even when stack.enabled is true, and the plan gates only on stack.enabled and est_lines. An implementation that skips the check silently in task mode passes, and so does one that measures a working-tree diff. The expected behaviour is not pinned.",
+      "file": "packages/accord-core/tests/overrun-decision.test.ts",
+      "line": 606,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Overrun check only runs when `stack.commits === \"phase\"`, but the spec step and AC-16 gate it on `stack.enabled` and est_lines only.",
+      "file": "packages/accord-core/src/subagent/result/process.ts",
+      "line": 570,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "est_lines of 0 is schema-valid (plan-schema minimum 0) but makes any change an overrun (act_lines > 1.5 * 0).",
+      "file": "packages/accord-core/src/stack/overrun.ts",
+      "line": 111,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`options.cwd` is honoured for plan.json, the diff and the size sidecar, but the work-item decision is written via `workItemJsonPath(workItemId)` without cwd.",
+      "file": "packages/accord-core/src/stack/overrun.ts",
+      "line": 47,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Third copy of the `git log --format=%H%x1f%B%x1e` plus parseAccordTrailer scan, and a second copy of the plan est_lines lookup.",
+      "file": "packages/accord-core/src/stack/overrun.ts",
+      "line": 129,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The check skips silently when no diff range resolves or when the GREEN phase commit failed (measures stale HEAD); there is no log for either.",
+      "file": "packages/accord-core/src/subagent/result/process.ts",
+      "line": 133,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Spec says answering the decision with re-plan drives `/dev amend-spec <reason> --replan`. The code only puts that command in the decision `context` text; no answer handler connects it.",
+      "file": "packages/accord-core/src/stack/overrun.ts",
+      "line": 56,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-16",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The `size.json` literal is duplicated from OVERRUN_SIZE_SIDECAR in stack/overrun.ts. The okf docs still say overrun_factor is planned.",
+      "file": "packages/accord-core/src/artifacts/trace-artifact.ts",
+      "line": 330,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-29",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "stack.overrun.detected is re-emitted at warn on every later GREEN round even though the decision is raised only once.",
+      "file": "packages/accord-core/src/stack/overrun.ts",
+      "line": 114,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 39,
+      "requirement": "AC-30",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The malformed-size Ajv cases cover only a wrong type and an extra key. A schema `size` with no `required` list and no `minimum` would accept a partial size block or negative counts, so AC-16's 'production and test lines separately' would not be enforced by the schema.",
+      "file": "packages/accord-core/tests/overrun-decision.test.ts",
+      "line": 317,
+      "raised": "T2/review-test"
     }
   ]
 }

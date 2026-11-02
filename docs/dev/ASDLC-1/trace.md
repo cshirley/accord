@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T17:24:38.702Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T18:17:04.183Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -44,8 +44,8 @@
 | 35 | [tree-state] Stateless resume from committed state | done | `f299bdb` | 2/1/1 | 10 (verified 4, reraised 1, open 5) | 0 |
 | 36 | [tree-state] Closeout commit builds artifacts then removes state | done | `f48130a` | 2/1/1 | 18 (verified 9, wont_fix_accepted 1, open 8) | 0 |
 | 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | `adc441a` | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
-| 38 | [tree-state] OKF docs for committed state and closeout | done | — | 1/1/1 | 13 (open 13) | 0 |
-| 39 | [trunk-hardening] Overrun measurement and re-plan decision | pending | — | 0/0/0 | 0 | 0 |
+| 38 | [tree-state] OKF docs for committed state and closeout | done | `85f7289` | 1/1/1 | 13 (open 13) | 0 |
+| 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | — | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
 | 40 | [trunk-hardening] Open-PR depth cap and flag validation | pending | — | 0/0/0 | 0 | 0 |
 | 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | pending | — | 0/0/0 | 0 | 0 |
 | 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | pending | — | 0/0/0 | 0 | 0 |
@@ -328,11 +328,18 @@
   - bun run check:runtime
   - bunx biome check on the 3 task files
 
-### AC-16 — pending (not verified)
+### AC-16 — satisfied
 
 > Then a decisions[] entry is raised with the options to re-plan through contract-amend or accept with a reason, a stack.overrun.detected log event is emitted, and planned vs actual size (production and test lines separ…
 
-- Tasks: 39 (pending)
+- Tasks: 39 (satisfied)
+- Files: `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/src/stack/overrun.ts`, `packages/accord-core/src/subagent/result/process.ts`, `packages/accord-core/src/artifacts/trace-artifact.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/src/evidence/lines.ts`
+- Tests verified (5):
+  - ASDLC-1/AC-16 above 1.5x est: reports overrun with separate prod/test counts
+  - ASDLC-1/AC-16 raises one pending decision offering re-plan and accept-with-reason
+  - ASDLC-1/AC-16 trace records est_lines, act_prod_lines, act_test_lines per task
+  - ASDLC-1/AC-16 stack enabled: GREEN with est 10 and a 40-line src raises one pending overrun decision and records size
+  - ASDLC-1/AC-16 excludes lockfiles, generated, state, reviews and evidence from the count
 
 ### AC-17 — pending (not verified)
 
@@ -442,13 +449,13 @@
   - stack-cli.test.ts › ASDLC-1/AC-28 commands/index.ts exports runStackCommand and dispatch/cli route `stack`
   - no-pi-dep.test.ts
 
-### AC-29 — pending (not verified)
+### AC-29 — satisfied
 
 > The telemetry events stack.commit.created, stack.guard.rejected, stack.state.snapshot and stack.overrun.detected MUST be emitted through the shared accord-core logger (logging.ts) at, respectively, the orchestrator co…
 
-- Tasks: 3 (satisfied), 6 (satisfied), 7 (satisfied), 13 (satisfied), 34 (satisfied), 39 (pending)
-- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`, `packages/accord-core/tests/state-snapshot.test.ts`, `packages/accord-core/src/state/snapshot.ts`
-- Tests verified (19):
+- Tasks: 3 (satisfied), 6 (satisfied), 7 (satisfied), 13 (satisfied), 34 (satisfied), 39 (satisfied)
+- Files: `packages/accord-core/tests/stack-telemetry.test.ts`, `packages/accord-core/src/telemetry/stack-events.ts`, `packages/accord-core/tests/commit-guard.test.ts`, `packages/accord-core/src/commit/commit-guard.ts`, `packages/accord-core/tests/phase-commits.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`, `packages/accord-core/tests/state-snapshot.test.ts`, `packages/accord-core/src/state/snapshot.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/src/stack/overrun.ts`
+- Tests verified (22):
   - packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields
   - ASDLC-1/AC-29 <event> catalogue entry declares exact level and fields
   - ASDLC-1/AC-29 <event> rejects an unknown field
@@ -468,14 +475,17 @@
   - state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted at info level (debug only)
   - state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when persist is none or notes
   - state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when redact is false and nothing is written
+  - ASDLC-1/AC-29 emits at warn with work_item_id, task, est_lines, act_lines
+  - ASDLC-1/AC-29 event carries the task id of the checked task
+  - ASDLC-1/AC-29 goes through the shared logger: silent at error level, decision still raised
 
 ### AC-30 — pending (not verified)
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`
-- Tests verified (16):
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`
+- Tests verified (17):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
@@ -492,6 +502,7 @@
   - bun run validate:schemas (exit 0)
   - packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack description says the harness reads the keys and that they default off
   - packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack default values are unchanged (enabled stays off, no new defaults)
+  - ASDLC-1/AC-30 written trace.json carries size, is schema-valid, malformed size is rejected
 
 ### AC-31 — pending (not verified)
 
@@ -860,6 +871,18 @@
 | 38 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | 'There is no work-item-wide file' contradicts the PR0 section and restore.ts, which use `state/work-item.json`. | okf/architecture/evidence-stack.md:82 |  |
 | 38 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Check bullet covers only the closeout case; it omits the per-task rule and the trailer trigger. | okf/architecture/evidence-stack.md:88 |  |
 | 38 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | Concept documents state/ and closeout but does not list the state/*.ts files in `sources`; stack-config.md has no state source either. | okf/references/artifacts-and-state.md:20 |  |
+| 39 | AC-16 | F-001 | unresolved (advisory) | reraised | warning | process.ts is in task.files[] (after GREEN, when stack.enabled and est_lines are present, await checkOverrun), but no test goes through processSubagentToolResult. The AC's 'When the harness measures the diff' is unpinned: wiring, the stack.enabled gate (backward-compat constraint), the GREEN-only trigger and base/head choice can all be wrong while every test stays green. | packages/accord-core/tests/overrun-decision.test.ts:10 | reraised by T2/review-test — Target changed. All four Done-when rows exist (GREEN stack-enabled, RED-only, stack absent/false/missing, est omitted) with the requested assertions. But the GREEN case sets up phase-code without a RED commit, so the base choice that the original recommendation's (d) aimed at is still unpinned for the RED→GREEN sequence: measuring only the GREEN commit drops the test lines. New Done-when: a RED-then-GREEN wiring test asserts size toEqual({est_lines:10, act_prod_lines:5, act_test_lines:40}), one pending decision, and an event with act_lines=45. Line 582 asserts the exact size {10,40,0} and act_lines=40. |
+| 39 | AC-16 | F-011 | unresolved (advisory) | open | suggestion | The only GREEN packet used is status 'done' with tests_passing true. An implementation that measures after every phase-code result, including stuck or failing ones, passes, and would raise overrun decisions before GREEN. | packages/accord-core/tests/overrun-decision.test.ts:566 |  |
+| 39 | AC-16 | F-012 | unresolved (advisory) | open | suggestion | Every positive wiring case uses commits:'phase'. resolveStackConfig defaults commits to 'task' even when stack.enabled is true, and the plan gates only on stack.enabled and est_lines. An implementation that skips the check silently in task mode passes, and so does one that measures a working-tree diff. The expected behaviour is not pinned. | packages/accord-core/tests/overrun-decision.test.ts:606 |  |
+| 39 | AC-16 | F-013 | unresolved (advisory) | open | warning | Overrun check only runs when `stack.commits === "phase"`, but the spec step and AC-16 gate it on `stack.enabled` and est_lines only. | packages/accord-core/src/subagent/result/process.ts:570 |  |
+| 39 | AC-16 | F-014 | unresolved (advisory) | open | suggestion | est_lines of 0 is schema-valid (plan-schema minimum 0) but makes any change an overrun (act_lines > 1.5 * 0). | packages/accord-core/src/stack/overrun.ts:111 |  |
+| 39 | AC-16 | F-015 | unresolved (advisory) | open | suggestion | `options.cwd` is honoured for plan.json, the diff and the size sidecar, but the work-item decision is written via `workItemJsonPath(workItemId)` without cwd. | packages/accord-core/src/stack/overrun.ts:47 |  |
+| 39 | AC-16 | F-016 | unresolved (advisory) | open | suggestion | Third copy of the `git log --format=%H%x1f%B%x1e` plus parseAccordTrailer scan, and a second copy of the plan est_lines lookup. | packages/accord-core/src/stack/overrun.ts:129 |  |
+| 39 | AC-16 | F-017 | unresolved (advisory) | open | suggestion | The check skips silently when no diff range resolves or when the GREEN phase commit failed (measures stale HEAD); there is no log for either. | packages/accord-core/src/subagent/result/process.ts:133 |  |
+| 39 | AC-16 | F-019 | unresolved (advisory) | open | suggestion | Spec says answering the decision with re-plan drives `/dev amend-spec <reason> --replan`. The code only puts that command in the decision `context` text; no answer handler connects it. | packages/accord-core/src/stack/overrun.ts:56 |  |
+| 39 | AC-16 | F-020 | unresolved (advisory) | open | suggestion | The `size.json` literal is duplicated from OVERRUN_SIZE_SIDECAR in stack/overrun.ts. The okf docs still say overrun_factor is planned. | packages/accord-core/src/artifacts/trace-artifact.ts:330 |  |
+| 39 | AC-29 | F-018 | unresolved (advisory) | open | suggestion | stack.overrun.detected is re-emitted at warn on every later GREEN round even though the decision is raised only once. | packages/accord-core/src/stack/overrun.ts:114 |  |
+| 39 | AC-30 | F-010 | unresolved (advisory) | open | suggestion | The malformed-size Ajv cases cover only a wrong type and an extra key. A schema `size` with no `required` list and no `minimum` would accept a partial size block or negative counts, so AC-16's 'production and test lines separately' would not be enforced by the schema. | packages/accord-core/tests/overrun-decision.test.ts:317 |  |
 
 ## Decisions
 
@@ -905,6 +928,8 @@
 - Task 35 (pending): No test for artifact-discovery.ts 'skip state/' step. — Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.
 - Task 36 (pending): Closeout commit returns full HEAD sha (not short) when stack.enabled — Test compares result.hash to git rev-parse HEAD
 - Task 38 (pending): Added task-38 tests to existing packages/accord-core/tests/docs-validation.test.ts (TC-32 glob) rather than a new file; no stub needed (docs-only task). — task.files lists only okf docs; TC-32 test_name_glob names this file.
+- Task 39 (pending): Size persisted in task sidecar size.json instead of task file; trace-artifact reads it — task-schema.json is additionalProperties:false; avoids widening task file schema
+- Task 39 (pending): measureActualLines (evidence/lines.ts) now excludes .tasks/ — Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored
 
 ## Evidence by task
 
@@ -1635,6 +1660,18 @@ docs-validation.test.ts: 38 pass, 0 fail. validate:okf passed (38 files). valida
 ```
 
 ### Task 39: [trunk-hardening] Overrun measurement and re-plan decision
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test overrun-decision.test.ts: 1 pass, 11 fail. Failures: error: not implemented: checkOverrun at checkOverrun (packages/accord-core/src/stack/overrun.ts:27:13). Passing: 'trace without a measurement has no size block' (negative check, passes against stub).
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+overrun-decision + trace-artifact: 35 pass, 0 fail. validate:schemas 0, validate:assets 0, check:types 0, check:runtime 0. check:biome exit 1, only in files outside task 39: docs/dev/ASDLC-1/trace.json (format) and packages/accord-core/tests/state-redact.test.ts:43 (useTemplate). Biome on the 6 task-39 files is clean. Full `bun test` preflight timed out at 120s with no failures shown.
+```
 
 ### Task 40: [trunk-hardening] Open-PR depth cap and flag validation
 

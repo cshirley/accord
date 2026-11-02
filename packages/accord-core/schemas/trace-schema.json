@@ -158,6 +158,16 @@
             }
           },
           "unblocks": { "type": "integer", "minimum": 0 },
+          "size": {
+            "type": "object",
+            "required": ["est_lines", "act_prod_lines", "act_test_lines"],
+            "additionalProperties": false,
+            "properties": {
+              "est_lines": { "type": "integer", "minimum": 0 },
+              "act_prod_lines": { "type": "integer", "minimum": 0 },
+              "act_test_lines": { "type": "integer", "minimum": 0 }
+            }
+          },
           "blocked": {
             "type": "object",
             "required": ["kind", "reason"],
