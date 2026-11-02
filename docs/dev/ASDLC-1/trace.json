@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T18:17:04.183Z",
+  "generated_at": "2026-11-02T19:07:14.670Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -265,6 +265,18 @@
       "task_id": 39,
       "description": "measureActualLines (evidence/lines.ts) now excludes .tasks/",
       "reason": "Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored",
+      "resolution": null
+    },
+    {
+      "task_id": 40,
+      "description": "TC-18 squash-merge advance scenarios (add/add resolved by rule, differing conflict raising a decision, rebase/merge-commit bases) are not tested in this task.",
+      "reason": "Task 40 files (depth.ts, service.ts) define no merge-advance interface, and the spec names none; these need a later task or a spec-named API.",
+      "resolution": null
+    },
+    {
+      "task_id": 40,
+      "description": "Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'.",
+      "reason": "Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.",
       "resolution": null
     }
   ],
@@ -4098,7 +4110,9 @@
       "id": 39,
       "title": "[trunk-hardening] Overrun measurement and re-plan decision",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "f8d7bab"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -4232,33 +4246,70 @@
     {
       "id": 40,
       "title": "[trunk-hardening] Open-PR depth cap and flag validation",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 19,
+        "by_state": {
+          "verified": 11,
+          "open": 8
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/stack-depth.test.ts: 0 pass, 21 fail. Pure openablePrs/validateFlags tests fail with 'Error: not implemented: openablePrs' / 'not implemented: validateFlags'. stackSubmit tests fail on assertions, e.g. 'Expected: false Received: true' for flag violations and PR heads task-7/task-8 opened beyond the depth-6 cap. bun run check:types clean.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "stack-depth + stack-service: 74 pass, 0 fail (322 expect calls). check:types: exit 0. biome on task files: exit 0, 15 warnings (noDelete). Repo-wide check:biome fails on docs/dev/ASDLC-1/trace.json format, which is outside task scope. validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle and check:runtime passed in preflight.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-17",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-depth.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/depth.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/depth.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/stack/service.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 7,
+            "command": "bun test packages/accord-core/tests/stack-depth.test.ts packages/accord-core/tests/stack-service.test.ts; bun run check:types; bunx biome check packages/accord-core/src/stack packages/accord-core/tests/stack-depth.test.ts"
+          }
         }
       ]
     },
@@ -5410,15 +5461,27 @@
       "tasks": [
         {
           "task": 40,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 41,
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/stack-depth.test.ts",
+        "packages/accord-core/src/stack/depth.ts",
+        "packages/accord-core/src/stack/service.ts"
+      ],
+      "tests": [
+        "ASDLC-1/TC-18 chain of 8 with max_depth 6 opens exactly PRs 1..6",
+        "ASDLC-1/TC-18 PR 7 is openable only after PR 1 merges",
+        "ASDLC-1/TC-18 chain of 8 with max_depth 6 submits only PRs 1..6",
+        "ASDLC-1/TC-18 after PR 1 merges, PR 7 opens and PR 1 is not recreated",
+        "ASDLC-1/TC-18 non-final task with %s fails missing_flag",
+        "ASDLC-1/TC-18 a non-final task with kind enable fails premature_enable",
+        "ASDLC-1/TC-18 the final task not flipping the flag fails missing_enable"
+      ],
       "verified": false
     },
     {
@@ -10440,6 +10503,110 @@
       "file": "packages/accord-core/tests/overrun-decision.test.ts",
       "line": 317,
       "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The fake listPrs matches gh's open-only default but not gh pr list's default result limit of 30. gh-provider.ts:70-75 passes no --limit. An implementation that makes one provider.listPrs({ state: 'merged' }) call with no head filter and maps the heads passes every test. In a repo where more than 30 PRs merged after PR 1, PR 1 is missing from the list, so the service re-creates PR 1 and never opens PR 7. That violates 'the next opens after its base merges'. Round 1 missed this; it attacks the verified F-001 remedy, so it is a suggestion only.",
+      "file": "packages/accord-core/tests/stack-depth.test.ts",
+      "line": 412,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "'Final task' is pinned only for plans with one chain end. Nothing pins how validateFlags behaves when require_flag is true and the plan has independent tasks or two chains, even though the constraints describe independent tasks as the planned norm. The 8-independent stackSubmit test (:570) uses require_flag false, which avoids the question. Two wrong implementations pass: (a) every chain end counts as final, so every independent task must be kind 'enable' and a normal flagged plan is rejected; (b) only the last task in dependency order is final, which may be the intended rule but is not pinned. Round 1 missed this; AC-17's Given describes one chain, so this is a suggestion.",
+      "file": "packages/accord-core/tests/stack-depth.test.ts",
+      "line": 219,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "PR brief summary and stack map derive 'N of M' / position totals from the openable window, not the stack.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 211,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Merged-PR detection uses one unscoped `listPrs({state:'all'})`; the gh provider passes no `--limit`, so gh returns at most 30 PRs.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 190,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`finalTaskId` computes depth by unmemoized recursion over `depends_on`, which is exponential on DAGs with shared ancestors.",
+      "file": "packages/accord-core/src/stack/depth.ts",
+      "line": 45,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "require_flag default is decided in service.ts (`=== true`, absent = off) while accord-schema.json and okf/references/stack-config.md say 'Default: true'; `ResolvedStackConfig` does not carry the key.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 183,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Deferred PRs are not reported; when nothing is openable the result is 'Submitted 0 PR(s)' with ok:true.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 251,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 40,
+      "requirement": "AC-17",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The max_depth comment still says depth is enforced by trunk-hardening (AC-16), not computeStack.",
+      "file": "packages/accord-core/src/stack/types.ts",
+      "line": 19,
+      "raised": "C1/review-code"
     }
   ]
 }
