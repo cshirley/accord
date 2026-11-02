@@ -8,6 +8,7 @@ import { git } from "../git/helpers.js";
 import { readJson } from "../work-items/io.js";
 import "./branches.js";
 import { computeStack } from "./compute-stack.js";
+import { openablePrs, validateFlags } from "./depth.js";
 import { resolveStackProvider, type StackPr, type StackProvider } from "./provider.js";
 import {
   type PrBriefAc,
@@ -178,11 +179,23 @@ export const stackSubmit: StackServiceFn = async (workItemId, devConfig, options
   const prepared = prepare(workItemId, devConfig, options);
   if (!isPrepared(prepared)) return prepared;
   const { cwd, plan, stack } = prepared;
+  const config = resolveStackConfig(devConfig);
+  const validation = validateFlags(plan, devConfig?.stack?.require_flag === true);
+  if (!validation.ok) {
+    const lines = validation.violations.map((v) => `- task ${v.task}: ${v.rule}`);
+    return { ok: false, text: `Flag validation failed:\n${lines.join("\n")}\n` };
+  }
   try {
     const provider = providerFor(devConfig, options, cwd);
+    const known = await provider.listPrs({ state: "all" });
+    const mergedHeads = new Set(known.filter((pr) => pr.state === "merged").map((pr) => pr.head));
+    const mergedPrs = taskPrs(stack)
+      .filter((pr) => mergedHeads.has(headFor(workItemId, pr)))
+      .map((pr) => pr.index);
+    const openable = new Set(openablePrs(stack, mergedPrs, config.sizing.max_depth));
     const link = await contractLink(workItemId, cwd);
     const spec = readJson<SpecFile>(join(cwd, "docs", "dev", workItemId, "spec.json"));
-    const prs = taskPrs(stack);
+    const prs = taskPrs(stack).filter((pr) => openable.has(pr.index));
     const heads = new Map(prs.map((pr) => [pr.index, headFor(workItemId, pr)]));
     const byId = new Map(plan.tasks.map((task) => [task.id, task]));
     const created: { pr: PrGroup; head: string; base: string; number: number; url: string }[] = [];

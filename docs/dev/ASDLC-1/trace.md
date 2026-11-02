@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T18:17:04.183Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T19:07:14.670Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -45,8 +45,8 @@
 | 36 | [tree-state] Closeout commit builds artifacts then removes state | done | `f48130a` | 2/1/1 | 18 (verified 9, wont_fix_accepted 1, open 8) | 0 |
 | 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | `adc441a` | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
 | 38 | [tree-state] OKF docs for committed state and closeout | done | `85f7289` | 1/1/1 | 13 (open 13) | 0 |
-| 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | — | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
-| 40 | [trunk-hardening] Open-PR depth cap and flag validation | pending | — | 0/0/0 | 0 | 0 |
+| 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | `f8d7bab` | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
+| 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | — | 2/1/1 | 19 (verified 11, open 8) | 0 |
 | 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | pending | — | 0/0/0 | 0 | 0 |
 | 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | pending | — | 0/0/0 | 0 | 0 |
 | 43 | [feature-knowledge] Feature doc schema, parser and index generator | pending | — | 0/0/0 | 0 | 0 |
@@ -345,7 +345,16 @@
 
 > Then at most max_depth PRs of the chain are open, the next opens after its base merges, every non-final task PR leaves main green with the feature unreachable behind a flag, and only the last task flips the flag
 
-- Tasks: 40 (pending), 41 (pending)
+- Tasks: 40 (satisfied), 41 (pending)
+- Files: `packages/accord-core/tests/stack-depth.test.ts`, `packages/accord-core/src/stack/depth.ts`, `packages/accord-core/src/stack/service.ts`
+- Tests verified (7):
+  - ASDLC-1/TC-18 chain of 8 with max_depth 6 opens exactly PRs 1..6
+  - ASDLC-1/TC-18 PR 7 is openable only after PR 1 merges
+  - ASDLC-1/TC-18 chain of 8 with max_depth 6 submits only PRs 1..6
+  - ASDLC-1/TC-18 after PR 1 merges, PR 7 opens and PR 1 is not recreated
+  - ASDLC-1/TC-18 non-final task with %s fails missing_flag
+  - ASDLC-1/TC-18 a non-final task with kind enable fails premature_enable
+  - ASDLC-1/TC-18 the final task not flipping the flag fails missing_enable
 
 ### AC-18 — pending (not verified)
 
@@ -883,6 +892,14 @@
 | 39 | AC-16 | F-020 | unresolved (advisory) | open | suggestion | The `size.json` literal is duplicated from OVERRUN_SIZE_SIDECAR in stack/overrun.ts. The okf docs still say overrun_factor is planned. | packages/accord-core/src/artifacts/trace-artifact.ts:330 |  |
 | 39 | AC-29 | F-018 | unresolved (advisory) | open | suggestion | stack.overrun.detected is re-emitted at warn on every later GREEN round even though the decision is raised only once. | packages/accord-core/src/stack/overrun.ts:114 |  |
 | 39 | AC-30 | F-010 | unresolved (advisory) | open | suggestion | The malformed-size Ajv cases cover only a wrong type and an extra key. A schema `size` with no `required` list and no `minimum` would accept a partial size block or negative counts, so AC-16's 'production and test lines separately' would not be enforced by the schema. | packages/accord-core/tests/overrun-decision.test.ts:317 |  |
+| 40 | AC-17 | F-012 | unresolved (advisory) | open | suggestion | The fake listPrs matches gh's open-only default but not gh pr list's default result limit of 30. gh-provider.ts:70-75 passes no --limit. An implementation that makes one provider.listPrs({ state: 'merged' }) call with no head filter and maps the heads passes every test. In a repo where more than 30 PRs merged after PR 1, PR 1 is missing from the list, so the service re-creates PR 1 and never opens PR 7. That violates 'the next opens after its base merges'. Round 1 missed this; it attacks the verified F-001 remedy, so it is a suggestion only. | packages/accord-core/tests/stack-depth.test.ts:412 |  |
+| 40 | AC-17 | F-013 | unresolved (advisory) | open | suggestion | 'Final task' is pinned only for plans with one chain end. Nothing pins how validateFlags behaves when require_flag is true and the plan has independent tasks or two chains, even though the constraints describe independent tasks as the planned norm. The 8-independent stackSubmit test (:570) uses require_flag false, which avoids the question. Two wrong implementations pass: (a) every chain end counts as final, so every independent task must be kind 'enable' and a normal flagged plan is rejected; (b) only the last task in dependency order is final, which may be the intended rule but is not pinned. Round 1 missed this; AC-17's Given describes one chain, so this is a suggestion. | packages/accord-core/tests/stack-depth.test.ts:219 |  |
+| 40 | AC-17 | F-014 | unresolved (advisory) | open | warning | PR brief summary and stack map derive 'N of M' / position totals from the openable window, not the stack. | packages/accord-core/src/stack/service.ts:211 |  |
+| 40 | AC-17 | F-015 | unresolved (advisory) | open | warning | Merged-PR detection uses one unscoped `listPrs({state:'all'})`; the gh provider passes no `--limit`, so gh returns at most 30 PRs. | packages/accord-core/src/stack/service.ts:190 |  |
+| 40 | AC-17 | F-016 | unresolved (advisory) | open | warning | `finalTaskId` computes depth by unmemoized recursion over `depends_on`, which is exponential on DAGs with shared ancestors. | packages/accord-core/src/stack/depth.ts:45 |  |
+| 40 | AC-17 | F-017 | unresolved (advisory) | open | suggestion | require_flag default is decided in service.ts (`=== true`, absent = off) while accord-schema.json and okf/references/stack-config.md say 'Default: true'; `ResolvedStackConfig` does not carry the key. | packages/accord-core/src/stack/service.ts:183 |  |
+| 40 | AC-17 | F-018 | unresolved (advisory) | open | suggestion | Deferred PRs are not reported; when nothing is openable the result is 'Submitted 0 PR(s)' with ok:true. | packages/accord-core/src/stack/service.ts:251 |  |
+| 40 | AC-17 | F-019 | unresolved (advisory) | open | suggestion | The max_depth comment still says depth is enforced by trunk-hardening (AC-16), not computeStack. | packages/accord-core/src/stack/types.ts:19 |  |
 
 ## Decisions
 
@@ -930,6 +947,8 @@
 - Task 38 (pending): Added task-38 tests to existing packages/accord-core/tests/docs-validation.test.ts (TC-32 glob) rather than a new file; no stub needed (docs-only task). — task.files lists only okf docs; TC-32 test_name_glob names this file.
 - Task 39 (pending): Size persisted in task sidecar size.json instead of task file; trace-artifact reads it — task-schema.json is additionalProperties:false; avoids widening task file schema
 - Task 39 (pending): measureActualLines (evidence/lines.ts) now excludes .tasks/ — Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored
+- Task 40 (pending): TC-18 squash-merge advance scenarios (add/add resolved by rule, differing conflict raising a decision, rebase/merge-commit bases) are not tested in this task. — Task 40 files (depth.ts, service.ts) define no merge-advance interface, and the spec names none; these need a later task or a spec-named API.
+- Task 40 (pending): Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'. — Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.
 
 ## Evidence by task
 
@@ -1674,6 +1693,18 @@ overrun-decision + trace-artifact: 35 pass, 0 fail. validate:schemas 0, validate
 ```
 
 ### Task 40: [trunk-hardening] Open-PR depth cap and flag validation
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/stack-depth.test.ts: 0 pass, 21 fail. Pure openablePrs/validateFlags tests fail with 'Error: not implemented: openablePrs' / 'not implemented: validateFlags'. stackSubmit tests fail on assertions, e.g. 'Expected: false Received: true' for flag violations and PR heads task-7/task-8 opened beyond the depth-6 cap. bun run check:types clean.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+stack-depth + stack-service: 74 pass, 0 fail (322 expect calls). check:types: exit 0. biome on task files: exit 0, 15 warnings (noDelete). Repo-wide check:biome fails on docs/dev/ASDLC-1/trace.json format, which is outside task scope. validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle and check:runtime passed in preflight.
+```
 
 ### Task 41: [trunk-hardening] Bottom-up merge: retarget next PR by merging main
 
