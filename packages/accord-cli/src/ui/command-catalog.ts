@@ -28,6 +28,12 @@ export const TOP_LEVEL_COMMANDS: CommandSpec[] = [
     needsWorkItem: true,
   },
   {
+    name: "stack",
+    summary: "Computed PR stack: table, sync, submit, report",
+    usage: "stack [sync|submit|report] <ID>",
+    needsWorkItem: true,
+  },
+  {
     name: "unblock",
     summary: "Decide blockers and unblock a task",
     usage:

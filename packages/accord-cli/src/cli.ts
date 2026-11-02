@@ -64,6 +64,12 @@ export type ParsedCli =
       options: GlobalOptions;
     }
   | { kind: "evidence"; workItemId: string; args: string[]; options: GlobalOptions }
+  | {
+      kind: "stack";
+      verb: "show" | "sync" | "submit" | "report";
+      workItemId: string;
+      options: GlobalOptions;
+    }
   | { kind: "trace"; workItemId: string; args: string[]; options: GlobalOptions }
   | { kind: "task-reseed"; workItemId: string; args: string[]; options: GlobalOptions }
   | { kind: "answer"; workItemId: string; args: string[]; options: GlobalOptions }
@@ -333,6 +339,24 @@ export function parseCli(argv: string[]): ParsedCli {
       return { kind: "error", message: "evidence requires a work item id" };
     }
     return { kind: "evidence", workItemId, args: tail.slice(1), options: flags };
+  }
+
+  if (command === "stack") {
+    const verbs = ["sync", "submit", "report"] as const;
+    const first = tail[0];
+    const verb = verbs.find((name) => name === first);
+    const label = verb ? `stack ${verb}` : "stack";
+    const workItemId = verb ? tail[1] : first;
+    if (!workItemId) {
+      return { kind: "error", message: `${label} requires a work item id` };
+    }
+    if (!verb && !/-\d+$/.test(workItemId)) {
+      return {
+        kind: "error",
+        message: `Unknown stack verb "${workItemId}"; usage: stack [sync|submit|report] <ID>`,
+      };
+    }
+    return { kind: "stack", verb: verb ?? "show", workItemId, options: flags };
   }
 
   if (command === "trace") {

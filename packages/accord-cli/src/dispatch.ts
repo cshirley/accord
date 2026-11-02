@@ -23,6 +23,7 @@ import {
   runReviewCommand,
   runRunCommand,
   runSpecGapsCommand,
+  runStackCommand,
   runTagCommand,
   runTaskReseedCommand,
   runTasksCommand,
@@ -87,6 +88,10 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
 
   if (parsed.kind === "evidence") {
     return runEvidenceCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "stack") {
+    return runStackCommand(parsed.verb, parsed.workItemId, cwd);
   }
 
   if (parsed.kind === "trace") {
