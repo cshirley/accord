@@ -300,7 +300,7 @@
     },
     "stack": {
       "type": "object",
-      "description": "Evidence stack (PROPOSED, not yet read by the harness): split a work item into a contract PR, size-bounded task PRs, and a closeout PR, with typed red/green/review commits. See okf/architecture/evidence-stack.md.",
+      "description": "Evidence stack (keys read by the harness; all default off, so current behaviour is unchanged unless stack.enabled is true): split a work item into a contract PR, size-bounded task PRs, and a closeout PR, with typed red/green/review commits. See okf/architecture/evidence-stack.md.",
       "additionalProperties": false,
       "properties": {
         "enabled": {
@@ -365,7 +365,7 @@
         },
         "sizing": {
           "type": "object",
-          "description": "Budgets used by computeStack(plan, config) to split and merge plan tasks into PRs.",
+          "description": "Budgets used by computeStack to split and merge plan tasks into PRs.",
           "additionalProperties": false,
           "properties": {
             "max_pr_lines": {

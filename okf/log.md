@@ -2,6 +2,7 @@
 
 ## 2026-10-30
 
+* **Update**: ASDLC-1 stack-compute: [Evidence stack](/architecture/evidence-stack.md), [dev_* tool surface](/architecture/tool-surface.md) and [Stack configuration](/references/stack-config.md) now describe `computeStack`, the `StackProvider` port, the `dev_stack*` tools and the sizing keys; plan fields `est_lines`, `concern`, `depends_on`, `flag` and `kind` and the conditional phase-plan prompt (stack.enabled) are recorded.
 * **Update**: ASDLC-1 stack-compute: [accord CLI](/references/accord-cli.md) (`/references/accord-cli.md`) now lists `accord stack [sync|submit|report] <ID>`, a thin adapter over `stack/service.ts`.
 * **Update**: ASDLC-1 contract-lock: [Evidence stack](/architecture/evidence-stack.md), [Artifacts and state](/references/artifacts-and-state.md) and [/dev command](/references/dev-command.md) now describe contract PR0, `contract.lock.json`, the `accord/<ID>/contract` tag and `/dev amend-spec` as a contract-amend.
 * **Update**: ASDLC-1 security-gate: [Orchestration policy](/references/orchestration-policy.md) and [Stack configuration](/references/stack-config.md) (`/references/stack-config.md`) now describe the review-security gate (`review_loop.review_security.severity_gate`); agents, crucible-verification and task-file concepts no longer say it never gates.

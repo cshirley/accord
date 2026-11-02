@@ -33,6 +33,7 @@ Add/rename tools only in `packages/accord-core/src/tools/registry.ts`; Pi (`pi-a
 | State queries | `dev_tasks`, `dev_resume_state`, `dev_work_item_status`, `dev_trace`, `dev_review_queue`, `dev_workflow_cost` |
 | Lifecycle | `dev_transition`, `dev_checkpoint`, `dev_promote_events`, `dev_rehydrate`, `dev_finalize`, `dev_unblock`, `dev_answer` |
 | Briefing | `dev_code_brief`, `dev_nonce`, `dev_decision_packet` |
+| Stack | `dev_stack`, `dev_stack_sync`, `dev_stack_submit`, `dev_stack_report` (need `stack.enabled`) |
 | Verification | `dev_spec_gaps`, `dev_verify_summary` |
 | Orchestration | `dev_orchestrate` (`resume` / `finish`, optional `execute`), `dev_subagent_preflight` |
 | Init | `dev_init_detect`, `dev_init_write` |

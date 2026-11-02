@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T14:13:44.794Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T14:29:35.393Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -37,8 +37,8 @@
 | 28 | [stack-compute] StackProvider port and gh provider | done | `eb2f03d` | 2/1/1 | 23 (verified 12, open 11) | 0 |
 | 29 | [stack-compute] Stack service and dev_stack_* MCP tools | done | `3a7bfc8` | 2/1/1 | 26 (verified 12, wont_fix_accepted 3, open 11) | 0 |
 | 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | done | `f7abffb` | 2/1/1 | 25 (verified 10, wont_fix_accepted 1, reraised 2, open 12) | 0 |
-| 31 | [stack-compute] accord stack CLI command | done | — | 2/1/1 | 15 (verified 12, open 2, wont_fix_accepted 1) | 0 |
-| 32 | [stack-compute] Schema description and OKF docs for the stack | pending | — | 0/0/0 | 0 | 0 |
+| 31 | [stack-compute] accord stack CLI command | done | `b7c7b0e` | 2/1/1 | 15 (verified 12, open 2, wont_fix_accepted 1) | 0 |
+| 32 | [stack-compute] Schema description and OKF docs for the stack | done | — | 2/1/1 | 14 (verified 6, open 8) | 0 |
 | 33 | [tree-state] State size cap and task-file redaction | pending | — | 0/0/0 | 0 | 0 |
 | 34 | [tree-state] State snapshot writer staged with every typed commit | pending | — | 0/0/0 | 0 | 0 |
 | 35 | [tree-state] Stateless resume from committed state | pending | — | 0/0/0 | 0 | 0 |
@@ -430,9 +430,9 @@
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (pending), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (pending), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
 - Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`
-- Tests verified (14):
+- Tests verified (16):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
@@ -447,14 +447,16 @@
   - alignment.test.ts: ASDLC-1/AC-30 manifest agent absent from registry.ts makes validate:assets fail
   - alignment.test.ts: ASDLC-1/AC-30 plan field schema tests
   - bun run validate:schemas (exit 0)
+  - packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack description says the harness reads the keys and that they default off
+  - packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack default values are unchanged (enabled stays off, no new defaults)
 
 ### AC-31 — pending (not verified)
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (pending), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`
-- Tests verified (34):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`
+- Tests verified (36):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -489,6 +491,8 @@
   - stack-cli.test.ts › ASDLC-1/AC-31 okf/references/accord-cli.md documents all four stack verbs (ASDLC-1/TC-32)
   - stack-cli.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the accord stack command (ASDLC-1/TC-32)
   - bunx biome check packages/accord-cli okf
+  - packages/accord-core/tests/docs-validation.test.ts: ASDLC-1/AC-31 (7 tests)
+  - bunx biome check on task-32 files (clean)
 
 ## Accepted risks and unresolved findings
 
@@ -745,6 +749,14 @@
 | 31 | AC-11 | F-014 | unresolved (advisory) | open | suggestion | Stack parser validates the work item id with a looser ad-hoc regex (/-\d+$/) and only when no verb is given, instead of the canonical DEV_WORK_ITEM_ID_PATTERN already imported in this file. | packages/accord-cli/src/cli.ts:353 |  |
 | 31 | AC-11 | F-015 | unresolved (advisory) | open | suggestion | Failure text (disabled, unsupported provider, missing plan, gh error) is written to stdout via console.log with exit 1. | packages/accord-cli/src/commands/stack.ts:22 |  |
 | 31 | AC-28 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | Enforcement half of the architectural ACs cannot be proven by these unit tests. check:types/check:bundle (AC-28) and validate:okf/validate:ste/check:biome (AC-31) must cover the new files: commands/stack.ts, the cli.ts/dispatch.ts edits, the test file and the doc edits. docs-validation.test.ts's biome check is scoped to task-17 files. | packages/accord-cli/tests/stack-cli.test.ts:290 | wont_fix_accepted by T2/review-test — The finding said enforcement belongs to phase-verify-task. Unit tests cannot prove check:types, check:bundle, validate:okf, validate:ste or biome. |
+| 32 | AC-30 | F-008 | unresolved (advisory) | open | suggestion | The `stack` schema description must say the keys are 'read by the harness'. The descriptions of `merge_strategy`, `sizing.split_on` and `require_flag` are not checked, but no code reads these three keys. stack-config.md must mark them unread (docs-validation.test.ts:433-435), and the schema can still imply they are honoured. This is a round-1 miss, so the severity stays at suggestion. | packages/accord-core/tests/alignment.test.ts:384 |  |
+| 32 | AC-30 | F-012 | unresolved (advisory) | open | suggestion | The stack description says the keys are read by the harness, but several keys are not read and their descriptions state behaviour without a marker. | packages/accord-core/schemas/accord-schema.json:303 |  |
+| 32 | AC-31 | F-007 | unresolved (advisory) | open | suggestion | The stack-config.md intro check `/read by the harness\|the harness reads/i` also matches a negated sentence. An intro such as '**Partly implemented.** Some keys are not yet read by the harness.' passes, so the intro can still say the harness ignores the key. The schema test (alignment.test.ts:383) blocks this negation; the doc test does not. | packages/accord-core/tests/docs-validation.test.ts:430 |  |
+| 32 | AC-31 | F-009 | unresolved (advisory) | open | suggestion | The frontmatter of okf/references/stack-config.md keeps `status: proposed` and the `proposed` tag. The body intro can change to 'the harness reads the key' and the concept metadata stays out of date. This is a round-1 miss, so the severity stays at suggestion. | packages/accord-core/tests/docs-validation.test.ts:426 |  |
+| 32 | AC-31 | F-010 | unresolved (advisory) | open | warning | Intro says computeStack reads max_depth, overrun_factor and split_on, and that the keys are read by the harness. Several keys have no consumer and are not marked 'not yet read'. | okf/references/stack-config.md:26 |  |
+| 32 | AC-31 | F-011 | unresolved (advisory) | open | warning | Sizing paragraph says computeStack reads max_depth, and describes post-GREEN overrun measurement and max_depth capping as current behaviour while the same paragraph says overrun_factor is planned. | okf/architecture/evidence-stack.md:74 |  |
+| 32 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | Related docs still say the stack key is proposed and unread, which contradicts the updated schema description and stack-config.md. | docs/configuration.md:287 |  |
+| 32 | AC-31 | F-014 | unresolved (advisory) | open | suggestion | The concept names stack/service.ts and the gh provider in its body, but its sources do not list them. | okf/architecture/evidence-stack.md:8 |  |
 
 ## Decisions
 
@@ -1390,6 +1402,24 @@ stack-cli + no-pi-dep: 20 pass, 0 fail. check:types ok. validate:okf passed (38 
 ```
 
 ### Task 32: [stack-compute] Schema description and OKF docs for the stack
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-31 stack-compute docs (task 32) > tool-surface.md documents the dev_stack tools
+(fail) ... evidence-stack.md documents computeStack and the StackProvider port with source bindings
+(fail) ... stack-config.md no longer says the harness ignores the stack key and lists every sizing key
+(fail) ... okf/log.md has a dated stack-compute entry covering concepts, plan fields and the phase-plan prompt
+(fail) ASDLC-1/AC-30 stack schema description (task 32) > stack description says the harness reads the keys and that they default off
+ 77 pass
+ 5 fail
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+bun test exit 0; validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime exit 0. check:biome exit 1: only docs/dev/ASDLC-1/trace.json format (commits arrays expanded). biome check on task-32 files: Checked 3 files, no fixes applied.
+```
 
 ### Task 33: [tree-state] State size cap and task-file redaction
 

@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildInterviewResumeTaskIfApplicable } from "@clive.shirley/accord-core/orchestration/resolve/interview-task.js";
 import Ajv from "ajv";
+import { resolveStackConfig } from "../src/config/stack-flags.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const SCHEMA_PATH = "packages/accord-core/schemas/accord-schema.json";
@@ -369,5 +370,64 @@ describe("ASDLC-1/AC-26 phase-plan task text gated by stack.enabled", () => {
     expect(t).toContain("work_item_id: PLAN-1");
     expect(t).toContain("spec_path: docs/dev/PLAN-1/spec.json");
     expect(t).toContain("Write `docs/dev/<work_item_id>/plan.json` when converged");
+  });
+});
+
+// ASDLC-1/AC-30 (task 32): the stack key description says the harness reads it; defaults unchanged.
+describe("ASDLC-1/AC-30 stack schema description (task 32)", () => {
+  const stackSchema = () => schema.properties.stack;
+
+  it("ASDLC-1/AC-30 stack description says the harness reads the keys and that they default off", () => {
+    const description: string = stackSchema().description;
+    expect(description).not.toMatch(/PROPOSED/i);
+    expect(description).not.toMatch(/not\s+(yet\s+)?read by the harness/i);
+    expect(description).toMatch(/read by the harness/i);
+    expect(description).toMatch(/default[^.]*\boff\b|\boff\b by default|default[^.]*false/i);
+    expect(description).toContain("okf/architecture/evidence-stack.md");
+  });
+
+  it("ASDLC-1/AC-30 stack default values are unchanged (enabled stays off, no new defaults)", () => {
+    const props = stackSchema().properties;
+    expect(props.enabled.type).toBe("boolean");
+    expect(props.enabled.default).toBeUndefined();
+    expect(props.enabled.description).toMatch(/Default: false/);
+    expect(props.provider.description).toMatch(/Default: gh/);
+    expect(props.commits.description).toMatch(/Default: task/);
+    expect(props.merge_strategy.description).toMatch(/Default: rebase/);
+    const sizing = props.sizing.properties;
+    expect(sizing.max_pr_lines.description).toMatch(/Default: 400/);
+    expect(sizing.min_pr_lines.description).toMatch(/Default: 30/);
+    expect(sizing.max_files.description).toMatch(/Default: 10/);
+    expect(sizing.max_depth.description).toMatch(/Default: 6/);
+    expect(sizing.overrun_factor.description).toMatch(/Default: 1\.5/);
+    for (const key of Object.keys(sizing)) expect(sizing[key].default).toBeUndefined();
+    const defaults = resolveStackConfig(null);
+    expect(props.enabled.description).toContain(`Default: ${defaults.enabled}`);
+    expect(props.provider.description).toContain(`Default: ${defaults.provider}`);
+    expect(props.commits.description).toContain(`Default: ${defaults.commits}`);
+    for (const key of [
+      "max_pr_lines",
+      "min_pr_lines",
+      "max_files",
+      "max_depth",
+      "overrun_factor",
+    ] as const) {
+      expect(sizing[key].description).toContain(`Default: ${defaults.sizing[key]}`);
+    }
+    for (const key of ["path", "redact", "max_bytes"] as const) {
+      expect(props.state.properties[key].description).toContain(`${defaults.state[key]}`);
+    }
+    const defaultPaths: string[] = [];
+    const walk = (node: any, path: string) => {
+      if (node && typeof node === "object") {
+        if ("default" in node) defaultPaths.push(path);
+        for (const [k, v] of Object.entries(node)) walk(v, `${path}.${k}`);
+      }
+    };
+    walk(stackSchema(), "stack");
+    expect(defaultPaths).toEqual([]);
+    expect(stackSchema().description).not.toContain("computeStack(plan, config)");
+    expect(props.sizing.description ?? "").not.toContain("computeStack(plan, config)");
+    expect(stackSchema().additionalProperties).toBe(false);
   });
 });

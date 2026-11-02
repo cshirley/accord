@@ -6,6 +6,12 @@ tags: [stack, pr, commits, evidence, trunk-based, contract, sizing]
 status: proposed
 generated: { by: agent:pi, at: 2026-10-02T00:00:00Z }
 sources:
+  - id: compute-stack
+    resource: /packages/accord-core/src/stack/compute-stack.ts
+    title: computeStack
+  - id: stack-provider
+    resource: /packages/accord-core/src/stack/provider.ts
+    title: StackProvider port
   - id: plan
     resource: /docs/plans/evidence-stack-plan.md
     title: Evidence stack plan
@@ -29,7 +35,7 @@ sources:
     title: Final evidence(task-<N>) commit
 ---
 
-**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The contract lock (PR0, lock file, tag, lock guard and contract-amend) and the `review-security` gate are also implemented. The other features stay proposed. Without `stack.enabled`, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
+**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The contract lock (PR0, lock file, tag, lock guard and contract-amend) and the `review-security` gate are also implemented. PR stack compute is implemented: `computeStack`, the `StackProvider` port with the `gh` provider, and the `dev_stack*` tools and `accord stack`. The other features stay proposed. Without `stack.enabled`, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
 
 # Shape
 
@@ -65,7 +71,7 @@ Default `stack.state.persist: "tree"`: task state (`STATE.md` is the existing `a
 
 # Sizing
 
-`computeStack(plan, config)` is pure and deterministic. **Flag** a task for re-plan on size, file count, package, concern, refactor-vs-behaviour, or interface-vs-consumer; the harness never splits, the plan agent re-plans it as smaller integer-id tasks. **Merge** small same-concern neighbours (`evidence(task-<N>,<M>)`). Tasks are planned independent, so PRs branch from `main`; `max_depth` caps open PRs in a `depends_on` chain. Topological order on `depends_on`. Green-and-unreachable beats the size budget. `N_PRs = 2 + packed task groups`. After GREEN the harness measures actual lines and raises a decision when it exceeds `overrun_factor` × estimate. The human approves the stack table in PR0. Keys: [Stack configuration](/references/stack-config.md).
+`computeStack` is pure and deterministic. It reads `max_pr_lines`, `min_pr_lines`, `max_files`, `max_depth` and `merge_small_same_concern`. The `split_on` boundaries (package, concern, refactor, interface) are planned, not yet read; `overrun_factor` is planned for trunk-hardening. **Flag** a task for re-plan on size, file count, package, concern, refactor-vs-behaviour, or interface-vs-consumer; the harness never splits, the plan agent re-plans it as smaller integer-id tasks. **Merge** small same-concern neighbours (`evidence(task-<N>,<M>)`). Tasks are planned independent, so PRs branch from `main`; `max_depth` caps open PRs in a `depends_on` chain. Topological order on `depends_on`. Green-and-unreachable beats the size budget. `N_PRs = 2 + packed task groups`. After GREEN the harness measures actual lines and raises a decision when it exceeds `overrun_factor` × estimate. The human approves the stack table in PR0. Keys: [Stack configuration](/references/stack-config.md).
 
 # Reviewer surface
 
@@ -79,4 +85,4 @@ One generated stack map comment and one generated PR brief per PR. Three lenses:
 
 # Layering
 
-Logic in `accord-core` (`commit/`, `stack/`, `evidence/`). `StackProvider` port (`git`, `gh`, `graphite`, `spr`); only `gh` is planned first. `pi-accord`, `accord-cli`, `accord-mcp` are thin adapters ([Monorepo packages](/architecture/monorepo-packages.md)).
+Logic in `accord-core` (`commit/`, `stack/`, `evidence/`). `StackProvider` port (`git`, `gh`, `graphite`, `spr`); only `gh` is implemented; the others are later. `dev_stack`, `dev_stack_sync`, `dev_stack_submit` and `dev_stack_report` (and `accord stack`) are thin adapters over `stack/service.ts` and need `stack.enabled`. `pi-accord`, `accord-cli`, `accord-mcp` are thin adapters ([Monorepo packages](/architecture/monorepo-packages.md)).
