@@ -3,13 +3,19 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
+import { resolveStackConfig } from "../config/stack-flags.js";
 import { prepareWorkflowStateForSubagentInput } from "../harness/workflow-state-spawn.js";
 import {
   agentRequiresSpawnPreflight,
   runSubagentSpawnPreflightCheck,
 } from "../queries/subagent-preflight-shared.js";
+import { ensureTaskBranch } from "../stack/branches.js";
 import type { HarnessHost } from "../types/host.js";
-import { collectSubagentEntries, firstSubagentAgentName } from "./entries.js";
+import {
+  collectSubagentEntries,
+  firstSubagentAgentName,
+  getPrimarySubagentEntry,
+} from "./entries.js";
 import { runGatherPreflightOnSubagentCall } from "./preflight/gather.js";
 import { runPipelineArtifactPreflightOnSubagentCall } from "./preflight/pipeline-artifacts.js";
 import { runVerifyPreflightOnSubagentCall } from "./preflight/verify.js";
@@ -79,6 +85,18 @@ export async function runSubagentToolPreflight(
           "Run dev_subagent_preflight before retrying.",
         ].join("\n"),
       };
+    }
+  }
+
+  if (agent === "phase-test" && resolveStackConfig(options.devConfig).enabled) {
+    const brief = getPrimarySubagentEntry(input)?.task ?? "";
+    const workItemId = /\*\*work_item_id:\*\*\s*(\S+)/.exec(brief)?.[1];
+    const taskId = Number(/\*\*task_id:\*\*\s*(\d+)/.exec(brief)?.[1]);
+    if (workItemId && Number.isInteger(taskId)) {
+      const branch = await ensureTaskBranch(workItemId, taskId, options.devConfig);
+      if (!branch.ok && branch.code !== "no_plan") {
+        return { blockReason: branch.reason };
+      }
     }
   }
 
