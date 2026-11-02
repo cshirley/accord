@@ -349,3 +349,130 @@ describe("ASDLC-1/AC-31 docs validation (ASDLC-1/TC-32)", () => {
     expect(matching.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+// ASDLC-1/AC-31 (task 32): stack-compute documentation and log entry.
+const EXISTING_2026_10_30 = [
+  "* **Update**: ASDLC-1 stack-compute: [accord CLI](/references/accord-cli.md) (`/references/accord-cli.md`) now lists `accord stack [sync|submit|report] <ID>`, a thin adapter over `stack/service.ts`.",
+  "* **Update**: ASDLC-1 contract-lock: [Evidence stack](/architecture/evidence-stack.md), [Artifacts and state](/references/artifacts-and-state.md) and [/dev command](/references/dev-command.md) now describe contract PR0, `contract.lock.json`, the `accord/<ID>/contract` tag and `/dev amend-spec` as a contract-amend.",
+  "* **Update**: ASDLC-1 security-gate: [Orchestration policy](/references/orchestration-policy.md) and [Stack configuration](/references/stack-config.md) (`/references/stack-config.md`) now describe the review-security gate (`review_loop.review_security.severity_gate`); agents, crucible-verification and task-file concepts no longer say it never gates.",
+  "* **Update**: ASDLC-1 evidence-asset: [Evidence stack](/architecture/evidence-stack.md) and [Artifacts and state](/references/artifacts-and-state.md) (`/references/artifacts-and-state.md`) now describe `evidence/task-<N>.{md,json}`, the `evidence(task-<N>)` commit, qualified `<ID>/AC-<n>` refs and squash survival.",
+  "* **Update**: ASDLC-1 commit-evidence: [Commit message format](/references/commit-format.md) (commit guard rules), [Evidence stack](/architecture/evidence-stack.md) (`stack.commits` phase mode) and [accord CLI](/references/accord-cli.md) (`accord evidence`) now describe the implemented behaviour.",
+  "* **Update**: ASDLC-1 contract-lock: [Lifecycle hooks](/architecture/hooks.md) now lists the pre-write lock guard (`tool_call` write/edit blocked for locked contract files unless a contract-amend is open).",
+];
+
+const sectionOf = (text: string, heading: string): string => {
+  const start = text.indexOf(`\n# ${heading}`);
+  if (start < 0) return "";
+  const next = text.indexOf("\n# ", start + 1);
+  return text.slice(start, next < 0 ? undefined : next);
+};
+describe("ASDLC-1/AC-31 stack-compute docs (task 32)", () => {
+  it("ASDLC-1/AC-31 tool-surface.md documents the dev_stack tools", () => {
+    const text = read("okf/architecture/tool-surface.md");
+    for (const tool of ["dev_stack", "dev_stack_sync", "dev_stack_submit", "dev_stack_report"]) {
+      expect(text).toMatch(new RegExp(`\`${tool}\``));
+    }
+    const row = text.split("\n").find((l) => /^\|/.test(l) && l.includes("`dev_stack`"));
+    expect(row).toBeDefined();
+    for (const tool of ["dev_stack", "dev_stack_sync", "dev_stack_submit", "dev_stack_report"]) {
+      expect(row).toContain(`\`${tool}\``);
+    }
+    expect(text).toMatch(/dev_stack[^\n]*stack\.enabled|stack\.enabled[^\n]*dev_stack/);
+  });
+
+  it("ASDLC-1/AC-31 evidence-stack.md documents computeStack and the StackProvider port with source bindings", () => {
+    const text = read("okf/architecture/evidence-stack.md");
+    expect(text).toContain("`computeStack");
+    expect(text).toContain("StackProvider");
+    expect(text).toContain("resource: /packages/accord-core/src/stack/compute-stack.ts");
+    expect(text).toContain("resource: /packages/accord-core/src/stack/provider.ts");
+    expect(text).toMatch(/dev_stack/);
+    const status = text.split("\n").find((l) => /^\*\*(Partly )?[Ii]mplemented/.test(l));
+    expect(status).toBeDefined();
+    expect(status).toMatch(/computeStack|stack compute|PR stack/i);
+  });
+
+  it("ASDLC-1/AC-31 stack-config.md no longer says the harness ignores the stack key and lists every sizing key", () => {
+    const text = read("okf/references/stack-config.md");
+    expect(text).not.toMatch(/The harness does not read it yet/);
+    for (const key of [
+      "max_pr_lines",
+      "min_pr_lines",
+      "max_files",
+      "max_depth",
+      "overrun_factor",
+      "split_on",
+      "merge_small_same_concern",
+    ]) {
+      expect(text).toContain(`\`${key}\``);
+    }
+    expect(text).toMatch(/dev_stack/);
+    expect(text).toContain("resource: /packages/accord-core/src/stack/compute-stack.ts");
+  });
+
+  it("ASDLC-1/AC-31 evidence-stack.md no longer carries stale implementation claims", () => {
+    const text = read("okf/architecture/evidence-stack.md");
+    expect(text).not.toContain("computeStack(plan, config)");
+    const sizing = sectionOf(text, "Sizing");
+    expect(sizing).toContain("`max_pr_lines`");
+    expect(sizing).toContain("`max_files`");
+    expect(sizing).toMatch(/(`split_on`|package|interface)[^.]*(not yet|proposed|planned|later)/i);
+    expect(sizing).toMatch(/overrun_factor[^.]*(not yet|proposed|planned|later|trunk-hardening)/i);
+    expect(sectionOf(text, "Layering")).not.toMatch(/only `gh` is planned first/);
+    const status = text.split("\n").find((l) => /^\*\*(Partly )?[Ii]mplemented/.test(l));
+    expect(status).toMatch(/^\*\*Partly implemented/);
+  });
+
+  it("ASDLC-1/AC-31 stack-config.md intro says the harness reads the key and unread keys are marked", () => {
+    const text = read("okf/references/stack-config.md");
+    const intro = (text.split(/^---$/m)[2] ?? "").trim().split("\n\n")[0] ?? "";
+    expect(intro).not.toMatch(/^\*\*Proposed\.\*\*/);
+    expect(intro).toMatch(/read by the harness|the harness reads/i);
+    const rowOf = (key: string): string =>
+      text.split("\n").find((l) => new RegExp(`^\\|\\s*\`(sizing\\.)?${key}`).test(l)) ?? "";
+    for (const key of ["split_on", "merge_strategy", "require_flag"]) {
+      expect(rowOf(key)).toMatch(/not yet|proposed|planned|later|not read/i);
+    }
+    expect(rowOf("provider")).toMatch(/only `gh`/i);
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated stack-compute entry covering concepts, plan fields and the phase-plan prompt", () => {
+    const matching = datedBullets().filter(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1") &&
+        /stack-compute/.test(bullet.text) &&
+        bullet.text.includes("/architecture/evidence-stack.md") &&
+        bullet.text.includes("/architecture/tool-surface.md") &&
+        bullet.text.includes("/references/stack-config.md") &&
+        bullet.text.includes("computeStack") &&
+        /phase-plan/.test(bullet.text) &&
+        ["est_lines", "concern", "depends_on", "flag", "kind"].every((field) =>
+          bullet.text.includes(`\`${field}\``),
+        ) &&
+        !EXISTING_2026_10_30.includes(bullet.text) &&
+        new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
+    );
+    for (const text of EXISTING_2026_10_30) {
+      expect(datedBullets()).toContainEqual({ date: "2026-10-30", text });
+    }
+    expect(matching.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ASDLC-1/AC-31 check:biome exits 0 on the task-32 files", () => {
+    const files = [
+      "packages/accord-core/schemas/accord-schema.json",
+      "packages/accord-core/tests/alignment.test.ts",
+      "packages/accord-core/tests/docs-validation.test.ts",
+    ];
+    const proc = Bun.spawnSync(["bunx", "biome", "check", ...files], {
+      cwd: ROOT,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const out = `${proc.stdout.toString()}${proc.stderr.toString()}`;
+    expect({ code: proc.exitCode, out: proc.exitCode === 0 ? "" : out }).toEqual({
+      code: 0,
+      out: "",
+    });
+  }, 120_000);
+});

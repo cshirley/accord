@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T14:13:44.794Z",
+  "generated_at": "2026-11-02T14:29:35.393Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -3333,7 +3333,9 @@
       "id": 31,
       "title": "[stack-compute] accord stack CLI command",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "b7c7b0e"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3472,39 +3474,97 @@
     {
       "id": 32,
       "title": "[stack-compute] Schema description and OKF docs for the stack",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 14,
+        "by_state": {
+          "verified": 6,
+          "open": 8
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-31 stack-compute docs (task 32) > tool-surface.md documents the dev_stack tools\n(fail) ... evidence-stack.md documents computeStack and the StackProvider port with source bindings\n(fail) ... stack-config.md no longer says the harness ignores the stack key and lists every sizing key\n(fail) ... okf/log.md has a dated stack-compute entry covering concepts, plan fields and the phase-plan prompt\n(fail) ASDLC-1/AC-30 stack schema description (task 32) > stack description says the harness reads the keys and that they default off\n 77 pass\n 5 fail",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "bun test exit 0; validate:schemas, validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime exit 0. check:biome exit 1: only docs/dev/ASDLC-1/trace.json format (commits arrays expanded). biome check on task-32 files: Checked 3 files, no fixes applied.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-30",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/alignment.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/schemas/accord-schema.json",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test; bun run validate:schemas; bun run validate:assets"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/docs-validation.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "okf/architecture/evidence-stack.md",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "okf/architecture/tool-surface.md",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "okf/references/stack-config.md",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test; bun run validate:okf; bun run validate:ste; bunx biome check <task files>"
+          }
         }
       ]
     },
@@ -5242,7 +5302,7 @@
         },
         {
           "task": 32,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 39,
@@ -5292,7 +5352,9 @@
         "bun run check:types",
         "alignment.test.ts: ASDLC-1/AC-30 manifest agent absent from registry.ts makes validate:assets fail",
         "alignment.test.ts: ASDLC-1/AC-30 plan field schema tests",
-        "bun run validate:schemas (exit 0)"
+        "bun run validate:schemas (exit 0)",
+        "packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack description says the harness reads the keys and that they default off",
+        "packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack default values are unchanged (enabled stays off, no new defaults)"
       ],
       "verified": false
     },
@@ -5343,7 +5405,7 @@
         },
         {
           "task": 32,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 37,
@@ -5413,7 +5475,8 @@
         "okf/references/dev-command.md",
         "packages/accord-core/tests/alignment.test.ts",
         "okf/references/schemas.md",
-        "packages/accord-cli/tests/stack-cli.test.ts"
+        "packages/accord-cli/tests/stack-cli.test.ts",
+        "okf/architecture/tool-surface.md"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -5449,7 +5512,9 @@
         "bun run check:biome (exit 0)",
         "stack-cli.test.ts › ASDLC-1/AC-31 okf/references/accord-cli.md documents all four stack verbs (ASDLC-1/TC-32)",
         "stack-cli.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the accord stack command (ASDLC-1/TC-32)",
-        "bunx biome check packages/accord-cli okf"
+        "bunx biome check packages/accord-cli okf",
+        "packages/accord-core/tests/docs-validation.test.ts: ASDLC-1/AC-31 (7 tests)",
+        "bunx biome check on task-32 files (clean)"
       ],
       "verified": false
     }
@@ -8911,6 +8976,110 @@
         "outcome": "wont_fix_accepted",
         "note": "The finding said enforcement belongs to phase-verify-task. Unit tests cannot prove check:types, check:bundle, validate:okf, validate:ste or biome."
       }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-30",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The `stack` schema description must say the keys are 'read by the harness'. The descriptions of `merge_strategy`, `sizing.split_on` and `require_flag` are not checked, but no code reads these three keys. stack-config.md must mark them unread (docs-validation.test.ts:433-435), and the schema can still imply they are honoured. This is a round-1 miss, so the severity stays at suggestion.",
+      "file": "packages/accord-core/tests/alignment.test.ts",
+      "line": 384,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-30",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The stack description says the keys are read by the harness, but several keys are not read and their descriptions state behaviour without a marker.",
+      "file": "packages/accord-core/schemas/accord-schema.json",
+      "line": 303,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-31",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The stack-config.md intro check `/read by the harness|the harness reads/i` also matches a negated sentence. An intro such as '**Partly implemented.** Some keys are not yet read by the harness.' passes, so the intro can still say the harness ignores the key. The schema test (alignment.test.ts:383) blocks this negation; the doc test does not.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 430,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-31",
+      "finding_id": "F-009",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The frontmatter of okf/references/stack-config.md keeps `status: proposed` and the `proposed` tag. The body intro can change to 'the harness reads the key' and the concept metadata stays out of date. This is a round-1 miss, so the severity stays at suggestion.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 426,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-31",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Intro says computeStack reads max_depth, overrun_factor and split_on, and that the keys are read by the harness. Several keys have no consumer and are not marked 'not yet read'.",
+      "file": "okf/references/stack-config.md",
+      "line": 26,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-31",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Sizing paragraph says computeStack reads max_depth, and describes post-GREEN overrun measurement and max_depth capping as current behaviour while the same paragraph says overrun_factor is planned.",
+      "file": "okf/architecture/evidence-stack.md",
+      "line": 74,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-31",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Related docs still say the stack key is proposed and unread, which contradicts the updated schema description and stack-config.md.",
+      "file": "docs/configuration.md",
+      "line": 287,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 32,
+      "requirement": "AC-31",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The concept names stack/service.ts and the gh provider in its body, but its sources do not list them.",
+      "file": "okf/architecture/evidence-stack.md",
+      "line": 8,
+      "raised": "C1/review-code"
     }
   ]
 }
