@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T10:58:09.702Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T11:37:18.746Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -34,8 +34,8 @@
 | 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | done | `50242d8` | 1/4/5 | 15 (open 8, verified 7) | 1 |
 | 26 | [stack-compute] computeStack: deterministic pack, flag and order | done | `89b79ee` | 3/3/2 | 23 (verified 20, wont_fix_accepted 3) | 0 |
 | 27 | [stack-compute] PR brief, stack map, stack table and report renderers | done | `c6f34b7` | 2/1/1 | 16 (verified 13, reraised 1, open 2) | 0 |
-| 28 | [stack-compute] StackProvider port and gh provider | done | — | 2/1/1 | 23 (verified 12, open 11) | 0 |
-| 29 | [stack-compute] Stack service and dev_stack_* MCP tools | pending | — | 0/0/0 | 0 | 0 |
+| 28 | [stack-compute] StackProvider port and gh provider | done | `eb2f03d` | 2/1/1 | 23 (verified 12, open 11) | 0 |
+| 29 | [stack-compute] Stack service and dev_stack_* MCP tools | done | — | 2/1/1 | 26 (verified 12, wont_fix_accepted 3, open 11) | 0 |
 | 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | pending | — | 0/0/0 | 0 | 0 |
 | 31 | [stack-compute] accord stack CLI command | pending | — | 0/0/0 | 0 | 0 |
 | 32 | [stack-compute] Schema description and OKF docs for the stack | pending | — | 0/0/0 | 0 | 0 |
@@ -237,9 +237,9 @@
 
 > Then PRs are created or updated with a stack map comment and a generated PR brief (contract link first, ACs and proving tests, process summary, reading order), one accord/evidence status check replaces bot comments, a…
 
-- Tasks: 27 (satisfied), 28 (satisfied), 29 (pending), 30 (pending), 31 (pending)
-- Files: `packages/accord-core/tests/stack-render.test.ts`, `packages/accord-core/src/stack/render.ts`, `packages/accord-core/tests/stack-provider-gh.test.ts`, `packages/accord-core/src/stack/provider.ts`, `packages/accord-core/src/stack/gh-provider.ts`
-- Tests verified (9):
+- Tasks: 27 (satisfied), 28 (satisfied), 29 (satisfied), 30 (pending), 31 (pending)
+- Files: `packages/accord-core/tests/stack-render.test.ts`, `packages/accord-core/src/stack/render.ts`, `packages/accord-core/tests/stack-provider-gh.test.ts`, `packages/accord-core/src/stack/provider.ts`, `packages/accord-core/src/stack/gh-provider.ts`, `packages/accord-core/tests/stack-service.test.ts`, `packages/accord-core/src/stack/service.ts`, `packages/accord-core/src/tools/registry.ts`, `packages/accord-core/src/index.ts`
+- Tests verified (18):
   - stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order
   - stack-render.test.ts: ASDLC-1/AC-11 header columns are exactly PR, Tasks, Concern, ACs, Est. LOC, Depends on
   - stack-render.test.ts: ASDLC-1/AC-11 one row per PR and loop with rolled-up values from trailers
@@ -249,6 +249,15 @@
   - bun run check:bundle
   - grep -rEn 'GH_TOKEN|GITHUB_TOKEN|process\.env' packages/accord-core/src/stack/ (no match)
   - biome check on packages/accord-core/src/stack and stack-provider-gh.test.ts (clean)
+  - stack-service.test.ts › ASDLC-1/AC-11 returns the computed stack table for the plan
+  - stack-service.test.ts › ASDLC-1/AC-11 creates a PR per task with brief, stack map comment and evidence status
+  - stack-service.test.ts › ASDLC-1/AC-11 pushes every branch with only the branch (no force) and is idempotent on rerun
+  - stack-service.test.ts › ASDLC-1/AC-11 never overwrites a failing accord/evidence status (real gh provider)
+  - stack-service.test.ts › ASDLC-1/AC-11 refreshes PR numbers and states from the provider
+  - stack-service.test.ts › ASDLC-1/AC-11 unsupported provider fails with a clear error
+  - stack-service.test.ts › ASDLC-1/AC-11 renders a per-PR roll-up row per loop from commit trailers
+  - stack-service.test.ts › ASDLC-1/AC-11 each dev_stack* tool returns the disabled service text
+  - stack-service.test.ts › ASDLC-1/AC-11 importing src/index.ts registers the computeStack resolver: merged tasks share a group
 
 ### AC-12 — pending (not verified)
 
@@ -372,9 +381,9 @@
 
 > Orchestration and domain logic (commit grammar, computeStack, evidence, state, feature knowledge) MUST live in packages/accord-core; pi-accord, accord-cli and accord-mcp stay thin adapters and Pi APIs never enter acco…
 
-- Tasks: 2 (satisfied), 9 (satisfied), 29 (pending), 31 (pending), 49 (pending)
-- Files: `packages/accord-core/tests/helpers-git.test.ts`, `packages/accord-core/tests/layering.test.ts`, `packages/accord-core/tests/helpers/temp-git-repo.ts`, `packages/accord-core/tests/helpers/fake-gh.ts`, `packages/accord-cli/tests/evidence-cli.test.ts`, `packages/accord-cli/src/commands/evidence.ts`
-- Tests verified (7):
+- Tasks: 2 (satisfied), 9 (satisfied), 29 (satisfied), 31 (pending), 49 (pending)
+- Files: `packages/accord-core/tests/helpers-git.test.ts`, `packages/accord-core/tests/layering.test.ts`, `packages/accord-core/tests/helpers/temp-git-repo.ts`, `packages/accord-core/tests/helpers/fake-gh.ts`, `packages/accord-cli/tests/evidence-cli.test.ts`, `packages/accord-cli/src/commands/evidence.ts`, `packages/accord-core/tests/stack-service.test.ts`, `packages/accord-core/src/stack/service.ts`, `packages/accord-core/src/tools/registry.ts`, `packages/accord-core/src/index.ts`
+- Tests verified (9):
   - packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*
   - packages/accord-core/tests/helpers-git.test.ts › ASDLC-1/AC-28 (temp git repo and fake gh)
   - bun run check:types
@@ -382,6 +391,8 @@
   - evidence-cli.test.ts › ASDLC-1/AC-28 commands/evidence.ts delegates to accord-core timeline and renderers
   - evidence-cli.test.ts › ASDLC-1/AC-28 adapter does not shell out to git or parse trailers itself
   - no-pi-dep.test.ts › does not depend on pi-accord or pi-subagent
+  - stack-service.test.ts › ASDLC-1/AC-28 service.ts imports no Pi package and not tools/registry
+  - stack-service.test.ts › ASDLC-1/AC-28 registry delegates dev_stack* tools to the stack service
 
 ### AC-29 — pending (not verified)
 
@@ -689,6 +700,20 @@
 | 28 | AC-11 | F-021 | unresolved (advisory) | open | suggestion | Failure messages carry little diagnostic value and execFile has no timeout. | packages/accord-core/src/stack/gh-provider.ts:29 |  |
 | 28 | AC-11 | F-022 | unresolved (advisory) | open | suggestion | A second git runner duplicates `git()` in src/git/helpers.ts. | packages/accord-core/src/stack/gh-provider.ts:67 |  |
 | 28 | AC-11 | F-023 | unresolved (advisory) | open | suggestion | createOrUpdatePr returns the whole trimmed stdout as `url`, not the extracted PR URL. | packages/accord-core/src/stack/gh-provider.ts:91 |  |
+| 29 | AC-11 | F-011 | accepted (advisory) | wont_fix_accepted | warning | The resolver signature (taskId) => number[] has no work item id, and the fixture has exactly one docs/dev/*/plan.json, so 'first plan containing the task' passes. In real repos many work items share task ids. | packages/accord-core/tests/stack-service.test.ts:469 | wont_fix_accepted by T2/review-test — Sound scope reason. PrGroupResolver(taskId) has no workItemId and hooks.ts is outside task files. The multi-work-item ambiguity is a real interface gap; a human or review-code should decide (for example, pass workItemId through resolvePrGroup in a follow-up task). |
+| 29 | AC-11 | F-014 | accepted (advisory) | wont_fix_accepted | suggestion | dev_stack* tools are only checked in ACCORD_TOOLS. The MCP adapter path is not exercised, and Pi dynamic-tool bundles (active-set.ts ACCORD_TOOL_BUNDLES) would leave them inactive in Pi sessions. | packages/accord-core/tests/stack-service.test.ts:500 | wont_fix_accepted by T2/review-test — MCP register-tools.ts iterates every ACCORD_TOOLS entry, so the MCP path is covered by the ACCORD_TOOLS assertions. Pi bundle activation needs tools/active-set.ts, which is outside task files. Flagged for review-code as follow-up. |
+| 29 | AC-11 | F-016 | unresolved (advisory) | open | warning | The fake listPrs treats `state === undefined` as all states, but the only real adapter (gh-provider listPrs) adds --state only when given, and `gh pr list` then returns open PRs only. The sync test's 'merged' assertion therefore passes for a sync that calls listPrs() or listPrs({head}) without state 'all'. Against real GitHub, merged PRs disappear from `accord stack sync`. | packages/accord-core/tests/stack-service.test.ts:180 |  |
+| 29 | AC-11 | F-017 | unresolved (advisory) | open | warning | The resolver probes run in a repo with no AGENTS.md Dev Harness config, so only default sizing is exercised. A resolver registered at load time with `resolveStackConfig(null).sizing`, ignoring the project's configured stack.sizing, passes every probe. stackSubmit honours configured sizing (CUSTOM test), so the evidence(task-<N>,<M>) groups would not match the submitted PR groups whenever sizing is customised. | packages/accord-core/tests/stack-service.test.ts:820 |  |
+| 29 | AC-11 | F-018 | unresolved (advisory) | open | suggestion | The 'process summary non-blank' check slices from '## Process summary' to '## Reading order'. renderPrBrief always places '## Accepted risks' with '- None' in between, so `summary: ""` still passes. The adversarial impl passes an empty summary. | packages/accord-core/tests/stack-service.test.ts:434 |  |
+| 29 | AC-11 | F-019 | unresolved (advisory) | open | suggestion | The cwd test injects the fake provider, and the real gh provider path (line 534) always runs with process.cwd() === repo. A service that calls resolveStackProvider(name) without { cwd } passes. Its git branch and push commands then run in the caller's cwd, for example an MCP server or CLI started elsewhere. | packages/accord-core/tests/stack-service.test.ts:322 |  |
+| 29 | AC-11 | F-020 | unresolved (advisory) | open | suggestion | Submit and sync branch side effects are partly unpinned. (a) The dependent PR's ensureBranch base is not asserted, so beta can be ensured from main while the PR base is alpha's head. (b) Push-before-create order is not asserted; real `gh pr create` fails if the head is not pushed yet. (c) The sync test does not assert fake.ensures is empty, so a sync that creates local branches passes. | packages/accord-core/tests/stack-service.test.ts:412 |  |
+| 29 | AC-11 | F-021 | unresolved (advisory) | open | warning | Stack head branches are named `accord/<ID>/task-<N>`, but the plan puts local stack branches in `stack/<ID>/pr-<n>`, distinct from the CI-driven `accord/*/**` namespace. | packages/accord-core/src/stack/service.ts:63 |  |
+| 29 | AC-11 | F-022 | unresolved (advisory) | open | warning | `resolveGroup` takes only a task id, so it picks the first `docs/dev/*/plan.json` containing that id. It also computes groups with default sizing (`resolveStackConfig(null)`), ignoring the repo's `stack.sizing`. | packages/accord-core/src/stack/service.ts:268 |  |
+| 29 | AC-11 | F-023 | unresolved (advisory) | open | warning | The four `dev_stack*` tools are not in any bundle in `tools/active-set.ts`, so the Pi adapter never activates them. | packages/accord-core/src/tools/registry.ts:856 |  |
+| 29 | AC-11 | F-024 | unresolved (advisory) | open | warning | stackSync lists all PRs with `state: 'all'` and builds a head→PR map where the last entry wins. That can miss stack PRs or report a stale closed one. | packages/accord-core/src/stack/service.ts:126 |  |
+| 29 | AC-11 | F-025 | unresolved (advisory) | open | warning | stackReport reads only HEAD's history, loads every commit body into one 10 MB-capped buffer, and turns any git failure into an empty successful report. | packages/accord-core/src/stack/service.ts:249 |  |
+| 29 | AC-11 | F-026 | unresolved (advisory) | open | suggestion | stackSync takes each PR's ACs by re-rendering the whole stack table and picking a cell with `.split('\n')[2].split('\|')[4]`. | packages/accord-core/src/stack/service.ts:130 |  |
+| 29 | AC-28 | F-013 | accepted (advisory) | wont_fix_accepted | suggestion | AC-28 enforcement (check:types, check:bundle) cannot be proven by unit tests. Source-regex checks only pin the declaration. | packages/accord-core/tests/stack-service.test.ts:492 | wont_fix_accepted by T2/review-test — Enforcement is a verify concern. The task verify step lists check:types, check:bundle and check:runtime, and layering.test.ts covers the import boundary for all of src. |
 
 ## Decisions
 
@@ -724,6 +749,7 @@
 - Task 23 (accepted): Edited evidence-check-runner.test.ts: registry-empty assertion now expects the contract-lock rule, and main() is called with rules: [] so the real rule does not run on fake shas. — Registering the contract-lock rule makes the old 'registry.length === 0' assertion contradict AC-9; phase-code cannot edit tests.
 - Task 25 (accepted): alignment.test.ts already existed (task 17); appended new describe blocks instead of adding the file. — Plan lists action add, but the file is on disk with earlier ASDLC-1 AC-30 tests that must stay.
 - Task 26 (pending): Defined StackPlan/PrGroup/StackFlag output shape and the sizing input type in types.ts, because the spec does not fix them. Tests and the golden fixture pin that shape. — AC-10 names no concrete output schema; tests need a concrete contract.
+- Task 29 (pending): No work-item-scoped resolver test (F-011) — PrGroupResolver carries no workItemId and hooks.ts is outside task files; no selection rule is derivable from spec
 
 ## Evidence by task
 
@@ -1286,6 +1312,18 @@ stack-provider-gh.test.ts: 30 pass, 0 fail (156 expect calls). Full bun test exi
 ```
 
 ### Task 29: [stack-compute] Stack service and dev_stack_* MCP tools
+
+RED evidence (`T1/phase-test`):
+
+```text
+Ran 17 tests across 1 file. 0 pass, 17 fail. Failures: stackSync/stackShow/stackSubmit/stackReport throw 'not implemented: <fn>'; dev_stack* tools not registered in ACCORD_TOOLS; resolvePrGroup(3) returned [3] instead of [3,4]; service.ts lacks registerPrGroupResolver; registry.ts lacks stack/service import.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+stack-service + accord-mcp tests: 30 pass, 0 fail. check:types, check:bundle, check:runtime, validate:schemas/assets/okf/ste: exit 0. bun test (full): exit 0. check:biome: fails only on docs/dev/ASDLC-1/trace.json (format, harness-generated, outside task files); biome check on the 4 task files is clean.
+```
 
 ### Task 30: [stack-compute] Per-PR branch lifecycle in the spawn preflight
 

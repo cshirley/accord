@@ -7,4 +7,7 @@ export * from "./orchestration/index.js";
 export * from "./queries/dashboard.js";
 export * from "./queries/resume-state.js";
 export * from "./types/host.js";
+
+import "./stack/service.js";
+
 export * from "./work-items/lifecycle.js";

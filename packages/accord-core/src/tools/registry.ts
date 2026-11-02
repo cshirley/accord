@@ -41,6 +41,7 @@ import { unblockTask } from "../queries/unblock-task.js";
 import { devVerifySummary, validateVerifyReport } from "../queries/verify-summary.js";
 import { devWorkItemStatus } from "../queries/work-item-status.js";
 import { buildWorkflowCostReport } from "../queries/workflow-cost.js";
+import { stackReport, stackShow, stackSubmit, stackSync } from "../stack/service.js";
 import {
   devCheckpointDelete,
   devCheckpointRead,
@@ -849,6 +850,50 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
       } catch (e: unknown) {
         return { ok: false, text: `Error: ${e instanceof Error ? e.message : String(e)}` };
       }
+    },
+  }),
+  defineTool({
+    name: "dev_stack",
+    label: "dev_stack",
+    description: "Show the computed PR stack table for a work item",
+    promptSnippet: "Show the computed PR stack table for a work item",
+    parameters: Type.Object({ id: Type.String({ description: "Work item id" }) }),
+    handler(params, ctx) {
+      return stackShow(params.id, ctx.getConfig());
+    },
+  }),
+
+  defineTool({
+    name: "dev_stack_sync",
+    label: "dev_stack_sync",
+    description: "Refresh the PR stack from provider state",
+    promptSnippet: "Refresh the PR stack from provider state",
+    parameters: Type.Object({ id: Type.String({ description: "Work item id" }) }),
+    handler(params, ctx) {
+      return stackSync(params.id, ctx.getConfig());
+    },
+  }),
+
+  defineTool({
+    name: "dev_stack_submit",
+    label: "dev_stack_submit",
+    description: "Create or update every stacked PR with brief, stack map and evidence status",
+    promptSnippet: "Create or update every stacked PR with brief, stack map and evidence status",
+    parameters: Type.Object({ id: Type.String({ description: "Work item id" }) }),
+    handler(params, ctx) {
+      return stackSubmit(params.id, ctx.getConfig());
+    },
+  }),
+
+  defineTool({
+    name: "dev_stack_report",
+    label: "dev_stack_report",
+    description: "Per-PR roll-up of rounds, findings, tests, tokens and cost from commit trailers",
+    promptSnippet:
+      "Per-PR roll-up of rounds, findings, tests, tokens and cost from commit trailers",
+    parameters: Type.Object({ id: Type.String({ description: "Work item id" }) }),
+    handler(params, ctx) {
+      return stackReport(params.id, ctx.getConfig());
     },
   }),
 ];
