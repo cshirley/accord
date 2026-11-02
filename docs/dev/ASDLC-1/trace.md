@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T10:35:36.076Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T10:58:09.702Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -33,8 +33,8 @@
 | 24 | [contract-lock] OKF docs for contract PR0 and amendment | done | `7940f3b` | 1/2/2 | 10 (open 5, verified 5) | 0 |
 | 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | done | `50242d8` | 1/4/5 | 15 (open 8, verified 7) | 1 |
 | 26 | [stack-compute] computeStack: deterministic pack, flag and order | done | `89b79ee` | 3/3/2 | 23 (verified 20, wont_fix_accepted 3) | 0 |
-| 27 | [stack-compute] PR brief, stack map, stack table and report renderers | done | — | 2/1/1 | 16 (verified 13, reraised 1, open 2) | 0 |
-| 28 | [stack-compute] StackProvider port and gh provider | pending | — | 0/0/0 | 0 | 0 |
+| 27 | [stack-compute] PR brief, stack map, stack table and report renderers | done | `c6f34b7` | 2/1/1 | 16 (verified 13, reraised 1, open 2) | 0 |
+| 28 | [stack-compute] StackProvider port and gh provider | done | — | 2/1/1 | 23 (verified 12, open 11) | 0 |
 | 29 | [stack-compute] Stack service and dev_stack_* MCP tools | pending | — | 0/0/0 | 0 | 0 |
 | 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | pending | — | 0/0/0 | 0 | 0 |
 | 31 | [stack-compute] accord stack CLI command | pending | — | 0/0/0 | 0 | 0 |
@@ -237,13 +237,18 @@
 
 > Then PRs are created or updated with a stack map comment and a generated PR brief (contract link first, ACs and proving tests, process summary, reading order), one accord/evidence status check replaces bot comments, a…
 
-- Tasks: 27 (satisfied), 28 (pending), 29 (pending), 30 (pending), 31 (pending)
-- Files: `packages/accord-core/tests/stack-render.test.ts`, `packages/accord-core/src/stack/render.ts`
-- Tests verified (4):
+- Tasks: 27 (satisfied), 28 (satisfied), 29 (pending), 30 (pending), 31 (pending)
+- Files: `packages/accord-core/tests/stack-render.test.ts`, `packages/accord-core/src/stack/render.ts`, `packages/accord-core/tests/stack-provider-gh.test.ts`, `packages/accord-core/src/stack/provider.ts`, `packages/accord-core/src/stack/gh-provider.ts`
+- Tests verified (9):
   - stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order
   - stack-render.test.ts: ASDLC-1/AC-11 header columns are exactly PR, Tasks, Concern, ACs, Est. LOC, Depends on
   - stack-render.test.ts: ASDLC-1/AC-11 one row per PR and loop with rolled-up values from trailers
   - stack-render.test.ts: ASDLC-1/AC-11 lists position, PR link and qualified AC coverage per PR in order
+  - bun test packages/accord-core/tests/stack-provider-gh.test.ts (30 pass, 0 fail; covers createOrUpdatePr create/edit, upsertStackMapComment in place, setEvidenceStatus never replacing failure, listPrs, resolveStackProvider unsupported error, no secret leakage, ensureBranch/pushBranch non-force)
+  - bun run check:types
+  - bun run check:bundle
+  - grep -rEn 'GH_TOKEN|GITHUB_TOKEN|process\.env' packages/accord-core/src/stack/ (no match)
+  - biome check on packages/accord-core/src/stack and stack-provider-gh.test.ts (clean)
 
 ### AC-12 — pending (not verified)
 
@@ -673,6 +678,17 @@
 | 27 | AC-11 | F-006 | unresolved (advisory) | reraised | warning | Absent optional fields are never checked for leaking as NaN/undefined. Trailers omit absent keys (commit-grammar: 'absent keys are omitted, never null'), but every trailer in the roll-up fixture carries crit/warn/sugg/tok_in/tok_out/usd_u. A brief AC without text is also never checked for 'undefined'. | packages/accord-core/tests/stack-render.test.ts:357 | reraised by T2/review-test — Unmet: 'In the line 80 test add expect(md).not.toContain("undefined")'. It was added to the section-order test, where all ACs have text. The test with an AC that has no text still does not check for 'undefined'. The report half is met. |
 | 27 | AC-11 | F-015 | unresolved (advisory) | open | suggestion | The tests cannot tell the 'tests' cell built from the latest test-bearing trailer apart from one built from the latest trailer. No T-loop trailer without t_pass or t_fail comes after the trailers that have them. In real T loops a review-test trailer (no t_* keys) usually comes last. This gap was missed in round 1 (the loop T fixture has not changed). | packages/accord-core/tests/stack-render.test.ts:452 |  |
 | 27 | AC-11 | F-016 | unresolved (advisory) | open | suggestion | The stack map is never checked for leaked null or undefined, but the contract entry has `concern: null`, `acs: []` and no depends_on_prs. This gap was missed in round 1 (the entries fixture has not changed). | packages/accord-core/tests/stack-render.test.ts:185 |  |
+| 28 | AC-11 | F-013 | unresolved (advisory) | open | suggestion | Every setEvidenceStatus call requests state 'success', so the requested state and the 'only upgrade missing or pending' rule are untested for other inputs. | packages/accord-core/tests/stack-provider-gh.test.ts:415 |  |
+| 28 | AC-11 | F-014 | unresolved (advisory) | open | suggestion | No test makes the status read fail while writes would succeed, so a fail-open impl (catch the read error, treat it as 'missing', write) passes and can overwrite a CI failure. | packages/accord-core/tests/stack-provider-gh.test.ts:383 |  |
+| 28 | AC-11 | F-015 | unresolved (advisory) | open | suggestion | The fake gh returns every fixture field whatever `--json` requests, and `--limit` is never asserted. An impl that omits baseRefName or url from `--json`, or that relies on gh's default 30-PR cap, passes but fails or truncates in production. | packages/accord-core/tests/stack-provider-gh.test.ts:435 |  |
+| 28 | AC-11 | F-016 | unresolved (advisory) | open | suggestion | `git push --force-with-lease --force-if-includes origin feat` is rejected in the diverged case, so it passes. It still rewrites remote history after a local amend, which breaks 'evidence commits are append-only, no force-push'. | packages/accord-core/tests/stack-provider-gh.test.ts:641 |  |
+| 28 | AC-11 | F-017 | unresolved (advisory) | open | suggestion | The gh tests are not hermetic. Most tests call resolveStackProvider('gh') without a cwd, so gh runs in the repo worktree with the inherited GH_TOKEN and the developer's gh auth. An impl that resolves the gh path once at import (Bun.which before installGh changes PATH) or uses an absolute path would call real GitHub. For example, the upsert tests would POST or PATCH comments on real issue #7. | packages/accord-core/tests/stack-provider-gh.test.ts:95 |  |
+| 28 | AC-11 | F-018 | unresolved (advisory) | open | suggestion | createOrUpdatePr is never given a closed or merged PR on the same head. An impl that lists with `--state all` and edits the first result changes a merged PR body instead of opening a new PR. | packages/accord-core/tests/stack-provider-gh.test.ts:137 |  |
+| 28 | AC-11 | F-019 | unresolved (advisory) | open | warning | listPrs silently truncates to gh's default 30 PRs, so unfiltered listing (accord stack sync) can miss stack PRs. | packages/accord-core/src/stack/gh-provider.ts:70 |  |
+| 28 | AC-11 | F-020 | unresolved (advisory) | open | warning | setEvidenceStatus reads only the first page of the combined status, so the never-replace-a-CI-failure guard can miss accord/evidence. | packages/accord-core/src/stack/gh-provider.ts:126 |  |
+| 28 | AC-11 | F-021 | unresolved (advisory) | open | suggestion | Failure messages carry little diagnostic value and execFile has no timeout. | packages/accord-core/src/stack/gh-provider.ts:29 |  |
+| 28 | AC-11 | F-022 | unresolved (advisory) | open | suggestion | A second git runner duplicates `git()` in src/git/helpers.ts. | packages/accord-core/src/stack/gh-provider.ts:67 |  |
+| 28 | AC-11 | F-023 | unresolved (advisory) | open | suggestion | createOrUpdatePr returns the whole trimmed stdout as `url`, not the extracted PR URL. | packages/accord-core/src/stack/gh-provider.ts:91 |  |
 
 ## Decisions
 
@@ -1256,6 +1272,18 @@ stack-render.test.ts: 27 pass, 0 fail. check:types, validate:schemas, validate:a
 ```
 
 ### Task 28: [stack-compute] StackProvider port and gh provider
+
+RED evidence (`T1/phase-test`):
+
+```text
+25 fail, 0 pass. Failures are 'not implemented: resolveStackProvider' thrown from the stub, or assertion failures such as: Expected substring or pattern: /gh/ Received: "not implemented: resolveStackProvider"
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+stack-provider-gh.test.ts: 30 pass, 0 fail (156 expect calls). Full bun test exit 0; validate:schemas/assets/okf/ste, check:types, check:bundle, check:runtime exit 0. grep for GH_TOKEN|GITHUB_TOKEN|process.env in src/stack: no match. check:biome exit 1: docs/dev/ASDLC-1/trace.json format only; task files clean.
+```
 
 ### Task 29: [stack-compute] Stack service and dev_stack_* MCP tools
 

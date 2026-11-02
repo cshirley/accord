@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T10:35:36.076Z",
+  "generated_at": "2026-11-02T10:58:09.702Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -2929,7 +2929,9 @@
       "id": 27,
       "title": "[stack-compute] PR brief, stack map, stack table and report renderers",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "c6f34b7"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3021,33 +3023,75 @@
     {
       "id": 28,
       "title": "[stack-compute] StackProvider port and gh provider",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 23,
+        "by_state": {
+          "verified": 12,
+          "open": 11
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "25 fail, 0 pass. Failures are 'not implemented: resolveStackProvider' thrown from the stub, or assertion failures such as: Expected substring or pattern: /gh/ Received: \"not implemented: resolveStackProvider\"",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "stack-provider-gh.test.ts: 30 pass, 0 fail (156 expect calls). Full bun test exit 0; validate:schemas/assets/okf/ste, check:types, check:bundle, check:runtime exit 0. grep for GH_TOKEN|GITHUB_TOKEN|process.env in src/stack: no match. check:biome exit 1: docs/dev/ASDLC-1/trace.json format only; task files clean.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-11",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/provider.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/gh-provider.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/provider.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/stack/gh-provider.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-core/tests/stack-provider-gh.test.ts"
+          }
         }
       ]
     },
@@ -4430,7 +4474,7 @@
         },
         {
           "task": 28,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 29,
@@ -4447,13 +4491,21 @@
       ],
       "files": [
         "packages/accord-core/tests/stack-render.test.ts",
-        "packages/accord-core/src/stack/render.ts"
+        "packages/accord-core/src/stack/render.ts",
+        "packages/accord-core/tests/stack-provider-gh.test.ts",
+        "packages/accord-core/src/stack/provider.ts",
+        "packages/accord-core/src/stack/gh-provider.ts"
       ],
       "tests": [
         "stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order",
         "stack-render.test.ts: ASDLC-1/AC-11 header columns are exactly PR, Tasks, Concern, ACs, Est. LOC, Depends on",
         "stack-render.test.ts: ASDLC-1/AC-11 one row per PR and loop with rolled-up values from trailers",
-        "stack-render.test.ts: ASDLC-1/AC-11 lists position, PR link and qualified AC coverage per PR in order"
+        "stack-render.test.ts: ASDLC-1/AC-11 lists position, PR link and qualified AC coverage per PR in order",
+        "bun test packages/accord-core/tests/stack-provider-gh.test.ts (30 pass, 0 fail; covers createOrUpdatePr create/edit, upsertStackMapComment in place, setEvidenceStatus never replacing failure, listPrs, resolveStackProvider unsupported error, no secret leakage, ensureBranch/pushBranch non-force)",
+        "bun run check:types",
+        "bun run check:bundle",
+        "grep -rEn 'GH_TOKEN|GITHUB_TOKEN|process\\.env' packages/accord-core/src/stack/ (no match)",
+        "biome check on packages/accord-core/src/stack and stack-provider-gh.test.ts (clean)"
       ],
       "verified": false
     },
@@ -7961,6 +8013,149 @@
       "file": "packages/accord-core/tests/stack-render.test.ts",
       "line": 185,
       "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every setEvidenceStatus call requests state 'success', so the requested state and the 'only upgrade missing or pending' rule are untested for other inputs.",
+      "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+      "line": 415,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "No test makes the status read fail while writes would succeed, so a fail-open impl (catch the read error, treat it as 'missing', write) passes and can overwrite a CI failure.",
+      "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+      "line": 383,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The fake gh returns every fixture field whatever `--json` requests, and `--limit` is never asserted. An impl that omits baseRefName or url from `--json`, or that relies on gh's default 30-PR cap, passes but fails or truncates in production.",
+      "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+      "line": 435,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`git push --force-with-lease --force-if-includes origin feat` is rejected in the diverged case, so it passes. It still rewrites remote history after a local amend, which breaks 'evidence commits are append-only, no force-push'.",
+      "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+      "line": 641,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The gh tests are not hermetic. Most tests call resolveStackProvider('gh') without a cwd, so gh runs in the repo worktree with the inherited GH_TOKEN and the developer's gh auth. An impl that resolves the gh path once at import (Bun.which before installGh changes PATH) or uses an absolute path would call real GitHub. For example, the upsert tests would POST or PATCH comments on real issue #7.",
+      "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+      "line": 95,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "createOrUpdatePr is never given a closed or merged PR on the same head. An impl that lists with `--state all` and edits the first result changes a merged PR body instead of opening a new PR.",
+      "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+      "line": 137,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "listPrs silently truncates to gh's default 30 PRs, so unfiltered listing (accord stack sync) can miss stack PRs.",
+      "file": "packages/accord-core/src/stack/gh-provider.ts",
+      "line": 70,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "setEvidenceStatus reads only the first page of the combined status, so the never-replace-a-CI-failure guard can miss accord/evidence.",
+      "file": "packages/accord-core/src/stack/gh-provider.ts",
+      "line": 126,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Failure messages carry little diagnostic value and execFile has no timeout.",
+      "file": "packages/accord-core/src/stack/gh-provider.ts",
+      "line": 29,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A second git runner duplicates `git()` in src/git/helpers.ts.",
+      "file": "packages/accord-core/src/stack/gh-provider.ts",
+      "line": 67,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 28,
+      "requirement": "AC-11",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "createOrUpdatePr returns the whole trimmed stdout as `url`, not the extracted PR URL.",
+      "file": "packages/accord-core/src/stack/gh-provider.ts",
+      "line": 91,
+      "raised": "C1/review-code"
     }
   ]
 }
