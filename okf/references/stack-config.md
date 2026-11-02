@@ -34,9 +34,9 @@ sources:
 | `commits` | `task` | `task` = one commit per done task. `phase` = (format: [Commit message format](/references/commit-format.md)) one orchestrator-made commit per phase completion (phase-test, review-test, phase-code, review-code, review-security, phase-verify-task) with loop and round trailers, plus `state` and the final `evidence` |
 | `merge_strategy` | `rebase` | Not yet read (planned for trunk-hardening). `rebase`, `merge`, or `squash`. Squash is safe when `evidence.asset` is `true` (the asset keeps the evidence) |
 | `evidence.asset` | `true` | Final commit of each task PR (`evidence(task-<N>)`) writes `docs/dev/<ID>/evidence/task-<N>.{md,json}` |
-| `state.persist` | `tree` | `tree` = commit task state under `state.path` per typed commit; the final `evidence(task-<N>)` commit deletes it. `notes` = git notes under `refs/notes/accord/<ID>`. `none` = local `.tasks/` only |
+| `state.persist` | `tree` | `tree` = commit task state under `state.path` per typed commit; the final `evidence(task-<N>)` commit deletes it and closeout removes the rest. A fresh clone resumes from it. `notes` = git notes under `refs/notes/accord/<ID>`. `none` = local `.tasks/` only |
 | `state.path` | `docs/dev/{id}/state` | Directory template for committed state (`<path>/task-<N>/`). Visible beside the other artifacts; must not be gitignored. Deleted at `evidence(task-<N>)` and closeout |
-| `state.redact` | `true` | Redact secrets and raw packets before commit. Keep `true`: content enters git history |
+| `state.redact` | `true` | Redact secrets before commit; raw packets are excluded. Keep `true`: content enters git history |
 | `state.max_bytes` | `262144` | Max bytes of state per task snapshot |
 | `evidence.include_diffs` | `true` | Include `review..fix` patches and red/green output excerpts in the asset |
 | `sizing.max_pr_lines` | `400` | Changed lines per PR (net production and test lines, reported separately), excluding generated files, lockfiles, `state/`, `reviews/`, `evidence/` |

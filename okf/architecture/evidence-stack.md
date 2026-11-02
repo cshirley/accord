@@ -33,9 +33,21 @@ sources:
   - id: evidence-commit
     resource: /packages/accord-core/src/commit/evidence-commit.ts
     title: Final evidence(task-<N>) commit
+  - id: state-snapshot
+    resource: /packages/accord-core/src/state/snapshot.ts
+    title: Task state snapshot
+  - id: state-redact
+    resource: /packages/accord-core/src/state/redact.ts
+    title: State redaction
+  - id: state-restore
+    resource: /packages/accord-core/src/state/restore.ts
+    title: Resume from committed state
+  - id: state-closeout
+    resource: /packages/accord-core/src/state/closeout.ts
+    title: Closeout marker and state removal
 ---
 
-**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The contract lock (PR0, lock file, tag, lock guard and contract-amend) and the `review-security` gate are also implemented. PR stack compute is implemented: `computeStack`, the `StackProvider` port with the `gh` provider, and the `dev_stack*` tools and `accord stack`. The other features stay proposed. Without `stack.enabled`, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
+**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The contract lock (PR0, lock file, tag, lock guard and contract-amend) and the `review-security` gate are also implemented. Tree state is implemented: redacted task state under `docs/dev/<ID>/state/`, resume from a fresh clone, and the closeout marker. PR stack compute is implemented: `computeStack`, the `StackProvider` port with the `gh` provider, and the `dev_stack*` tools and `accord stack`. The other features stay proposed. Without `stack.enabled`, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
 
 # Shape
 
@@ -67,7 +79,15 @@ The orchestrator is the only committer; agents never commit. Every phase complet
 
 # State persistence
 
-Default `stack.state.persist: "tree"`: task state (`STATE.md` is the existing `accord trace` rendering of the task file; `.tasks/` stays the local raw state) is committed under `docs/dev/<ID>/state/task-<N>/` with each typed commit (redacted, per-PR, no work-item-wide file). The final `evidence(task-<N>)` commit builds the evidence asset from it and deletes the directory; closeout deletes the rest of `docs/dev/<ID>/state/`. What survives which merge strategy: plan section 3.2a. A fresh clone or CI runner resumes from the branch alone. Long-term, CI starts from a branch that contains only `brief.md` and `spec.json`: it plans, proposes the stack table in PR0, then builds each task PR. Modes `notes` and `none` exist. See the plan, sections 3.2a and 3.2b.
+Default `stack.state.persist: "tree"`: task state is committed under `docs/dev/<ID>/state/task-<N>/` with each typed commit. `STATE.md` is the `renderTaskTrace()` output for the task. `.tasks/` stays the local raw state. Each snapshot is per PR; there is no work-item-wide file.
+
+- **Redaction.** `stack.state.redact` (default `true`) MUST stay `true`: the content enters git history. The snapshot masks secrets. Raw packets are not copied.
+- **Size cap.** `stack.state.max_bytes` (default `262144`) limits the bytes of one task snapshot.
+- **Fresh clone.** A fresh clone or a CI runner resumes from the branch alone: restore rebuilds `.tasks/` from `docs/dev/<ID>/state/` and the committed artifacts.
+- **Removal.** The final `evidence(task-<N>)` commit builds the evidence asset from the state and deletes `state/task-<N>/`. The closeout step builds `trace.*`, `verify.*` and `workflow-cost.*` first, writes the marker `evidence/closeout.json`, and then deletes the rest of `docs/dev/<ID>/state/` in the same commit.
+- **Check.** The `accord/evidence` check fails when state files remain after the closeout marker exists.
+
+State and typed commits do not survive a squash merge; the evidence asset and the closeout marker do. Modes `notes` and `none` exist. Long-term, CI starts from a branch that contains only `brief.md` and `spec.json`: it plans, proposes the stack table in PR0, then builds each task PR. See the plan, sections 3.2a and 3.2b.
 
 # Sizing
 

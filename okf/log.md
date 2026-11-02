@@ -84,3 +84,7 @@
 ## 2026-10-06
 
 * **Update**: [Monorepo packages](/architecture/monorepo-packages.md): the `accord/evidence` check runs the `contract-lock` rule (`packages/accord-ci/src/checks/contract-lock.ts`). It fails a PR commit after the lock commit that changes a locked file without an `outcome=amend` commit.
+
+## 2026-11-02
+
+* **Update**: ASDLC-1 tree-state: [Artifacts and state](/references/artifacts-and-state.md) (`state/task-<N>/`, `evidence/closeout.json`, closeout order, resume from a fresh clone), [Evidence stack](/architecture/evidence-stack.md) (state persistence, redaction, size cap, `src/state/` sources) and [Stack configuration](/references/stack-config.md) (`state.redact`, `state.max_bytes`, `state.persist`) now describe the implemented tree state.
