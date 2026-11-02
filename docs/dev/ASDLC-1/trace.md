@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T15:25:49.171Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T15:57:55.977Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -40,8 +40,8 @@
 | 31 | [stack-compute] accord stack CLI command | done | `b7c7b0e` | 2/1/1 | 15 (verified 12, open 2, wont_fix_accepted 1) | 0 |
 | 32 | [stack-compute] Schema description and OKF docs for the stack | done | `2efaca7` | 2/1/1 | 14 (verified 6, open 8) | 0 |
 | 33 | [tree-state] State size cap and task-file redaction | done | `fcba02c` | 2/1/1 | 15 (verified 7, open 8) | 0 |
-| 34 | [tree-state] State snapshot writer staged with every typed commit | done | — | 2/1/1 | 21 (verified 11, open 10) | 0 |
-| 35 | [tree-state] Stateless resume from committed state | pending | — | 0/0/0 | 0 | 0 |
+| 34 | [tree-state] State snapshot writer staged with every typed commit | done | `b7c261f` | 2/1/1 | 21 (verified 11, open 10) | 0 |
+| 35 | [tree-state] Stateless resume from committed state | done | — | 2/1/1 | 10 (verified 4, reraised 1, open 5) | 0 |
 | 36 | [tree-state] Closeout commit builds artifacts then removes state | pending | — | 0/0/0 | 0 | 0 |
 | 37 | [tree-state] Leftover-state rule in the accord/evidence check | pending | — | 0/0/0 | 0 | 0 |
 | 38 | [tree-state] OKF docs for committed state and closeout | pending | — | 0/0/0 | 0 | 0 |
@@ -288,11 +288,22 @@
   - state-snapshot.test.ts › ASDLC-1/AC-12 a phase commit stages STATE.md and task.json, redacted, and no raw packet
   - phase-commits.test.ts (4 tests, all pass)
 
-### AC-13 — pending (not verified)
+### AC-13 — satisfied
 
 > Then state is rebuilt from docs/dev/<ID>/state/ and the other artifacts, the next ref is the same as in the original run, findings are read from the tree with no review re-run, and the evidence asset regenerated from …
 
-- Tasks: 35 (pending)
+- Tasks: 35 (satisfied)
+- Files: `packages/accord-core/tests/e2e/state-resume.test.ts`, `packages/accord-core/src/state/restore.ts`, `packages/accord-core/src/work-items/rehydrate.ts`, `packages/accord-core/src/work-items/artifact-discovery.ts`
+- Tests verified (9):
+  - ASDLC-1/AC-13 fixture run records one typed commit per phase before the evidence commit
+  - ASDLC-1/AC-13 resume at every typed commit rebuilds the same task state and next ref with no review re-run
+  - ASDLC-1/AC-13 work item is rebuilt from state/work-item.json when .tasks/ is gone
+  - ASDLC-1/AC-13 review findings are read from the tree: open then addressed findings survive restore
+  - ASDLC-1/AC-13 evidence asset regenerated after resume + replay equals the committed asset byte for byte
+  - ASDLC-1/AC-13 restores work item and task file from state/ and reports the task ids
+  - ASDLC-1/AC-13 never overwrites an existing live task file
+  - ASDLC-1/AC-13 reports nothing to restore when docs/dev/<ID>/state/ is absent
+  - ASDLC-1/AC-13 finished task is not re-run, running task resumes, not-started task is still bootstrapped
 
 ### AC-14 — pending (not verified)
 
@@ -796,6 +807,12 @@
 | 34 | AC-12 | F-020 | unresolved (advisory) | open | suggestion | The cap is applied per file with a fixed max_bytes/4 per-string ceiling, though the schema describes max_bytes as per task snapshot. | packages/accord-core/src/state/snapshot.ts:50 |  |
 | 34 | AC-12 | F-021 | unresolved (advisory) | open | suggestion | stack.state.path is in the schema and resolveStackConfig but the snapshot directory is hardcoded to docs/dev/<ID>/state/task-<N>. | packages/accord-core/src/state/snapshot.ts:15 |  |
 | 34 | AC-29 | F-017 | unresolved (advisory) | open | suggestion | Empty catch swallows emitStackEvent failures; the sibling call in phase-commit.ts logs a warn. | packages/accord-core/src/state/snapshot.ts:86 |  |
+| 35 | AC-13 | F-003 | unresolved (advisory) | reraised | warning | The 'next action' check compares the clone's resolution only to marker.resolution, which is recorded at line 320 and never checked against the expected agent. If the origin resolves to blocked at some markers (for example owner_nonce drift in buildImplementSpawnTaskBrief, or a fixture gap), blocked equals blocked, the review-ref guard at lines 398-402 never runs, and the only next-ref evidence is allocateRef with an agent the test itself supplies. | packages/accord-core/tests/e2e/state-resume.test.ts:397 | reraised by T2/review-test — Unmet: 'every markers[i] … asserted to equal { outcome: spawn, agent: STEPS[i+1].agent }'. Lines 409 and 411 pin 'review-test' where STEPS[4] and STEPS[6] are 'phase-code'. Root cause: the fixture never sets pre_impl_gates='complete' after the clean T2/review-test (the real post-result/review-test.ts:128 does), so the origin re-runs review-test and the test enshrines that review re-run. A restore that drops pre_impl_gates also passes. Target unchanged; recipe added: set pre_impl_gates in applyToTask at T2/review-test, then derive the list from STEPS. |
+| 35 | AC-13 | F-006 | unresolved (advisory) | open | warning | Evidence-finished tasks get no task file, but resume routing treats a missing file as not done, so a fully finished PR resumes to a misleading blocked message. | packages/accord-core/src/work-items/artifact-discovery.ts:264 |  |
+| 35 | AC-13 | F-007 | unresolved (advisory) | open | warning | A failed restoreStateFromTree is silently ignored and rehydrate falls back to inferring a fresh work item from plan.json, losing committed state with no log. | packages/accord-core/src/work-items/rehydrate.ts:164 |  |
+| 35 | AC-13 | F-008 | unresolved (advisory) | open | suggestion | A corrupt state/task-N/task.json (e.g. merge-conflict markers after a stack rebase) is skipped silently, and so is a corrupt state/work-item.json. Task writes also come after the work item write. | packages/accord-core/src/state/restore.ts:38 |  |
+| 35 | AC-13 | F-009 | unresolved (advisory) | open | suggestion | The restore branch skips carryForwardUsageFromCommittedRollup, which the inference branch runs, so usage and cost rows are inconsistent between the two rehydrate paths. | packages/accord-core/src/work-items/rehydrate.ts:168 |  |
+| 35 | AC-13 | F-010 | unresolved (advisory) | open | suggestion | The evidence asset path is a hand-built literal in a third place. | packages/accord-core/src/work-items/artifact-discovery.ts:265 |  |
 
 ## Decisions
 
@@ -837,6 +854,8 @@
 - Task 30 (accepted): Added side-effect import of ./branches.js in stack/service.ts (not in task.files) — Closeout hook must register when only src/index.ts or tools/registry.ts is imported; both already import service.ts
 - Task 31 (pending): Tests require edits outside task.files[]: packages/accord-cli/src/commands/index.ts (export runStackCommand), packages/accord-cli/src/ui/command-catalog.ts (help lists stack), okf/log.md (dated bullet). — Needed to satisfy AC-11 (help and routing), AC-28 (adapter export) and AC-31 (log entry).
 - Task 31 (pending): Added the stack entry to packages/accord-cli/src/ui/command-catalog.ts — Needed for `accord --help` to list stack (AC-11 help test); the file is not in task.files[]
+- Task 35 (pending): Pinned restoreStateFromTree(id, cwd?) -> Result<{restored, task_ids}> and next ref = allocateRef(task, nextAgent); spec leaves both open. — Spec gives no signature or next-ref definition; tests need a concrete public contract.
+- Task 35 (pending): No test for artifact-discovery.ts 'skip state/' step. — Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.
 
 ## Evidence by task
 
@@ -1493,6 +1512,28 @@ bun test (2 files): 61 pass, 0 fail, 556 expect() calls. bun run check:types: ex
 ```
 
 ### Task 35: [tree-state] Stateless resume from committed state
+
+RED evidence (`T1/phase-test`):
+
+```text
+(pass) fixture run records one typed commit per phase before the evidence commit
+(fail) resume at every typed commit rebuilds the same task state and next ref with no review re-run: expect(received).toEqual(expected) - Expected -16 + Received +6
+(fail) work item is rebuilt from state/work-item.json when .tasks/ is gone: Expected "State resume fixture (live title)" Received "State resume fixture"
+(fail) review findings are read from the tree: Expected "weak assertion in foo" Received undefined
+(fail) evidence asset regenerated after resume + replay equals the committed asset byte for byte: md differs (- red: 0 pass, 0 fail ...)
+(fail) restoreStateFromTree restores work item and task file: error: not implemented: restoreStateFromTree
+(fail) restoreStateFromTree never overwrites an existing live task file: error: not implemented: restoreStateFromTree
+(fail) restoreStateFromTree reports nothing to restore when state/ is absent: error: not implemented: restoreStateFromTree
+
+ 1 pass
+ 7 fail
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+15 pass 0 fail (state-resume + rehydrate); tsc --noEmit ok; runtime smoke passed; check:biome: lint/style/useTemplate in packages/accord-core/tests/state-redact.test.ts:43 and format in docs/dev/ASDLC-1/trace.json (not task 35 files)
+```
 
 ### Task 36: [tree-state] Closeout commit builds artifacts then removes state
 
