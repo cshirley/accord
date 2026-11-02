@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T14:29:35.393Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T14:49:47.715Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -38,8 +38,8 @@
 | 29 | [stack-compute] Stack service and dev_stack_* MCP tools | done | `3a7bfc8` | 2/1/1 | 26 (verified 12, wont_fix_accepted 3, open 11) | 0 |
 | 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | done | `f7abffb` | 2/1/1 | 25 (verified 10, wont_fix_accepted 1, reraised 2, open 12) | 0 |
 | 31 | [stack-compute] accord stack CLI command | done | `b7c7b0e` | 2/1/1 | 15 (verified 12, open 2, wont_fix_accepted 1) | 0 |
-| 32 | [stack-compute] Schema description and OKF docs for the stack | done | — | 2/1/1 | 14 (verified 6, open 8) | 0 |
-| 33 | [tree-state] State size cap and task-file redaction | pending | — | 0/0/0 | 0 | 0 |
+| 32 | [stack-compute] Schema description and OKF docs for the stack | done | `2efaca7` | 2/1/1 | 14 (verified 6, open 8) | 0 |
+| 33 | [tree-state] State size cap and task-file redaction | done | — | 2/1/1 | 15 (verified 7, open 8) | 0 |
 | 34 | [tree-state] State snapshot writer staged with every typed commit | pending | — | 0/0/0 | 0 | 0 |
 | 35 | [tree-state] Stateless resume from committed state | pending | — | 0/0/0 | 0 | 0 |
 | 36 | [tree-state] Closeout commit builds artifacts then removes state | pending | — | 0/0/0 | 0 | 0 |
@@ -270,7 +270,13 @@
 
 > Then docs/dev/<ID>/state/task-<N>/ in the same commit holds STATE.md (the accord trace rendering) and a redacted task.json valid against task-schema.json with in_flight null, test output is redacted (secrets and token…
 
-- Tasks: 33 (pending), 34 (pending)
+- Tasks: 33 (satisfied), 34 (pending)
+- Files: `packages/accord-core/tests/state-redact.test.ts`, `packages/accord-core/src/state/redact.ts`
+- Tests verified (4):
+  - bun test packages/accord-core/tests/state-redact.test.ts (34 pass, 0 fail)
+  - bun run check:types
+  - bunx biome check on task files (exit 0)
+  - secret-pattern grep over packages/accord-core/tests: no match
 
 ### AC-13 — pending (not verified)
 
@@ -757,6 +763,14 @@
 | 32 | AC-31 | F-011 | unresolved (advisory) | open | warning | Sizing paragraph says computeStack reads max_depth, and describes post-GREEN overrun measurement and max_depth capping as current behaviour while the same paragraph says overrun_factor is planned. | okf/architecture/evidence-stack.md:74 |  |
 | 32 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | Related docs still say the stack key is proposed and unread, which contradicts the updated schema description and stack-config.md. | docs/configuration.md:287 |  |
 | 32 | AC-31 | F-014 | unresolved (advisory) | open | suggestion | The concept names stack/service.ts and the gh provider in its body, but its sources do not list them. | okf/architecture/evidence-stack.md:8 |  |
+| 33 | AC-12 | F-008 | unresolved (advisory) | open | suggestion | Benign 'unchanged' is checked only on a toy non-schema object. No test asserts that a real schema-valid task file with no secrets comes back unchanged with 0 redactions. Round-1 miss (unchanged test), so it is capped at suggestion. | packages/accord-core/tests/state-redact.test.ts:98 |  |
+| 33 | AC-12 | F-009 | unresolved (advisory) | open | suggestion | The schema-valid planted file seeds only antToken (11 slots) and ghToken (1 slot). Home paths, Bearer, AKIA, github_pat and env values are exercised only in the non-schema seeded() log[0].test_output. No secret is planted in path-like structural fields (changes[].file, control.test_files[]). | packages/accord-core/tests/state-redact.test.ts:177 |  |
+| 33 | AC-12 | F-010 | unresolved (advisory) | open | suggestion | Multi-byte truncation rows assert an upper bound only; nothing checks how much content is kept. | packages/accord-core/tests/state-redact.test.ts:321 |  |
+| 33 | AC-12 | F-011 | unresolved (advisory) | open | suggestion | The comment says 'every planted secret + 3 dropped keys counted', but the assertion is redactions >= planted.length (12), so drops in deep schema locations are not counted. | packages/accord-core/tests/state-redact.test.ts:260 |  |
+| 33 | AC-12 | F-012 | unresolved (advisory) | open | suggestion | Drop-key variants are tested only in snake_case. camelCase or capitalised keys (systemPrompt, rawPacket, returnPacket, Prompt, Transcript) are untested. The spec does not name the keys, so this does not gate. | packages/accord-core/tests/state-redact.test.ts:272 |  |
+| 33 | AC-12 | F-013 | unresolved (advisory) | open | suggestion | capBytes duplicates the byte-cap logic already in evidence/asset.ts capText, with a different marker. | packages/accord-core/src/state/redact.ts:120 |  |
+| 33 | AC-12 | F-014 | unresolved (advisory) | open | suggestion | redactTaskFile calls redactText once per string node; each call rescans process.env, sorts, and compiles a RegExp per sensitive env value. | packages/accord-core/src/state/redact.ts:93 |  |
+| 33 | AC-12 | F-015 | unresolved (advisory) | open | suggestion | capBytes is text-only: applied to serialized task.json it yields invalid JSON, and redactTaskFile has no per-string cap, so no helper here bounds task.json size while keeping it schema-valid. | packages/accord-core/src/state/redact.ts:120 |  |
 
 ## Decisions
 
@@ -1422,6 +1436,22 @@ bun test exit 0; validate:schemas, validate:assets, validate:okf, validate:ste, 
 ```
 
 ### Task 33: [tree-state] State size cap and task-file redaction
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-12 capBytes > ... error: not implemented: capBytes
+(fail) ASDLC-1/AC-12 redactTaskFile > ... error: not implemented: redactTaskFile
+ 0 pass
+ 12 fail
+Ran 12 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+state-redact.test.ts: 34 pass, 0 fail. check:types ok. biome (task files) exit 0 with 1 info. secret grep: no matches. Preflight: schemas/assets/okf/ste/bundle/runtime ok.
+```
 
 ### Task 34: [tree-state] State snapshot writer staged with every typed commit
 

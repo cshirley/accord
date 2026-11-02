@@ -79,3 +79,55 @@ export function redactText(text: string): RedactResult {
 
   return { value, redactions };
 }
+
+export interface RedactTaskFileResult {
+  value: Record<string, unknown>;
+  redactions: number;
+}
+
+const DROPPED_KEY_RE = /prompt|transcript|raw_(?:return_)?packet/i;
+const TRUNCATION_MARKER = "\n[truncated]";
+
+function redactNode(node: unknown, counter: { count: number }): unknown {
+  if (typeof node === "string") {
+    const result = redactText(node);
+    counter.count += result.redactions;
+    return result.value;
+  }
+  if (Array.isArray(node)) return node.map((item) => redactNode(item, counter));
+  if (node !== null && typeof node === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(node as Record<string, unknown>)) {
+      if (DROPPED_KEY_RE.test(key)) {
+        counter.count += 1;
+        continue;
+      }
+      out[key] = redactNode(child, counter);
+    }
+    return out;
+  }
+  return node;
+}
+
+/** Drops prompt/transcript fields and raw packets; redacts every remaining string. */
+export function redactTaskFile(task: Record<string, unknown>): RedactTaskFileResult {
+  const counter = { count: 0 };
+  const value = redactNode(task, counter) as Record<string, unknown>;
+  return { value, redactions: counter.count };
+}
+
+/** Truncates text above maxBytes (UTF-8) and appends a marker. */
+export function capBytes(text: string, maxBytes: number): RedactResult {
+  const bytes = Buffer.from(text, "utf8");
+  if (bytes.length <= maxBytes) return { value: text, redactions: 0 };
+  const marker = Buffer.from(TRUNCATION_MARKER, "utf8");
+  const trimEnd = (buf: Buffer): string =>
+    Buffer.from(buf)
+      .toString("utf8")
+      .replace(/\uFFFD+$/, "");
+  if (maxBytes <= marker.length) {
+    return { value: trimEnd(marker.subarray(0, Math.max(0, maxBytes))), redactions: 0 };
+  }
+  const head = trimEnd(bytes.subarray(0, maxBytes - marker.length));
+  return { value: head + TRUNCATION_MARKER, redactions: 0 };
+}
