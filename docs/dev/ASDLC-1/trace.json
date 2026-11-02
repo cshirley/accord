@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T16:32:51.467Z",
+  "generated_at": "2026-11-02T17:05:42.312Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -3841,7 +3841,9 @@
       "id": 36,
       "title": "[tree-state] Closeout commit builds artifacts then removes state",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "f48130a"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3906,39 +3908,93 @@
     {
       "id": 37,
       "title": "[tree-state] Leftover-state rule in the accord/evidence check",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 15,
+        "by_state": {
+          "verified": 8,
+          "open": 6,
+          "wont_fix_accepted": 1
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "error: not implemented: createLeftoverStateRule\n(fail) ASDLC-1/AC-14 leftover state rule (ASDLC-1/TC-15) > main with a closed-out work item > detects leftover state of a closed-out item among several work items\n(fail) ASDLC-1/AC-14 ... > repository without docs/dev passes\nExpected to contain: \"leftover-state\" (docs/ci/pre-merge-smoke.md)\n(fail) ASDLC-1/AC-31 docs for accord-ci change > docs/ci/pre-merge-smoke.md documents the leftover-state rule\n\n 0 pass\n 18 fail\nRan 18 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "evidence-check.test.ts: 39 pass, 0 fail (120 expect calls). check:types: ok. biome on packages/accord-ci docs/ci: clean. Repo-wide check:biome: fails on state-redact.test.ts:43 (useTemplate) and docs/dev/ASDLC-1/trace.json formatting, both outside task 37. validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle and check:runtime: pass. Full bun test timed out at 120s in preflight (only passes seen).",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-14",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/evidence-check.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/checks/leftover-state.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/checks/leftover-state.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/evidence-check.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-ci/tests/evidence-check.test.ts"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/evidence-check.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-ci/tests/evidence-check.test.ts && bun run validate:okf && bun run validate:ste && bun run check:types"
+          }
         }
       ]
     },
@@ -5125,16 +5181,24 @@
     {
       "ac_id": "AC-14",
       "text": "Then it passes while the work item is open (state/work-item.json from PR0 and in-flight task state are allowed on PR heads before their evidence commit), and it fails if docs/dev/<ID>/state/task-* remains at a PR head…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 37,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-ci/tests/evidence-check.test.ts",
+        "packages/accord-ci/src/checks/leftover-state.ts",
+        "packages/accord-ci/src/evidence-check.ts"
+      ],
+      "tests": [
+        "evidence-check.test.ts: ASDLC-1/AC-14 leftover state rule (ASDLC-1/TC-15) (all 38 tests)",
+        "squash simulation: trailer dropped, closeout.json still detects leftover state",
+        "registered rule run by the evidence-check CLI fails on leftover state"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-15",
@@ -5659,7 +5723,7 @@
         },
         {
           "task": 37,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 38,
@@ -5726,7 +5790,8 @@
         "packages/accord-core/tests/alignment.test.ts",
         "okf/references/schemas.md",
         "packages/accord-cli/tests/stack-cli.test.ts",
-        "okf/architecture/tool-surface.md"
+        "okf/architecture/tool-surface.md",
+        "packages/accord-ci/tests/evidence-check.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -5764,7 +5829,9 @@
         "stack-cli.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the accord stack command (ASDLC-1/TC-32)",
         "bunx biome check packages/accord-cli okf",
         "packages/accord-core/tests/docs-validation.test.ts: ASDLC-1/AC-31 (7 tests)",
-        "bunx biome check on task-32 files (clean)"
+        "bunx biome check on task-32 files (clean)",
+        "ASDLC-1/AC-31 docs for accord-ci change > docs/ci/pre-merge-smoke.md documents the leftover-state rule",
+        "bunx biome check packages/accord-ci docs/ci"
       ],
       "verified": false
     }
@@ -9769,6 +9836,102 @@
       "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
       "line": 360,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 37,
+      "requirement": "AC-14",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The malformed-trailer test (added in T2) checks only that a malformed 'Accord:' line does not cause a failure. No test checks that the rule still detects leftover state when a malformed line sits next to a closeout or evidence signal. A rule that fails open on a parse error passes the whole suite.",
+      "file": "packages/accord-ci/tests/evidence-check.test.ts",
+      "line": 451,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 37,
+      "requirement": "AC-14",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Some ways of reading the tree and history are not tested (round-1 miss, not gating): (a) task state that already exists at base when evidence(task-N) lands in the range without removing it; (b) closeout.json read from the work tree instead of the head tree; (c) evidence or closeout commits on a branch that head does not contain.",
+      "file": "packages/accord-ci/tests/evidence-check.test.ts",
+      "line": 462,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 37,
+      "requirement": "AC-14",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every evidence ref uses single-digit task numbers. A ref parser that reads only one digit (/task-(\\d)/ or /,(\\d)/) passes every test (contrived).",
+      "file": "packages/accord-ci/tests/evidence-check.test.ts",
+      "line": 420,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 37,
+      "requirement": "AC-14",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "git/execFileAsync/MAX_BUFFER/rev-parse helpers duplicate those in checks/contract-lock.ts.",
+      "file": "packages/accord-ci/src/checks/leftover-state.ts",
+      "line": 6,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 37,
+      "requirement": "AC-14",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The whole history of head is read and every commit message parsed, only to find Accord trailers.",
+      "file": "packages/accord-ci/src/checks/leftover-state.ts",
+      "line": 35,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 37,
+      "requirement": "AC-14",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "base is resolved only to fail early; the rule never uses it, and the failure is not documented.",
+      "file": "packages/accord-ci/src/checks/leftover-state.ts",
+      "line": 59,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 37,
+      "requirement": "AC-31",
+      "finding_id": "F-009",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-31 enforcement (validate:okf, validate:ste, check:biome) cannot be proven by this unit test. TC-32's test_name_glob points at packages/accord-core/tests/docs-validation.test.ts, not this file. The okf concept and okf/log.md entry belong to task 38.",
+      "file": "packages/accord-ci/tests/evidence-check.test.ts",
+      "line": 245,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "TC-32 test_name_glob targets docs-validation.test.ts. phase-verify-task runs validate:okf, validate:ste and check:biome. Plan task 38 ('[tree-state] OKF docs for committed state and closeout') owns the okf concept and the log entry."
+      }
     }
   ]
 }
