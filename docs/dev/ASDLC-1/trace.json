@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T10:18:10.398Z",
+  "generated_at": "2026-11-02T10:35:36.076Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -2847,7 +2847,9 @@
       "id": 26,
       "title": "[stack-compute] computeStack: deterministic pack, flag and order",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "89b79ee"
+      ],
       "rounds": {
         "T": 3,
         "C": 3,
@@ -2926,39 +2928,93 @@
     {
       "id": 27,
       "title": "[stack-compute] PR brief, stack map, stack table and report renderers",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 16,
+        "by_state": {
+          "verified": 13,
+          "reraised": 1,
+          "open": 2
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "error: not implemented: renderStackReport\n  at renderStackReport (packages/accord-core/src/stack/render.ts:51:55)\n(fail) ASDLC-1/AC-11 renderStackReport > ASDLC-1/AC-6 report has no bare AC refs even when trailers carry ac=\n\n 0 pass\n 16 fail\nRan 16 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "stack-render.test.ts: 27 pass, 0 fail. check:types, validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle, check:runtime and full bun test: pass. check:biome fails only on docs/dev/ASDLC-1/trace.json (format); the task's two files are Biome-clean.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-6",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-render.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/render.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/render.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/stack-render.test.ts"
+          }
         },
         {
           "id": "AC-11",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-render.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/render.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/render.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/stack-render.test.ts"
+          }
         }
       ]
     },
@@ -4134,7 +4190,7 @@
     {
       "ac_id": "AC-6",
       "text": "Every AC or TC reference outside spec.json (evidence asset .md and .json, trace.json, the PR brief and the stack map) MUST be work-item-qualified as <work_item_id>/AC-<n>, never a bare AC-<n>, so it resolves once many…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 11,
@@ -4146,7 +4202,7 @@
         },
         {
           "task": 27,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -4156,7 +4212,9 @@
         "packages/accord-core/schemas/trace-schema.json",
         "packages/accord-core/src/queries/verify-summary.ts",
         "packages/accord-core/tests/evidence-asset.test.ts",
-        "packages/accord-core/src/evidence/asset.ts"
+        "packages/accord-core/src/evidence/asset.ts",
+        "packages/accord-core/tests/stack-render.test.ts",
+        "packages/accord-core/src/stack/render.ts"
       ],
       "tests": [
         "qualified-ac-refs.test.ts: ASDLC-1/AC-6 qualifyAcRef, qualifyTcRef, normalizeAcId, findBareAcRefs",
@@ -4164,9 +4222,13 @@
         "ASDLC-1/AC-26 bare/qualified verify-summary and renderAcTrace cases",
         "trace-artifact.test.ts",
         "evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) every AC/TC reference in md and json is ASDLC-1/AC-<n>",
-        "evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) a bare reference is detected"
+        "evidence-asset.test.ts: ASDLC-1/AC-6 qualified AC references (ASDLC-1/TC-6) a bare reference is detected",
+        "stack-render.test.ts: ASDLC-1/AC-6 qualifies bare and already-qualified AC ids, no bare refs",
+        "stack-render.test.ts: ASDLC-1/AC-6 stack map has no bare AC refs",
+        "stack-render.test.ts: ASDLC-1/AC-6 table has no bare AC refs",
+        "stack-render.test.ts: ASDLC-1/AC-6 report has no bare AC refs even when trailers carry ac="
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-7",
@@ -4364,7 +4426,7 @@
       "tasks": [
         {
           "task": 27,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 28,
@@ -4383,8 +4445,16 @@
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/stack-render.test.ts",
+        "packages/accord-core/src/stack/render.ts"
+      ],
+      "tests": [
+        "stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order",
+        "stack-render.test.ts: ASDLC-1/AC-11 header columns are exactly PR, Tasks, Concern, ACs, Est. LOC, Depends on",
+        "stack-render.test.ts: ASDLC-1/AC-11 one row per PR and loop with rolled-up values from trailers",
+        "stack-render.test.ts: ASDLC-1/AC-11 lists position, PR link and qualified AC coverage per PR in order"
+      ],
       "verified": false
     },
     {
@@ -7847,6 +7917,50 @@
         "outcome": "wont_fix_accepted",
         "note": "Reason is scope: deriving StackSizing from the resolved config type belongs to the task that wires resolveStackConfig into computeStack. The finding is not a correctness bug."
       }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 27,
+      "requirement": "AC-11",
+      "finding_id": "F-006",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Absent optional fields are never checked for leaking as NaN/undefined. Trailers omit absent keys (commit-grammar: 'absent keys are omitted, never null'), but every trailer in the roll-up fixture carries crit/warn/sugg/tok_in/tok_out/usd_u. A brief AC without text is also never checked for 'undefined'.",
+      "file": "packages/accord-core/tests/stack-render.test.ts",
+      "line": 357,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Unmet: 'In the line 80 test add expect(md).not.toContain(\"undefined\")'. It was added to the section-order test, where all ACs have text. The test with an AC that has no text still does not check for 'undefined'. The report half is met."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 27,
+      "requirement": "AC-11",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The tests cannot tell the 'tests' cell built from the latest test-bearing trailer apart from one built from the latest trailer. No T-loop trailer without t_pass or t_fail comes after the trailers that have them. In real T loops a review-test trailer (no t_* keys) usually comes last. This gap was missed in round 1 (the loop T fixture has not changed).",
+      "file": "packages/accord-core/tests/stack-render.test.ts",
+      "line": 452,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 27,
+      "requirement": "AC-11",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The stack map is never checked for leaked null or undefined, but the contract entry has `concern: null`, `acs: []` and no depends_on_prs. This gap was missed in round 1 (the entries fixture has not changed).",
+      "file": "packages/accord-core/tests/stack-render.test.ts",
+      "line": 185,
+      "raised": "T2/review-test"
     }
   ]
 }
