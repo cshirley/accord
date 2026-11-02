@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T16:32:51.467Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T17:05:42.312Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -42,8 +42,8 @@
 | 33 | [tree-state] State size cap and task-file redaction | done | `fcba02c` | 2/1/1 | 15 (verified 7, open 8) | 0 |
 | 34 | [tree-state] State snapshot writer staged with every typed commit | done | `b7c261f` | 2/1/1 | 21 (verified 11, open 10) | 0 |
 | 35 | [tree-state] Stateless resume from committed state | done | `f299bdb` | 2/1/1 | 10 (verified 4, reraised 1, open 5) | 0 |
-| 36 | [tree-state] Closeout commit builds artifacts then removes state | done | — | 2/1/1 | 18 (verified 9, wont_fix_accepted 1, open 8) | 0 |
-| 37 | [tree-state] Leftover-state rule in the accord/evidence check | pending | — | 0/0/0 | 0 | 0 |
+| 36 | [tree-state] Closeout commit builds artifacts then removes state | done | `f48130a` | 2/1/1 | 18 (verified 9, wont_fix_accepted 1, open 8) | 0 |
+| 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | — | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
 | 38 | [tree-state] OKF docs for committed state and closeout | pending | — | 0/0/0 | 0 | 0 |
 | 39 | [trunk-hardening] Overrun measurement and re-plan decision | pending | — | 0/0/0 | 0 | 0 |
 | 40 | [trunk-hardening] Open-PR depth cap and flag validation | pending | — | 0/0/0 | 0 | 0 |
@@ -305,11 +305,16 @@
   - ASDLC-1/AC-13 reports nothing to restore when docs/dev/<ID>/state/ is absent
   - ASDLC-1/AC-13 finished task is not re-run, running task resumes, not-started task is still bootstrapped
 
-### AC-14 — pending (not verified)
+### AC-14 — satisfied
 
 > Then it passes while the work item is open (state/work-item.json from PR0 and in-flight task state are allowed on PR heads before their evidence commit), and it fails if docs/dev/<ID>/state/task-* remains at a PR head…
 
-- Tasks: 37 (pending)
+- Tasks: 37 (satisfied)
+- Files: `packages/accord-ci/tests/evidence-check.test.ts`, `packages/accord-ci/src/checks/leftover-state.ts`, `packages/accord-ci/src/evidence-check.ts`
+- Tests verified (3):
+  - evidence-check.test.ts: ASDLC-1/AC-14 leftover state rule (ASDLC-1/TC-15) (all 38 tests)
+  - squash simulation: trailer dropped, closeout.json still detects leftover state
+  - registered rule run by the evidence-check CLI fails on leftover state
 
 ### AC-15 — satisfied
 
@@ -492,9 +497,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (pending), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`
-- Tests verified (36):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`
+- Tests verified (38):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -531,6 +536,8 @@
   - bunx biome check packages/accord-cli okf
   - packages/accord-core/tests/docs-validation.test.ts: ASDLC-1/AC-31 (7 tests)
   - bunx biome check on task-32 files (clean)
+  - ASDLC-1/AC-31 docs for accord-ci change > docs/ci/pre-merge-smoke.md documents the leftover-state rule
+  - bunx biome check packages/accord-ci docs/ci
 
 ## Accepted risks and unresolved findings
 
@@ -828,6 +835,13 @@
 | 36 | AC-15 | F-016 | unresolved (advisory) | open | suggestion | A stack closeout refusal is surfaced as success by both callers; the work item is already finalized. | packages/accord-core/src/orchestration/runner.ts:421 |  |
 | 36 | AC-15 | F-017 | unresolved (advisory) | open | suggestion | The marker is rewritten with a fresh `closed_at` on every call, so re-running closeout after success creates another closeout commit. | packages/accord-core/src/state/closeout.ts:35 |  |
 | 36 | AC-15 | F-018 | unresolved (advisory) | open | suggestion | `hash` format differs by mode (full SHA when stack is on, short when off), and the stack preflight is inlined in an already long function. | packages/accord-core/src/orchestration/commit-on-task-done.ts:360 |  |
+| 37 | AC-14 | F-010 | unresolved (advisory) | open | warning | The malformed-trailer test (added in T2) checks only that a malformed 'Accord:' line does not cause a failure. No test checks that the rule still detects leftover state when a malformed line sits next to a closeout or evidence signal. A rule that fails open on a parse error passes the whole suite. | packages/accord-ci/tests/evidence-check.test.ts:451 |  |
+| 37 | AC-14 | F-011 | unresolved (advisory) | open | suggestion | Some ways of reading the tree and history are not tested (round-1 miss, not gating): (a) task state that already exists at base when evidence(task-N) lands in the range without removing it; (b) closeout.json read from the work tree instead of the head tree; (c) evidence or closeout commits on a branch that head does not contain. | packages/accord-ci/tests/evidence-check.test.ts:462 |  |
+| 37 | AC-14 | F-012 | unresolved (advisory) | open | suggestion | Every evidence ref uses single-digit task numbers. A ref parser that reads only one digit (/task-(\d)/ or /,(\d)/) passes every test (contrived). | packages/accord-ci/tests/evidence-check.test.ts:420 |  |
+| 37 | AC-14 | F-013 | unresolved (advisory) | open | suggestion | git/execFileAsync/MAX_BUFFER/rev-parse helpers duplicate those in checks/contract-lock.ts. | packages/accord-ci/src/checks/leftover-state.ts:6 |  |
+| 37 | AC-14 | F-014 | unresolved (advisory) | open | suggestion | The whole history of head is read and every commit message parsed, only to find Accord trailers. | packages/accord-ci/src/checks/leftover-state.ts:35 |  |
+| 37 | AC-14 | F-015 | unresolved (advisory) | open | suggestion | base is resolved only to fail early; the rule never uses it, and the failure is not documented. | packages/accord-ci/src/checks/leftover-state.ts:59 |  |
+| 37 | AC-31 | F-009 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 enforcement (validate:okf, validate:ste, check:biome) cannot be proven by this unit test. TC-32's test_name_glob points at packages/accord-core/tests/docs-validation.test.ts, not this file. The okf concept and okf/log.md entry belong to task 38. | packages/accord-ci/tests/evidence-check.test.ts:245 | wont_fix_accepted by T2/review-test — TC-32 test_name_glob targets docs-validation.test.ts. phase-verify-task runs validate:okf, validate:ste and check:biome. Plan task 38 ('[tree-state] OKF docs for committed state and closeout') owns the okf concept and the log entry. |
 
 ## Decisions
 
@@ -1566,6 +1580,26 @@ closeout.test.ts: 26 pass, 0 fail (204 expect calls). check:types OK. check:runt
 ```
 
 ### Task 37: [tree-state] Leftover-state rule in the accord/evidence check
+
+RED evidence (`T1/phase-test`):
+
+```text
+error: not implemented: createLeftoverStateRule
+(fail) ASDLC-1/AC-14 leftover state rule (ASDLC-1/TC-15) > main with a closed-out work item > detects leftover state of a closed-out item among several work items
+(fail) ASDLC-1/AC-14 ... > repository without docs/dev passes
+Expected to contain: "leftover-state" (docs/ci/pre-merge-smoke.md)
+(fail) ASDLC-1/AC-31 docs for accord-ci change > docs/ci/pre-merge-smoke.md documents the leftover-state rule
+
+ 0 pass
+ 18 fail
+Ran 18 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+evidence-check.test.ts: 39 pass, 0 fail (120 expect calls). check:types: ok. biome on packages/accord-ci docs/ci: clean. Repo-wide check:biome: fails on state-redact.test.ts:43 (useTemplate) and docs/dev/ASDLC-1/trace.json formatting, both outside task 37. validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle and check:runtime: pass. Full bun test timed out at 120s in preflight (only passes seen).
+```
 
 ### Task 38: [tree-state] OKF docs for committed state and closeout
 

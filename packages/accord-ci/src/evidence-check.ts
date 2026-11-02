@@ -6,6 +6,7 @@
 
 import { writeFileSync } from "node:fs";
 import { createContractLockRule } from "./checks/contract-lock.js";
+import { createLeftoverStateRule } from "./checks/leftover-state.js";
 
 export interface EvidenceContext {
   base: string;
@@ -75,7 +76,7 @@ export function toCommitStatus(result: EvidenceResult): CommitStatusPayload {
 }
 
 export function evidenceRules(): readonly EvidenceRule[] {
-  return [createContractLockRule()];
+  return [createContractLockRule(), createLeftoverStateRule()];
 }
 
 export interface MainOptions {

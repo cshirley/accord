@@ -87,7 +87,18 @@ file hashes and a new amendment record. The rule fails when `base` or `head`
 cannot be resolved. The `accord/<ID>/contract` tag is informational and is
 never required. A repository without `contract.lock.json` passes.
 
+The `leftover-state` rule (`packages/accord-ci/src/checks/leftover-state.ts`)
+reads the tree at `head` and the `Accord:` trailers in the history of `head`.
+It fails when `docs/dev/<ID>/state/task-<N>` remains after an `evidence(task-<N>)`
+commit of the same work item. It also fails when any `docs/dev/<ID>/state/`
+remains after closeout. A work item is closed out when
+`docs/dev/<ID>/evidence/closeout.json` exists (this survives a squash merge) or
+a commit has the trailer `outcome=closeout`. `trace.json` is not a closeout
+signal. `state/work-item.json` and in-flight task state pass while the work item
+is open.
+
 ```bash
 bun test packages/accord-ci/tests/evidence-check-runner.test.ts
 bun test packages/accord-ci/tests/contract-lock-check.test.ts
+bun test packages/accord-ci/tests/evidence-check.test.ts
 ```
