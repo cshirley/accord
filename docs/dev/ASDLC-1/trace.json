@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T14:49:47.715Z",
+  "generated_at": "2026-11-02T15:25:49.171Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -3574,7 +3574,9 @@
       "id": 33,
       "title": "[tree-state] State size cap and task-file redaction",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "fcba02c"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3638,39 +3640,102 @@
     {
       "id": 34,
       "title": "[tree-state] State snapshot writer staged with every typed commit",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 21,
+        "by_state": {
+          "verified": 11,
+          "open": 10
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "18 fail, 2 pass. Failures: 'error: not implemented: writeStateSnapshot' at src/state/snapshot.ts:8 (direct writeStateSnapshot tests, AC-29 emission tests); phase-commit tests fail on assertions e.g. Expected to contain \"docs/dev/ASDLC-1/state/task-7/STATE.md\" Received: \".gitignore\\nREADME.md\\ntests/foo.test.ts\\n\" and ENOENT on state/task-7/STATE.md. The 2 passing tests are negative (redact false / persist none stage no state).",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "bun test (2 files): 61 pass, 0 fail, 556 expect() calls. bun run check:types: exit 0. bunx biome check on the 4 task files: clean. Repo-wide check:biome fails only on pre-existing, untouched files: packages/accord-core/tests/state-redact.test.ts:43 (useTemplate) and docs/dev/ASDLC-1/trace.json (format). validate:schemas/assets/okf/ste, check:bundle, check:runtime all exit 0. Full `bun test` hit the 120s preflight timeout with no failures seen.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-12",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/state-snapshot.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/state/snapshot.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/tests/phase-commits.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/state/snapshot.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/commit/phase-commit.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 10,
+            "command": "bun test packages/accord-core/tests/state-snapshot.test.ts packages/accord-core/tests/phase-commits.test.ts"
+          }
         },
         {
           "id": "AC-29",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/state-snapshot.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/state/snapshot.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/state/snapshot.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-core/tests/state-snapshot.test.ts packages/accord-core/tests/phase-commits.test.ts"
+          }
         }
       ]
     },
@@ -4893,7 +4958,7 @@
     {
       "ac_id": "AC-12",
       "text": "Then docs/dev/<ID>/state/task-<N>/ in the same commit holds STATE.md (the accord trace rendering) and a redacted task.json valid against task-schema.json with in_flight null, test output is redacted (secrets and token…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 33,
@@ -4901,20 +4966,34 @@
         },
         {
           "task": 34,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
         "packages/accord-core/tests/state-redact.test.ts",
-        "packages/accord-core/src/state/redact.ts"
+        "packages/accord-core/src/state/redact.ts",
+        "packages/accord-core/tests/state-snapshot.test.ts",
+        "packages/accord-core/src/state/snapshot.ts",
+        "packages/accord-core/tests/phase-commits.test.ts",
+        "packages/accord-core/src/commit/phase-commit.ts"
       ],
       "tests": [
         "bun test packages/accord-core/tests/state-redact.test.ts (34 pass, 0 fail)",
         "bun run check:types",
         "bunx biome check on task files (exit 0)",
-        "secret-pattern grep over packages/accord-core/tests: no match"
+        "secret-pattern grep over packages/accord-core/tests: no match",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 writes exactly STATE.md and task.json under state/task-<N>/",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 STATE.md equals renderTaskTrace of the redacted task",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 task.json validates against task-schema.json with in_flight null and a reset owner_nonce",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 every seeded secret, token, env value and home path is redacted from both files",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 test output is capped at stack.state.max_bytes and task.json stays valid JSON",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 redact false: no state is written",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 the final evidence commit leaves no state/task-<N>/",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 snapshot files contain no secret assignment and no home path",
+        "state-snapshot.test.ts › ASDLC-1/AC-12 a phase commit stages STATE.md and task.json, redacted, and no raw packet",
+        "phase-commits.test.ts (4 tests, all pass)"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-13",
@@ -5286,7 +5365,7 @@
         },
         {
           "task": 34,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 39,
@@ -5301,7 +5380,9 @@
         "packages/accord-core/tests/phase-commits.test.ts",
         "packages/accord-core/src/commit/phase-commit.ts",
         "packages/accord-core/tests/evidence-commit.test.ts",
-        "packages/accord-core/src/commit/evidence-commit.ts"
+        "packages/accord-core/src/commit/evidence-commit.ts",
+        "packages/accord-core/tests/state-snapshot.test.ts",
+        "packages/accord-core/src/state/snapshot.ts"
       ],
       "tests": [
         "packages/accord-core/tests/stack-telemetry.test.ts: ASDLC-1/AC-29 <event> emits once at <level> with declared fields",
@@ -5317,7 +5398,12 @@
         "phase-commits.test.ts › ASDLC-1/AC-29 emits info stack.commit.created with work_item_id, ref, outcome and sha for each commit",
         "ASDLC-1/AC-3 rejection logged (stack.guard.rejected)",
         "ASDLC-1/AC-29 emits info event with work_item_id, ref, outcome=done and sha",
-        "ASDLC-1/AC-29 no event on idempotent rerun"
+        "ASDLC-1/AC-29 no event on idempotent rerun",
+        "state-snapshot.test.ts › ASDLC-1/AC-29 emits debug stack.state.snapshot with exact fields and counts only",
+        "state-snapshot.test.ts › ASDLC-1/AC-29 event line carries no content: no seed, path or note text",
+        "state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted at info level (debug only)",
+        "state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when persist is none or notes",
+        "state-snapshot.test.ts › ASDLC-1/AC-29 is not emitted when redact is false and nothing is written"
       ],
       "verified": false
     },
@@ -9225,6 +9311,136 @@
       "issue": "capBytes is text-only: applied to serialized task.json it yields invalid JSON, and redactTaskFile has no per-string cap, so no helper here bounds task.json size while keeping it schema-valid.",
       "file": "packages/accord-core/src/state/redact.ts",
       "line": 120,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The size-cap tests (lines 322, 344 and 355; the last two were added in T2) do not check the trace or schema contract when output is over the cap. They check only that each file is at most max_bytes, that log[0].note matches /truncated/i and that 'tail-marker' is absent. Plausible wrong implementation: cap the oversized note in task.json, but write STATE.md = capBytes(renderTaskTrace(redactedUncappedTask), max).value. capBytes is a text helper that already exists, so capping the whole file is a natural choice. This passes all three tests. But STATE.md is then no longer 'exactly renderTaskTrace' output, and every trace line after the cut is silently lost: log[0].events and warnings, later log entries and the in-flight line. Related gaps in the same input partition: (1) the capped task.json is never checked with Ajv, so a cap that breaks schema shape passes; (2) only one oversized field is seeded, so a cap that trims only log[0].note, or trims each note to the same budget, passes when several notes are large.",
+      "file": "packages/accord-core/tests/state-snapshot.test.ts",
+      "line": 322,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The decoy test (task-8/STATE.md and contract-amend.open) covers only the phase-test commit. Review agents and phase-verify-task already stage the whole `${devDir}/state/` folder, so task 7's review and verify commits would also pick up task 8's snapshot. Wrong implementation that passes: stage exact task-7 snapshot paths only for phase-test and phase-code, and keep the whole-folder sweep elsewhere. This was missed in round 1 (the review and verify state staging did not change), so it is a suggestion only.",
+      "file": "packages/accord-core/tests/state-snapshot.test.ts",
+      "line": 495,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Only the direct commitTaskEvidence test checks that state/task-<N>/ is removed after the evidence commit. The real wiring path (V1 phase commit, then evidence commit through processSubagentToolResult) never checks this. A wiring change that writes the snapshot again after the evidence commit would leave an untracked state folder, and all tests would still pass. This test did not change since round 1, so it is a suggestion only.",
+      "file": "packages/accord-core/tests/phase-commits.test.ts",
+      "line": 863,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Cap loop exits at the 64-byte string floor with task.json still over max_bytes, then truncates STATE.md independently, so the written snapshot exceeds the cap and STATE.md no longer equals renderTaskTrace(task.json).",
+      "file": "packages/accord-core/src/state/snapshot.ts",
+      "line": 61,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Missing live task returns silently, and the raw untyped loader plus an `as never` cast hide v1/legacy files from renderTaskTrace.",
+      "file": "packages/accord-core/src/state/snapshot.ts",
+      "line": 47,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The persist/redact gate is duplicated outside writeStateSnapshot, and a snapshot exception fails the whole phase commit.",
+      "file": "packages/accord-core/src/commit/phase-commit.ts",
+      "line": 186,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Review and verify commits stage the whole docs/dev/<ID>/state/ tree, not just this task's snapshot.",
+      "file": "packages/accord-core/src/commit/phase-commit.ts",
+      "line": 200,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The cap is applied per file with a fixed max_bytes/4 per-string ceiling, though the schema describes max_bytes as per task snapshot.",
+      "file": "packages/accord-core/src/state/snapshot.ts",
+      "line": 50,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-12",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "stack.state.path is in the schema and resolveStackConfig but the snapshot directory is hardcoded to docs/dev/<ID>/state/task-<N>.",
+      "file": "packages/accord-core/src/state/snapshot.ts",
+      "line": 15,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 34,
+      "requirement": "AC-29",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Empty catch swallows emitStackEvent failures; the sibling call in phase-commit.ts logs a warn.",
+      "file": "packages/accord-core/src/state/snapshot.ts",
+      "line": 86,
       "raised": "C1/review-code"
     }
   ]

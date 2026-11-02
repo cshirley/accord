@@ -12,6 +12,7 @@ import {
 import { createLogger } from "../logging.js";
 import { pathMatchesCandidate } from "../orchestration/commit-on-task-done.js";
 import { redactText } from "../state/redact.js";
+import { stateSnapshotDirRel, writeStateSnapshot } from "../state/snapshot.js";
 import { parseRef, parseRound } from "../tasks/model.js";
 import { emitStackEvent } from "../telemetry/stack-events.js";
 import { readUsageLines } from "../telemetry/usage.js";
@@ -182,6 +183,11 @@ export async function tryCommitPhase(
     await reportAgentCommits(root, workItemId, ref, history);
 
     const devDir = devArtifactDirRel(workItemId);
+    const snapshotOn = (() => {
+      const { state } = resolveStackConfig(devConfig);
+      return state.persist === "tree" && state.redact;
+    })();
+    if (snapshotOn) writeStateSnapshot(workItemId, taskId, devConfig, root);
     const findings = REVIEW_AGENTS.has(agent) ? packetFindings(packet) : [];
     const candidates: string[] = [];
     let reviewPath: string | undefined;
@@ -197,6 +203,7 @@ export async function tryCommitPhase(
     } else {
       candidates.push(...packetFiles(packet), ...planFiles(root, workItemId, taskId));
     }
+    if (snapshotOn) candidates.push(`${stateSnapshotDirRel(workItemId, taskId)}/`);
 
     const statusRaw = await git(["status", "--porcelain", "--untracked-files=all"], root);
     const dirty = extractStatusPaths(statusRaw).filter(
