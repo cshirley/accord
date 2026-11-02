@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T10:58:09.702Z",
+  "generated_at": "2026-11-02T11:37:18.746Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -191,6 +191,12 @@
       "task_id": 26,
       "description": "Defined StackPlan/PrGroup/StackFlag output shape and the sizing input type in types.ts, because the spec does not fix them. Tests and the golden fixture pin that shape.",
       "reason": "AC-10 names no concrete output schema; tests need a concrete contract.",
+      "resolution": null
+    },
+    {
+      "task_id": 29,
+      "description": "No work-item-scoped resolver test (F-011)",
+      "reason": "PrGroupResolver carries no workItemId and hooks.ts is outside task files; no selection rule is derivable from spec",
       "resolution": null
     }
   ],
@@ -3024,7 +3030,9 @@
       "id": 28,
       "title": "[stack-compute] StackProvider port and gh provider",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "eb2f03d"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3098,39 +3106,108 @@
     {
       "id": 29,
       "title": "[stack-compute] Stack service and dev_stack_* MCP tools",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 26,
+        "by_state": {
+          "verified": 12,
+          "wont_fix_accepted": 3,
+          "open": 11
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "Ran 17 tests across 1 file. 0 pass, 17 fail. Failures: stackSync/stackShow/stackSubmit/stackReport throw 'not implemented: <fn>'; dev_stack* tools not registered in ACCORD_TOOLS; resolvePrGroup(3) returned [3] instead of [3,4]; service.ts lacks registerPrGroupResolver; registry.ts lacks stack/service import.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "stack-service + accord-mcp tests: 30 pass, 0 fail. check:types, check:bundle, check:runtime, validate:schemas/assets/okf/ste: exit 0. bun test (full): exit 0. check:biome: fails only on docs/dev/ASDLC-1/trace.json (format, harness-generated, outside task files); biome check on the 4 task files is clean.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-11",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-service.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/service.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/service.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/tools/registry.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/index.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 9,
+            "command": "bun test packages/accord-core/tests/stack-service.test.ts packages/accord-mcp/tests"
+          }
         },
         {
           "id": "AC-28",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-service.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/service.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/tools/registry.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/index.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/stack-service.test.ts; bun run check:types; bun run check:bundle"
+          }
         }
       ]
     },
@@ -4478,7 +4555,7 @@
         },
         {
           "task": 29,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 30,
@@ -4494,7 +4571,11 @@
         "packages/accord-core/src/stack/render.ts",
         "packages/accord-core/tests/stack-provider-gh.test.ts",
         "packages/accord-core/src/stack/provider.ts",
-        "packages/accord-core/src/stack/gh-provider.ts"
+        "packages/accord-core/src/stack/gh-provider.ts",
+        "packages/accord-core/tests/stack-service.test.ts",
+        "packages/accord-core/src/stack/service.ts",
+        "packages/accord-core/src/tools/registry.ts",
+        "packages/accord-core/src/index.ts"
       ],
       "tests": [
         "stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order",
@@ -4505,7 +4586,16 @@
         "bun run check:types",
         "bun run check:bundle",
         "grep -rEn 'GH_TOKEN|GITHUB_TOKEN|process\\.env' packages/accord-core/src/stack/ (no match)",
-        "biome check on packages/accord-core/src/stack and stack-provider-gh.test.ts (clean)"
+        "biome check on packages/accord-core/src/stack and stack-provider-gh.test.ts (clean)",
+        "stack-service.test.ts › ASDLC-1/AC-11 returns the computed stack table for the plan",
+        "stack-service.test.ts › ASDLC-1/AC-11 creates a PR per task with brief, stack map comment and evidence status",
+        "stack-service.test.ts › ASDLC-1/AC-11 pushes every branch with only the branch (no force) and is idempotent on rerun",
+        "stack-service.test.ts › ASDLC-1/AC-11 never overwrites a failing accord/evidence status (real gh provider)",
+        "stack-service.test.ts › ASDLC-1/AC-11 refreshes PR numbers and states from the provider",
+        "stack-service.test.ts › ASDLC-1/AC-11 unsupported provider fails with a clear error",
+        "stack-service.test.ts › ASDLC-1/AC-11 renders a per-PR roll-up row per loop from commit trailers",
+        "stack-service.test.ts › ASDLC-1/AC-11 each dev_stack* tool returns the disabled service text",
+        "stack-service.test.ts › ASDLC-1/AC-11 importing src/index.ts registers the computeStack resolver: merged tasks share a group"
       ],
       "verified": false
     },
@@ -4831,7 +4921,7 @@
         },
         {
           "task": 29,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 31,
@@ -4848,7 +4938,11 @@
         "packages/accord-core/tests/helpers/temp-git-repo.ts",
         "packages/accord-core/tests/helpers/fake-gh.ts",
         "packages/accord-cli/tests/evidence-cli.test.ts",
-        "packages/accord-cli/src/commands/evidence.ts"
+        "packages/accord-cli/src/commands/evidence.ts",
+        "packages/accord-core/tests/stack-service.test.ts",
+        "packages/accord-core/src/stack/service.ts",
+        "packages/accord-core/src/tools/registry.ts",
+        "packages/accord-core/src/index.ts"
       ],
       "tests": [
         "packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*",
@@ -4857,7 +4951,9 @@
         "bun run check:bundle",
         "evidence-cli.test.ts › ASDLC-1/AC-28 commands/evidence.ts delegates to accord-core timeline and renderers",
         "evidence-cli.test.ts › ASDLC-1/AC-28 adapter does not shell out to git or parse trailers itself",
-        "no-pi-dep.test.ts › does not depend on pi-accord or pi-subagent"
+        "no-pi-dep.test.ts › does not depend on pi-accord or pi-subagent",
+        "stack-service.test.ts › ASDLC-1/AC-28 service.ts imports no Pi package and not tools/registry",
+        "stack-service.test.ts › ASDLC-1/AC-28 registry delegates dev_stack* tools to the stack service"
       ],
       "verified": false
     },
@@ -8156,6 +8252,203 @@
       "file": "packages/accord-core/src/stack/gh-provider.ts",
       "line": 91,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-011",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The resolver signature (taskId) => number[] has no work item id, and the fixture has exactly one docs/dev/*/plan.json, so 'first plan containing the task' passes. In real repos many work items share task ids.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 469,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Sound scope reason. PrGroupResolver(taskId) has no workItemId and hooks.ts is outside task files. The multi-work-item ambiguity is a real interface gap; a human or review-code should decide (for example, pass workItemId through resolvePrGroup in a follow-up task)."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-014",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "dev_stack* tools are only checked in ACCORD_TOOLS. The MCP adapter path is not exercised, and Pi dynamic-tool bundles (active-set.ts ACCORD_TOOL_BUNDLES) would leave them inactive in Pi sessions.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 500,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "MCP register-tools.ts iterates every ACCORD_TOOLS entry, so the MCP path is covered by the ACCORD_TOOLS assertions. Pi bundle activation needs tools/active-set.ts, which is outside task files. Flagged for review-code as follow-up."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The fake listPrs treats `state === undefined` as all states, but the only real adapter (gh-provider listPrs) adds --state only when given, and `gh pr list` then returns open PRs only. The sync test's 'merged' assertion therefore passes for a sync that calls listPrs() or listPrs({head}) without state 'all'. Against real GitHub, merged PRs disappear from `accord stack sync`.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 180,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The resolver probes run in a repo with no AGENTS.md Dev Harness config, so only default sizing is exercised. A resolver registered at load time with `resolveStackConfig(null).sizing`, ignoring the project's configured stack.sizing, passes every probe. stackSubmit honours configured sizing (CUSTOM test), so the evidence(task-<N>,<M>) groups would not match the submitted PR groups whenever sizing is customised.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 820,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The 'process summary non-blank' check slices from '## Process summary' to '## Reading order'. renderPrBrief always places '## Accepted risks' with '- None' in between, so `summary: \"\"` still passes. The adversarial impl passes an empty summary.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 434,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The cwd test injects the fake provider, and the real gh provider path (line 534) always runs with process.cwd() === repo. A service that calls resolveStackProvider(name) without { cwd } passes. Its git branch and push commands then run in the caller's cwd, for example an MCP server or CLI started elsewhere.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 322,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Submit and sync branch side effects are partly unpinned. (a) The dependent PR's ensureBranch base is not asserted, so beta can be ensured from main while the PR base is alpha's head. (b) Push-before-create order is not asserted; real `gh pr create` fails if the head is not pushed yet. (c) The sync test does not assert fake.ensures is empty, so a sync that creates local branches passes.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 412,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Stack head branches are named `accord/<ID>/task-<N>`, but the plan puts local stack branches in `stack/<ID>/pr-<n>`, distinct from the CI-driven `accord/*/**` namespace.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 63,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`resolveGroup` takes only a task id, so it picks the first `docs/dev/*/plan.json` containing that id. It also computes groups with default sizing (`resolveStackConfig(null)`), ignoring the repo's `stack.sizing`.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 268,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The four `dev_stack*` tools are not in any bundle in `tools/active-set.ts`, so the Pi adapter never activates them.",
+      "file": "packages/accord-core/src/tools/registry.ts",
+      "line": 856,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "stackSync lists all PRs with `state: 'all'` and builds a head→PR map where the last entry wins. That can miss stack PRs or report a stale closed one.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 126,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-025",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "stackReport reads only HEAD's history, loads every commit body into one 10 MB-capped buffer, and turns any git failure into an empty successful report.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 249,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 29,
+      "requirement": "AC-11",
+      "finding_id": "F-026",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "stackSync takes each PR's ACs by re-rendering the whole stack table and picking a cell with `.split('\\n')[2].split('|')[4]`.",
+      "file": "packages/accord-core/src/stack/service.ts",
+      "line": 130,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 29,
+      "requirement": "AC-28",
+      "finding_id": "F-013",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-28 enforcement (check:types, check:bundle) cannot be proven by unit tests. Source-regex checks only pin the declaration.",
+      "file": "packages/accord-core/tests/stack-service.test.ts",
+      "line": 492,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Enforcement is a verify concern. The task verify step lists check:types, check:bundle and check:runtime, and layering.test.ts covers the import boundary for all of src."
+      }
     }
   ]
 }
