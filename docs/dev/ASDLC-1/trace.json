@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T12:16:32.459Z",
+  "generated_at": "2026-11-02T14:13:44.794Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -33,6 +33,14 @@
       "status": "resolved",
       "question": "2 tests write .git/hooks/pre-commit without creating .git/hooks (absent here because the git template dir is missing). Fix tests (mkdir -p hooks) so they can pass?",
       "answer": "Yes: tests must mkdir -p .git/hooks before writing pre-commit (git template dir may be absent). Respawn phase-test to fix those 2 tests; phase-code must not edit tests.",
+      "phase": "implementing"
+    },
+    {
+      "id": "phase-code-stuck-3",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Two tests in stack-cli.test.ts (`stack sync` and `stack submit`) cannot pass: cliIn spawns the CLI with a stale PATH. Fix the test?",
+      "answer": "Test bug fixed by hand: cliIn now passes the live process.env.PATH so the fake gh is found. 19/19 pass in stack-cli.test.ts; proceed.",
       "phase": "implementing"
     }
   ],
@@ -191,24 +199,36 @@
       "task_id": 26,
       "description": "Defined StackPlan/PrGroup/StackFlag output shape and the sizing input type in types.ts, because the spec does not fix them. Tests and the golden fixture pin that shape.",
       "reason": "AC-10 names no concrete output schema; tests need a concrete contract.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 29,
       "description": "No work-item-scoped resolver test (F-011)",
       "reason": "PrGroupResolver carries no workItemId and hooks.ts is outside task files; no selection rule is derivable from spec",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 30,
       "description": "Test for 'closeout hook runs before any closeout artifact write' covers hook registration and delegation only; wiring into commit-on-task-done.ts is not in this task's files. Stub created at stack/branches.ts (in task.files) and does not register the hook.",
       "reason": "Spec leaves function result shapes, PR0-merged detection and PR0 branch discovery open; contract pinned in the test file header.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 30,
       "description": "Added side-effect import of ./branches.js in stack/service.ts (not in task.files)",
       "reason": "Closeout hook must register when only src/index.ts or tools/registry.ts is imported; both already import service.ts",
+      "resolution": "accepted"
+    },
+    {
+      "task_id": 31,
+      "description": "Tests require edits outside task.files[]: packages/accord-cli/src/commands/index.ts (export runStackCommand), packages/accord-cli/src/ui/command-catalog.ts (help lists stack), okf/log.md (dated bullet).",
+      "reason": "Needed to satisfy AC-11 (help and routing), AC-28 (adapter export) and AC-31 (log entry).",
+      "resolution": null
+    },
+    {
+      "task_id": 31,
+      "description": "Added the stack entry to packages/accord-cli/src/ui/command-catalog.ts",
+      "reason": "Needed for `accord --help` to list stack (AC-11 help test); the file is not in task.files[]",
       "resolution": null
     }
   ],
@@ -3229,7 +3249,9 @@
       "id": 30,
       "title": "[stack-compute] Per-PR branch lifecycle in the spawn preflight",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "f7abffb"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3310,45 +3332,140 @@
     {
       "id": 31,
       "title": "[stack-compute] accord stack CLI command",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 15,
+        "by_state": {
+          "verified": 12,
+          "open": 2,
+          "wont_fix_accepted": 1
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-cli/tests/stack-cli.test.ts: 0 pass, 14 fail. `accord stack ...` falls through to help text (exit 1 / no matching output); commands/stack.ts ENOENT; runStackCommand not exported from commands/index.ts; okf/references/accord-cli.md lacks 'accord stack'; okf/log.md lacks the ASDLC-1 stack-compute entry.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "stack-cli + no-pi-dep: 20 pass, 0 fail. check:types ok. validate:okf passed (38 files). biome on packages/accord-cli and okf: clean. Repo-wide check:biome: 1 error, docs/dev/ASDLC-1/trace.json format. Preflight full bun test timed out at 120s (timeout, not a failure).",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-11",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/stack-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/stack.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/index.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/cli.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/dispatch.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/ui/command-catalog.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-cli/tests/stack-cli.test.ts packages/accord-cli/tests/no-pi-dep.test.ts"
+          }
         },
         {
           "id": "AC-28",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/stack-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/stack.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/index.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/dispatch.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-cli/tests/stack-cli.test.ts packages/accord-cli/tests/no-pi-dep.test.ts; bun run check:types"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/stack-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "okf/references/accord-cli.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun run validate:okf; bunx biome check packages/accord-cli okf"
+          }
         }
       ]
     },
@@ -4606,7 +4723,7 @@
     {
       "ac_id": "AC-11",
       "text": "Then PRs are created or updated with a stack map comment and a generated PR brief (contract link first, ACs and proving tests, process summary, reading order), one accord/evidence status check replaces bot comments, a…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 27,
@@ -4626,7 +4743,7 @@
         },
         {
           "task": 31,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -4642,7 +4759,13 @@
         "packages/accord-core/tests/stack-branches.test.ts",
         "packages/accord-core/src/stack/branches.ts",
         "packages/accord-core/tests/evidence-commit.test.ts",
-        "packages/accord-core/src/subagent/preflight-runner.ts"
+        "packages/accord-core/src/subagent/preflight-runner.ts",
+        "packages/accord-cli/tests/stack-cli.test.ts",
+        "packages/accord-cli/src/commands/stack.ts",
+        "packages/accord-cli/src/commands/index.ts",
+        "packages/accord-cli/src/cli.ts",
+        "packages/accord-cli/src/dispatch.ts",
+        "packages/accord-cli/src/ui/command-catalog.ts"
       ],
       "tests": [
         "stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order",
@@ -4666,9 +4789,12 @@
         "stack-branches.test.ts: ASDLC-1/AC-11 (task branch from PR0/main/parent, dirty-tree blockReason, disabled no-op, read-only status, closeout branch + hook registration)",
         "stack-service.test.ts",
         "evidence-commit.test.ts: closeout branch hook",
-        "bun run check:runtime"
+        "bun run check:runtime",
+        "stack-cli.test.ts › ASDLC-1/AC-11 stack, stack sync, stack submit and stack report print the matching dev_stack_* text",
+        "stack-cli.test.ts › ASDLC-1/AC-11 unsupported provider fails with a clear error and exit 1",
+        "stack-cli.test.ts › ASDLC-1/AC-11 `accord --help` lists the stack command"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-12",
@@ -4996,7 +5122,7 @@
         },
         {
           "task": 31,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 49,
@@ -5013,7 +5139,11 @@
         "packages/accord-core/tests/stack-service.test.ts",
         "packages/accord-core/src/stack/service.ts",
         "packages/accord-core/src/tools/registry.ts",
-        "packages/accord-core/src/index.ts"
+        "packages/accord-core/src/index.ts",
+        "packages/accord-cli/tests/stack-cli.test.ts",
+        "packages/accord-cli/src/commands/stack.ts",
+        "packages/accord-cli/src/commands/index.ts",
+        "packages/accord-cli/src/dispatch.ts"
       ],
       "tests": [
         "packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*",
@@ -5024,7 +5154,10 @@
         "evidence-cli.test.ts › ASDLC-1/AC-28 adapter does not shell out to git or parse trailers itself",
         "no-pi-dep.test.ts › does not depend on pi-accord or pi-subagent",
         "stack-service.test.ts › ASDLC-1/AC-28 service.ts imports no Pi package and not tools/registry",
-        "stack-service.test.ts › ASDLC-1/AC-28 registry delegates dev_stack* tools to the stack service"
+        "stack-service.test.ts › ASDLC-1/AC-28 registry delegates dev_stack* tools to the stack service",
+        "stack-cli.test.ts › ASDLC-1/AC-28 commands/stack.ts delegates to accord-core stack/service and has no Pi, git or gh logic",
+        "stack-cli.test.ts › ASDLC-1/AC-28 commands/index.ts exports runStackCommand and dispatch/cli route `stack`",
+        "no-pi-dep.test.ts"
       ],
       "verified": false
     },
@@ -5206,7 +5339,7 @@
         },
         {
           "task": 31,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 32,
@@ -5279,7 +5412,8 @@
         "packages/accord-ci/tests/contract-lock-check.test.ts",
         "okf/references/dev-command.md",
         "packages/accord-core/tests/alignment.test.ts",
-        "okf/references/schemas.md"
+        "okf/references/schemas.md",
+        "packages/accord-cli/tests/stack-cli.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -5312,7 +5446,10 @@
         "alignment.test.ts: ASDLC-1/AC-31 okf/references/schemas.md documents the plan stack fields",
         "bun run validate:okf (exit 0)",
         "bun run validate:ste (exit 0)",
-        "bun run check:biome (exit 0)"
+        "bun run check:biome (exit 0)",
+        "stack-cli.test.ts › ASDLC-1/AC-31 okf/references/accord-cli.md documents all four stack verbs (ASDLC-1/TC-32)",
+        "stack-cli.test.ts › ASDLC-1/AC-31 okf/log.md has a dated entry for the accord stack command (ASDLC-1/TC-32)",
+        "bunx biome check packages/accord-cli okf"
       ],
       "verified": false
     }
@@ -8730,6 +8867,50 @@
       "file": "packages/accord-core/src/stack/branches.ts",
       "line": 76,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 31,
+      "requirement": "AC-11",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Stack parser validates the work item id with a looser ad-hoc regex (/-\\d+$/) and only when no verb is given, instead of the canonical DEV_WORK_ITEM_ID_PATTERN already imported in this file.",
+      "file": "packages/accord-cli/src/cli.ts",
+      "line": 353,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 31,
+      "requirement": "AC-11",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Failure text (disabled, unsupported provider, missing plan, gh error) is written to stdout via console.log with exit 1.",
+      "file": "packages/accord-cli/src/commands/stack.ts",
+      "line": 22,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 31,
+      "requirement": "AC-28",
+      "finding_id": "F-012",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Enforcement half of the architectural ACs cannot be proven by these unit tests. check:types/check:bundle (AC-28) and validate:okf/validate:ste/check:biome (AC-31) must cover the new files: commands/stack.ts, the cli.ts/dispatch.ts edits, the test file and the doc edits. docs-validation.test.ts's biome check is scoped to task-17 files.",
+      "file": "packages/accord-cli/tests/stack-cli.test.ts",
+      "line": 290,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "The finding said enforcement belongs to phase-verify-task. Unit tests cannot prove check:types, check:bundle, validate:okf, validate:ste or biome."
+      }
     }
   ]
 }
