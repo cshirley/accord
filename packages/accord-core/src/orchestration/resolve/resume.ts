@@ -257,6 +257,7 @@ export function resolveResumeOrchestration(
       pattern: stateAfterReconcile.pattern,
       variant: stateAfterReconcile.variant,
       dispatchAgent: agent,
+      devConfig,
     }) ??
     buildAlignResumeTaskOrGeneric({
       workItemId: stateAfterReconcile.id,
