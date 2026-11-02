@@ -70,6 +70,7 @@ export function createGhStackProvider(options?: ResolveStackProviderOptions): St
     const args = ["pr", "list", "--json", PR_FIELDS];
     if (input?.head) args.push("--head", input.head);
     if (input?.state) args.push("--state", input.state);
+    args.push("--limit", "1000");
     const raw = parseJson<RawPr[]>(await gh(args), "pr list");
     return raw.map(toStackPr);
   };
@@ -154,6 +155,10 @@ export function createGhStackProvider(options?: ResolveStackProviderOptions): St
 
     async pushBranch({ branch }) {
       await git(["push", "origin", `refs/heads/${branch}:refs/heads/${branch}`]);
+    },
+
+    async retarget(pr, base) {
+      await gh(["pr", "edit", String(pr), "--base", base]);
     },
   };
 }

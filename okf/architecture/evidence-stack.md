@@ -12,6 +12,9 @@ sources:
   - id: stack-provider
     resource: /packages/accord-core/src/stack/provider.ts
     title: StackProvider port
+  - id: merge-bottom-up
+    resource: /packages/accord-core/src/stack/merge-bottom-up.ts
+    title: advanceStack
   - id: plan
     resource: /docs/plans/evidence-stack-plan.md
     title: Evidence stack plan
@@ -102,6 +105,10 @@ One generated stack map comment and one generated PR brief per PR. Three lenses:
 * **Change record** — `docs/dev/<ID>/` stays: ticket-keyed, immutable after merge (brief, spec, plan, contract lock, `evidence/`, verify, trace).
 * **Feature knowledge** — `<knowledge.root>/<slug>.md` (default `docs/features/`) plus generated `index.md` / `index.json`. Feature-keyed, living, updated only by closeout PRs. OKF-style frontmatter with stable feature-scoped `acs`, code and interface `anchors`, `depends_on`, `related`, `supersedes`, and `changes[]` linking work items, PRs, evidence, and contract sha.
 * **Cross-referencing** — `spec.json` `features[]` (relation and AC delta). Impact analysis at align/spec (anchor overlap, dependency traversal, index search) lands as an "Impacted features" table in PR0. Each `spec.json` AC may carry an optional `feature` slug; closeout maps `<ID>/AC-<n>` to the feature AC id and the feature doc lists the tests. Outside the spec every AC reference is work-item-qualified (`<ID>/AC-<n>`). Review agents receive impacted features as invariants. `validate:features` and a CI drift check keep docs true. Config: [Knowledge configuration](/references/knowledge-config.md). Plan sections 3.2c and 3.2d.
+
+# Bottom-up merge
+
+`advanceStack` (`stack/merge-bottom-up.ts`) finds open task PRs whose parent PR (from the plan) has merged. It runs `git merge origin/main --no-commit --no-ff` on the child branch, pushes without force, calls `StackProvider.retarget` (`gh pr edit <pr> --base main`) when the base is not already main, then runs `stackSubmit` so freed depth slots open. It never rebases, amends or force-pushes. After a squash-merged base, a conflicted path keeps the child's version only when main's blob equals the parent PR head's blob. Any other conflict aborts the merge and raises a `decisions[]` entry. Known limit: a clean merge that takes main's version of a path the child reverted is not detected.
 
 # Layering
 

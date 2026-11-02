@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T19:07:14.670Z",
+  "generated_at": "2026-11-02T22:34:24.666Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -277,6 +277,18 @@
       "task_id": 40,
       "description": "Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'.",
       "reason": "Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.",
+      "resolution": null
+    },
+    {
+      "task_id": 41,
+      "description": "Added no-op retarget to fake providers in stack-branches.test.ts and stack-service.test.ts, and 'retarget' to the port-method list in stack-provider-gh.test.ts",
+      "reason": "retarget is now required on StackProvider; without it check:types fails on fixtures outside task.files",
+      "resolution": null
+    },
+    {
+      "task_id": 41,
+      "description": "Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error",
+      "reason": "F-032 names it as failing check:biome",
       "resolution": null
     }
   ],
@@ -4247,7 +4259,9 @@
       "id": 40,
       "title": "[trunk-hardening] Open-PR depth cap and flag validation",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "e2aa296"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -4316,38 +4330,151 @@
     {
       "id": 41,
       "title": "[trunk-hardening] Bottom-up merge: retarget next PR by merging main",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 5,
+        "C": 7,
+        "V": 4
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
-        "rgr": 0,
-        "verify": 0
+        "rgr": 3,
+        "verify": 3
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 43,
+        "by_state": {
+          "verified": 31,
+          "wont_fix_accepted": 3,
+          "dispute_upheld": 1,
+          "open": 8
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/stack-depth.test.ts: 47 pre-existing tests pass; 12 new tests fail: 10x 'error: not implemented: advanceStack', 2x 'error: not implemented: retarget' (gh provider). bun run check:types clean.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V4/phase-verify-task",
+        "excerpt": "103 pass, 0 fail, 525 expect() calls across 2 files [195s]. check:types OK. check:bundle OK. check:biome: 1 error, formatting only in docs/dev/ASDLC-1/trace.json (commits arrays should be inline); run `bunx biome check --write docs/dev/ASDLC-1/trace.json`.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-17",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-depth.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/tests/stack-branches.test.ts",
+              "action": "modify",
+              "kind": "fixture"
+            },
+            {
+              "file": "packages/accord-core/tests/stack-service.test.ts",
+              "action": "modify",
+              "kind": "fixture"
+            },
+            {
+              "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/provider.ts",
+              "action": "modify",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/gh-provider.ts",
+              "action": "modify",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/stack/gh-provider.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/stack/provider.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V4/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/stack-depth.test.ts packages/accord-core/tests/stack-provider-gh.test.ts --timeout 60000"
+          }
         },
         {
           "id": "AC-27",
-          "status": "pending",
-          "changes": [],
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-depth.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/stack/gh-provider.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V4/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-core/tests/stack-depth.test.ts packages/accord-core/tests/stack-provider-gh.test.ts --timeout 60000"
+          }
+        },
+        {
+          "id": "_task",
+          "text": "Changes/findings not attributable to one AC",
+          "status": "n/a",
+          "changes": [
+            {
+              "file": "okf/architecture/evidence-stack.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "packages/accord-core/tests/state-redact.test.ts",
+              "action": "modify",
+              "kind": "test"
+            }
+          ],
           "verification": null
         }
       ]
@@ -5457,7 +5584,7 @@
     {
       "ac_id": "AC-17",
       "text": "Then at most max_depth PRs of the chain are open, the next opens after its base merges, every non-final task PR leaves main green with the feature unreachable behind a flag, and only the last task flips the flag",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 40,
@@ -5465,13 +5592,19 @@
         },
         {
           "task": 41,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
         "packages/accord-core/tests/stack-depth.test.ts",
         "packages/accord-core/src/stack/depth.ts",
-        "packages/accord-core/src/stack/service.ts"
+        "packages/accord-core/src/stack/service.ts",
+        "packages/accord-core/tests/stack-provider-gh.test.ts",
+        "packages/accord-core/tests/stack-branches.test.ts",
+        "packages/accord-core/tests/stack-service.test.ts",
+        "packages/accord-core/src/stack/merge-bottom-up.ts",
+        "packages/accord-core/src/stack/provider.ts",
+        "packages/accord-core/src/stack/gh-provider.ts"
       ],
       "tests": [
         "ASDLC-1/TC-18 chain of 8 with max_depth 6 opens exactly PRs 1..6",
@@ -5480,9 +5613,13 @@
         "ASDLC-1/TC-18 after PR 1 merges, PR 7 opens and PR 1 is not recreated",
         "ASDLC-1/TC-18 non-final task with %s fails missing_flag",
         "ASDLC-1/TC-18 a non-final task with kind enable fails premature_enable",
-        "ASDLC-1/TC-18 the final task not flipping the flag fails missing_enable"
+        "ASDLC-1/TC-18 the final task not flipping the flag fails missing_enable",
+        "stack-depth.test.ts › ASDLC-1/TC-18 (all add/add, rule partition, rebase/merge-commit base, second chain level, provider fallback tests)",
+        "stack-provider-gh.test.ts › ASDLC-1/TC-18 retarget tests",
+        "bun run check:types",
+        "bun run check:bundle"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-18",
@@ -5672,7 +5809,7 @@
         },
         {
           "task": 41,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 53,
@@ -5687,7 +5824,10 @@
         "packages/accord-core/tests/contract-pr0.test.ts",
         "packages/accord-core/tests/contract-amend.test.ts",
         "packages/accord-core/src/contract/pr0.ts",
-        "packages/accord-core/src/contract/amend.ts"
+        "packages/accord-core/src/contract/amend.ts",
+        "packages/accord-core/tests/stack-depth.test.ts",
+        "packages/accord-core/src/stack/merge-bottom-up.ts",
+        "packages/accord-core/src/stack/gh-provider.ts"
       ],
       "tests": [
         "append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD",
@@ -5695,7 +5835,9 @@
         "ASDLC-1/AC-27 rerun adds no commit, no amend: evidence sha stays HEAD and reachable",
         "ASDLC-1/AC-27 a later phase commit goes on top; evidence commit is never rewritten",
         "contract-pr0.test.ts: ASDLC-1/AC-27 existing tag is left as is (not forced) and PR0 still commits",
-        "contract-amend.test.ts: ASDLC-1/AC-27 amend adds a commit and never rewrites history"
+        "contract-amend.test.ts: ASDLC-1/AC-27 amend adds a commit and never rewrites history",
+        "stack-depth.test.ts › ASDLC-1/AC-27 the old child tip stays an ancestor of the new tip and no git call rewrites or force-pushes",
+        "stack-depth.test.ts › ASDLC-1/AC-27 a diverged remote child ref is never overwritten (push is not forced)"
       ],
       "verified": false
     },
@@ -10607,6 +10749,182 @@
       "file": "packages/accord-core/src/stack/types.ts",
       "line": 19,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-012",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The rule-partition table has no deletion rows. (a) Main deleted a base-added file and the child modified it (modify/delete conflict, main:<path> unreadable). This is untested, so `const mainBlob = await show('main', p).catch(() => null); if (mainBlob === null) keepChild()` passes and silently brings back a file main deleted. (b) The child deleted or reverted content the base added. After a squash merge the plain merge has no conflict, so it silently restores the base content. AC-17 defines the rule only for conflicted paths, so (b) is a spec gap.",
+      "file": "packages/accord-core/tests/stack-depth.test.ts",
+      "line": 1222,
+      "raised": "T2/review-test",
+      "resolution": {
+        "by": "T3/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Advisory suggestion. (a) needs a buildScenario deletion hook. The rule already stops a merge when a path is missing from the base head, but a modify/delete row is still the cheap next step. (b) is a spec gap: whether a child's deletion or revert of base-added content survives a squash advance. A human must decide it, and tests must not invent the behaviour."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-013",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every advance fixture has exactly one eligible PR. An implementation that advances the first open PR with a merged base and then breaks passes every test. With two chains, the second chain's child is never retargeted.",
+      "file": "packages/accord-core/tests/stack-depth.test.ts",
+      "line": 1325,
+      "raised": "T2/review-test",
+      "resolution": {
+        "by": "T3/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Advisory round-1 miss. Advancing one PR per run is fixed by running the advance again, so this does not leave AC-17 fully negatable."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-020",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Spec gap: after a squash base, a clean 3-way merge silently takes main's version of paths the child reverted, deleted or renamed. The rule only inspects conflicts, so this is not caught.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 120,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "The spec scopes the rule to conflicts. The limitation is documented in okf/architecture/evidence-stack.md ('Known limit')."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-029",
+      "state": "dispute_upheld",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The task head-branch name is rebuilt inline instead of shared with service.ts.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 129,
+      "raised": "C2/review-code",
+      "resolution": {
+        "by": "C5/review-code",
+        "outcome": "dispute_upheld",
+        "note": "headFor is private to service.ts, outside task 41 files[]. Exporting it would be scope drift. Suggestion-level, left as a follow-up."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-036",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "raiseDecision silently records nothing and writes a `null` work-item file when `.tasks/<ID>.json` is missing, while advanceStack still reports that the conflict 'needs a decision'.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 62,
+      "raised": "C7/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-037",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Eligibility is 'parent PR merged and PR open', so every later advanceStack run merges the latest origin/main into PRs that were already advanced.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 207,
+      "raised": "C7/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-038",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Head-branch naming is hard-coded twice as `accord/<ID>/task-<N>`, but `ensureTaskBranch` (used in production by preflight-runner) creates `stack/<ID>/pr-<N>` branches.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 199,
+      "raised": "C7/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-040",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Stop reasons and swallowed errors are invisible, and the decision text always claims 'main differs from the merged base PR head'.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 155,
+      "raised": "C7/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-041",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The first failing PR aborts the whole run, and the result text omits PRs already advanced and pushed in the same run.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 218,
+      "raised": "C7/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "AC-17",
+      "finding_id": "F-042",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Conflicted paths are passed to git as pathspecs, and `diff --name-only` output is repo-root-relative while ls-tree, checkout and add are cwd-relative.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 93,
+      "raised": "C7/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "_task",
+      "finding_id": "F-039",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Local helpers duplicate existing stack code instead of reusing it.",
+      "file": "packages/accord-core/src/stack/merge-bottom-up.ts",
+      "line": 118,
+      "raised": "C7/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 41,
+      "requirement": "_task",
+      "finding_id": "F-043",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "No dated log entry for the advanceStack implementation, although okf/architecture/evidence-stack.md was updated.",
+      "file": "okf/log.md",
+      "line": 3,
+      "raised": "C7/review-code"
     }
   ]
 }

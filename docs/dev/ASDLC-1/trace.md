@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T19:07:14.670Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T22:34:24.666Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -46,8 +46,8 @@
 | 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | `adc441a` | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
 | 38 | [tree-state] OKF docs for committed state and closeout | done | `85f7289` | 1/1/1 | 13 (open 13) | 0 |
 | 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | `f8d7bab` | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
-| 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | — | 2/1/1 | 19 (verified 11, open 8) | 0 |
-| 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | pending | — | 0/0/0 | 0 | 0 |
+| 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | `e2aa296` | 2/1/1 | 19 (verified 11, open 8) | 0 |
+| 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | — | 5/7/4 | 43 (verified 31, wont_fix_accepted 3, dispute_upheld 1, open 8) | 0 |
 | 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | pending | — | 0/0/0 | 0 | 0 |
 | 43 | [feature-knowledge] Feature doc schema, parser and index generator | pending | — | 0/0/0 | 0 | 0 |
 | 44 | [feature-knowledge] validate:features script and Dev Harness entry | pending | — | 0/0/0 | 0 | 0 |
@@ -341,13 +341,13 @@
   - ASDLC-1/AC-16 stack enabled: GREEN with est 10 and a 40-line src raises one pending overrun decision and records size
   - ASDLC-1/AC-16 excludes lockfiles, generated, state, reviews and evidence from the count
 
-### AC-17 — pending (not verified)
+### AC-17 — satisfied
 
 > Then at most max_depth PRs of the chain are open, the next opens after its base merges, every non-final task PR leaves main green with the feature unreachable behind a flag, and only the last task flips the flag
 
-- Tasks: 40 (satisfied), 41 (pending)
-- Files: `packages/accord-core/tests/stack-depth.test.ts`, `packages/accord-core/src/stack/depth.ts`, `packages/accord-core/src/stack/service.ts`
-- Tests verified (7):
+- Tasks: 40 (satisfied), 41 (satisfied)
+- Files: `packages/accord-core/tests/stack-depth.test.ts`, `packages/accord-core/src/stack/depth.ts`, `packages/accord-core/src/stack/service.ts`, `packages/accord-core/tests/stack-provider-gh.test.ts`, `packages/accord-core/tests/stack-branches.test.ts`, `packages/accord-core/tests/stack-service.test.ts`, `packages/accord-core/src/stack/merge-bottom-up.ts`, `packages/accord-core/src/stack/provider.ts`, `packages/accord-core/src/stack/gh-provider.ts`
+- Tests verified (11):
   - ASDLC-1/TC-18 chain of 8 with max_depth 6 opens exactly PRs 1..6
   - ASDLC-1/TC-18 PR 7 is openable only after PR 1 merges
   - ASDLC-1/TC-18 chain of 8 with max_depth 6 submits only PRs 1..6
@@ -355,6 +355,10 @@
   - ASDLC-1/TC-18 non-final task with %s fails missing_flag
   - ASDLC-1/TC-18 a non-final task with kind enable fails premature_enable
   - ASDLC-1/TC-18 the final task not flipping the flag fails missing_enable
+  - stack-depth.test.ts › ASDLC-1/TC-18 (all add/add, rule partition, rebase/merge-commit base, second chain level, provider fallback tests)
+  - stack-provider-gh.test.ts › ASDLC-1/TC-18 retarget tests
+  - bun run check:types
+  - bun run check:bundle
 
 ### AC-18 — pending (not verified)
 
@@ -428,15 +432,17 @@
 
 > Evidence commits are append-only: the harness MUST NOT amend or force-push them, and a failed round adds commits and never rewrites them
 
-- Tasks: 7 (satisfied), 13 (satisfied), 19 (satisfied), 41 (pending), 53 (pending)
-- Files: `packages/accord-core/tests/append-only.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`
-- Tests verified (6):
+- Tasks: 7 (satisfied), 13 (satisfied), 19 (satisfied), 41 (satisfied), 53 (pending)
+- Files: `packages/accord-core/tests/append-only.test.ts`, `packages/accord-core/src/commit/phase-commit.ts`, `packages/accord-core/tests/evidence-commit.test.ts`, `packages/accord-core/src/commit/evidence-commit.ts`, `packages/accord-core/tests/contract-pr0.test.ts`, `packages/accord-core/tests/contract-amend.test.ts`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/contract/amend.ts`, `packages/accord-core/tests/stack-depth.test.ts`, `packages/accord-core/src/stack/merge-bottom-up.ts`, `packages/accord-core/src/stack/gh-provider.ts`
+- Tests verified (8):
   - append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD
   - an unchanged tree never rewrites the previous commit (no amend on empty round)
   - ASDLC-1/AC-27 rerun adds no commit, no amend: evidence sha stays HEAD and reachable
   - ASDLC-1/AC-27 a later phase commit goes on top; evidence commit is never rewritten
   - contract-pr0.test.ts: ASDLC-1/AC-27 existing tag is left as is (not forced) and PR0 still commits
   - contract-amend.test.ts: ASDLC-1/AC-27 amend adds a commit and never rewrites history
+  - stack-depth.test.ts › ASDLC-1/AC-27 the old child tip stays an ancestor of the new tip and no git call rewrites or force-pushes
+  - stack-depth.test.ts › ASDLC-1/AC-27 a diverged remote child ref is never overwritten (push is not forced)
 
 ### AC-28 — pending (not verified)
 
@@ -900,6 +906,18 @@
 | 40 | AC-17 | F-017 | unresolved (advisory) | open | suggestion | require_flag default is decided in service.ts (`=== true`, absent = off) while accord-schema.json and okf/references/stack-config.md say 'Default: true'; `ResolvedStackConfig` does not carry the key. | packages/accord-core/src/stack/service.ts:183 |  |
 | 40 | AC-17 | F-018 | unresolved (advisory) | open | suggestion | Deferred PRs are not reported; when nothing is openable the result is 'Submitted 0 PR(s)' with ok:true. | packages/accord-core/src/stack/service.ts:251 |  |
 | 40 | AC-17 | F-019 | unresolved (advisory) | open | suggestion | The max_depth comment still says depth is enforced by trunk-hardening (AC-16), not computeStack. | packages/accord-core/src/stack/types.ts:19 |  |
+| 41 | AC-17 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | The rule-partition table has no deletion rows. (a) Main deleted a base-added file and the child modified it (modify/delete conflict, main:<path> unreadable). This is untested, so `const mainBlob = await show('main', p).catch(() => null); if (mainBlob === null) keepChild()` passes and silently brings back a file main deleted. (b) The child deleted or reverted content the base added. After a squash merge the plain merge has no conflict, so it silently restores the base content. AC-17 defines the rule only for conflicted paths, so (b) is a spec gap. | packages/accord-core/tests/stack-depth.test.ts:1222 | wont_fix_accepted by T3/review-test — Advisory suggestion. (a) needs a buildScenario deletion hook. The rule already stops a merge when a path is missing from the base head, but a modify/delete row is still the cheap next step. (b) is a spec gap: whether a child's deletion or revert of base-added content survives a squash advance. A human must decide it, and tests must not invent the behaviour. |
+| 41 | AC-17 | F-013 | accepted (advisory) | wont_fix_accepted | suggestion | Every advance fixture has exactly one eligible PR. An implementation that advances the first open PR with a merged base and then breaks passes every test. With two chains, the second chain's child is never retargeted. | packages/accord-core/tests/stack-depth.test.ts:1325 | wont_fix_accepted by T3/review-test — Advisory round-1 miss. Advancing one PR per run is fixed by running the advance again, so this does not leave AC-17 fully negatable. |
+| 41 | AC-17 | F-020 | accepted (advisory) | wont_fix_accepted | suggestion | Spec gap: after a squash base, a clean 3-way merge silently takes main's version of paths the child reverted, deleted or renamed. The rule only inspects conflicts, so this is not caught. | packages/accord-core/src/stack/merge-bottom-up.ts:120 | wont_fix_accepted by C2/review-code — The spec scopes the rule to conflicts. The limitation is documented in okf/architecture/evidence-stack.md ('Known limit'). |
+| 41 | AC-17 | F-029 | accepted (advisory) | dispute_upheld | suggestion | The task head-branch name is rebuilt inline instead of shared with service.ts. | packages/accord-core/src/stack/merge-bottom-up.ts:129 | dispute_upheld by C5/review-code — headFor is private to service.ts, outside task 41 files[]. Exporting it would be scope drift. Suggestion-level, left as a follow-up. |
+| 41 | AC-17 | F-036 | unresolved (advisory) | open | warning | raiseDecision silently records nothing and writes a `null` work-item file when `.tasks/<ID>.json` is missing, while advanceStack still reports that the conflict 'needs a decision'. | packages/accord-core/src/stack/merge-bottom-up.ts:62 |  |
+| 41 | AC-17 | F-037 | unresolved (advisory) | open | warning | Eligibility is 'parent PR merged and PR open', so every later advanceStack run merges the latest origin/main into PRs that were already advanced. | packages/accord-core/src/stack/merge-bottom-up.ts:207 |  |
+| 41 | AC-17 | F-038 | unresolved (advisory) | open | suggestion | Head-branch naming is hard-coded twice as `accord/<ID>/task-<N>`, but `ensureTaskBranch` (used in production by preflight-runner) creates `stack/<ID>/pr-<N>` branches. | packages/accord-core/src/stack/merge-bottom-up.ts:199 |  |
+| 41 | AC-17 | F-040 | unresolved (advisory) | open | suggestion | Stop reasons and swallowed errors are invisible, and the decision text always claims 'main differs from the merged base PR head'. | packages/accord-core/src/stack/merge-bottom-up.ts:155 |  |
+| 41 | AC-17 | F-041 | unresolved (advisory) | open | suggestion | The first failing PR aborts the whole run, and the result text omits PRs already advanced and pushed in the same run. | packages/accord-core/src/stack/merge-bottom-up.ts:218 |  |
+| 41 | AC-17 | F-042 | unresolved (advisory) | open | suggestion | Conflicted paths are passed to git as pathspecs, and `diff --name-only` output is repo-root-relative while ls-tree, checkout and add are cwd-relative. | packages/accord-core/src/stack/merge-bottom-up.ts:93 |  |
+| 41 | _task | F-039 | unresolved (advisory) | open | suggestion | Local helpers duplicate existing stack code instead of reusing it. | packages/accord-core/src/stack/merge-bottom-up.ts:118 |  |
+| 41 | _task | F-043 | unresolved (advisory) | open | suggestion | No dated log entry for the advanceStack implementation, although okf/architecture/evidence-stack.md was updated. | okf/log.md:3 |  |
 
 ## Decisions
 
@@ -949,6 +967,8 @@
 - Task 39 (pending): measureActualLines (evidence/lines.ts) now excludes .tasks/ — Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored
 - Task 40 (pending): TC-18 squash-merge advance scenarios (add/add resolved by rule, differing conflict raising a decision, rebase/merge-commit bases) are not tested in this task. — Task 40 files (depth.ts, service.ts) define no merge-advance interface, and the spec names none; these need a later task or a spec-named API.
 - Task 40 (pending): Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'. — Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.
+- Task 41 (pending): Added no-op retarget to fake providers in stack-branches.test.ts and stack-service.test.ts, and 'retarget' to the port-method list in stack-provider-gh.test.ts — retarget is now required on StackProvider; without it check:types fails on fixtures outside task.files
+- Task 41 (pending): Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error — F-032 names it as failing check:biome
 
 ## Evidence by task
 
@@ -1707,6 +1727,18 @@ stack-depth + stack-service: 74 pass, 0 fail (322 expect calls). check:types: ex
 ```
 
 ### Task 41: [trunk-hardening] Bottom-up merge: retarget next PR by merging main
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/stack-depth.test.ts: 47 pre-existing tests pass; 12 new tests fail: 10x 'error: not implemented: advanceStack', 2x 'error: not implemented: retarget' (gh provider). bun run check:types clean.
+```
+
+Final verification (`V4/phase-verify-task`):
+
+```text
+103 pass, 0 fail, 525 expect() calls across 2 files [195s]. check:types OK. check:bundle OK. check:biome: 1 error, formatting only in docs/dev/ASDLC-1/trace.json (commits arrays should be inline); run `bunx biome check --write docs/dev/ASDLC-1/trace.json`.
+```
 
 ### Task 42: [trunk-hardening] OKF docs for depth cap, merge order and overrun
 

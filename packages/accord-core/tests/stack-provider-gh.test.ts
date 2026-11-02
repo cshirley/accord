@@ -491,6 +491,7 @@ describe("ASDLC-1/AC-11 resolveStackProvider", () => {
       "listPrs",
       "ensureBranch",
       "pushBranch",
+      "retarget",
     ] as const) {
       expect(typeof provider[method]).toBe("function");
     }
@@ -672,5 +673,36 @@ describe("ASDLC-1/AC-11 ensureBranch and pushBranch (non-force)", () => {
     expect(message).not.toMatch(/hint:/);
     expect(message.trim().split("\n")).toHaveLength(1);
     expect(remoteSha("feat")).toBe(before);
+  });
+});
+
+describe("ASDLC-1/AC-17 retarget error path and cwd", () => {
+  it("ASDLC-1/TC-18 retarget rejects when gh pr edit fails, without leaking the token or stderr", async () => {
+    const TOKEN = "ghp_RETARGETSECRET456";
+    process.env.GH_TOKEN = TOKEN;
+    fake = installGh([{ all: ["^pr edit"], stderr: `boom ${TOKEN} LEAKED-RETARGET`, exitCode: 1 }]);
+    let dump = "";
+    let message = "";
+    try {
+      await resolveStackProvider("gh").retarget(202, "main");
+    } catch (error) {
+      message = (error as Error).message;
+      dump = leakDump(error);
+    }
+    expect(message).toMatch(/gh pr edit failed/);
+    expect(dump).not.toContain(TOKEN);
+    expect(dump).not.toContain("LEAKED-RETARGET");
+    expect(fake.calls()).toEqual([["pr", "edit", "202", "--base", "main"]]);
+  });
+
+  it("ASDLC-1/TC-18 retarget runs gh in the provider's cwd", async () => {
+    fake = installGh([{ all: ["^pr edit"] }]);
+    const cwdDir = realpathSync(mkdtempSync(join(tmpdir(), "accord-stack-retarget-cwd-")));
+    try {
+      await resolveStackProvider("gh", { cwd: cwdDir }).retarget(202, "main");
+      expect(fake.cwds()).toEqual([cwdDir]);
+    } finally {
+      rmSync(cwdDir, { recursive: true, force: true });
+    }
   });
 });

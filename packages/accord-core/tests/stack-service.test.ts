@@ -200,6 +200,7 @@ function fakeProvider(): FakeProvider {
     async pushBranch(input) {
       fake.pushes.push(input);
     },
+    async retarget() {},
   };
   return fake;
 }
