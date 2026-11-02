@@ -8,6 +8,7 @@ import * as path from "node:path";
 import { carryForwardUsageFromCommittedRollup } from "../artifacts/workflow-cost-artifact.js";
 import { createLogger } from "../logging.js";
 import { reconcileCoarsePhaseUntilStable } from "../orchestration/reconcile-coarse-phase.js";
+import { restoreStateFromTree } from "../state/restore.js";
 import { err, ok, type Result } from "../types/result.js";
 import {
   artifactLooksComplete,
@@ -157,6 +158,29 @@ export function rehydrateWorkItemFromArtifacts(
       variant: existing.variant,
       message: `Work item ${workItemId} already exists (phase: ${existing.phase}).`,
     });
+  }
+
+  if (!existsSync(workItemJsonPath(workItemId))) {
+    const restored = restoreStateFromTree(workItemId);
+    if (restored.ok && restored.value.restored) {
+      const restoredWi = loadWorkItem(workItemId);
+      if (restoredWi) {
+        const planPath = resolveDevArtifactPathForId(workItemId, "plan");
+        const tasksBootstrapped = artifactLooksComplete("plan", planPath, workItemId)
+          ? bootstrapImplementTasksFromPlan(workItemId, planPath)
+          : 0;
+        log.info(`rehydrate: restored ${workItemId} from docs/dev/${workItemId}/state/`);
+        return ok({
+          rehydrated: true,
+          work_item_path: workItemJsonPath(workItemId),
+          phase: restoredWi.phase,
+          pattern: restoredWi.pattern,
+          variant: restoredWi.variant,
+          tasks_bootstrapped: tasksBootstrapped,
+          message: `Restored ${workItemId} from docs/dev/${workItemId}/state/ → phase ${restoredWi.phase}.`,
+        });
+      }
+    }
   }
 
   const inferred = inferImplementStandardLadder(workItemId);

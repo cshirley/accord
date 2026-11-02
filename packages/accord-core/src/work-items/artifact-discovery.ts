@@ -261,6 +261,10 @@ export function bootstrapImplementTasksFromPlan(workItemId: string, planPath: st
 
     const taskPath = taskJsonPath(workItemId, taskId);
     if (readJson<Record<string, unknown>>(taskPath)) continue;
+    // Finished task: its evidence asset is committed and state/task-N is gone; never re-run it.
+    if (existsSync(path.join(devArtifactDir(workItemId), "evidence", `task-${taskId}.json`))) {
+      continue;
+    }
 
     writeJson(
       taskPath,
