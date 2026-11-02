@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T15:57:55.977Z",
+  "generated_at": "2026-11-02T16:32:51.467Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -241,6 +241,12 @@
       "task_id": 35,
       "description": "No test for artifact-discovery.ts 'skip state/' step.",
       "reason": "Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.",
+      "resolution": null
+    },
+    {
+      "task_id": 36,
+      "description": "Closeout commit returns full HEAD sha (not short) when stack.enabled",
+      "reason": "Test compares result.hash to git rev-parse HEAD",
       "resolution": null
     }
   ],
@@ -3757,7 +3763,9 @@
       "id": 35,
       "title": "[tree-state] Stateless resume from committed state",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "f299bdb"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3832,33 +3840,66 @@
     {
       "id": 36,
       "title": "[tree-state] Closeout commit builds artifacts then removes state",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 18,
+        "by_state": {
+          "verified": 9,
+          "wont_fix_accepted": 1,
+          "open": 8
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "8 fail / 4 pass. Failing: stack-enabled closeout (state not deleted, no closeout.json, no trailer), hook awaited/called once (Expected 1, Received 0), dirty tree refusal (Expected ok false, Received true), on_finalize=false with stack enabled refusal (Expected ok false, Received true). Passing: the 4 stack-disabled backward-compat tests.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "closeout.test.ts: 26 pass, 0 fail (204 expect calls). check:types OK. check:runtime: runtime smoke passed. biome on the 3 task files: Checked 3 files, no fixes applied. validate:schemas, validate:assets, validate:okf, validate:ste and check:bundle passed in preflight.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-15",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/closeout.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/state/closeout.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/closeout.test.ts"
+          }
         }
       ]
     },
@@ -5098,16 +5139,25 @@
     {
       "ac_id": "AC-15",
       "text": "Then verify.*, trace.* and workflow-cost.* are built, the remaining docs/dev/<ID>/state/ (including work-item.json) is deleted after they are built, and the closeout PR is the last PR of the stack",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 36,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-core/tests/closeout.test.ts",
+        "packages/accord-core/src/state/closeout.ts",
+        "packages/accord-core/src/orchestration/commit-on-task-done.ts"
+      ],
+      "tests": [
+        "closeout.test.ts: 26 tests pass, including ASDLC-1/AC-15 mtime order, outcome=closeout trailer, state/ removed after verify/trace/cost built, branch hook and clean-tree precondition, on_finalize=false refusal, and stack-disabled unchanged (AC-26)",
+        "bun run check:types",
+        "bun run check:runtime",
+        "bunx biome check on the 3 task files"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-16",
@@ -9596,6 +9646,128 @@
       "issue": "The evidence asset path is a hand-built literal in a third place.",
       "file": "packages/accord-core/src/work-items/artifact-discovery.ts",
       "line": 265,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-010",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Only v, id and outcome of the closeout trailer are pinned. The required trailer keys (task, seq, ref, agent, loop, round) and the subject format are left open, so a hand-written `Accord: v=1 id=ASDLC-1 outcome=closeout` passes. Downstream consumers (evidence timeline, leftover-state check, CI resume 'from the last typed commit') may reject or ignore it.",
+      "file": "packages/accord-core/tests/closeout.test.ts",
+      "line": 170,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "The spec and plan pin only v, id and outcome=closeout. The chosen shape is recorded in the comment at line 66. Sound reason."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The 'state/ deleted after build' spy test runs only with a verify report (commitVerifyFixture). The no-verify branch of commitWorkItemArtifacts calls devPersistWorkflowCost and writeWorkItemTrace directly, and their order against the state removal is not observed there. The task sweep already gives true records for trace and cost, so the length > 0 checks pass in that branch whatever the closeout does.",
+      "file": "packages/accord-core/tests/closeout.test.ts",
+      "line": 233,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "prepareCloseout mutates the worktree (writes marker, deletes state/) before the commit, with no rollback. If the commit fails, the clean-tree guard then blocks every retry.",
+      "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+      "line": 341,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Closeout still sweeps done tasks via commitDoneTasks when stack.commits is 'phase'. The per-result sweep skips this mode, so closeout adds legacy `[<ID>] Task N:` commits.",
+      "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+      "line": 311,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The closeout commit does not emit the `stack.commit.created` telemetry event that every other typed-commit path emits.",
+      "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+      "line": 359,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Spec conflict for a human decision: the clean-tree-first guard is refused by both real callers, so stack closeout can never run end to end.",
+      "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+      "line": 281,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A stack closeout refusal is surfaced as success by both callers; the work item is already finalized.",
+      "file": "packages/accord-core/src/orchestration/runner.ts",
+      "line": 421,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The marker is rewritten with a fresh `closed_at` on every call, so re-running closeout after success creates another closeout commit.",
+      "file": "packages/accord-core/src/state/closeout.ts",
+      "line": 35,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 36,
+      "requirement": "AC-15",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`hash` format differs by mode (full SHA when stack is on, short when off), and the stack preflight is inlined in an already long function.",
+      "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
+      "line": 360,
       "raised": "C1/review-code"
     }
   ]
