@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T17:05:42.312Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T17:24:38.702Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -43,8 +43,8 @@
 | 34 | [tree-state] State snapshot writer staged with every typed commit | done | `b7c261f` | 2/1/1 | 21 (verified 11, open 10) | 0 |
 | 35 | [tree-state] Stateless resume from committed state | done | `f299bdb` | 2/1/1 | 10 (verified 4, reraised 1, open 5) | 0 |
 | 36 | [tree-state] Closeout commit builds artifacts then removes state | done | `f48130a` | 2/1/1 | 18 (verified 9, wont_fix_accepted 1, open 8) | 0 |
-| 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | — | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
-| 38 | [tree-state] OKF docs for committed state and closeout | pending | — | 0/0/0 | 0 | 0 |
+| 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | `adc441a` | 2/1/1 | 15 (verified 8, open 6, wont_fix_accepted 1) | 0 |
+| 38 | [tree-state] OKF docs for committed state and closeout | done | — | 1/1/1 | 13 (open 13) | 0 |
 | 39 | [trunk-hardening] Overrun measurement and re-plan decision | pending | — | 0/0/0 | 0 | 0 |
 | 40 | [trunk-hardening] Open-PR depth cap and flag validation | pending | — | 0/0/0 | 0 | 0 |
 | 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | pending | — | 0/0/0 | 0 | 0 |
@@ -497,9 +497,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (pending), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
 - Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`
-- Tests verified (38):
+- Tests verified (43):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -538,6 +538,11 @@
   - bunx biome check on task-32 files (clean)
   - ASDLC-1/AC-31 docs for accord-ci change > docs/ci/pre-merge-smoke.md documents the leftover-state rule
   - bunx biome check packages/accord-ci docs/ci
+  - docs-validation.test.ts › ASDLC-1/AC-31 tree-state docs (task 38) – 6 tests, all pass
+  - bun test packages/accord-core/tests/docs-validation.test.ts (38 pass, 0 fail)
+  - bun run validate:okf (38 files passed)
+  - bun run validate:ste (passed)
+  - bunx biome check okf packages/accord-core/tests/docs-validation.test.ts (clean)
 
 ## Accepted risks and unresolved findings
 
@@ -842,6 +847,19 @@
 | 37 | AC-14 | F-014 | unresolved (advisory) | open | suggestion | The whole history of head is read and every commit message parsed, only to find Accord trailers. | packages/accord-ci/src/checks/leftover-state.ts:35 |  |
 | 37 | AC-14 | F-015 | unresolved (advisory) | open | suggestion | base is resolved only to fail early; the rule never uses it, and the failure is not documented. | packages/accord-ci/src/checks/leftover-state.ts:59 |  |
 | 37 | AC-31 | F-009 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 enforcement (validate:okf, validate:ste, check:biome) cannot be proven by this unit test. TC-32's test_name_glob points at packages/accord-core/tests/docs-validation.test.ts, not this file. The okf concept and okf/log.md entry belong to task 38. | packages/accord-ci/tests/evidence-check.test.ts:245 | wont_fix_accepted by T2/review-test — TC-32 test_name_glob targets docs-validation.test.ts. phase-verify-task runs validate:okf, validate:ste and check:biome. Plan task 38 ('[tree-state] OKF docs for committed state and closeout') owns the okf concept and the log entry. |
+| 38 | AC-31 | F-001 | unresolved (advisory) | open | warning | Closeout order and closeout marker are token-bag checks. The 'documents the closeout order' test only needs one line containing closeout, 'state/' and 'trace'. The closeoutRow at line 516 only needs to exist. stateRow (508-511) does not say which commit removes state/task-<N>/. | packages/accord-core/tests/docs-validation.test.ts:519 |  |
+| 38 | AC-31 | F-002 | unresolved (advisory) | open | warning | The fresh-clone resume mechanism is not pinned. artifacts-and-state.md only needs 'fresh clone' somewhere in the file. In evidence-stack.md, the /fresh clone/i assertion (line 499) already passed before the change: the existing sentence 'A fresh clone or CI runner resumes from the branch alone' satisfies it. Nothing requires state/work-item.json in the Committed table, although PR0 writes it, rehydrate restores it and closeout deletes it. | packages/accord-core/tests/docs-validation.test.ts:521 |  |
+| 38 | AC-31 | F-003 | unresolved (advisory) | open | warning | stack.state.* semantics are not pinned. Both the redactRow assertion (/raw packets/) and the maxRow assertion ('262144') already pass against the unchanged doc, so they give no RED. The test title says 'state.redact must stay true', but no assertion checks that or what `false` does. The persist row and the evidence-stack section can keep describing `notes` mode as working, but it is scope_out and a no-op. | packages/accord-core/tests/docs-validation.test.ts:533 |  |
+| 38 | AC-31 | F-004 | unresolved (advisory) | open | warning | The tree-state log test does not exclude or pin existing bullets, so editing an old bullet in place satisfies 'append a dated entry'. The earlier log tests use PRIOR_LOG_BULLET, EVIDENCE_ASSET_BULLET and EXISTING_2026_10_30 to prevent this. | packages/accord-core/tests/docs-validation.test.ts:544 |  |
+| 38 | AC-31 | F-005 | unresolved (advisory) | open | warning | artifacts-and-state.md and stack-config.md will document the state/ modules, but no test requires them to bind those modules in frontmatter `sources`. Without the bindings, later changes to closeout.ts, restore.ts, snapshot.ts or redact.ts will not prompt a re-check of these concepts (the AGENTS.md 'Keeping it true' rule). Earlier tests in this file require the bindings: asset.ts for artifacts-and-state (line 141) and compute-stack.ts and review-security.ts for stack-config (lines 214, 445). | packages/accord-core/tests/docs-validation.test.ts:505 |  |
+| 38 | AC-31 | F-006 | unresolved (advisory) | open | suggestion | The test title says 'drops the proposed status for tree state', but the status line is only checked positively. A line like 'Tree state stays proposed' matches /tree state\|committed state/i and passes. This is contrived, so it is not gating. | packages/accord-core/tests/docs-validation.test.ts:489 |  |
+| 38 | AC-31 | F-007 | unresolved (advisory) | open | suggestion | The State persistence checks are section-wide toContain checks. One sentence listing '`stack.state.redact`, `stack.state.max_bytes`, raw packets, `accord/evidence`' with no meaning satisfies them. | packages/accord-core/tests/docs-validation.test.ts:494 |  |
+| 38 | AC-31 | F-008 | unresolved (advisory) | open | warning | Plan step says document the redaction rules, but the Redaction and Size cap bullets only say 'masks secrets' and 'limits the bytes'. | okf/architecture/evidence-stack.md:84 |  |
+| 38 | AC-31 | F-009 | unresolved (advisory) | open | warning | `state.path` is documented as a live directory template, but the harness never reads it. | okf/references/stack-config.md:38 |  |
+| 38 | AC-31 | F-010 | unresolved (advisory) | open | warning | 'Modes `notes` and `none` exist' (and the stack-config `state.persist` row) present `notes` as working, but only `tree` is built. | okf/architecture/evidence-stack.md:90 |  |
+| 38 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | 'There is no work-item-wide file' contradicts the PR0 section and restore.ts, which use `state/work-item.json`. | okf/architecture/evidence-stack.md:82 |  |
+| 38 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Check bullet covers only the closeout case; it omits the per-task rule and the trailer trigger. | okf/architecture/evidence-stack.md:88 |  |
+| 38 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | Concept documents state/ and closeout but does not list the state/*.ts files in `sources`; stack-config.md has no state source either. | okf/references/artifacts-and-state.md:20 |  |
 
 ## Decisions
 
@@ -886,6 +904,7 @@
 - Task 35 (pending): Pinned restoreStateFromTree(id, cwd?) -> Result<{restored, task_ids}> and next ref = allocateRef(task, nextAgent); spec leaves both open. — Spec gives no signature or next-ref definition; tests need a concrete public contract.
 - Task 35 (pending): No test for artifact-discovery.ts 'skip state/' step. — Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.
 - Task 36 (pending): Closeout commit returns full HEAD sha (not short) when stack.enabled — Test compares result.hash to git rev-parse HEAD
+- Task 38 (pending): Added task-38 tests to existing packages/accord-core/tests/docs-validation.test.ts (TC-32 glob) rather than a new file; no stub needed (docs-only task). — task.files lists only okf docs; TC-32 test_name_glob names this file.
 
 ## Evidence by task
 
@@ -1602,6 +1621,18 @@ evidence-check.test.ts: 39 pass, 0 fail (120 expect calls). check:types: ok. bio
 ```
 
 ### Task 38: [tree-state] OKF docs for committed state and closeout
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test docs-validation.test.ts: 32 pass, 6 fail. Failures (assertion, docs content missing): evidence-stack.md lacks `resource: /packages/accord-core/src/state/snapshot.ts` source binding; State persistence section lacks `stack.state.redact` / max_bytes / raw packets / fresh clone wording; artifacts-and-state.md has no `state/task-<N>/` or `evidence/closeout.json` Committed rows and no fresh-clone/closeout-order text; stack-config.md state.redact row lacks raw packets, persist row lacks closeout; okf/log.md has no dated ASDLC-1 tree-state entry linking artifacts-and-state, evidence-stack and stack-config. Existing validate:okf, validate:ste, check:biome tests pass.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+docs-validation.test.ts: 38 pass, 0 fail. validate:okf passed (38 files). validate:ste passed. biome on okf/ and docs-validation.test.ts clean. Repo-wide check:biome: errors in state-redact.test.ts and trace.json (not task-38 files).
+```
 
 ### Task 39: [trunk-hardening] Overrun measurement and re-plan decision
 

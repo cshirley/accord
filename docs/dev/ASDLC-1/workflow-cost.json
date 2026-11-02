@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T17:05:42.631Z",
+  "generated_at": "2026-11-02T17:24:39.015Z",
   "source_usage_file": ".tasks/ASDLC-1-usage.jsonl",
   "summary": {
-    "total_input_tokens": 1724328,
-    "total_output_tokens": 2733308,
-    "total_cache_read_tokens": 101090316,
-    "total_cache_write_tokens": 11592635,
-    "total_calls": 307,
+    "total_input_tokens": 1724434,
+    "total_output_tokens": 2780565,
+    "total_cache_read_tokens": 103518979,
+    "total_cache_write_tokens": 11898742,
+    "total_calls": 312,
     "usage_missing_calls": 46,
     "carried_forward": false,
-    "total_cost_usd": 100.57780990000002
+    "total_cost_usd": 102.59946550000002
   },
   "rows": [
     {
@@ -2245,6 +2245,66 @@
       "cache_write_tokens": 161706,
       "usage_missing_calls": 0,
       "cost_usd": 2.2708
+    },
+    {
+      "scope": "Task 38",
+      "agent": "phase-code",
+      "task_id": 38,
+      "calls": 1,
+      "input_tokens": 14,
+      "output_tokens": 3691,
+      "cache_read_tokens": 179788,
+      "cache_write_tokens": 47052,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.1725
+    },
+    {
+      "scope": "Task 38",
+      "agent": "phase-test",
+      "task_id": 38,
+      "calls": 1,
+      "input_tokens": 18,
+      "output_tokens": 4768,
+      "cache_read_tokens": 303797,
+      "cache_write_tokens": 59757,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.2275
+    },
+    {
+      "scope": "Task 38",
+      "agent": "phase-verify-task",
+      "task_id": 38,
+      "calls": 1,
+      "input_tokens": 8,
+      "output_tokens": 1421,
+      "cache_read_tokens": 52131,
+      "cache_write_tokens": 27175,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.0874
+    },
+    {
+      "scope": "Task 38",
+      "agent": "review-code",
+      "task_id": 38,
+      "calls": 1,
+      "input_tokens": 36,
+      "output_tokens": 13839,
+      "cache_read_tokens": 1032649,
+      "cache_write_tokens": 84415,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.4528
+    },
+    {
+      "scope": "Task 38",
+      "agent": "review-test",
+      "task_id": 38,
+      "calls": 1,
+      "input_tokens": 30,
+      "output_tokens": 23538,
+      "cache_read_tokens": 860298,
+      "cache_write_tokens": 87708,
+      "usage_missing_calls": 0,
+      "cost_usd": 1.0815
     }
   ]
 }

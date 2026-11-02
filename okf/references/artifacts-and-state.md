@@ -41,12 +41,16 @@ sources:
 | `verify.md` | `dev_verify_summary` | **The single review document**: per-AC verdict + evidence merged with the trace (tasks, files, verified tests), task commits, accepted risks, decisions/deviations, verify-vs-trace discrepancies |
 | `contract.lock.json` | harness (PR0 commit; again at each contract-amend) | sha256 of `brief.md`, `spec.json` and `plan.json`; tag `accord/<ID>/contract` marks PR0. Later changes need a contract-amend commit (`/dev amend-spec`) |
 | `evidence/task-<N>.{md,json}` | harness (`evidence(task-<N>)` commit, `stack.enabled`) | Per-task evidence: red/green excerpts, findings, planned vs actual size, with qualified `<ID>/AC-<n>` refs; survives squash merge |
+| `state/task-<N>/` | harness (typed commits, `stack.enabled`, `state.persist: tree`) | Redacted task snapshot with `STATE.md` (`renderTaskTrace()` output); raw packets excluded; capped by `stack.state.max_bytes`. Deleted at `evidence(task-<N>)` and closeout |
+| `evidence/closeout.json` | harness (closeout) | Marker that closeout ran. Survives squash merge; `accord/evidence` fails if `state/` files remain after it |
 | `trace.json` / `.md` | harness (task done, verify summary, finalize) | Uses qualified `<ID>/AC-<n>` refs when `stack.enabled`. Committed projection of `.tasks/`: per-AC implementation + verification, accepted/unresolved findings, decisions, deviations, task commits, RED + final-verify output excerpts; regenerate, don't edit |
 | `workflow-cost.json` / `.md` | `dev_finalize` | Token/USD rollup from usage log; regenerate, don't edit |
 
 Each `done` task gets a harness commit (task files + `trace.*`). With `stack.enabled`, the last
 commit of a task is `evidence(task-<N>)`, which writes the evidence asset. Closeout commits the rest of
 `docs/dev/<ID>/` — see `orchestration.commit` in [Orchestration policy](/references/orchestration-policy.md).
+
+Closeout order: build `trace.*`, `verify.*` and `workflow-cost.*`, write `evidence/closeout.json`, then delete `state/` in the same closeout commit. With `stack.enabled`, a fresh clone resumes from the branch: restore rebuilds `.tasks/` from `docs/dev/<ID>/state/`. The `accord/evidence` check reports leftover state.
 
 Artifacts are immutable after their phase returns `done`; changes go through
 `/dev amend-spec` (a contract-amend) or a replan.

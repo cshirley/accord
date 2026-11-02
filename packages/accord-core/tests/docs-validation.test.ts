@@ -476,3 +476,81 @@ describe("ASDLC-1/AC-31 stack-compute docs (task 32)", () => {
     });
   }, 120_000);
 });
+
+// ASDLC-1/AC-31 (task 38): tree-state documentation and log entry.
+describe("ASDLC-1/AC-31 tree-state docs (task 38)", () => {
+  it("ASDLC-1/AC-31 evidence-stack.md binds the state source files and drops the proposed status for tree state", () => {
+    const text = read("okf/architecture/evidence-stack.md");
+    for (const file of ["snapshot", "redact", "restore", "closeout"]) {
+      expect(text).toContain(`resource: /packages/accord-core/src/state/${file}.ts`);
+    }
+    const status = text.split("\n").find((l) => /^\*\*(Partly )?[Ii]mplemented/.test(l));
+    expect(status).toBeDefined();
+    expect(status).toMatch(/tree state|committed state/i);
+  });
+
+  it("ASDLC-1/AC-31 evidence-stack.md State persistence section documents redaction, size cap, fresh-clone resume and closeout", () => {
+    const section = sectionOf(read("okf/architecture/evidence-stack.md"), "State persistence");
+    expect(section).toContain("docs/dev/<ID>/state/");
+    expect(section).toMatch(/redact/i);
+    expect(section).toContain("stack.state.redact");
+    expect(section).toContain("stack.state.max_bytes");
+    expect(section).toMatch(/raw packets?/i);
+    expect(section).toMatch(/fresh clone/i);
+    expect(section).toContain("closeout");
+    expect(section).toContain("STATE.md");
+    expect(section).toContain("accord/evidence");
+  });
+
+  it("ASDLC-1/AC-31 artifacts-and-state.md lists docs/dev/<ID>/state/ and the closeout marker in the Committed table", () => {
+    const text = read("okf/references/artifacts-and-state.md");
+    const committed = sectionOf(`\n${text}`, "Committed — `docs/dev/<ID>/`");
+    const stateRow = committed.split("\n").find((l) => /^\|\s*`state\/task-<N>\//.test(l));
+    expect(stateRow).toBeDefined();
+    expect(stateRow).toContain("STATE.md");
+    expect(stateRow).toMatch(/redact/i);
+    expect(stateRow).toMatch(/deleted|removed/i);
+    const closeoutRow = committed
+      .split("\n")
+      .find((l) => /^\|\s*`evidence\/closeout\.json`/.test(l));
+    expect(closeoutRow).toBeDefined();
+  });
+
+  it("ASDLC-1/AC-31 artifacts-and-state.md documents the closeout order and resume from a fresh clone", () => {
+    const text = read("okf/references/artifacts-and-state.md");
+    expect(text).toMatch(/fresh clone/i);
+    expect(text).toContain("closeout");
+    // Order: state removal lands in the same commit as trace/verify/cost, after they are built.
+    const closeoutLine = text
+      .split("\n")
+      .find((l) => /closeout/i.test(l) && l.includes("state/") && /trace/.test(l));
+    expect(closeoutLine).toBeDefined();
+    expect(text).toContain("accord/evidence");
+  });
+
+  it("ASDLC-1/AC-31 stack-config.md describes state.redact must stay true, raw packets excluded, and the max_bytes cap", () => {
+    const text = read("okf/references/stack-config.md");
+    const redactRow = text.split("\n").find((l) => /^\|\s*`state\.redact`/.test(l));
+    expect(redactRow).toBeDefined();
+    expect(redactRow).toMatch(/raw packets?/i);
+    const maxRow = text.split("\n").find((l) => /^\|\s*`state\.max_bytes`/.test(l));
+    expect(maxRow).toBeDefined();
+    expect(maxRow).toContain("262144");
+    const persistRow = text.split("\n").find((l) => /^\|\s*`state\.persist`/.test(l));
+    expect(persistRow).toMatch(/closeout/);
+    expect(text).toMatch(/fresh clone|resume/i);
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated tree-state entry naming the three updated concepts", () => {
+    const matching = datedBullets().filter(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1") &&
+        bullet.text.includes("tree-state") &&
+        bullet.text.includes("/references/artifacts-and-state.md") &&
+        bullet.text.includes("/architecture/evidence-stack.md") &&
+        bullet.text.includes("/references/stack-config.md") &&
+        new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(1);
+  });
+});
