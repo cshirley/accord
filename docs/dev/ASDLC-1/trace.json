@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T11:37:18.746Z",
+  "generated_at": "2026-11-02T12:16:32.459Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -197,6 +197,18 @@
       "task_id": 29,
       "description": "No work-item-scoped resolver test (F-011)",
       "reason": "PrGroupResolver carries no workItemId and hooks.ts is outside task files; no selection rule is derivable from spec",
+      "resolution": null
+    },
+    {
+      "task_id": 30,
+      "description": "Test for 'closeout hook runs before any closeout artifact write' covers hook registration and delegation only; wiring into commit-on-task-done.ts is not in this task's files. Stub created at stack/branches.ts (in task.files) and does not register the hook.",
+      "reason": "Spec leaves function result shapes, PR0-merged detection and PR0 branch discovery open; contract pinned in the test file header.",
+      "resolution": null
+    },
+    {
+      "task_id": 30,
+      "description": "Added side-effect import of ./branches.js in stack/service.ts (not in task.files)",
+      "reason": "Closeout hook must register when only src/index.ts or tools/registry.ts is imported; both already import service.ts",
       "resolution": null
     }
   ],
@@ -3107,7 +3119,9 @@
       "id": 29,
       "title": "[stack-compute] Stack service and dev_stack_* MCP tools",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "3a7bfc8"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -3214,33 +3228,82 @@
     {
       "id": 30,
       "title": "[stack-compute] Per-PR branch lifecycle in the spawn preflight",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 25,
+        "by_state": {
+          "verified": 10,
+          "wont_fix_accepted": 1,
+          "reraised": 2,
+          "open": 12
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/stack-branches.test.ts: 3 pass, 20 fail. Failures: 'not implemented: branchFor' / 'not implemented: ensureTaskBranch' / 'not implemented: ensureCloseoutBranch'; preflight first-task test: Expected \"stack/ASDLC-9/pr-1\" Received \"work/pr0\"; preflight dirty-tree test: 'Received value must be a string: undefined' (no blockReason); closeout hook test: Expected \"function\" Received \"undefined\". Passing: agents other than phase-test, stack.enabled false no-op, read-only status queries never switch.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "93 pass, 0 fail (3 files). check:types, check:bundle, check:runtime, validate:* pass. check:biome: only docs/dev/ASDLC-1/trace.json format error (array collapse), unrelated to task files.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-11",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/stack-branches.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/branches.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/tests/evidence-commit.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/stack/branches.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/subagent/preflight-runner.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/stack/service.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 6,
+            "command": "bun test packages/accord-core/tests/stack-branches.test.ts packages/accord-core/tests/stack-service.test.ts packages/accord-core/tests/evidence-commit.test.ts"
+          }
         }
       ]
     },
@@ -4559,7 +4622,7 @@
         },
         {
           "task": 30,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 31,
@@ -4575,7 +4638,11 @@
         "packages/accord-core/tests/stack-service.test.ts",
         "packages/accord-core/src/stack/service.ts",
         "packages/accord-core/src/tools/registry.ts",
-        "packages/accord-core/src/index.ts"
+        "packages/accord-core/src/index.ts",
+        "packages/accord-core/tests/stack-branches.test.ts",
+        "packages/accord-core/src/stack/branches.ts",
+        "packages/accord-core/tests/evidence-commit.test.ts",
+        "packages/accord-core/src/subagent/preflight-runner.ts"
       ],
       "tests": [
         "stack-render.test.ts: ASDLC-1/AC-11 section order: contract link, ACs, summary, risks, reading order",
@@ -4595,7 +4662,11 @@
         "stack-service.test.ts › ASDLC-1/AC-11 unsupported provider fails with a clear error",
         "stack-service.test.ts › ASDLC-1/AC-11 renders a per-PR roll-up row per loop from commit trailers",
         "stack-service.test.ts › ASDLC-1/AC-11 each dev_stack* tool returns the disabled service text",
-        "stack-service.test.ts › ASDLC-1/AC-11 importing src/index.ts registers the computeStack resolver: merged tasks share a group"
+        "stack-service.test.ts › ASDLC-1/AC-11 importing src/index.ts registers the computeStack resolver: merged tasks share a group",
+        "stack-branches.test.ts: ASDLC-1/AC-11 (task branch from PR0/main/parent, dirty-tree blockReason, disabled no-op, read-only status, closeout branch + hook registration)",
+        "stack-service.test.ts",
+        "evidence-commit.test.ts: closeout branch hook",
+        "bun run check:runtime"
       ],
       "verified": false
     },
@@ -8449,6 +8520,216 @@
         "outcome": "wont_fix_accepted",
         "note": "Enforcement is a verify concern. The task verify step lists check:types, check:bundle and check:runtime, and layering.test.ts covers the import boundary for all of src."
       }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-009",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The success fixture lists only pr-1 and pr-3 although computeStack(PLAN) yields task PRs 1-4, so the tests pin 'a computed task PR absent from provider state counts as merged'. Combined with service.ts stackSubmit naming heads accord/<ID>/task-<N> (open advisory F-021), the real provider never lists any stack/<ID>/pr-* head, so the closeout guard passes even when every task PR is open.",
+      "file": "packages/accord-core/tests/stack-branches.test.ts",
+      "line": 431,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Accepted as out of scope for task 30's tests; the success fixture now lists pr-1..pr-4 merged, so it holds under either semantics. NEEDS HUMAN: service.ts stackSubmit (task 29) pushes task PRs as accord/<ID>/task-<N>, a CI trigger namespace, while the closeout guard watches stack/<ID>/pr-<n>. In production the guard sees no task PRs. The fix belongs in task 29 or in a plan decision, not in these tests."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-010",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "scope_out says quick_fix work items keep one branch and one PR. No test covers a phase-test spawn for a quick_fix item with stack.enabled. An impl that switches every phase-test with a task_id creates stack/<ID>/pr-n for quick fixes. If the impl propagates refusals instead, a quick_fix with no plan.json is blocked.",
+      "file": "packages/accord-core/tests/stack-branches.test.ts",
+      "line": 311,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Rebuttal: no invented interface is needed. The work-item pattern lives in .tasks/<ID>.json and is read by loadWorkItem(), which this same preflight already calls (workflow-state-spawn.ts:55). writeTaskFixture accepts quickFixContract, and evidence-commit.test.ts:117-135 already seeds such a file. Quick fixes write docs/dev/<ID>/plan.json with task 1 (code-brief.ts writeQuickFixStubs). An impl that follows the step literally therefore creates stack/<ID>/pr-1 for quick fixes, or blocks them on the missing contract tag, against scope_out. Test: setup(false); write .tasks/ASDLC-9.json with {schema_version:'1.0', id:ID, title:'qf', created, updated, pattern:'quick_fix', phase:'fixing', task_ids:[1], spec, plan:`docs/dev/${ID}/plan.json`, verify:null, brief:null, decisions:[], deviations:[], cost_usd:0}. Call writeTaskFixture({workItemId:ID, taskId:1, quickFixContract:{...}}, repo) and add `**owner_nonce:** abcdef` to the brief if nonce sync needs it. Call runSubagentToolPreflight(spawn('phase-test',1), options(ENABLED)). Done when: this test asserts blockReason toBeUndefined(), HEAD unchanged, and no branch starting with 'stack/', and it passes against the current pre-impl preflight. Passing now proves the fixture itself does not block."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-013",
+      "state": "reraised",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Ordering against the in_flight pin is unasserted. An impl that runs ensureTaskBranch after prepareWorkflowStateForSubagentInput pins control.in_flight on disk and then returns a dirty-tree blockReason, leaving a phantom in-flight spawn.",
+      "file": "packages/accord-core/tests/stack-branches.test.ts",
+      "line": 323,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "The storage format is specified: TaskFileV2.control.in_flight (tasks/types.ts:202), readable via readTaskFixture(ID, 1, repo). Sketch: seed .tasks/<ID>.json (pattern 'implement') and writeTaskFixture task 1; .tasks/ is untracked, so it does not dirty the tree. Then make README.md dirty and run the phase-test/1 preflight. Assert blockReason matches /uncommitted|dirty/i and readTaskFixture(ID,1,repo).control.in_flight is null. Non-gating."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Hook delegation is tautological. The delegation test registers mod.ensureCloseoutBranch itself, and the subprocess probes (line 672) only print typeof the hook. So whatever branches.ts registers at load time is never invoked.",
+      "file": "packages/accord-core/tests/stack-branches.test.ts",
+      "line": 690,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The /evil/ alternative is satisfied by git's own failure. With no id validation, the impl reads docs/evil/plan.json and then fails on rev-parse 'accord/../evil/contract' or on the invalid ref 'stack/../evil/pr-1'. The resulting error text contains 'evil' but not 'plan.json'.",
+      "file": "packages/accord-core/tests/stack-branches.test.ts",
+      "line": 379,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every closeout test injects options.provider. The production hook contract passes only {cwd}, so the provider-resolution path is untested (round-1 miss).",
+      "file": "packages/accord-core/tests/stack-branches.test.ts",
+      "line": 556,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "'No force' is pinned only by tip equality on independent-task and closeout re-entry. Chain-branch re-entry is untested, and no test spies on git helper arguments (round-1 miss).",
+      "file": "packages/accord-core/tests/stack-branches.test.ts",
+      "line": 256,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "While PR0 is unmerged, new task branches are based on the frozen `accord/<ID>/contract` tag, so they miss any later contract-amend commit on the PR0 branch.",
+      "file": "packages/accord-core/src/stack/branches.ts",
+      "line": 91,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The closeout unmerged-PR guard matches heads with prefix `stack/<ID>/pr-`, but `stackSubmit` creates PRs from heads named `accord/<ID>/task-<N>` (service.ts `headFor`, open F-021 from task 29), so the guard never matches submitted PRs.",
+      "file": "packages/accord-core/src/stack/branches.ts",
+      "line": 163,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`ensureCloseoutBranch` has no same-branch short-circuit and refuses on a dirty tree even when HEAD is already `stack/<ID>/closeout`. It also hits the provider on every call. `ensureTaskBranch` does short-circuit.",
+      "file": "packages/accord-core/src/stack/branches.ts",
+      "line": 161,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "On re-entry the base is resolved (fetch, parent-branch lookup, contract tag) before checking whether the target branch already exists, so a pure re-entry can be refused for a missing parent branch or tag.",
+      "file": "packages/accord-core/src/stack/branches.ts",
+      "line": 129,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The brief parsing duplicates `extractWorkItemId` and `extractTaskIdFromTaskText` (telemetry/usage.ts), and the branch switch silently does nothing on a brief mismatch, a corrupt plan, a task absent from the plan, or a failed fetch.",
+      "file": "packages/accord-core/src/subagent/preflight-runner.ts",
+      "line": 93,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`git checkout -b <branch> origin/main` makes the new branch track origin/main.",
+      "file": "packages/accord-core/src/stack/branches.ts",
+      "line": 68,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`gh pr list` is called without `--limit`, so it returns at most 30 PRs. The new closeout guard relies on `listPrs({state:'all'})` being complete.",
+      "file": "packages/accord-core/src/stack/gh-provider.ts",
+      "line": 70,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 30,
+      "requirement": "AC-11",
+      "finding_id": "F-025",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`readPlanTasks` and the safe-id regex duplicate `readPlan` in stack/service.ts and `WORK_ITEM_ID_PATTERN` in work-items/io.ts.",
+      "file": "packages/accord-core/src/stack/branches.ts",
+      "line": 76,
+      "raised": "C1/review-code"
     }
   ]
 }

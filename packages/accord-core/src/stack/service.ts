@@ -6,6 +6,7 @@ import { resolveStackConfig } from "../config/stack-flags.js";
 import type { DevHarnessConfig } from "../config/types.js";
 import { git } from "../git/helpers.js";
 import { readJson } from "../work-items/io.js";
+import "./branches.js";
 import { computeStack } from "./compute-stack.js";
 import { resolveStackProvider, type StackPr, type StackProvider } from "./provider.js";
 import {

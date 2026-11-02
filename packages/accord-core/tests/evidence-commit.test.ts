@@ -167,15 +167,17 @@ describe("ASDLC-1/AC-5 module defaults", () => {
   });
 
   it("ASDLC-1/AC-5 closeout branch hook: default reader returns undefined, registered hook is returned", () => {
-    expect(getCloseoutBranchHook()).toBeUndefined();
+    const previous = getCloseoutBranchHook();
     const hook = (() => "sentinel") as unknown as Parameters<typeof registerCloseoutBranchHook>[0];
     try {
+      registerCloseoutBranchHook(undefined);
+      expect(getCloseoutBranchHook()).toBeUndefined();
       registerCloseoutBranchHook(hook);
       expect(getCloseoutBranchHook()).toBe(hook);
     } finally {
-      registerCloseoutBranchHook(undefined);
+      registerCloseoutBranchHook(previous);
     }
-    expect(getCloseoutBranchHook()).toBeUndefined();
+    expect(getCloseoutBranchHook()).toBe(previous);
   });
 });
 
