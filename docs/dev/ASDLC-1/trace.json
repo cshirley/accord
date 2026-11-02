@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T09:47:31.757Z",
+  "generated_at": "2026-11-02T10:18:10.398Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -186,6 +186,12 @@
       "description": "alignment.test.ts already existed (task 17); appended new describe blocks instead of adding the file.",
       "reason": "Plan lists action add, but the file is on disk with earlier ASDLC-1 AC-30 tests that must stay.",
       "resolution": "accepted"
+    },
+    {
+      "task_id": 26,
+      "description": "Defined StackPlan/PrGroup/StackFlag output shape and the sizing input type in types.ts, because the spec does not fix them. Tests and the golden fixture pin that shape.",
+      "reason": "AC-10 names no concrete output schema; tests need a concrete contract.",
+      "resolution": null
     }
   ],
   "tasks": [
@@ -2699,7 +2705,9 @@
       "id": 25,
       "title": "[stack-compute] Plan schema fields, phase-plan prompt and alignment test",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "50242d8"
+      ],
       "rounds": {
         "T": 1,
         "C": 4,
@@ -2838,33 +2846,80 @@
     {
       "id": 26,
       "title": "[stack-compute] computeStack: deterministic pack, flag and order",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 3,
+        "C": 3,
+        "V": 2
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
-        "rgr": 0,
-        "verify": 0
+        "rgr": 1,
+        "verify": 1
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 23,
+        "by_state": {
+          "verified": 20,
+          "wont_fix_accepted": 3
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "error: not implemented: computeStack\n      at computeStack (packages/accord-core/src/stack/compute-stack.ts:4:50)\n(fail) ASDLC-1/AC-10 order and siblings > topological order holds when a low id depends on a high id\n\n 0 pass\n 22 fail\nRan 22 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V2/phase-verify-task",
+        "excerpt": "compute-stack.test.ts: 40 pass, 0 fail. check:types exit 0. biome on task files: clean. Repo-wide check:biome exit 1: format errors only in docs/dev/ASDLC-1/trace.json. bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle, check:runtime all exit 0.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-10",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/compute-stack.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/tests/fixtures/stack/compute-stack.golden.json",
+              "action": "add",
+              "kind": "fixture"
+            },
+            {
+              "file": "packages/accord-core/src/stack/types.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/compute-stack.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/stack/compute-stack.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/stack/types.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V2/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/compute-stack.test.ts"
+          }
         }
       ]
     },
@@ -4269,7 +4324,7 @@
     {
       "ac_id": "AC-10",
       "text": "Then the output is byte-identical, adjacent same-concern tasks below min_pr_lines merge within the budget, a task above max_pr_lines or max_files is flagged for re-plan and never split, independent tasks are siblings,…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 25,
@@ -4277,7 +4332,7 @@
         },
         {
           "task": 26,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -4286,14 +4341,21 @@
         "packages/accord-assets/agents/accord/phase-plan.md",
         "packages/accord-core/src/orchestration/resolve/interview-task.ts",
         "packages/accord-core/src/orchestration/resolve/forced.ts",
-        "packages/accord-core/src/orchestration/resolve/resume.ts"
+        "packages/accord-core/src/orchestration/resolve/resume.ts",
+        "packages/accord-core/tests/compute-stack.test.ts",
+        "packages/accord-core/tests/fixtures/stack/compute-stack.golden.json",
+        "packages/accord-core/src/stack/types.ts",
+        "packages/accord-core/src/stack/compute-stack.ts"
       ],
       "tests": [
         "alignment.test.ts: ASDLC-1/AC-30 est_lines, concern, flag and kind validate together with depends_on",
         "alignment.test.ts: ASDLC-1/AC-30 kind %s is accepted / unknown kind %j fails",
-        "bun test (full, preflight exit 0)"
+        "bun test (full, preflight exit 0)",
+        "packages/accord-core/tests/compute-stack.test.ts (40 pass, 0 fail; ASDLC-1/AC-10 golden, determinism, merge, flag, order, PR count)",
+        "bun run check:types (exit 0)",
+        "bunx biome check on task files (src/stack, compute-stack.test.ts, fixtures/stack): clean"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-11",
@@ -7731,6 +7793,60 @@
       "file": "packages/accord-core/tests/alignment.test.ts",
       "line": 303,
       "raised": "T1/review-test"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 26,
+      "requirement": "AC-10",
+      "finding_id": "F-012",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The tests read 'flag' in pass B ('unless the task is a refactor, schema, or flag') as 'task.flag is set, so the task never merges'. AC-17 says that under require_flag every non-final task carries a flag. With this reading, merging is turned off for those stacks. kind 'enable' (the task that flips the flag) is also not tested.",
+      "file": "packages/accord-core/tests/compute-stack.test.ts",
+      "line": 154,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "Sound reason: plan section 4.2 pass B does not say whether 'flag' means task.flag or kind 'enable', and the tests apply the task.flag reading consistently. A human should confirm, because with require_flag (AC-17) this reading disables merging."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 26,
+      "requirement": "AC-10",
+      "finding_id": "F-019",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A missing est_lines counts as 0, so unknown-size same-concern tasks always merge as 'below min_pr_lines' and bypass the line budget.",
+      "file": "packages/accord-core/src/stack/compute-stack.ts",
+      "line": 62,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C3/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Advisory suggestion. A missing est_lines counts as 0, which a legacy-tasks test relies on. Not a correctness bug."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 26,
+      "requirement": "AC-10",
+      "finding_id": "F-021",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "StackSizing duplicates the sizing shape in config/stack-flags.ts and config/types.ts, so the three can drift.",
+      "file": "packages/accord-core/src/stack/types.ts",
+      "line": 15,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C3/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Reason is scope: deriving StackSizing from the resolved config type belongs to the task that wires resolveStackConfig into computeStack. The finding is not a correctness bug."
+      }
     }
   ]
 }
