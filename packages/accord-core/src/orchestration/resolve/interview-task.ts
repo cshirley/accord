@@ -2,6 +2,9 @@
  * Rich resume task bodies for multi-turn **phase-spec** and **phase-plan** agents.
  */
 
+import { loadDevHarnessConfig } from "../../config/agents-md.js";
+import type { DevHarnessConfig } from "../../config/index.js";
+import { resolveStackConfig } from "../../config/stack-flags.js";
 import { devCheckpointRead } from "../../work-items/checkpoint.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { buildAnsweredMapForInterview } from "../post-result/needs-input.js";
@@ -32,6 +35,7 @@ export function buildInterviewResumeTaskIfApplicable(input: {
   pattern: string;
   variant?: string;
   dispatchAgent: string;
+  devConfig?: DevHarnessConfig | null;
 }): string | null {
   const expectedAgent = INTERVIEW_AGENT_BY_PHASE[input.phase];
   if (!expectedAgent || input.dispatchAgent !== expectedAgent) {
@@ -85,6 +89,23 @@ export function buildInterviewResumeTaskIfApplicable(input: {
     "Return the structured result packet required by your agent contract.",
   );
 
+  if (input.phase === "planning") {
+    const stack = resolveStackConfig(input.devConfig ?? loadDevHarnessConfig());
+    if (stack.enabled) {
+      const { sizing } = stack;
+      lines.push(
+        "",
+        "stack_enabled: true",
+        "Stack planning: follow the stack planning section of your prompt. Sizing budgets:",
+        `max_pr_lines: ${sizing.max_pr_lines}`,
+        `min_pr_lines: ${sizing.min_pr_lines}`,
+        `max_files: ${sizing.max_files}`,
+        `overrun_factor: ${sizing.overrun_factor}`,
+        `max_depth: ${sizing.max_depth}`,
+      );
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -95,6 +116,7 @@ export function buildInterviewResumeTaskOrGeneric(input: {
   pattern: string;
   variant?: string;
   dispatchAgent: string;
+  devConfig?: DevHarnessConfig | null;
 }): string {
   return (
     buildInterviewResumeTaskIfApplicable(input) ??

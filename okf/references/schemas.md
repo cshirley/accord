@@ -37,6 +37,8 @@ Location: `packages/accord-core/schemas/`.
 | `orchestration-judgment-packet.json` | Bounded judgment output |
 | `model-pricing.json` | Pricing lookup for cost tracking |
 
+Optional plan task fields for stacked PRs (`plan-schema.json`): `est_lines` (integer >= 0, estimated net lines), `concern` (string tag), `flag` (string feature-flag name), `kind` (`feature`, `refactor`, `schema`, `interface`, `enable`); `depends_on` already exists. `phase-plan` fills them only when the task text says `stack_enabled: true` (`stack.enabled`).
+
 New persisted file types need a `SCHEMA_MAP` entry in `artifacts/validation.ts`.
 
 # Return schemas (`return-schemas/`)

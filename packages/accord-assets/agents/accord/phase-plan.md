@@ -80,6 +80,17 @@ Negative confirmations ("no additional guidance") still count — record as `{ d
 8. **Self-review** — spawn `review-plan` via Agent tool with `spec_path`, `plan_path`, and inline `task_rules`. Apply `critical` fixes up to 2 cycles.
 9. **Return** — `status: "done"` with `plan_path`.
 
+## Stack planning (only when the task text says stack_enabled: true)
+
+Skip this section when the task text has no `stack_enabled: true` line.
+
+- Plan each task as a vertical slice (one concern, tests and code together). Keep tasks independent; add `depends_on` only for a real dependency.
+- Set `concern` (short tag, same tag for adjacent tasks of one concern), `kind` (`feature` | `refactor` | `schema` | `interface` | `enable`), and `est_lines` (estimated net source and test lines). Set `flag` to the feature-flag name when the task is gated.
+- Compare `est_lines` and `files[]` with `max_pr_lines` and `max_files` in the task text. Re-plan a task above budget as smaller integer-id tasks; if it cannot be made smaller, keep it with `challenge: true` and note why. Never split a task across PRs.
+- `min_pr_lines`, `max_depth` and `overrun_factor` are informational: `computeStack` merges small tasks and the harness handles overrun.
+- The sizing budgets in the task text override the generic file and line targets in step 5.
+- `kind` values: `feature` = user-visible capability; `refactor` = behaviour-preserving restructure; `schema` = data or schema change; `interface` = new port or API surface; `enable` = the flag-flip task.
+
 ## Question shape
 
 Each question has: `id` (format: `q_guidance_<N>` or `q_<stage>_<N>`), `stage` (which plan stage is being explored), `text` (the question for the user).
