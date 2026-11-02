@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T09:47:31.757Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-02T10:18:10.398Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -31,8 +31,8 @@
 | 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | done | `f98ce01` | 2/1/1 | 29 (verified 12, wont_fix_accepted 2, open 15) | 0 |
 | 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | done | `e448106` | 2/1/1 | 24 (verified 12, reraised 1, wont_fix_accepted 1, open 10) | 0 |
 | 24 | [contract-lock] OKF docs for contract PR0 and amendment | done | `7940f3b` | 1/2/2 | 10 (open 5, verified 5) | 0 |
-| 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | done | — | 1/4/5 | 15 (open 8, verified 7) | 1 |
-| 26 | [stack-compute] computeStack: deterministic pack, flag and order | pending | — | 0/0/0 | 0 | 0 |
+| 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | done | `50242d8` | 1/4/5 | 15 (open 8, verified 7) | 1 |
+| 26 | [stack-compute] computeStack: deterministic pack, flag and order | done | — | 3/3/2 | 23 (verified 20, wont_fix_accepted 3) | 0 |
 | 27 | [stack-compute] PR brief, stack map, stack table and report renderers | pending | — | 0/0/0 | 0 | 0 |
 | 28 | [stack-compute] StackProvider port and gh provider | pending | — | 0/0/0 | 0 | 0 |
 | 29 | [stack-compute] Stack service and dev_stack_* MCP tools | pending | — | 0/0/0 | 0 | 0 |
@@ -215,16 +215,19 @@
   - packages/accord-ci/tests/contract-lock-check.test.ts (all ASDLC-1/AC-9 cases: non-amend edit fails, amend passes, forged lock fails, PR0 passes, squash amend trusted, tag informational, no-lock passes, fail-closed refs)
   - packages/accord-ci/tests/evidence-check-runner.test.ts
 
-### AC-10 — pending (not verified)
+### AC-10 — satisfied
 
 > Then the output is byte-identical, adjacent same-concern tasks below min_pr_lines merge within the budget, a task above max_pr_lines or max_files is flagged for re-plan and never split, independent tasks are siblings,…
 
-- Tasks: 25 (satisfied), 26 (pending)
-- Files: `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/src/orchestration/resolve/forced.ts`, `packages/accord-core/src/orchestration/resolve/resume.ts`
-- Tests verified (3):
+- Tasks: 25 (satisfied), 26 (satisfied)
+- Files: `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/src/orchestration/resolve/forced.ts`, `packages/accord-core/src/orchestration/resolve/resume.ts`, `packages/accord-core/tests/compute-stack.test.ts`, `packages/accord-core/tests/fixtures/stack/compute-stack.golden.json`, `packages/accord-core/src/stack/types.ts`, `packages/accord-core/src/stack/compute-stack.ts`
+- Tests verified (6):
   - alignment.test.ts: ASDLC-1/AC-30 est_lines, concern, flag and kind validate together with depends_on
   - alignment.test.ts: ASDLC-1/AC-30 kind %s is accepted / unknown kind %j fails
   - bun test (full, preflight exit 0)
+  - packages/accord-core/tests/compute-stack.test.ts (40 pass, 0 fail; ASDLC-1/AC-10 golden, determinism, merge, flag, order, PR count)
+  - bun run check:types (exit 0)
+  - bunx biome check on task files (src/stack, compute-stack.test.ts, fixtures/stack): clean
 
 ### AC-11 — pending (not verified)
 
@@ -654,6 +657,9 @@
 | 25 | _task | F-002 | unresolved (advisory) | open | warning | With stack enabled, the tests only check that the budget numbers appear somewhere in the text. They don't check which key each number belongs to. A partly set sizing block (one key set, others defaulted) is never tested. | packages/accord-core/tests/alignment.test.ts:347 |  |
 | 25 | _task | F-003 | unresolved (advisory) | open | warning | AC-26 (MUST, property) says planning is unchanged when the stack is off. The three stack-off tests only check that 'stack_enabled' and /stack planning/i are absent, plus '321' in one case. Any other stack text added when the stack is off passes. | packages/accord-core/tests/alignment.test.ts:320 |  |
 | 25 | _task | F-005 | unresolved (advisory) | open | suggestion | No test checks the phase-spec task text with stack enabled. An impl that adds the stack block to every interview agent (phase-spec too) passes. The spec limits it to the phase-plan task text. | packages/accord-core/tests/alignment.test.ts:303 |  |
+| 26 | AC-10 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | The tests read 'flag' in pass B ('unless the task is a refactor, schema, or flag') as 'task.flag is set, so the task never merges'. AC-17 says that under require_flag every non-final task carries a flag. With this reading, merging is turned off for those stacks. kind 'enable' (the task that flips the flag) is also not tested. | packages/accord-core/tests/compute-stack.test.ts:154 | wont_fix_accepted by T2/review-test — Sound reason: plan section 4.2 pass B does not say whether 'flag' means task.flag or kind 'enable', and the tests apply the task.flag reading consistently. A human should confirm, because with require_flag (AC-17) this reading disables merging. |
+| 26 | AC-10 | F-019 | accepted (advisory) | wont_fix_accepted | suggestion | A missing est_lines counts as 0, so unknown-size same-concern tasks always merge as 'below min_pr_lines' and bypass the line budget. | packages/accord-core/src/stack/compute-stack.ts:62 | wont_fix_accepted by C3/review-code — Advisory suggestion. A missing est_lines counts as 0, which a legacy-tasks test relies on. Not a correctness bug. |
+| 26 | AC-10 | F-021 | accepted (advisory) | wont_fix_accepted | suggestion | StackSizing duplicates the sizing shape in config/stack-flags.ts and config/types.ts, so the three can drift. | packages/accord-core/src/stack/types.ts:15 | wont_fix_accepted by C3/review-code — Reason is scope: deriving StackSizing from the resolved config type belongs to the task that wires resolveStackConfig into computeStack. The finding is not a correctness bug. |
 
 ## Decisions
 
@@ -688,6 +694,7 @@
 - Task 22 (accepted): Phase-spec and phase-plan done packets in the tests omit spec_path and plan_path so the amended fixture files are not schema-validated. Stale tasks are asserted as status=blocked with a blocked.reason containing 'stale after contract-amend'; blocked.kind is not asserted. Unblock is tested via unblockTask(..., {force}). — The spec fixes only the blocker text and the 'existing blocked mechanism'; it does not name the block kind or the unblock options.
 - Task 23 (accepted): Edited evidence-check-runner.test.ts: registry-empty assertion now expects the contract-lock rule, and main() is called with rules: [] so the real rule does not run on fake shas. — Registering the contract-lock rule makes the old 'registry.length === 0' assertion contradict AC-9; phase-code cannot edit tests.
 - Task 25 (accepted): alignment.test.ts already existed (task 17); appended new describe blocks instead of adding the file. — Plan lists action add, but the file is on disk with earlier ASDLC-1 AC-30 tests that must stay.
+- Task 26 (pending): Defined StackPlan/PrGroup/StackFlag output shape and the sizing input type in types.ts, because the spec does not fix them. Tests and the golden fixture pin that shape. — AC-10 names no concrete output schema; tests need a concrete contract.
 
 ## Evidence by task
 
@@ -1196,6 +1203,24 @@ alignment.test.ts: 50 pass, 0 fail. validate:schemas 0, validate:assets 0, valid
 ```
 
 ### Task 26: [stack-compute] computeStack: deterministic pack, flag and order
+
+RED evidence (`T1/phase-test`):
+
+```text
+error: not implemented: computeStack
+      at computeStack (packages/accord-core/src/stack/compute-stack.ts:4:50)
+(fail) ASDLC-1/AC-10 order and siblings > topological order holds when a low id depends on a high id
+
+ 0 pass
+ 22 fail
+Ran 22 tests across 1 file.
+```
+
+Final verification (`V2/phase-verify-task`):
+
+```text
+compute-stack.test.ts: 40 pass, 0 fail. check:types exit 0. biome on task files: clean. Repo-wide check:biome exit 1: format errors only in docs/dev/ASDLC-1/trace.json. bun test, validate:schemas, validate:assets, validate:okf, validate:ste, check:bundle, check:runtime all exit 0.
+```
 
 ### Task 27: [stack-compute] PR brief, stack map, stack table and report renderers
 

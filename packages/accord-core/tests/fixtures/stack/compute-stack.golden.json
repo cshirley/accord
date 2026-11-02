@@ -1,0 +1,416 @@
+{
+  "input": {
+    "plan": {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "task 1",
+          "covers_ac": ["AC-1"],
+          "est_lines": 10,
+          "concern": "a",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t1/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "task 2",
+          "covers_ac": ["AC-1"],
+          "est_lines": 15,
+          "concern": "a",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t2/f0.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t2/f1.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "task 3",
+          "covers_ac": ["AC-1"],
+          "est_lines": 10,
+          "concern": "b",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t3/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "task 4",
+          "covers_ac": ["AC-1"],
+          "est_lines": 20,
+          "concern": "b",
+          "kind": "schema",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t4/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "task 5",
+          "covers_ac": ["AC-1"],
+          "est_lines": 12,
+          "concern": "c",
+          "kind": "refactor",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t5/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "task 6",
+          "covers_ac": ["AC-1"],
+          "est_lines": 12,
+          "concern": "c",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t6/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "task 7",
+          "covers_ac": ["AC-1"],
+          "est_lines": 8,
+          "concern": "d",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t7/f0.ts",
+              "action": "add"
+            }
+          ],
+          "flag": "x"
+        },
+        {
+          "id": 8,
+          "title": "task 8",
+          "covers_ac": ["AC-1"],
+          "est_lines": 9,
+          "concern": "d",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t8/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "title": "task 9",
+          "covers_ac": ["AC-1"],
+          "est_lines": 450,
+          "concern": "e",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t9/f0.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t9/f1.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "title": "task 10",
+          "covers_ac": ["AC-1"],
+          "est_lines": 100,
+          "concern": "f",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t10/f0.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f1.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f2.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f3.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f4.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f5.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f6.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f7.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f8.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f9.ts",
+              "action": "add"
+            },
+            {
+              "path": "src/t10/f10.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "title": "task 11",
+          "covers_ac": ["AC-1"],
+          "est_lines": 100,
+          "concern": "g",
+          "kind": "feature",
+          "depends_on": [2],
+          "files": [
+            {
+              "path": "src/t11/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "title": "task 12",
+          "covers_ac": ["AC-1"],
+          "est_lines": 100,
+          "concern": "h",
+          "kind": "feature",
+          "depends_on": [11],
+          "files": [
+            {
+              "path": "src/t12/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "title": "task 13",
+          "covers_ac": ["AC-1"],
+          "est_lines": 390,
+          "concern": "i",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t13/f0.ts",
+              "action": "add"
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "title": "task 14",
+          "covers_ac": ["AC-1"],
+          "est_lines": 20,
+          "concern": "i",
+          "kind": "feature",
+          "depends_on": [],
+          "files": [
+            {
+              "path": "src/t14/f0.ts",
+              "action": "add"
+            }
+          ]
+        }
+      ]
+    },
+    "sizing": {
+      "max_pr_lines": 400,
+      "min_pr_lines": 30,
+      "max_files": 10,
+      "max_depth": 6,
+      "merge_small_same_concern": true
+    }
+  },
+  "expected": {
+    "prs": [
+      {
+        "index": 0,
+        "kind": "contract",
+        "tasks": []
+      },
+      {
+        "index": 1,
+        "kind": "task",
+        "tasks": [1, 2],
+        "est_lines": 25,
+        "files": 3,
+        "concern": "a",
+        "depends_on_prs": []
+      },
+      {
+        "index": 2,
+        "kind": "task",
+        "tasks": [3],
+        "est_lines": 10,
+        "files": 1,
+        "concern": "b",
+        "depends_on_prs": []
+      },
+      {
+        "index": 3,
+        "kind": "task",
+        "tasks": [4],
+        "est_lines": 20,
+        "files": 1,
+        "concern": "b",
+        "depends_on_prs": []
+      },
+      {
+        "index": 4,
+        "kind": "task",
+        "tasks": [5],
+        "est_lines": 12,
+        "files": 1,
+        "concern": "c",
+        "depends_on_prs": []
+      },
+      {
+        "index": 5,
+        "kind": "task",
+        "tasks": [6],
+        "est_lines": 12,
+        "files": 1,
+        "concern": "c",
+        "depends_on_prs": []
+      },
+      {
+        "index": 6,
+        "kind": "task",
+        "tasks": [7],
+        "est_lines": 8,
+        "files": 1,
+        "concern": "d",
+        "depends_on_prs": []
+      },
+      {
+        "index": 7,
+        "kind": "task",
+        "tasks": [8],
+        "est_lines": 9,
+        "files": 1,
+        "concern": "d",
+        "depends_on_prs": []
+      },
+      {
+        "index": 8,
+        "kind": "task",
+        "tasks": [9],
+        "est_lines": 450,
+        "files": 2,
+        "concern": "e",
+        "depends_on_prs": []
+      },
+      {
+        "index": 9,
+        "kind": "task",
+        "tasks": [10],
+        "est_lines": 100,
+        "files": 11,
+        "concern": "f",
+        "depends_on_prs": []
+      },
+      {
+        "index": 10,
+        "kind": "task",
+        "tasks": [11],
+        "est_lines": 100,
+        "files": 1,
+        "concern": "g",
+        "depends_on_prs": [1]
+      },
+      {
+        "index": 11,
+        "kind": "task",
+        "tasks": [12],
+        "est_lines": 100,
+        "files": 1,
+        "concern": "h",
+        "depends_on_prs": [10]
+      },
+      {
+        "index": 12,
+        "kind": "task",
+        "tasks": [13],
+        "est_lines": 390,
+        "files": 1,
+        "concern": "i",
+        "depends_on_prs": []
+      },
+      {
+        "index": 13,
+        "kind": "task",
+        "tasks": [14],
+        "est_lines": 20,
+        "files": 1,
+        "concern": "i",
+        "depends_on_prs": []
+      },
+      {
+        "index": 14,
+        "kind": "closeout",
+        "tasks": []
+      }
+    ],
+    "flags": [
+      {
+        "task": 9,
+        "reasons": ["max_pr_lines"]
+      },
+      {
+        "task": 10,
+        "reasons": ["max_files"]
+      }
+    ],
+    "pr_count": 15
+  }
+}
