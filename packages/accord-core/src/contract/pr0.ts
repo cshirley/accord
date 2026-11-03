@@ -1,12 +1,15 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { syncSpecMarkdownFromJson } from "../artifacts/spec-markdown.js";
 import { type AccordTrailer, buildCommitMessage } from "../commit/commit-grammar.js";
-import { resolveStackConfig } from "../config/stack-flags.js";
+import { resolveKnowledgeConfig, resolveStackConfig } from "../config/stack-flags.js";
 import type { DevHarnessConfig } from "../config/types.js";
 import { commitWithMessage, git, gitRoot } from "../git/helpers.js";
+import { analyseImpact, type ImpactIndex, type ImpactPlan } from "../knowledge/impact.js";
 import { redactText } from "../state/redact.js";
 import { emitStackEvent } from "../telemetry/stack-events.js";
-import { readJson } from "../work-items/io.js";
+import { mutateJson, now, readJson, writeJson } from "../work-items/io.js";
 import { resolveWorkItemFilePath } from "../work-items/tasks-dir.js";
 import { isAmendOpen, lockedPaths, writeContractLock } from "./lock.js";
 
@@ -29,6 +32,50 @@ export function registerPreLockHook(hook: PreLockHook): () => void {
     preLockHooks.delete(entry);
   };
 }
+
+let activeConfig: DevHarnessConfig | null | undefined;
+
+registerPreLockHook((workItemId, cwd) => {
+  const knowledge = resolveKnowledgeConfig(activeConfig);
+  if (!knowledge.enabled) return;
+  const base = `docs/dev/${workItemId}`;
+  const index = readJson<ImpactIndex>(join(cwd, knowledge.root, "index.json"));
+  const plan = readJson<ImpactPlan>(join(cwd, base, "plan.json"));
+  const specPath = join(cwd, base, "spec.json");
+  const spec = readJson<Record<string, unknown>>(specPath);
+  if (!index || !plan || !spec) return;
+  const { rows, decisions } = analyseImpact(plan, index);
+  if (rows.length > 0) {
+    const features = rows.map((row) => ({
+      slug: row.slug,
+      relation: row.relation,
+      delta: row.delta ?? row.relation,
+    }));
+    writeJson(specPath, { ...spec, features });
+    syncSpecMarkdownFromJson(specPath);
+  }
+  const workItemPath = resolveWorkItemFilePath(workItemId, cwd);
+  if (decisions.length === 0 || !workItemPath) return;
+  mutateJson<Record<string, unknown>>(workItemPath, (current) => {
+    if (!current) return undefined;
+    const existing = Array.isArray(current.decisions)
+      ? (current.decisions as Array<Record<string, unknown>>)
+      : [];
+    const ids = new Set(existing.map((decision) => decision.id));
+    const added = decisions
+      .map((decision) => ({
+        id: `impact-${decision.kind}-${createHash("sha1").update(decision.question).digest("hex").slice(0, 8)}`,
+        question: decision.question,
+        context: decision.context,
+        source: "plan",
+        phase: typeof current.phase === "string" && current.phase ? current.phase : "planning",
+        status: "pending",
+        asked_at: now(),
+      }))
+      .filter((decision) => !ids.has(decision.id));
+    return { ...current, decisions: [...existing, ...added] };
+  });
+});
 
 const skipped = (reason: string): ContractPr0Result => ({ ok: true, skipped: true, reason });
 
@@ -57,15 +104,31 @@ export async function buildContractPr0(
   if (existsSync(join(root, lockRel))) return skipped("contract.lock.json present");
   if (isAmendOpen(workItemId, root)) return skipped("contract amend open");
 
-  for (const hook of [...preLockHooks]) await hook(workItemId, root);
+  activeConfig = devConfig;
+  try {
+    for (const hook of [...preLockHooks]) await hook(workItemId, root);
+  } finally {
+    activeConfig = undefined;
+  }
+  const hookedWorkItem = readJson<Record<string, unknown>>(workItemPath as string) ?? workItem;
 
   const stateRel = `${base}/state/work-item.json`;
   const statePath = join(root, stateRel);
   mkdirSync(dirname(statePath), { recursive: true });
-  writeFileSync(statePath, redactText(`${JSON.stringify(workItem, null, 2)}\n`).value, "utf8");
+  writeFileSync(
+    statePath,
+    redactText(`${JSON.stringify(hookedWorkItem, null, 2)}\n`).value,
+    "utf8",
+  );
   await writeContractLock(workItemId, root);
 
-  const owned = [...lockedPaths(workItemId), stateRel, lockRel];
+  const specMdRel = `${base}/spec.md`;
+  const owned = [
+    ...lockedPaths(workItemId),
+    ...(existsSync(join(root, specMdRel)) ? [specMdRel] : []),
+    stateRel,
+    lockRel,
+  ];
   let hash: string;
   try {
     const staged = (await git(["diff", "--cached", "--name-only"], root))

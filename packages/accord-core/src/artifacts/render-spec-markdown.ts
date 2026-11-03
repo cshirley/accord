@@ -260,6 +260,19 @@ export function renderSpecMarkdown(spec: Record<string, unknown>): string {
     }
   }
 
+  const features = spec.features;
+  if (Array.isArray(features) && features.length > 0) {
+    const cell = (value: unknown) => String(value ?? "").replace(/\|/g, "\\|");
+    lines.push("## Impacted features");
+    lines.push("");
+    lines.push("| Feature | Relation | Delta |");
+    lines.push("| --- | --- | --- |");
+    for (const row of features as Array<Record<string, unknown>>) {
+      lines.push(`| ${cell(row.slug)} | ${cell(row.relation)} | ${cell(row.delta)} |`);
+    }
+    lines.push("");
+  }
+
   const usedSections = new Set([
     "overview",
     "proposed_solution",
