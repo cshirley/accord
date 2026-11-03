@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-03T15:27:54.517Z",
+  "generated_at": "2026-11-03T17:32:46.980Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -322,6 +322,18 @@
       "description": "Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error",
       "reason": "F-032 names it as failing check:biome",
       "resolution": "accepted"
+    },
+    {
+      "task_id": 44,
+      "description": "Added test file packages/accord-core/tests/validate-features-script.test.ts (not in task.files); CLI --root semantics: dir containing docs/features is a repo, else each child dir with docs/features is validated and errors aggregated.",
+      "reason": "Spec step passes --root to the fixtures parent dir, whose children are the per-case repos.",
+      "resolution": null
+    },
+    {
+      "task_id": 44,
+      "description": "Tests pass without new impl: scripts/validate-features.ts already implemented in earlier rounds.",
+      "reason": "Retry round after impl; only test hardening and lint fix were needed.",
+      "resolution": null
     }
   ],
   "tasks": [
@@ -4605,7 +4617,9 @@
       "id": 43,
       "title": "[feature-knowledge] Feature doc schema, parser and index generator",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "9b82742"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -4712,39 +4726,113 @@
     {
       "id": 44,
       "title": "[feature-knowledge] validate:features script and Dev Harness entry",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 3,
+        "C": 5,
+        "V": 4
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
-        "rgr": 0,
-        "verify": 0
+        "rgr": 1,
+        "verify": 3
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 23,
+        "by_state": {
+          "verified": 18,
+          "wont_fix_accepted": 4,
+          "wont_fix_proposed": 1
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-18 validate:features CLI > exits non-zero over the defect fixtures and names each defect — error: not implemented: validate-features\n(fail) ... exits 0 on the valid fixture and regenerates index.md and index.json\n(fail) ... reports a single-defect fixture with only that defect\n(fail) ... on this repo (no knowledge.root configured) exits 0 and creates no docs/features\n(fail) ... package.json has validate:features and check runs it\n(fail) ... AGENTS.md Dev Harness lists validate:features in lint and verification_commands (Received lint without validate:features)\n(fail) ASDLC-1/AC-31 verify-a-change.md documents validate:features\n(fail) ASDLC-1/AC-31 okf/log.md has a dated entry naming ASDLC-1 and validate:features\n 0 pass\n 8 fail",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V4/phase-verify-task",
+        "excerpt": "task tests: 65 pass 0 fail; validate:features/validate:okf/validate:ste/check:biome exit 0; preflight validate:schemas, validate:assets, check:types, check:bundle, check:runtime exit 0. Full `bun test` timed out (120s preflight, 900s rerun); no failure attributable to task 44 seen. One `(fail)` in contract-pr0.test.ts was a SIGTERM from my timeout killing git. An earlier AC-12 writeStateSnapshot `(fail)` was not rerun in isolation.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-18",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/validate-features-script.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "scripts/validate-features.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "scripts/validate-features.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "package.json",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "AGENTS.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V4/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/validate-features-script.test.ts packages/accord-core/tests/feature-docs.test.ts; bun run validate:features"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/validate-features-script.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "AGENTS.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/playbooks/verify-a-change.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "packages/accord-core/tests/feature-docs.test.ts",
+              "action": "modify",
+              "kind": "test"
+            }
+          ],
+          "verification": {
+            "by": "V4/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun run validate:okf && bun run validate:ste && bun run check:biome"
+          }
         }
       ]
     },
@@ -5782,7 +5870,7 @@
     {
       "ac_id": "AC-18",
       "text": "Then index.md and index.json are regenerated, links, anchors and test references resolve, every feature AC has a test, and a feature above max_acs_per_feature is reported",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 43,
@@ -5790,7 +5878,7 @@
         },
         {
           "task": 44,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -5798,13 +5886,20 @@
         "packages/accord-core/tests/fixtures/features/",
         "packages/accord-core/src/knowledge/feature-doc.ts",
         "packages/accord-core/src/knowledge/index-gen.ts",
-        "packages/accord-core/schemas/feature-schema.json"
+        "packages/accord-core/schemas/feature-schema.json",
+        "packages/accord-core/tests/validate-features-script.test.ts",
+        "scripts/validate-features.ts",
+        "package.json",
+        "AGENTS.md"
       ],
       "tests": [
         "feature-docs.test.ts: all ASDLC-1/AC-18 tests (46 pass, 0 fail)",
-        "bun run check:types"
+        "bun run check:types",
+        "packages/accord-core/tests/validate-features-script.test.ts (all ASDLC-1/AC-18 cases)",
+        "packages/accord-core/tests/feature-docs.test.ts (ASDLC-1/AC-18 link checks)",
+        "bun run validate:features"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-19",
@@ -6285,7 +6380,7 @@
         },
         {
           "task": 44,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 47,
@@ -6342,7 +6437,11 @@
         "packages/accord-cli/tests/stack-cli.test.ts",
         "okf/architecture/tool-surface.md",
         "packages/accord-ci/tests/evidence-check.test.ts",
-        "okf/playbooks/answer-decisions.md"
+        "okf/playbooks/answer-decisions.md",
+        "packages/accord-core/tests/validate-features-script.test.ts",
+        "AGENTS.md",
+        "okf/playbooks/verify-a-change.md",
+        "packages/accord-core/tests/feature-docs.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -6389,7 +6488,9 @@
         "bun run validate:ste (passed)",
         "bunx biome check okf packages/accord-core/tests/docs-validation.test.ts (clean)",
         "docs-validation.test.ts › ASDLC-1/AC-31 trunk-hardening docs (task 42) (6 tests)",
-        "bunx biome check okf packages/accord-core/tests/docs-validation.test.ts"
+        "bunx biome check okf packages/accord-core/tests/docs-validation.test.ts",
+        "ASDLC-1/AC-31 verify-a-change.md documents validate:features",
+        "ASDLC-1/AC-31 okf/log.md appends a dated feature-knowledge entry naming validate:features"
       ],
       "verified": false
     }
@@ -11409,6 +11510,96 @@
       "file": "packages/accord-core/tests/feature-docs.test.ts",
       "line": 541,
       "raised": "T2/review-test"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 44,
+      "requirement": "AC-18",
+      "finding_id": "F-017",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Pre-existing (task 43). Feature docs with invalid YAML or no `id` are skipped without an error, so the validator and index ignore them and the script exits 0.",
+      "file": "packages/accord-core/src/knowledge/feature-doc.ts",
+      "line": 121,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Pre-existing task 43 behaviour in feature-doc.ts, outside this task's files; suggestion severity only. Track a malformed-doc validation code as a follow-up."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 44,
+      "requirement": "AC-18",
+      "finding_id": "F-020",
+      "state": "wont_fix_proposed",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A01 — Broken Access Control: the knowledge.root check is lexical only. A symlink at knowledge.root, or at index.md or index.json under it, lets generateFeatureIndex write the generated index outside the repo.",
+      "file": "scripts/validate-features.ts",
+      "line": 35,
+      "raised": "C4/review-security",
+      "resolution": {
+        "by": "C5/phase-code",
+        "outcome": "wont_fix",
+        "note": "Advisory hardening (symlink/realpath containment); out of AC-18 scope, deferred to a shared knowledge-module guard."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 44,
+      "requirement": "AC-18",
+      "finding_id": "F-022",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A feature doc that fails to parse (no frontmatter, invalid YAML, or missing `id`) is silently dropped, so validate:features exits 0 and the doc is checked by nothing and left out of the index.",
+      "file": "packages/accord-core/src/knowledge/feature-doc.ts",
+      "line": 126,
+      "raised": "C4/review-code",
+      "resolution": {
+        "by": "C5/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Advisory, and the fix is in knowledge/feature-doc.ts, outside task 44's files. Not a regression from this diff. Worth a follow-up in the knowledge module."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 44,
+      "requirement": "AC-18",
+      "finding_id": "F-023",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The validator rewrites index.md and index.json unconditionally and never fails when the committed index is stale, so CI cannot catch an index that was not regenerated.",
+      "file": "scripts/validate-features.ts",
+      "line": 65,
+      "raised": "C4/review-code",
+      "resolution": {
+        "by": "C5/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Optional; AC-18 requires only regeneration. A --check flag or CI drift check belongs to the later drift-check task."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 44,
+      "requirement": "AC-31",
+      "finding_id": "F-009",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-31 enforcement (validate:okf, validate:ste, check:biome) for this task's files is not exercised by this file. docs-validation.test.ts runs validate:okf/ste over the whole bundle, but its biome step covers only task-17/32 files.",
+      "file": "packages/accord-core/tests/validate-features-script.test.ts",
+      "line": 92,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "The enforcement half of AC-31 (validate:okf, validate:ste, check:biome) is verify-category. phase-verify-task should run `bun run validate:features && bun run validate:okf && bun run validate:ste && bun run check:biome && bun test`, per the plan's verify step."
+      }
     }
   ]
 }

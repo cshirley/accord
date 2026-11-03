@@ -92,3 +92,4 @@
 ## 2026-11-03
 
 * **Update**: ASDLC-1 trunk-hardening: [Evidence stack](/architecture/evidence-stack.md) (depth cap, `require_flag`, overrun, bottom-up merge), [Orchestration policy](/references/orchestration-policy.md) (`stack.sizing.max_depth`, `stack.require_flag`, overrun and merge order), [Answer pending decisions](/playbooks/answer-decisions.md) (`overrun-task-<N>` options), [Stack configuration](/references/stack-config.md) (`require_flag`, `merge_strategy`) and [Artifacts and state](/references/artifacts-and-state.md) (`trace.json` size fields) now describe the implemented trunk-hardening.
+* **Update**: ASDLC-1 feature-knowledge: [Verify a change](/playbooks/verify-a-change.md) now lists `validate:features` (anchors, links, test references, `max_acs_per_feature`, index regeneration); the script is in `check`, the Dev Harness `lint` and `verification_commands`.

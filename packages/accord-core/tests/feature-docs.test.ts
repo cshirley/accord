@@ -537,10 +537,10 @@ describe("ASDLC-1/AC-30 feature schema validates the fixture frontmatter (ASDLC-
   });
 
   it.each([
-    ["missing id", (f: Record<string, any>) => delete f.id],
+    ["missing id", (f: Record<string, any>) => (f.id = undefined)],
     ["status outside enum", (f: Record<string, any>) => (f.status = "live")],
     ["acs not an array", (f: Record<string, any>) => (f.acs = "x")],
-    ["ac without tests", (f: Record<string, any>) => delete f.acs[0].tests],
+    ["ac without tests", (f: Record<string, any>) => (f.acs[0].tests = undefined)],
     ["ac tests a string", (f: Record<string, any>) => (f.acs[0].tests = "verify/a.ts")],
     ["anchors.code a string", (f: Record<string, any>) => (f.anchors.code = "src/a.ts")],
   ])("ASDLC-1/AC-30 schema rejects: %s", (_label, mutate) => {
