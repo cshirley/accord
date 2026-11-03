@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-03T14:30:41.415Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-03T15:27:54.517Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -48,8 +48,8 @@
 | 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | `f8d7bab` | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
 | 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | `e2aa296` | 2/1/1 | 19 (verified 11, open 8) | 0 |
 | 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | `d26040c` | 5/7/4 | 43 (verified 31, wont_fix_accepted 3, dispute_upheld 1, open 8) | 0 |
-| 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | — | 2/1/1 | 19 (verified 8, wont_fix_accepted 1, open 10) | 0 |
-| 43 | [feature-knowledge] Feature doc schema, parser and index generator | pending | — | 0/0/0 | 0 | 0 |
+| 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | `103c838` | 2/1/1 | 19 (verified 8, wont_fix_accepted 1, open 10) | 0 |
+| 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | — | 2/1/1 | 24 (verified 12, reraised 1, open 11) | 0 |
 | 44 | [feature-knowledge] validate:features script and Dev Harness entry | pending | — | 0/0/0 | 0 | 0 |
 | 45 | [feature-knowledge] spec features[] and PR0 impact analysis | pending | — | 0/0/0 | 0 | 0 |
 | 46 | [feature-knowledge] Closeout feature-doc update and drift check | pending | — | 0/0/0 | 0 | 0 |
@@ -364,7 +364,11 @@
 
 > Then index.md and index.json are regenerated, links, anchors and test references resolve, every feature AC has a test, and a feature above max_acs_per_feature is reported
 
-- Tasks: 43 (pending), 44 (pending)
+- Tasks: 43 (satisfied), 44 (pending)
+- Files: `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/tests/fixtures/features/`, `packages/accord-core/src/knowledge/feature-doc.ts`, `packages/accord-core/src/knowledge/index-gen.ts`, `packages/accord-core/schemas/feature-schema.json`
+- Tests verified (2):
+  - feature-docs.test.ts: all ASDLC-1/AC-18 tests (46 pass, 0 fail)
+  - bun run check:types
 
 ### AC-19 — pending (not verified)
 
@@ -498,9 +502,9 @@
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (pending), 45 (pending), 50 (pending), 51 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`
-- Tests verified (17):
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (satisfied), 45 (pending), 50 (pending), 51 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/schemas/feature-schema.json`
+- Tests verified (20):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
@@ -518,6 +522,9 @@
   - packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack description says the harness reads the keys and that they default off
   - packages/accord-core/tests/alignment.test.ts: ASDLC-1/AC-30 stack default values are unchanged (enabled stays off, no new defaults)
   - ASDLC-1/AC-30 written trace.json carries size, is schema-valid, malformed size is rejected
+  - ASDLC-1/AC-30 feature-schema.json declares the OKF frontmatter keys
+  - ASDLC-1/AC-30 both valid fixture frontmatters validate
+  - ASDLC-1/AC-30 schema rejects the 6 frontmatter mutations
 
 ### AC-31 — pending (not verified)
 
@@ -931,6 +938,18 @@
 | 42 | AC-31 | F-017 | unresolved (advisory) | open | warning | The re-plan option does not say to answer `overrun-task-<N>`, so resume stays blocked after `amend-spec --replan`. | okf/playbooks/answer-decisions.md:68 |  |
 | 42 | AC-31 | F-018 | unresolved (advisory) | open | suggestion | The intro says `computeStack` reads `max_depth`, `overrun_factor` and `split_on`, which is false and contradicts the table in the same file. | okf/references/stack-config.md:29 |  |
 | 42 | AC-31 | F-019 | unresolved (advisory) | open | suggestion | The intro says all keys live under `orchestration`, but the new 'Stack trunk hardening' section documents `stack.*` keys, which live elsewhere. | okf/references/orchestration-policy.md:32 |  |
+| 43 | AC-18 | F-012 | unresolved (advisory) | reraised | suggestion | Anchors and test refs are resolved against repoRoot, but nothing stops a path from leaving the repo (`../../etc/hosts`). A reference outside the repo would count as resolved. | packages/accord-core/tests/feature-docs.test.ts:55 | reraised by T2/review-test — Target changed: my round-1 recommendation paired '../../outside.*' with files created in the temp parent, which is 1 level up, not 2. As written (lines 450/455 and 471/474), the references resolve to dirname(dirname(repo))/outside.*, a path that never exists. A validator with no containment check, existsSync(join(repoRoot, ref)), still reports broken-anchor/unresolved-test, so both escape tests are vacuous. They also write into the shared os.tmpdir() root. Corrected fix: give each escape test its own parent: parent = mkdtempSync(join(tmpdir(),'feature-docs-esc-')); tmpDirs.push(parent); build the repo at join(parent,'repo'); write parent/outside.ts and parent/outside.proof.ts (content containing 'x'). Use anchorsCode '["../outside.ts"]' and tests '["../outside.proof.ts#x"]'. Before calling validateFeatures, assert expect(existsSync(resolve(repo,'../outside.ts'))).toBe(true) and the same for outside.proof.ts. Then assert codes ['feat-one:broken-anchor'] and ['feat-one:unresolved-test'] respectively. Done when: each escape test asserts that its out-of-repo target exists on disk, and still expects exactly one feat-one error with the escape-specific code. |
+| 43 | AC-18 | F-014 | unresolved (advisory) | open | suggestion | The dangling depends_on/related test and the valid fixture use file names that equal the frontmatter ids. A validator that resolves depends_on/related by checking existsSync(root/<id>.md) passes every test. It would wrongly report a valid tree whose file name differs from the id, and would miss a dangling id that matches a stray file name. | packages/accord-core/tests/feature-docs.test.ts:507 |  |
+| 43 | AC-18 | F-015 | unresolved (advisory) | open | suggestion | The valid-links test checks that fragment links are skipped, but no test checks that a fragment link to a missing file is still reported. A validator with `if (href.includes('#')) continue` passes every test. | packages/accord-core/tests/feature-docs.test.ts:484 |  |
+| 43 | AC-18 | F-017 | unresolved (advisory) | open | warning | A feature doc whose frontmatter fails to parse, or has no id, is silently dropped, so validateFeatures reports ok:true and skips its ACs, anchors and links. feature-schema.json is never applied by production code. | packages/accord-core/src/knowledge/feature-doc.ts:126 |  |
+| 43 | AC-18 | F-018 | unresolved (advisory) | open | warning | decodeURI throws on a malformed percent sequence in a body link, which aborts the whole validation run. | packages/accord-core/src/knowledge/feature-doc.ts:171 |  |
+| 43 | AC-18 | F-019 | unresolved (advisory) | open | warning | Index table cells are escaped inconsistently, so common frontmatter produces malformed Markdown rows. Title and status are unescaped, and description escapes only `\|`. | packages/accord-core/src/knowledge/index-gen.ts:44 |  |
+| 43 | AC-18 | F-020 | unresolved (advisory) | open | warning | index.json is written with raw writeFileSync instead of the mandated writeJson. The write is non-atomic, so a crash leaves a truncated index.json. | packages/accord-core/src/knowledge/index-gen.ts:59 |  |
+| 43 | AC-18 | F-021 | unresolved (advisory) | open | suggestion | Any index.md at any depth is excluded, and duplicate feature ids are not detected. | packages/accord-core/src/knowledge/feature-doc.ts:70 |  |
+| 43 | AC-18 | F-022 | unresolved (advisory) | open | suggestion | Body-link resolution differs from the existing OKF validator and has no repo-containment check. | packages/accord-core/src/knowledge/feature-doc.ts:173 |  |
+| 43 | AC-18 | F-023 | unresolved (advisory) | open | suggestion | The error sort uses locale-dependent localeCompare, unlike the code-unit sort in loadFeatureDocs. | packages/accord-core/src/knowledge/feature-doc.ts:206 |  |
+| 43 | AC-18 | F-024 | unresolved (advisory) | open | suggestion | The default root literal is duplicated. Test files are re-read once per reference. | packages/accord-core/src/knowledge/index-gen.ts:18 |  |
+| 43 | AC-30 | F-016 | unresolved (advisory) | open | suggestion | Mutation arrows use assignment expressions as bodies (`(f) => (f.status = "live")`, lines 541, 542 and 545). Biome's recommended suspicious/noAssignInExpressions can flag these. The verify step runs `bun run check:biome`, and a failure respawns phase-test. | packages/accord-core/tests/feature-docs.test.ts:541 |  |
 
 ## Decisions
 
@@ -1777,6 +1796,31 @@ Preflight: validate:schemas, validate:assets, check:types, check:bundle and chec
 ```
 
 ### Task 43: [feature-knowledge] Feature doc schema, parser and index generator
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-18 generateFeatureIndex (ASDLC-1/TC-19) > ASDLC-1/AC-18 index.md names every feature id and title
+error: not implemented: generateFeatureIndex
+(fail) ... regeneration is byte-identical ...
+error: not implemented: generateFeatureIndex
+(fail) ASDLC-1/AC-30 feature-schema.json declares the OKF frontmatter keys
+error: ENOENT: no such file or directory, open '.../schemas/feature-schema.json'
+
+ 0 pass
+ 15 fail
+Ran 15 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+feature-docs.test.ts: 46 pass, 0 fail
+validate:schemas: 30 passed, 0 failed
+validate:assets, validate:okf, validate:ste, check:types, check:bundle, check:runtime: exit 0
+biome on task files: 2 warnings (noDelete), 0 errors; repo-wide check:biome fails on .tasks/*.json formatting (outside task scope)
+full bun test: timed out at 120s in preflight, no failures shown
+```
 
 ### Task 44: [feature-knowledge] validate:features script and Dev Harness entry
 
