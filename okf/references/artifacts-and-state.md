@@ -43,7 +43,7 @@ sources:
 | `evidence/task-<N>.{md,json}` | harness (`evidence(task-<N>)` commit, `stack.enabled`) | Per-task evidence: red/green excerpts, findings, planned vs actual size, with qualified `<ID>/AC-<n>` refs; survives squash merge |
 | `state/task-<N>/` | harness (typed commits, `stack.enabled`, `state.persist: tree`) | Redacted task snapshot with `STATE.md` (`renderTaskTrace()` output); raw packets excluded; capped by `stack.state.max_bytes`. Deleted at `evidence(task-<N>)` and closeout |
 | `evidence/closeout.json` | harness (closeout) | Marker that closeout ran. Survives squash merge; `accord/evidence` fails if `state/` files remain after it |
-| `trace.json` / `.md` | harness (task done, verify summary, finalize) | Uses qualified `<ID>/AC-<n>` refs when `stack.enabled`. Committed projection of `.tasks/`: per-AC implementation + verification, accepted/unresolved findings, decisions, deviations, task commits, RED + final-verify output excerpts; regenerate, don't edit |
+| `trace.json` / `.md` | harness (task done, verify summary, finalize) | Uses qualified `<ID>/AC-<n>` refs when `stack.enabled`. Records `est_lines`, `act_prod_lines` and `act_test_lines` per task after GREEN. Committed projection of `.tasks/`: per-AC implementation + verification, accepted/unresolved findings, decisions, deviations, task commits, RED + final-verify output excerpts; regenerate, don't edit |
 | `workflow-cost.json` / `.md` | `dev_finalize` | Token/USD rollup from usage log; regenerate, don't edit |
 
 Each `done` task gets a harness commit (task files + `trace.*`). With `stack.enabled`, the last

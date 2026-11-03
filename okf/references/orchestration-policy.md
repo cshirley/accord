@@ -15,6 +15,15 @@ sources:
   - id: config-doc
     resource: /docs/configuration.md
     title: Project configuration
+  - id: stack-overrun
+    resource: /packages/accord-core/src/stack/overrun.ts
+    title: Overrun check after GREEN
+  - id: stack-depth
+    resource: /packages/accord-core/src/stack/depth.ts
+    title: Depth cap and flag validation
+  - id: merge-bottom-up
+    resource: /packages/accord-core/src/stack/merge-bottom-up.ts
+    title: advanceStack (bottom-up merge)
   - id: decide
     resource: /packages/accord-core/src/tasks/decide.ts
     title: Loop decisions from the findings ledger
@@ -53,6 +62,19 @@ Findings persist under `requirements[].findings` on the task file ([Per-task fil
 | `max_lifetime_retries` | retries × (unblocks + 1) | Never reset by unblock |
 
 review-security gates only through `review_loop.review_security.severity_gate`; `suggestion` findings stay advisory.
+
+# Stack trunk hardening
+
+These rules apply only when `stack.enabled` is `true`. Design: [Evidence stack](/architecture/evidence-stack.md).
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `stack.sizing.max_depth` | `6` | Maximum open PRs in a `depends_on` chain. The next PR opens when its base merges |
+| `stack.require_flag` | `true` | Non-final tasks keep the feature unreachable. The last task enables it. A violation stops `stack submit` |
+| `stack.sizing.overrun_factor` | `1.5` | Limit of actual lines against `est_lines` |
+
+* **Overrun.** With `stack.commits: phase`, the harness measures the production and test lines of a task after GREEN (the `phase-code` commit). If the total is more than the limit, it raises the decision `overrun-task-<N>`. Answer it with a re-plan (`/dev amend-spec <ID> <reason> --replan`) or with `accept` and a reason.
+* **Bottom-up merge.** `advanceStack` finds each open task PR whose parent PR has merged. It merges `main` into the child branch and pushes without force. Then it retargets the PR with `gh pr edit <pr> --base main`. It never uses rebase, amend or force-push. An unresolved conflict raises a decision.
 
 # resume
 

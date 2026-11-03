@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-02T22:34:24.666Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-03T14:30:41.415Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -47,8 +47,8 @@
 | 38 | [tree-state] OKF docs for committed state and closeout | done | `85f7289` | 1/1/1 | 13 (open 13) | 0 |
 | 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | `f8d7bab` | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
 | 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | `e2aa296` | 2/1/1 | 19 (verified 11, open 8) | 0 |
-| 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | — | 5/7/4 | 43 (verified 31, wont_fix_accepted 3, dispute_upheld 1, open 8) | 0 |
-| 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | pending | — | 0/0/0 | 0 | 0 |
+| 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | `d26040c` | 5/7/4 | 43 (verified 31, wont_fix_accepted 3, dispute_upheld 1, open 8) | 0 |
+| 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | — | 2/1/1 | 19 (verified 8, wont_fix_accepted 1, open 10) | 0 |
 | 43 | [feature-knowledge] Feature doc schema, parser and index generator | pending | — | 0/0/0 | 0 | 0 |
 | 44 | [feature-knowledge] validate:features script and Dev Harness entry | pending | — | 0/0/0 | 0 | 0 |
 | 45 | [feature-knowledge] spec features[] and PR0 impact analysis | pending | — | 0/0/0 | 0 | 0 |
@@ -523,9 +523,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (pending), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`
-- Tests verified (43):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`
+- Tests verified (45):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -569,6 +569,8 @@
   - bun run validate:okf (38 files passed)
   - bun run validate:ste (passed)
   - bunx biome check okf packages/accord-core/tests/docs-validation.test.ts (clean)
+  - docs-validation.test.ts › ASDLC-1/AC-31 trunk-hardening docs (task 42) (6 tests)
+  - bunx biome check okf packages/accord-core/tests/docs-validation.test.ts
 
 ## Accepted risks and unresolved findings
 
@@ -918,6 +920,17 @@
 | 41 | AC-17 | F-042 | unresolved (advisory) | open | suggestion | Conflicted paths are passed to git as pathspecs, and `diff --name-only` output is repo-root-relative while ls-tree, checkout and add are cwd-relative. | packages/accord-core/src/stack/merge-bottom-up.ts:93 |  |
 | 41 | _task | F-039 | unresolved (advisory) | open | suggestion | Local helpers duplicate existing stack code instead of reusing it. | packages/accord-core/src/stack/merge-bottom-up.ts:118 |  |
 | 41 | _task | F-043 | unresolved (advisory) | open | suggestion | No dated log entry for the advanceStack implementation, although okf/architecture/evidence-stack.md was updated. | okf/log.md:3 |  |
+| 42 | AC-31 | F-009 | accepted (advisory) | wont_fix_accepted | suggestion | The plan step asks for ASD-STE100 in the playbook, but answer-decisions.md has no `style: ste` frontmatter, so validate:ste (scripts/validate-ste.ts:107) skips it. The TC-32 runner therefore checks no STE rule for the new procedure text. AC-31 itself only requires STE for files marked style: ste. | okf/playbooks/answer-decisions.md:1 | wont_fix_accepted by T2/review-test — AC-31 requires STE only for files marked style: ste. Adding the marker to answer-decisions.md is a plan-owner decision outside phase-test scope. |
+| 42 | AC-31 | F-010 | unresolved (advisory) | open | suggestion | The answerLines check accepts two 'accept' lines, one Pi and one headless, following the playbook's existing two-form pattern. A playbook that gives re-plan only as '/dev amend-spec … --replan' and never tells the reader to answer overrun-task-<N> passes. That reader stays blocked by the pending-decisions gate. | packages/accord-core/tests/docs-validation.test.ts:632 |  |
+| 42 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | Round-1 miss. Trunk-hardening adds a second decision type, `bottom-up-pr-<N>` (source escalation), when advanceStack cannot resolve a merge conflict. No test requires answer-decisions.md or orchestration-policy.md to name it or say how to resolve it, so an affected concept can stay silent. | packages/accord-core/tests/docs-validation.test.ts:627 |  |
+| 42 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | The overrun line test does not pin the trigger or the enable gate. A doc that says 'raises overrun-task-<N> when actual lines exceed est_lines' (no factor) and omits stack.enabled passes, because stack.sizing.overrun_factor and stack.enabled may appear on any other line. | packages/accord-core/tests/docs-validation.test.ts:589 |  |
+| 42 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | The negative regexes match substrings, so correct wording fails. 'the task is re-planned or accepted' matches `planned`. A period inside a value such as 'default `1.5`' stops `[^.]*` before checkOverrun. Phase-code cannot edit the tests and would loop back through phase-test. | packages/accord-core/tests/docs-validation.test.ts:421 |  |
+| 42 | AC-31 | F-014 | unresolved (advisory) | open | suggestion | Stale comments at lines 605 and 617 say stack-config.md and artifacts-and-state.md are 'outside task 42 files[] (see escalation)'. The plan now lists both files in task 42. | packages/accord-core/tests/docs-validation.test.ts:605 |  |
+| 42 | AC-31 | F-015 | unresolved (advisory) | open | warning | `require_flag` is documented with default `true`, but the harness treats an unset key as off. | okf/references/stack-config.md:54 |  |
+| 42 | AC-31 | F-016 | unresolved (advisory) | open | warning | Docs present bottom-up merge as implemented and running, but `advanceStack` has no production caller or entry point. | okf/architecture/evidence-stack.md:123 |  |
+| 42 | AC-31 | F-017 | unresolved (advisory) | open | warning | The re-plan option does not say to answer `overrun-task-<N>`, so resume stays blocked after `amend-spec --replan`. | okf/playbooks/answer-decisions.md:68 |  |
+| 42 | AC-31 | F-018 | unresolved (advisory) | open | suggestion | The intro says `computeStack` reads `max_depth`, `overrun_factor` and `split_on`, which is false and contradicts the table in the same file. | okf/references/stack-config.md:29 |  |
+| 42 | AC-31 | F-019 | unresolved (advisory) | open | suggestion | The intro says all keys live under `orchestration`, but the new 'Stack trunk hardening' section documents `stack.*` keys, which live elsewhere. | okf/references/orchestration-policy.md:32 |  |
 
 ## Decisions
 
@@ -925,6 +938,10 @@
 - **esc-ASDLC-1-14-T2/phase-test#0** (escalation, resolved): check:biome fails on the baseline for reasons outside task 14 files: lint error in packages/accord-core/scripts/update-model-pricing.ts and format error in docs/dev/ASDLC-1/trace.json. Fix both, or exclude generated docs/dev/**/trace.json from Biome, before phase-code can turn that test green. → Fixed both baseline biome failures manually (formatted trace.json, optional-chain in update-model-pricing.ts). check:biome is green; proceed.
 - **phase-code-stuck-2** (escalation, resolved): 2 tests write .git/hooks/pre-commit without creating .git/hooks (absent here because the git template dir is missing). Fix tests (mkdir -p hooks) so they can pass? → Yes: tests must mkdir -p .git/hooks before writing pre-commit (git template dir may be absent). Respawn phase-test to fix those 2 tests; phase-code must not edit tests.
 - **phase-code-stuck-3** (escalation, resolved): Two tests in stack-cli.test.ts (`stack sync` and `stack submit`) cannot pass: cliIn spawns the CLI with a stale PATH. Fix the test? → Test bug fixed by hand: cliIn now passes the live process.env.PATH so the fake gh is found. 19/19 pass in stack-cli.test.ts; proceed.
+- **phase-test-stuck-1** (escalation, resolved): Task 42 files[] omits okf/references/stack-config.md and okf/references/artifacts-and-state.md. Both are affected by trunk-hardening, and AC-31 requires updating the affected okf/ concepts. Can the plan add both to task 42's files[]? The tests already assert their updates. → Yes. Edit okf/references/stack-config.md and okf/references/artifacts-and-state.md as part of task 42 (AC-31). Recorded as a scope deviation; plan.json is unchanged.
+- **phase-test-stuck-2** (escalation, resolved): Task 42 files[] lacks okf/references/stack-config.md and okf/references/artifacts-and-state.md, but AC-31 ('update the affected okf/ concepts') requires updating both for trunk-hardening. Add them to task 42 files[]? → Yes: added okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[] in plan.json (modify). Proceed.
+- **esc-ASDLC-1-42-T2/phase-test#0** (escalation, resolved): Add okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[] so phase-code may edit them. → Done: both files added to task 42 files[] in plan.json. Proceed.
+- **esc-ASDLC-1-42-T2/phase-test.2#0** (escalation, resolved): Add okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[]? → Done: both files added to task 42 files[] in plan.json. Proceed.
 
 ## Deviations
 
@@ -957,18 +974,18 @@
 - Task 29 (accepted): No work-item-scoped resolver test (F-011) — PrGroupResolver carries no workItemId and hooks.ts is outside task files; no selection rule is derivable from spec
 - Task 30 (accepted): Test for 'closeout hook runs before any closeout artifact write' covers hook registration and delegation only; wiring into commit-on-task-done.ts is not in this task's files. Stub created at stack/branches.ts (in task.files) and does not register the hook. — Spec leaves function result shapes, PR0-merged detection and PR0 branch discovery open; contract pinned in the test file header.
 - Task 30 (accepted): Added side-effect import of ./branches.js in stack/service.ts (not in task.files) — Closeout hook must register when only src/index.ts or tools/registry.ts is imported; both already import service.ts
-- Task 31 (pending): Tests require edits outside task.files[]: packages/accord-cli/src/commands/index.ts (export runStackCommand), packages/accord-cli/src/ui/command-catalog.ts (help lists stack), okf/log.md (dated bullet). — Needed to satisfy AC-11 (help and routing), AC-28 (adapter export) and AC-31 (log entry).
-- Task 31 (pending): Added the stack entry to packages/accord-cli/src/ui/command-catalog.ts — Needed for `accord --help` to list stack (AC-11 help test); the file is not in task.files[]
-- Task 35 (pending): Pinned restoreStateFromTree(id, cwd?) -> Result<{restored, task_ids}> and next ref = allocateRef(task, nextAgent); spec leaves both open. — Spec gives no signature or next-ref definition; tests need a concrete public contract.
-- Task 35 (pending): No test for artifact-discovery.ts 'skip state/' step. — Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.
-- Task 36 (pending): Closeout commit returns full HEAD sha (not short) when stack.enabled — Test compares result.hash to git rev-parse HEAD
-- Task 38 (pending): Added task-38 tests to existing packages/accord-core/tests/docs-validation.test.ts (TC-32 glob) rather than a new file; no stub needed (docs-only task). — task.files lists only okf docs; TC-32 test_name_glob names this file.
-- Task 39 (pending): Size persisted in task sidecar size.json instead of task file; trace-artifact reads it — task-schema.json is additionalProperties:false; avoids widening task file schema
-- Task 39 (pending): measureActualLines (evidence/lines.ts) now excludes .tasks/ — Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored
-- Task 40 (pending): TC-18 squash-merge advance scenarios (add/add resolved by rule, differing conflict raising a decision, rebase/merge-commit bases) are not tested in this task. — Task 40 files (depth.ts, service.ts) define no merge-advance interface, and the spec names none; these need a later task or a spec-named API.
-- Task 40 (pending): Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'. — Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.
-- Task 41 (pending): Added no-op retarget to fake providers in stack-branches.test.ts and stack-service.test.ts, and 'retarget' to the port-method list in stack-provider-gh.test.ts — retarget is now required on StackProvider; without it check:types fails on fixtures outside task.files
-- Task 41 (pending): Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error — F-032 names it as failing check:biome
+- Task 31 (accepted): Tests require edits outside task.files[]: packages/accord-cli/src/commands/index.ts (export runStackCommand), packages/accord-cli/src/ui/command-catalog.ts (help lists stack), okf/log.md (dated bullet). — Needed to satisfy AC-11 (help and routing), AC-28 (adapter export) and AC-31 (log entry).
+- Task 31 (accepted): Added the stack entry to packages/accord-cli/src/ui/command-catalog.ts — Needed for `accord --help` to list stack (AC-11 help test); the file is not in task.files[]
+- Task 35 (accepted): Pinned restoreStateFromTree(id, cwd?) -> Result<{restored, task_ids}> and next ref = allocateRef(task, nextAgent); spec leaves both open. — Spec gives no signature or next-ref definition; tests need a concrete public contract.
+- Task 35 (accepted): No test for artifact-discovery.ts 'skip state/' step. — Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.
+- Task 36 (accepted): Closeout commit returns full HEAD sha (not short) when stack.enabled — Test compares result.hash to git rev-parse HEAD
+- Task 38 (accepted): Added task-38 tests to existing packages/accord-core/tests/docs-validation.test.ts (TC-32 glob) rather than a new file; no stub needed (docs-only task). — task.files lists only okf docs; TC-32 test_name_glob names this file.
+- Task 39 (accepted): Size persisted in task sidecar size.json instead of task file; trace-artifact reads it — task-schema.json is additionalProperties:false; avoids widening task file schema
+- Task 39 (accepted): measureActualLines (evidence/lines.ts) now excludes .tasks/ — Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored
+- Task 40 (accepted): TC-18 squash-merge advance scenarios (add/add resolved by rule, differing conflict raising a decision, rebase/merge-commit bases) are not tested in this task. — Task 40 files (depth.ts, service.ts) define no merge-advance interface, and the spec names none; these need a later task or a spec-named API.
+- Task 40 (accepted): Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'. — Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.
+- Task 41 (accepted): Added no-op retarget to fake providers in stack-branches.test.ts and stack-service.test.ts, and 'retarget' to the port-method list in stack-provider-gh.test.ts — retarget is now required on StackProvider; without it check:types fails on fixtures outside task.files
+- Task 41 (accepted): Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error — F-032 names it as failing check:biome
 
 ## Evidence by task
 
@@ -1741,6 +1758,23 @@ Final verification (`V4/phase-verify-task`):
 ```
 
 ### Task 42: [trunk-hardening] OKF docs for depth cap, merge order and overrun
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/docs-validation.test.ts: 38 pass, 4 fail. Failing: (fail) ASDLC-1/AC-31 trunk-hardening docs (task 42) > evidence-stack.md describes the trunk-hardening stack: depth cap, require_flag, bottom-up merge, overrun; > orchestration-policy.md documents max_depth, require_flag, bottom-up merge with merge-main retarget, and the overrun decision; > answer-decisions.md lists the overrun decision with its two options (Expected to contain: "overrun-task-<N>"); > okf/log.md has a dated trunk-hardening entry naming the updated concepts (Expected: >= 1, Received: 0)
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+docs-validation.test.ts: 44 pass, 0 fail (428 ms)
+validate:okf: okf validation passed (38 files)
+validate:ste: ste lint passed
+check:biome (repo-wide): exit 1, sole offender docs/dev/ASDLC-1/trace.json (format)
+biome check on okf/ and the test file: clean
+Preflight: validate:schemas, validate:assets, check:types, check:bundle and check:runtime pass; the full bun test run timed out at 120s with no failure shown
+```
 
 ### Task 43: [feature-knowledge] Feature doc schema, parser and index generator
 
