@@ -417,7 +417,8 @@ describe("ASDLC-1/AC-31 stack-compute docs (task 32)", () => {
     expect(sizing).toContain("`max_pr_lines`");
     expect(sizing).toContain("`max_files`");
     expect(sizing).toMatch(/(`split_on`|package|interface)[^.]*(not yet|proposed|planned|later)/i);
-    expect(sizing).toMatch(/overrun_factor[^.]*(not yet|proposed|planned|later|trunk-hardening)/i);
+    expect(sizing).toMatch(/overrun_factor[^.]*(checkOverrun|after GREEN)/);
+    expect(sizing).not.toMatch(/overrun_factor[^.]*(not yet|proposed|planned)/i);
     expect(sectionOf(text, "Layering")).not.toMatch(/only `gh` is planned first/);
     const status = text.split("\n").find((l) => /^\*\*(Partly )?[Ii]mplemented/.test(l));
     expect(status).toMatch(/^\*\*Partly implemented/);
@@ -430,7 +431,7 @@ describe("ASDLC-1/AC-31 stack-compute docs (task 32)", () => {
     expect(intro).toMatch(/read by the harness|the harness reads/i);
     const rowOf = (key: string): string =>
       text.split("\n").find((l) => new RegExp(`^\\|\\s*\`(sizing\\.)?${key}`).test(l)) ?? "";
-    for (const key of ["split_on", "merge_strategy", "require_flag"]) {
+    for (const key of ["split_on", "merge_strategy"]) {
       expect(rowOf(key)).toMatch(/not yet|proposed|planned|later|not read/i);
     }
     expect(rowOf("provider")).toMatch(/only `gh`/i);
@@ -549,6 +550,110 @@ describe("ASDLC-1/AC-31 tree-state docs (task 38)", () => {
         bullet.text.includes("/references/artifacts-and-state.md") &&
         bullet.text.includes("/architecture/evidence-stack.md") &&
         bullet.text.includes("/references/stack-config.md") &&
+        new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("ASDLC-1/AC-31 trunk-hardening docs (task 42)", () => {
+  const lines = (rel: string): string[] => read(rel).split("\n");
+
+  it("ASDLC-1/AC-31 evidence-stack.md describes the trunk-hardening stack: depth cap, require_flag, bottom-up merge, overrun", () => {
+    const text = read("okf/architecture/evidence-stack.md");
+    const section = lines("okf/architecture/evidence-stack.md");
+    const status = section.find((l) => /^\*\*(Partly )?[Ii]mplemented/.test(l)) ?? "";
+    expect(status).toMatch(/trunk-hardening[^.]*implemented|implemented[^.]*trunk-hardening/i);
+    expect(status).not.toMatch(/trunk-hardening[^.]*(not yet|proposed|planned)/i);
+    expect(status).toMatch(/overrun/i);
+    expect(text).toContain("resource: /packages/accord-core/src/stack/overrun.ts");
+    expect(text).toContain("resource: /packages/accord-core/src/stack/depth.ts");
+    expect(text).not.toMatch(/overrun_factor` is planned/);
+    const rf = section.find((l) => l.includes("`require_flag`")) ?? "";
+    expect(rf).toMatch(/missing_flag|premature_enable|missing_enable|`kind`[^\n]*enable/);
+    expect(rf).not.toMatch(/`require_flag`[^.]*(not yet|planned|proposed)/i);
+    expect(text).toContain("`overrun-task-<N>`");
+    expect(text).toContain("`stack.overrun.detected`");
+    expect(text).toMatch(/`max_depth`[^\n]*(openablePrs|stack submit|dev_stack_submit)/);
+  });
+
+  it("ASDLC-1/AC-31 orchestration-policy.md documents max_depth, require_flag, bottom-up merge with merge-main retarget, and the overrun decision", () => {
+    const text = read("okf/references/orchestration-policy.md");
+    expect(text).toContain("stack.sizing.max_depth");
+    expect(text).toContain("stack.require_flag");
+    expect(text).toContain("stack.sizing.overrun_factor");
+    expect(text).toMatch(/bottom-up/i);
+    expect(text).toContain("stack.enabled");
+    expect(text).toContain("advanceStack");
+    expect(text).not.toMatch(/dev_stack_sync[^\n]*(merge|retarget|advance)/i);
+    const overrunLine = text.split("\n").find((l) => l.includes("overrun-task-<N>")) ?? "";
+    expect(overrunLine).toMatch(/stack\.commits[^\n]*phase/);
+    expect(overrunLine).toMatch(/GREEN|phase-code/);
+    expect(overrunLine).toMatch(/production[^\n]*test|test[^\n]*production/i);
+    expect(text).toContain("--replan");
+    expect(text).toMatch(/retarget/i);
+    expect(text).toMatch(/merges? `?main`? into/i);
+    expect(text).toMatch(/--base main/);
+    expect(text).toMatch(/never[^\n]*(rebase|force)/i);
+    expect(text).toContain("/architecture/evidence-stack.md");
+    for (const f of ["overrun", "depth", "merge-bottom-up"]) {
+      expect(text).toContain(`resource: /packages/accord-core/src/stack/${f}.ts`);
+    }
+  });
+
+  it("ASDLC-1/AC-31 stack-config.md rows for require_flag and merge_strategy are current and lists depth.ts as a source", () => {
+    // Needs okf/references/stack-config.md, outside task 42 files[] (see escalation).
+    const text = read("okf/references/stack-config.md");
+    const row = text.split("\n").find((l) => /^\|\s*`require_flag`/.test(l)) ?? "";
+    expect(row).not.toMatch(/not yet read|planned for trunk-hardening/i);
+    expect(row).toMatch(/stack submit|dev_stack_submit/);
+    expect(row).toMatch(/missing_flag|premature_enable|missing_enable/);
+    const mergeRow = text.split("\n").find((l) => /^\|\s*`merge_strategy`/.test(l)) ?? "";
+    expect(mergeRow).not.toMatch(/planned for trunk-hardening/);
+    expect(text).toContain("resource: /packages/accord-core/src/stack/depth.ts");
+  });
+
+  it("ASDLC-1/AC-31 artifacts-and-state.md trace.json row records est_lines, act_prod_lines and act_test_lines", () => {
+    // Needs okf/references/artifacts-and-state.md, outside task 42 files[] (see escalation).
+    const row =
+      read("okf/references/artifacts-and-state.md")
+        .split("\n")
+        .find((l) => l.includes("trace.json")) ?? "";
+    expect(row).toContain("est_lines");
+    expect(row).toContain("act_prod_lines");
+    expect(row).toContain("act_test_lines");
+  });
+
+  it("ASDLC-1/AC-31 answer-decisions.md lists the overrun decision with its two options", () => {
+    const all = lines("okf/playbooks/answer-decisions.md");
+    const text = all.join("\n");
+    expect(text).toContain("overrun-task-<N>");
+    expect(all.some((l) => l.includes("/dev amend-spec") && l.includes("--replan"))).toBe(true);
+    const answerLines = all.filter((l) => /answer \S+ overrun-task-(?:<N>|\d+)/.test(l));
+    expect(answerLines.length).toBeGreaterThanOrEqual(2);
+    expect(answerLines.some((l) => /"accept[^"]*"/i.test(l))).toBe(true);
+    expect(text).toContain("resource: /packages/accord-core/src/stack/overrun.ts");
+    expect(all.some((l) => l === "# Trigger")).toBe(true);
+    expect(all.some((l) => l === "# Bypass")).toBe(true);
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated trunk-hardening entry naming the updated concepts", () => {
+    // The earlier tree-state bullet must stay untouched (append, not edit).
+    expect(datedBullets()).toContainEqual({
+      date: "2026-11-02",
+      text: "* **Update**: ASDLC-1 tree-state: [Artifacts and state](/references/artifacts-and-state.md) (`state/task-<N>/`, `evidence/closeout.json`, closeout order, resume from a fresh clone), [Evidence stack](/architecture/evidence-stack.md) (state persistence, redaction, size cap, `src/state/` sources) and [Stack configuration](/references/stack-config.md) (`state.redact`, `state.max_bytes`, `state.persist`) now describe the implemented tree state.",
+    });
+    const matching = datedBullets().filter(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1") &&
+        bullet.text.includes("trunk-hardening") &&
+        !bullet.text.includes("tree-state") &&
+        !bullet.text.includes("stack-compute") &&
+        bullet.text.includes("/architecture/evidence-stack.md") &&
+        bullet.text.includes("/references/orchestration-policy.md") &&
+        bullet.text.includes("/playbooks/answer-decisions.md") &&
+        bullet.text.includes("/references/stack-config.md") &&
+        bullet.text.includes("/references/artifacts-and-state.md") &&
         new Date(`${bullet.date}T00:00:00Z`).toISOString().slice(0, 10) === bullet.date,
     );
     expect(matching.length).toBeGreaterThanOrEqual(1);

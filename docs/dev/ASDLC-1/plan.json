@@ -1865,6 +1865,14 @@
         {
           "path": "okf/log.md",
           "action": "modify"
+        },
+        {
+          "path": "okf/references/stack-config.md",
+          "action": "modify"
+        },
+        {
+          "path": "okf/references/artifacts-and-state.md",
+          "action": "modify"
         }
       ],
       "steps": [

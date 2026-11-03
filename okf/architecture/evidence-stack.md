@@ -15,6 +15,12 @@ sources:
   - id: merge-bottom-up
     resource: /packages/accord-core/src/stack/merge-bottom-up.ts
     title: advanceStack
+  - id: stack-depth
+    resource: /packages/accord-core/src/stack/depth.ts
+    title: Depth cap and flag validation
+  - id: stack-overrun
+    resource: /packages/accord-core/src/stack/overrun.ts
+    title: Overrun check after GREEN
   - id: plan
     resource: /docs/plans/evidence-stack-plan.md
     title: Evidence stack plan
@@ -50,7 +56,7 @@ sources:
     title: Closeout marker and state removal
 ---
 
-**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The contract lock (PR0, lock file, tag, lock guard and contract-amend) and the `review-security` gate are also implemented. Tree state is implemented: redacted task state under `docs/dev/<ID>/state/`, resume from a fresh clone, and the closeout marker. PR stack compute is implemented: `computeStack`, the `StackProvider` port with the `gh` provider, and the `dev_stack*` tools and `accord stack`. The other features stay proposed. Without `stack.enabled`, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
+**Partly implemented.** `stack.commits: phase` is implemented: the orchestrator makes one typed commit per phase, the commit guard checks it, and `accord evidence` prints the timeline. The final `evidence(task-<N>)` commit writes the evidence asset `docs/dev/<ID>/evidence/task-<N>.{md,json}`. The contract lock (PR0, lock file, tag, lock guard and contract-amend) and the `review-security` gate are also implemented. Tree state is implemented: redacted task state under `docs/dev/<ID>/state/`, resume from a fresh clone, and the closeout marker. PR stack compute is implemented: `computeStack`, the `StackProvider` port with the `gh` provider, and the `dev_stack*` tools and `accord stack`. Trunk-hardening is implemented: the open-PR depth cap, the flag rules, bottom-up merge with retarget to `main`, and the overrun decision after GREEN. The other features stay proposed. Without `stack.enabled`, a work item is one branch and one PR with one commit per `done` task ([Orchestration policy](/references/orchestration-policy.md)). Red/green runs and review rounds live in `.tasks/`, not in git. Full plan: [`docs/plans/evidence-stack-plan.md`](../../docs/plans/evidence-stack-plan.md).
 
 # Shape
 
@@ -94,7 +100,7 @@ State and typed commits do not survive a squash merge; the evidence asset and th
 
 # Sizing
 
-`computeStack` is pure and deterministic. It reads `max_pr_lines`, `min_pr_lines`, `max_files`, `max_depth` and `merge_small_same_concern`. The `split_on` boundaries (package, concern, refactor, interface) are planned, not yet read; `overrun_factor` is planned for trunk-hardening. **Flag** a task for re-plan on size, file count, package, concern, refactor-vs-behaviour, or interface-vs-consumer; the harness never splits, the plan agent re-plans it as smaller integer-id tasks. **Merge** small same-concern neighbours (`evidence(task-<N>,<M>)`). Tasks are planned independent, so PRs branch from `main`; `max_depth` caps open PRs in a `depends_on` chain. Topological order on `depends_on`. Green-and-unreachable beats the size budget. `N_PRs = 2 + packed task groups`. After GREEN the harness measures actual lines and raises a decision when it exceeds `overrun_factor` × estimate. The human approves the stack table in PR0. Keys: [Stack configuration](/references/stack-config.md).
+`computeStack` is pure and deterministic. It reads `max_pr_lines`, `min_pr_lines`, `max_files`, `max_depth` and `merge_small_same_concern`. The `split_on` boundaries (package, concern, refactor, interface) are planned, not yet read. **Flag** a task for re-plan on size, file count, package, concern, refactor-vs-behaviour, or interface-vs-consumer; the harness never splits, the plan agent re-plans it as smaller integer-id tasks. **Merge** small same-concern neighbours (`evidence(task-<N>,<M>)`). Tasks are planned independent, so PRs branch from `main`; `max_depth` caps open PRs in a `depends_on` chain. Topological order on `depends_on`. Green-and-unreachable beats the size budget. `N_PRs = 2 + packed task groups`. `overrun_factor` is read by `checkOverrun` after GREEN: see Trunk hardening. The human approves the stack table in PR0. Keys: [Stack configuration](/references/stack-config.md).
 
 # Reviewer surface
 
@@ -105,6 +111,12 @@ One generated stack map comment and one generated PR brief per PR. Three lenses:
 * **Change record** — `docs/dev/<ID>/` stays: ticket-keyed, immutable after merge (brief, spec, plan, contract lock, `evidence/`, verify, trace).
 * **Feature knowledge** — `<knowledge.root>/<slug>.md` (default `docs/features/`) plus generated `index.md` / `index.json`. Feature-keyed, living, updated only by closeout PRs. OKF-style frontmatter with stable feature-scoped `acs`, code and interface `anchors`, `depends_on`, `related`, `supersedes`, and `changes[]` linking work items, PRs, evidence, and contract sha.
 * **Cross-referencing** — `spec.json` `features[]` (relation and AC delta). Impact analysis at align/spec (anchor overlap, dependency traversal, index search) lands as an "Impacted features" table in PR0. Each `spec.json` AC may carry an optional `feature` slug; closeout maps `<ID>/AC-<n>` to the feature AC id and the feature doc lists the tests. Outside the spec every AC reference is work-item-qualified (`<ID>/AC-<n>`). Review agents receive impacted features as invariants. `validate:features` and a CI drift check keep docs true. Config: [Knowledge configuration](/references/knowledge-config.md). Plan sections 3.2c and 3.2d.
+
+# Trunk hardening
+
+* **Depth cap** — `max_depth` caps open PRs in a `depends_on` chain. `openablePrs` (`stack/depth.ts`) lists the PRs that may open; `stack submit` (`dev_stack_submit`) opens only those. The next PR opens when its base merges.
+* **Flags** — `require_flag` (default `true`) makes `stack submit` check the plan with `validateFlags`. Each violation has a `kind` of `missing_flag` (a non-final task leaves the feature reachable), `premature_enable` (a non-final task enables it) or `missing_enable` (the final task does not enable it).
+* **Overrun** — after GREEN, `checkOverrun` (`stack/overrun.ts`) measures the net production and test lines of the task. It records `est_lines`, `act_prod_lines` and `act_test_lines` in `trace.json` and the evidence asset. If the total is more than `overrun_factor` × `est_lines`, it emits `stack.overrun.detected` and raises the pending decision `overrun-task-<N>`. The human chooses to re-plan through contract-amend (`--replan`) or to accept with a reason ([Answer pending decisions](/playbooks/answer-decisions.md)).
 
 # Bottom-up merge
 

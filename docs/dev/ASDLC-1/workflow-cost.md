@@ -1,11 +1,11 @@
 # Workflow cost: ASDLC-1
 
-- Generated: 2026-11-02T22:34:24.961Z
+- Generated: 2026-11-03T14:30:41.806Z
 - Source: `.tasks/ASDLC-1-usage.jsonl`
-- Calls: **351**
-- Input tokens: **1,725,278** (+ cache read **122,634,430**, cache write **14,571,493**)
-- Output tokens: **3,277,645**
-- Estimated cost (USD): **$120.6498**
+- Calls: **360**
+- Input tokens: **1,725,526** (+ cache read **128,937,209**, cache write **15,130,577**)
+- Output tokens: **3,376,148**
+- Estimated cost (USD): **$125.0484**
 - ⚠ 46 call(s) reported no usage — counted, tokens/cost unknown
 
 ## By scope and agent
@@ -218,6 +218,11 @@
 | Task 41 | phase-verify-task | 4 | 28 | 183,194 | 130,883 | 7,140 | $0.4170 |
 | Task 41 | review-code | 4 | 106 | 3,032,328 | 300,546 | 75,781 | $1.8126 |
 | Task 41 | review-test | 5 | 106 | 2,426,044 | 407,972 | 105,131 | $4.6281 |
-| **Total** | | **351** | **1,725,278** | **122,634,430** | **14,571,493** | **3,277,645** | **$120.6498** |
+| Task 42 | phase-code | 1 | 28 | 612,621 | 64,487 | 9,163 | $0.3142 |
+| Task 42 | phase-test | 4 | 52 | 728,818 | 194,642 | 18,429 | $0.7439 |
+| Task 42 | phase-verify-task | 1 | 8 | 51,775 | 27,446 | 1,479 | $0.0886 |
+| Task 42 | review-code | 1 | 38 | 1,117,261 | 86,472 | 15,383 | $0.4818 |
+| Task 42 | review-test | 2 | 122 | 3,792,304 | 186,037 | 54,049 | $2.7701 |
+| **Total** | | **360** | **1,725,526** | **128,937,209** | **15,130,577** | **3,376,148** | **$125.0484** |
 
 Pricing is estimated from model rates in the harness config; see `.tasks/<ID>-usage.jsonl` for per-call detail.

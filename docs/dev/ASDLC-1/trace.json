@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-02T22:34:24.666Z",
+  "generated_at": "2026-11-03T14:30:41.415Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -41,6 +41,38 @@
       "status": "resolved",
       "question": "Two tests in stack-cli.test.ts (`stack sync` and `stack submit`) cannot pass: cliIn spawns the CLI with a stale PATH. Fix the test?",
       "answer": "Test bug fixed by hand: cliIn now passes the live process.env.PATH so the fake gh is found. 19/19 pass in stack-cli.test.ts; proceed.",
+      "phase": "implementing"
+    },
+    {
+      "id": "phase-test-stuck-1",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Task 42 files[] omits okf/references/stack-config.md and okf/references/artifacts-and-state.md. Both are affected by trunk-hardening, and AC-31 requires updating the affected okf/ concepts. Can the plan add both to task 42's files[]? The tests already assert their updates.",
+      "answer": "Yes. Edit okf/references/stack-config.md and okf/references/artifacts-and-state.md as part of task 42 (AC-31). Recorded as a scope deviation; plan.json is unchanged.",
+      "phase": "implementing"
+    },
+    {
+      "id": "phase-test-stuck-2",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Task 42 files[] lacks okf/references/stack-config.md and okf/references/artifacts-and-state.md, but AC-31 ('update the affected okf/ concepts') requires updating both for trunk-hardening. Add them to task 42 files[]?",
+      "answer": "Yes: added okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[] in plan.json (modify). Proceed.",
+      "phase": "implementing"
+    },
+    {
+      "id": "esc-ASDLC-1-42-T2/phase-test#0",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Add okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[] so phase-code may edit them.",
+      "answer": "Done: both files added to task 42 files[] in plan.json. Proceed.",
+      "phase": "implementing"
+    },
+    {
+      "id": "esc-ASDLC-1-42-T2/phase-test.2#0",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Add okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[]?",
+      "answer": "Done: both files added to task 42 files[] in plan.json. Proceed.",
       "phase": "implementing"
     }
   ],
@@ -223,73 +255,73 @@
       "task_id": 31,
       "description": "Tests require edits outside task.files[]: packages/accord-cli/src/commands/index.ts (export runStackCommand), packages/accord-cli/src/ui/command-catalog.ts (help lists stack), okf/log.md (dated bullet).",
       "reason": "Needed to satisfy AC-11 (help and routing), AC-28 (adapter export) and AC-31 (log entry).",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 31,
       "description": "Added the stack entry to packages/accord-cli/src/ui/command-catalog.ts",
       "reason": "Needed for `accord --help` to list stack (AC-11 help test); the file is not in task.files[]",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 35,
       "description": "Pinned restoreStateFromTree(id, cwd?) -> Result<{restored, task_ids}> and next ref = allocateRef(task, nextAgent); spec leaves both open.",
       "reason": "Spec gives no signature or next-ref definition; tests need a concrete public contract.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 35,
       "description": "No test for artifact-discovery.ts 'skip state/' step.",
       "reason": "Artifact lookup is by fixed file name under docs/dev/<ID>/, so it has no observable behaviour for state/; the e2e resume covers it indirectly.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 36,
       "description": "Closeout commit returns full HEAD sha (not short) when stack.enabled",
       "reason": "Test compares result.hash to git rev-parse HEAD",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 38,
       "description": "Added task-38 tests to existing packages/accord-core/tests/docs-validation.test.ts (TC-32 glob) rather than a new file; no stub needed (docs-only task).",
       "reason": "task.files lists only okf docs; TC-32 test_name_glob names this file.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 39,
       "description": "Size persisted in task sidecar size.json instead of task file; trace-artifact reads it",
       "reason": "task-schema.json is additionalProperties:false; avoids widening task file schema",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 39,
       "description": "measureActualLines (evidence/lines.ts) now excludes .tasks/",
       "reason": "Harness state under .tasks/ changes between GREEN checks and inflated counts when not gitignored",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 40,
       "description": "TC-18 squash-merge advance scenarios (add/add resolved by rule, differing conflict raising a decision, rebase/merge-commit bases) are not tested in this task.",
       "reason": "Task 40 files (depth.ts, service.ts) define no merge-advance interface, and the spec names none; these need a later task or a spec-named API.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 40,
       "description": "Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'.",
       "reason": "Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 41,
       "description": "Added no-op retarget to fake providers in stack-branches.test.ts and stack-service.test.ts, and 'retarget' to the port-method list in stack-provider-gh.test.ts",
       "reason": "retarget is now required on StackProvider; without it check:types fails on fixtures outside task.files",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 41,
       "description": "Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error",
       "reason": "F-032 names it as failing check:biome",
-      "resolution": null
+      "resolution": "accepted"
     }
   ],
   "tasks": [
@@ -4331,7 +4363,9 @@
       "id": 41,
       "title": "[trunk-hardening] Bottom-up merge: retarget next PR by merging main",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "d26040c"
+      ],
       "rounds": {
         "T": 5,
         "C": 7,
@@ -4482,33 +4516,86 @@
     {
       "id": 42,
       "title": "[trunk-hardening] OKF docs for depth cap, merge order and overrun",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 19,
+        "by_state": {
+          "verified": 8,
+          "wont_fix_accepted": 1,
+          "open": 10
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/docs-validation.test.ts: 38 pass, 4 fail. Failing: (fail) ASDLC-1/AC-31 trunk-hardening docs (task 42) > evidence-stack.md describes the trunk-hardening stack: depth cap, require_flag, bottom-up merge, overrun; > orchestration-policy.md documents max_depth, require_flag, bottom-up merge with merge-main retarget, and the overrun decision; > answer-decisions.md lists the overrun decision with its two options (Expected to contain: \"overrun-task-<N>\"); > okf/log.md has a dated trunk-hardening entry naming the updated concepts (Expected: >= 1, Received: 0)",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "docs-validation.test.ts: 44 pass, 0 fail (428 ms)\nvalidate:okf: okf validation passed (38 files)\nvalidate:ste: ste lint passed\ncheck:biome (repo-wide): exit 1, sole offender docs/dev/ASDLC-1/trace.json (format)\nbiome check on okf/ and the test file: clean\nPreflight: validate:schemas, validate:assets, check:types, check:bundle and check:runtime pass; the full bun test run timed out at 120s with no failure shown",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/docs-validation.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "okf/architecture/evidence-stack.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/orchestration-policy.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/playbooks/answer-decisions.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/stack-config.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/artifacts-and-state.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/docs-validation.test.ts; bun run validate:okf; bun run validate:ste; bun run check:biome"
+          }
         }
       ]
     },
@@ -6109,7 +6196,7 @@
         },
         {
           "task": 42,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 44,
@@ -6169,7 +6256,8 @@
         "okf/references/schemas.md",
         "packages/accord-cli/tests/stack-cli.test.ts",
         "okf/architecture/tool-surface.md",
-        "packages/accord-ci/tests/evidence-check.test.ts"
+        "packages/accord-ci/tests/evidence-check.test.ts",
+        "okf/playbooks/answer-decisions.md"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -6214,7 +6302,9 @@
         "bun test packages/accord-core/tests/docs-validation.test.ts (38 pass, 0 fail)",
         "bun run validate:okf (38 files passed)",
         "bun run validate:ste (passed)",
-        "bunx biome check okf packages/accord-core/tests/docs-validation.test.ts (clean)"
+        "bunx biome check okf packages/accord-core/tests/docs-validation.test.ts (clean)",
+        "docs-validation.test.ts › ASDLC-1/AC-31 trunk-hardening docs (task 42) (6 tests)",
+        "bunx biome check okf packages/accord-core/tests/docs-validation.test.ts"
       ],
       "verified": false
     }
@@ -10925,6 +11015,154 @@
       "file": "okf/log.md",
       "line": 3,
       "raised": "C7/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-009",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The plan step asks for ASD-STE100 in the playbook, but answer-decisions.md has no `style: ste` frontmatter, so validate:ste (scripts/validate-ste.ts:107) skips it. The TC-32 runner therefore checks no STE rule for the new procedure text. AC-31 itself only requires STE for files marked style: ste.",
+      "file": "okf/playbooks/answer-decisions.md",
+      "line": 1,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "AC-31 requires STE only for files marked style: ste. Adding the marker to answer-decisions.md is a plan-owner decision outside phase-test scope."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The answerLines check accepts two 'accept' lines, one Pi and one headless, following the playbook's existing two-form pattern. A playbook that gives re-plan only as '/dev amend-spec … --replan' and never tells the reader to answer overrun-task-<N> passes. That reader stays blocked by the pending-decisions gate.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 632,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Round-1 miss. Trunk-hardening adds a second decision type, `bottom-up-pr-<N>` (source escalation), when advanceStack cannot resolve a merge conflict. No test requires answer-decisions.md or orchestration-policy.md to name it or say how to resolve it, so an affected concept can stay silent.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 627,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The overrun line test does not pin the trigger or the enable gate. A doc that says 'raises overrun-task-<N> when actual lines exceed est_lines' (no factor) and omits stack.enabled passes, because stack.sizing.overrun_factor and stack.enabled may appear on any other line.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 589,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The negative regexes match substrings, so correct wording fails. 'the task is re-planned or accepted' matches `planned`. A period inside a value such as 'default `1.5`' stops `[^.]*` before checkOverrun. Phase-code cannot edit the tests and would loop back through phase-test.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 421,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Stale comments at lines 605 and 617 say stack-config.md and artifacts-and-state.md are 'outside task 42 files[] (see escalation)'. The plan now lists both files in task 42.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 605,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`require_flag` is documented with default `true`, but the harness treats an unset key as off.",
+      "file": "okf/references/stack-config.md",
+      "line": 54,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Docs present bottom-up merge as implemented and running, but `advanceStack` has no production caller or entry point.",
+      "file": "okf/architecture/evidence-stack.md",
+      "line": 123,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The re-plan option does not say to answer `overrun-task-<N>`, so resume stays blocked after `amend-spec --replan`.",
+      "file": "okf/playbooks/answer-decisions.md",
+      "line": 68,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The intro says `computeStack` reads `max_depth`, `overrun_factor` and `split_on`, which is false and contradicts the table in the same file.",
+      "file": "okf/references/stack-config.md",
+      "line": 29,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 42,
+      "requirement": "AC-31",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The intro says all keys live under `orchestration`, but the new 'Stack trunk hardening' section documents `stack.*` keys, which live elsewhere.",
+      "file": "okf/references/orchestration-policy.md",
+      "line": 32,
+      "raised": "C1/review-code"
     }
   ]
 }

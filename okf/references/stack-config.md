@@ -9,6 +9,9 @@ sources:
   - id: compute-stack
     resource: /packages/accord-core/src/stack/compute-stack.ts
     title: computeStack (reads the sizing keys)
+  - id: stack-depth
+    resource: /packages/accord-core/src/stack/depth.ts
+    title: Depth cap and flag validation (require_flag)
   - id: review-security
     resource: /packages/accord-core/src/orchestration/post-result/review-security.ts
     title: review-security post-result handler (security gate)
@@ -32,7 +35,7 @@ sources:
 | `enabled` | `false` | Turn the evidence stack on. Off = one branch, one PR |
 | `provider` | `gh` | `git`, `gh`, `graphite`, or `spr`: branch, restack, retarget, submit. Only `gh` is implemented |
 | `commits` | `task` | `task` = one commit per done task. `phase` = (format: [Commit message format](/references/commit-format.md)) one orchestrator-made commit per phase completion (phase-test, review-test, phase-code, review-code, review-security, phase-verify-task) with loop and round trailers, plus `state` and the final `evidence` |
-| `merge_strategy` | `rebase` | Not yet read (planned for trunk-hardening). `rebase`, `merge`, or `squash`. Squash is safe when `evidence.asset` is `true` (the asset keeps the evidence) |
+| `merge_strategy` | `rebase` | Not yet read (planned for a later version); bottom-up merge always merges `main` into the child branch. `rebase`, `merge`, or `squash`. Squash is safe when `evidence.asset` is `true` (the asset keeps the evidence) |
 | `evidence.asset` | `true` | Final commit of each task PR (`evidence(task-<N>)`) writes `docs/dev/<ID>/evidence/task-<N>.{md,json}` |
 | `state.persist` | `tree` | `tree` = commit task state under `state.path` per typed commit; the final `evidence(task-<N>)` commit deletes it and closeout removes the rest. A fresh clone resumes from it. `notes` = git notes under `refs/notes/accord/<ID>`. `none` = local `.tasks/` only |
 | `state.path` | `docs/dev/{id}/state` | Directory template for committed state (`<path>/task-<N>/`). Visible beside the other artifacts; must not be gitignored. Deleted at `evidence(task-<N>)` and closeout |
@@ -48,7 +51,7 @@ sources:
 | `sizing.merge_small_same_concern` | `true` | Merge adjacent same-concern tasks that fit the budget |
 | `contract.lock` | `true` | Write `contract.lock.json`; guard locked files |
 | `contract.tag` | `true` | Tag the contract commit `accord/<ID>/contract` |
-| `require_flag` | `true` | Not yet read (planned for trunk-hardening). Non-final tasks leave the feature unreachable; the last task enables it |
+| `require_flag` | `true` | Read by `stack submit` (`dev_stack_submit`). Non-final tasks leave the feature unreachable; the last task enables it. A violation is `missing_flag`, `premature_enable` or `missing_enable` |
 
 ```json
 "stack": {

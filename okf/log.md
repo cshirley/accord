@@ -90,3 +90,7 @@
 ## 2026-11-02
 
 * **Update**: ASDLC-1 tree-state: [Artifacts and state](/references/artifacts-and-state.md) (`state/task-<N>/`, `evidence/closeout.json`, closeout order, resume from a fresh clone), [Evidence stack](/architecture/evidence-stack.md) (state persistence, redaction, size cap, `src/state/` sources) and [Stack configuration](/references/stack-config.md) (`state.redact`, `state.max_bytes`, `state.persist`) now describe the implemented tree state.
+
+## 2026-11-03
+
+* **Update**: ASDLC-1 trunk-hardening: [Evidence stack](/architecture/evidence-stack.md) (depth cap, `require_flag`, overrun, bottom-up merge), [Orchestration policy](/references/orchestration-policy.md) (`stack.sizing.max_depth`, `stack.require_flag`, overrun and merge order), [Answer pending decisions](/playbooks/answer-decisions.md) (`overrun-task-<N>` options), [Stack configuration](/references/stack-config.md) (`require_flag`, `merge_strategy`) and [Artifacts and state](/references/artifacts-and-state.md) (`trace.json` size fields) now describe the implemented trunk-hardening.
