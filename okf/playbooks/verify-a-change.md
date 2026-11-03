@@ -12,6 +12,9 @@ sources:
   - id: scripts
     resource: /package.json
     title: Root scripts (check, validate:*, check:*)
+  - id: validate-features
+    resource: /scripts/validate-features.ts
+    title: validate:features CLI
   - id: biome
     resource: /biome.json
     title: Biome config
@@ -39,6 +42,7 @@ Or individually (matches `verification_commands`):
 | `bun run validate:assets` | Agents ↔ registry ↔ schemas ↔ providers; skills ↔ `pi.skills` |
 | `bun run validate:okf` | This bundle: frontmatter, `sources` paths, links, index reachability |
 | `bun run validate:ste` | Prose marked `style: ste` follows the STE subset ([Write in STE](/playbooks/write-in-ste.md)) |
+| `bun run validate:features` | Feature docs under `knowledge.root`: anchors, links, test references, `max_acs_per_feature`; regenerates `index.md` and `index.json` (skipped unless `knowledge.enabled`) |
 | `bun run check:types` | `tsc --noEmit` |
 | `bun run check:bundle` | Bundle smoke build of `pi-accord` |
 | `bun run check:runtime` | Runtime smoke script |

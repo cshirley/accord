@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-03T15:27:54.517Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-03T17:32:46.980Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -49,8 +49,8 @@
 | 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | `e2aa296` | 2/1/1 | 19 (verified 11, open 8) | 0 |
 | 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | `d26040c` | 5/7/4 | 43 (verified 31, wont_fix_accepted 3, dispute_upheld 1, open 8) | 0 |
 | 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | `103c838` | 2/1/1 | 19 (verified 8, wont_fix_accepted 1, open 10) | 0 |
-| 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | — | 2/1/1 | 24 (verified 12, reraised 1, open 11) | 0 |
-| 44 | [feature-knowledge] validate:features script and Dev Harness entry | pending | — | 0/0/0 | 0 | 0 |
+| 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | `9b82742` | 2/1/1 | 24 (verified 12, reraised 1, open 11) | 0 |
+| 44 | [feature-knowledge] validate:features script and Dev Harness entry | done | — | 3/5/4 | 23 (verified 18, wont_fix_accepted 4, wont_fix_proposed 1) | 0 |
 | 45 | [feature-knowledge] spec features[] and PR0 impact analysis | pending | — | 0/0/0 | 0 | 0 |
 | 46 | [feature-knowledge] Closeout feature-doc update and drift check | pending | — | 0/0/0 | 0 | 0 |
 | 47 | [feature-knowledge] Review invariants and CI drift rule | pending | — | 0/0/0 | 0 | 0 |
@@ -360,15 +360,18 @@
   - bun run check:types
   - bun run check:bundle
 
-### AC-18 — pending (not verified)
+### AC-18 — satisfied
 
 > Then index.md and index.json are regenerated, links, anchors and test references resolve, every feature AC has a test, and a feature above max_acs_per_feature is reported
 
-- Tasks: 43 (satisfied), 44 (pending)
-- Files: `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/tests/fixtures/features/`, `packages/accord-core/src/knowledge/feature-doc.ts`, `packages/accord-core/src/knowledge/index-gen.ts`, `packages/accord-core/schemas/feature-schema.json`
-- Tests verified (2):
+- Tasks: 43 (satisfied), 44 (satisfied)
+- Files: `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/tests/fixtures/features/`, `packages/accord-core/src/knowledge/feature-doc.ts`, `packages/accord-core/src/knowledge/index-gen.ts`, `packages/accord-core/schemas/feature-schema.json`, `packages/accord-core/tests/validate-features-script.test.ts`, `scripts/validate-features.ts`, `package.json`, `AGENTS.md`
+- Tests verified (5):
   - feature-docs.test.ts: all ASDLC-1/AC-18 tests (46 pass, 0 fail)
   - bun run check:types
+  - packages/accord-core/tests/validate-features-script.test.ts (all ASDLC-1/AC-18 cases)
+  - packages/accord-core/tests/feature-docs.test.ts (ASDLC-1/AC-18 link checks)
+  - bun run validate:features
 
 ### AC-19 — pending (not verified)
 
@@ -530,9 +533,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (pending), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`
-- Tests verified (45):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`
+- Tests verified (47):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -578,6 +581,8 @@
   - bunx biome check okf packages/accord-core/tests/docs-validation.test.ts (clean)
   - docs-validation.test.ts › ASDLC-1/AC-31 trunk-hardening docs (task 42) (6 tests)
   - bunx biome check okf packages/accord-core/tests/docs-validation.test.ts
+  - ASDLC-1/AC-31 verify-a-change.md documents validate:features
+  - ASDLC-1/AC-31 okf/log.md appends a dated feature-knowledge entry naming validate:features
 
 ## Accepted risks and unresolved findings
 
@@ -950,6 +955,11 @@
 | 43 | AC-18 | F-023 | unresolved (advisory) | open | suggestion | The error sort uses locale-dependent localeCompare, unlike the code-unit sort in loadFeatureDocs. | packages/accord-core/src/knowledge/feature-doc.ts:206 |  |
 | 43 | AC-18 | F-024 | unresolved (advisory) | open | suggestion | The default root literal is duplicated. Test files are re-read once per reference. | packages/accord-core/src/knowledge/index-gen.ts:18 |  |
 | 43 | AC-30 | F-016 | unresolved (advisory) | open | suggestion | Mutation arrows use assignment expressions as bodies (`(f) => (f.status = "live")`, lines 541, 542 and 545). Biome's recommended suspicious/noAssignInExpressions can flag these. The verify step runs `bun run check:biome`, and a failure respawns phase-test. | packages/accord-core/tests/feature-docs.test.ts:541 |  |
+| 44 | AC-18 | F-017 | accepted (advisory) | wont_fix_accepted | suggestion | Pre-existing (task 43). Feature docs with invalid YAML or no `id` are skipped without an error, so the validator and index ignore them and the script exits 0. | packages/accord-core/src/knowledge/feature-doc.ts:121 | wont_fix_accepted by C2/review-code — Pre-existing task 43 behaviour in feature-doc.ts, outside this task's files; suggestion severity only. Track a malformed-doc validation code as a follow-up. |
+| 44 | AC-18 | F-020 | unresolved (advisory) | wont_fix_proposed | suggestion | A01 — Broken Access Control: the knowledge.root check is lexical only. A symlink at knowledge.root, or at index.md or index.json under it, lets generateFeatureIndex write the generated index outside the repo. | scripts/validate-features.ts:35 | wont_fix by C5/phase-code — Advisory hardening (symlink/realpath containment); out of AC-18 scope, deferred to a shared knowledge-module guard. |
+| 44 | AC-18 | F-022 | accepted (advisory) | wont_fix_accepted | suggestion | A feature doc that fails to parse (no frontmatter, invalid YAML, or missing `id`) is silently dropped, so validate:features exits 0 and the doc is checked by nothing and left out of the index. | packages/accord-core/src/knowledge/feature-doc.ts:126 | wont_fix_accepted by C5/review-code — Advisory, and the fix is in knowledge/feature-doc.ts, outside task 44's files. Not a regression from this diff. Worth a follow-up in the knowledge module. |
+| 44 | AC-18 | F-023 | accepted (advisory) | wont_fix_accepted | suggestion | The validator rewrites index.md and index.json unconditionally and never fails when the committed index is stale, so CI cannot catch an index that was not regenerated. | scripts/validate-features.ts:65 | wont_fix_accepted by C5/review-code — Optional; AC-18 requires only regeneration. A --check flag or CI drift check belongs to the later drift-check task. |
+| 44 | AC-31 | F-009 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 enforcement (validate:okf, validate:ste, check:biome) for this task's files is not exercised by this file. docs-validation.test.ts runs validate:okf/ste over the whole bundle, but its biome step covers only task-17/32 files. | packages/accord-core/tests/validate-features-script.test.ts:92 | wont_fix_accepted by T2/review-test — The enforcement half of AC-31 (validate:okf, validate:ste, check:biome) is verify-category. phase-verify-task should run `bun run validate:features && bun run validate:okf && bun run validate:ste && bun run check:biome && bun test`, per the plan's verify step. |
 
 ## Decisions
 
@@ -1005,6 +1015,8 @@
 - Task 40 (accepted): Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'. — Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.
 - Task 41 (accepted): Added no-op retarget to fake providers in stack-branches.test.ts and stack-service.test.ts, and 'retarget' to the port-method list in stack-provider-gh.test.ts — retarget is now required on StackProvider; without it check:types fails on fixtures outside task.files
 - Task 41 (accepted): Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error — F-032 names it as failing check:biome
+- Task 44 (pending): Added test file packages/accord-core/tests/validate-features-script.test.ts (not in task.files); CLI --root semantics: dir containing docs/features is a repo, else each child dir with docs/features is validated and errors aggregated. — Spec step passes --root to the fixtures parent dir, whose children are the per-case repos.
+- Task 44 (pending): Tests pass without new impl: scripts/validate-features.ts already implemented in earlier rounds. — Retry round after impl; only test hardening and lint fix were needed.
 
 ## Evidence by task
 
@@ -1823,6 +1835,27 @@ full bun test: timed out at 120s in preflight, no failures shown
 ```
 
 ### Task 44: [feature-knowledge] validate:features script and Dev Harness entry
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-18 validate:features CLI > exits non-zero over the defect fixtures and names each defect — error: not implemented: validate-features
+(fail) ... exits 0 on the valid fixture and regenerates index.md and index.json
+(fail) ... reports a single-defect fixture with only that defect
+(fail) ... on this repo (no knowledge.root configured) exits 0 and creates no docs/features
+(fail) ... package.json has validate:features and check runs it
+(fail) ... AGENTS.md Dev Harness lists validate:features in lint and verification_commands (Received lint without validate:features)
+(fail) ASDLC-1/AC-31 verify-a-change.md documents validate:features
+(fail) ASDLC-1/AC-31 okf/log.md has a dated entry naming ASDLC-1 and validate:features
+ 0 pass
+ 8 fail
+```
+
+Final verification (`V4/phase-verify-task`):
+
+```text
+task tests: 65 pass 0 fail; validate:features/validate:okf/validate:ste/check:biome exit 0; preflight validate:schemas, validate:assets, check:types, check:bundle, check:runtime exit 0. Full `bun test` timed out (120s preflight, 900s rerun); no failure attributable to task 44 seen. One `(fail)` in contract-pr0.test.ts was a SIGTERM from my timeout killing git. An earlier AC-12 writeStateSnapshot `(fail)` was not rerun in isolation.
+```
 
 ### Task 45: [feature-knowledge] spec features[] and PR0 impact analysis
 
