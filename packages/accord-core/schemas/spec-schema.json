@@ -117,6 +117,20 @@
         ]
       }
     },
+    "features": {
+      "type": "array",
+      "description": "Impacted features from PR0 impact analysis (knowledge.enabled).",
+      "items": {
+        "type": "object",
+        "required": ["slug", "relation", "delta"],
+        "additionalProperties": false,
+        "properties": {
+          "slug": { "type": "string", "minLength": 1 },
+          "relation": { "enum": ["new", "extends", "modifies", "deprecates", "depends_on"] },
+          "delta": { "type": "string" }
+        }
+      }
+    },
     "scope": {
       "type": "object",
       "required": ["in", "out"],

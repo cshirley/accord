@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-03T17:32:46.980Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-03T18:20:20.785Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -50,8 +50,8 @@
 | 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | `d26040c` | 5/7/4 | 43 (verified 31, wont_fix_accepted 3, dispute_upheld 1, open 8) | 0 |
 | 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | `103c838` | 2/1/1 | 19 (verified 8, wont_fix_accepted 1, open 10) | 0 |
 | 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | `9b82742` | 2/1/1 | 24 (verified 12, reraised 1, open 11) | 0 |
-| 44 | [feature-knowledge] validate:features script and Dev Harness entry | done | — | 3/5/4 | 23 (verified 18, wont_fix_accepted 4, wont_fix_proposed 1) | 0 |
-| 45 | [feature-knowledge] spec features[] and PR0 impact analysis | pending | — | 0/0/0 | 0 | 0 |
+| 44 | [feature-knowledge] validate:features script and Dev Harness entry | done | `2349b1d` | 3/5/4 | 23 (verified 18, wont_fix_accepted 4, wont_fix_proposed 1) | 0 |
+| 45 | [feature-knowledge] spec features[] and PR0 impact analysis | done | — | 2/1/1 | 24 (verified 13, dispute_upheld 1, open 10) | 0 |
 | 46 | [feature-knowledge] Closeout feature-doc update and drift check | pending | — | 0/0/0 | 0 | 0 |
 | 47 | [feature-knowledge] Review invariants and CI drift rule | pending | — | 0/0/0 | 0 | 0 |
 | 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | pending | — | 0/0/0 | 0 | 0 |
@@ -373,11 +373,16 @@
   - packages/accord-core/tests/feature-docs.test.ts (ASDLC-1/AC-18 link checks)
   - bun run validate:features
 
-### AC-19 — pending (not verified)
+### AC-19 — satisfied
 
 > Then an Impacted features table lists the feature with its relation (new, extends, modifies, deprecates, depends_on), depends_on and related traversal is included, and overlaps or contradicting ACs become decisions[]
 
-- Tasks: 45 (pending)
+- Tasks: 45 (satisfied)
+- Files: `packages/accord-core/tests/feature-impact.test.ts`, `packages/accord-core/src/knowledge/impact.ts`, `packages/accord-core/schemas/spec-schema.json`, `packages/accord-core/src/contract/pr0.ts`, `packages/accord-core/src/artifacts/render-spec-markdown.ts`
+- Tests verified (3):
+  - feature-impact.test.ts: ASDLC-1/AC-19 analyseImpact (relations, traversal, overlap/contradiction decisions)
+  - feature-impact.test.ts: ASDLC-1/AC-19 PR0 impact analysis (features[] and table before lock, lock unchanged, decisions[], knowledge disabled)
+  - contract-pr0.test.ts (ASDLC-1/AC-9 suite)
 
 ### AC-20 — pending (not verified)
 
@@ -505,9 +510,9 @@
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (satisfied), 45 (pending), 50 (pending), 51 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/schemas/feature-schema.json`
-- Tests verified (20):
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (satisfied), 45 (satisfied), 50 (pending), 51 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/schemas/feature-schema.json`, `packages/accord-core/tests/feature-impact.test.ts`, `packages/accord-core/schemas/spec-schema.json`
+- Tests verified (22):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
@@ -528,6 +533,8 @@
   - ASDLC-1/AC-30 feature-schema.json declares the OKF frontmatter keys
   - ASDLC-1/AC-30 both valid fixture frontmatters validate
   - ASDLC-1/AC-30 schema rejects the 6 frontmatter mutations
+  - feature-impact.test.ts: ASDLC-1/AC-30 spec schema features[] alignment
+  - bun run validate:assets (preflight exit 0)
 
 ### AC-31 — pending (not verified)
 
@@ -960,6 +967,17 @@
 | 44 | AC-18 | F-022 | accepted (advisory) | wont_fix_accepted | suggestion | A feature doc that fails to parse (no frontmatter, invalid YAML, or missing `id`) is silently dropped, so validate:features exits 0 and the doc is checked by nothing and left out of the index. | packages/accord-core/src/knowledge/feature-doc.ts:126 | wont_fix_accepted by C5/review-code — Advisory, and the fix is in knowledge/feature-doc.ts, outside task 44's files. Not a regression from this diff. Worth a follow-up in the knowledge module. |
 | 44 | AC-18 | F-023 | accepted (advisory) | wont_fix_accepted | suggestion | The validator rewrites index.md and index.json unconditionally and never fails when the committed index is stale, so CI cannot catch an index that was not regenerated. | scripts/validate-features.ts:65 | wont_fix_accepted by C5/review-code — Optional; AC-18 requires only regeneration. A --check flag or CI drift check belongs to the later drift-check task. |
 | 44 | AC-31 | F-009 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 enforcement (validate:okf, validate:ste, check:biome) for this task's files is not exercised by this file. docs-validation.test.ts runs validate:okf/ste over the whole bundle, but its biome step covers only task-17/32 files. | packages/accord-core/tests/validate-features-script.test.ts:92 | wont_fix_accepted by T2/review-test — The enforcement half of AC-31 (validate:okf, validate:ste, check:biome) is verify-category. phase-verify-task should run `bun run validate:features && bun run validate:okf && bun run validate:ste && bun run check:biome && bun test`, per the plan's verify step. |
+| 45 | AC-19 | F-003 | accepted (advisory) | dispute_upheld | warning | Relation `new` is listed in AC-19 but is never produced or asserted. Related features accept any of the 5 relations, so labelling audit-log `modifies` or `deprecates` passes. | packages/accord-core/tests/feature-impact.test.ts:114 | dispute_upheld by T2/review-test — Related row is now pinned to exactly 'depends_on' (that part is met). The 'new' half is upheld: AC-19's Given is anchor intersection, which cannot produce 'new', and spec-schema marks the AC feature slug as PROPOSED/unread. A human must decide when 'new' applies. The schema accepts 'new' (AC-30 it.each). |
+| 45 | AC-19 | F-015 | unresolved (advisory) | open | suggestion | The retry test does not check spec.json features[] after the failed attempt and the retry. A hook that appends rows to the existing features[] (to keep earlier entries) writes each row twice on retry, and the spec.md table repeats them. | packages/accord-core/tests/feature-impact.test.ts:586 |  |
+| 45 | AC-19 | F-016 | unresolved (advisory) | open | suggestion | No test sets knowledge.impact_analysis to false. The key is typed (types.ts:224), is in accord-schema.json:285, and is documented in knowledge-config.md (default true: list impacted features in the contract PR). An impl that ignores it still runs impact analysis when the user turned it off. This was missed in round 1; the code is unchanged. | packages/accord-core/tests/feature-impact.test.ts:515 |  |
+| 45 | AC-19 | F-017 | unresolved (advisory) | open | warning | Impact hook gates only on knowledge.enabled and ignores the typed and documented knowledge.impact_analysis switch. | packages/accord-core/src/contract/pr0.ts:40 |  |
+| 45 | AC-19 | F-018 | unresolved (advisory) | open | suggestion | Config reaches the hook through a module-level mutable `activeConfig`, a shared global side channel. | packages/accord-core/src/contract/pr0.ts:36 |  |
+| 45 | AC-19 | F-019 | unresolved (advisory) | open | suggestion | features[] is replaced wholesale instead of merged, so existing entries are dropped. The `new` relation can never be emitted. | packages/accord-core/src/contract/pr0.ts:54 |  |
+| 45 | AC-19 | F-020 | unresolved (advisory) | open | suggestion | Anchor matching is exact-string only. Directory anchors, which validateFeatures accepts, never match. | packages/accord-core/src/knowledge/impact.ts:55 |  |
+| 45 | AC-19 | F-021 | unresolved (advisory) | open | suggestion | Relation is computed per file and precedence-merged, so one deleted anchored file labels the whole feature `deprecates`. | packages/accord-core/src/knowledge/impact.ts:36 |  |
+| 45 | AC-19 | F-022 | unresolved (advisory) | open | suggestion | Traversal follows `related` edges transitively with no depth limit. | packages/accord-core/src/knowledge/impact.ts:97 |  |
+| 45 | AC-19 | F-023 | unresolved (advisory) | open | suggestion | With knowledge enabled, a missing or unparseable index.json, plan or spec returns silently. The syncSpecMarkdownFromJson Result is ignored. | packages/accord-core/src/contract/pr0.ts:46 |  |
+| 45 | AC-19 | F-024 | unresolved (advisory) | open | suggestion | Appending decisions does not bump the work item's `updated` timestamp. | packages/accord-core/src/contract/pr0.ts:76 |  |
 
 ## Decisions
 
@@ -1017,6 +1035,9 @@
 - Task 41 (accepted): Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error — F-032 names it as failing check:biome
 - Task 44 (pending): Added test file packages/accord-core/tests/validate-features-script.test.ts (not in task.files); CLI --root semantics: dir containing docs/features is a repo, else each child dir with docs/features is validated and errors aggregated. — Spec step passes --root to the fixtures parent dir, whose children are the per-case repos.
 - Task 44 (pending): Tests pass without new impl: scripts/validate-features.ts already implemented in earlier rounds. — Retry round after impl; only test hardening and lint fix were needed.
+- Task 45 (pending): Defined analyseImpact return shape ({rows, decisions}) and 'contradiction' as modifying a deprecated feature's anchor, since the spec leaves both undefined — AC-19 names overlaps and contradicting ACs becoming decisions[] without defining detection; analyseImpact(plan, index) has no spec input
+- Task 45 (pending): AC-30 alignment of spec features[] is covered by schema accept/reject tests here; manifest/registry alignment for this task is enforced by validate:schemas and validate:assets in phase-verify-task — Config/architectural AC enforcement belongs to the verify commands
+- Task 45 (pending): PR0 test requires spec.md with the Impacted features table to be committed in PR0 (F-006) — Reviewer finding F-006; the spec does not say where the table lives, so this is my reading of AC-19. Implementation must add spec.md to PR0's owned list.
 
 ## Evidence by task
 
@@ -1858,6 +1879,18 @@ task tests: 65 pass 0 fail; validate:features/validate:okf/validate:ste/check:bi
 ```
 
 ### Task 45: [feature-knowledge] spec features[] and PR0 impact analysis
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/feature-impact.test.ts: 10 pass, 19 fail. 11 fail with 'error: not implemented: analyseImpact'; 3 PR0 tests fail on assertions (features[] absent from spec.json, decisions length); 5 'AC-30 accepts features[] relation X' fail because spec-schema.json lacks features[]. Passing: knowledge-disabled and no-intersection PR0 regression guards, 7 schema rejection cases (vacuous until features[] added).
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+89 pass, 0 fail (feature-impact + contract-pr0); validate:schemas 30 passed 0 failed; check:types ok; check:biome: only docs/dev/ASDLC-1/trace.json format error (harness-owned, outside task files); task files biome-clean. Preflight full `bun test` timed out at 120s with no failures shown.
+```
 
 ### Task 46: [feature-knowledge] Closeout feature-doc update and drift check
 

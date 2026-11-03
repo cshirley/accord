@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-03T17:32:46.980Z",
+  "generated_at": "2026-11-03T18:20:20.785Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -333,6 +333,24 @@
       "task_id": 44,
       "description": "Tests pass without new impl: scripts/validate-features.ts already implemented in earlier rounds.",
       "reason": "Retry round after impl; only test hardening and lint fix were needed.",
+      "resolution": null
+    },
+    {
+      "task_id": 45,
+      "description": "Defined analyseImpact return shape ({rows, decisions}) and 'contradiction' as modifying a deprecated feature's anchor, since the spec leaves both undefined",
+      "reason": "AC-19 names overlaps and contradicting ACs becoming decisions[] without defining detection; analyseImpact(plan, index) has no spec input",
+      "resolution": null
+    },
+    {
+      "task_id": 45,
+      "description": "AC-30 alignment of spec features[] is covered by schema accept/reject tests here; manifest/registry alignment for this task is enforced by validate:schemas and validate:assets in phase-verify-task",
+      "reason": "Config/architectural AC enforcement belongs to the verify commands",
+      "resolution": null
+    },
+    {
+      "task_id": 45,
+      "description": "PR0 test requires spec.md with the Impacted features table to be committed in PR0 (F-006)",
+      "reason": "Reviewer finding F-006; the spec does not say where the table lives, so this is my reading of AC-19. Implementation must add spec.md to PR0's owned list.",
       "resolution": null
     }
   ],
@@ -4727,7 +4745,9 @@
       "id": 44,
       "title": "[feature-knowledge] validate:features script and Dev Harness entry",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "2349b1d"
+      ],
       "rounds": {
         "T": 3,
         "C": 5,
@@ -4839,39 +4859,103 @@
     {
       "id": 45,
       "title": "[feature-knowledge] spec features[] and PR0 impact analysis",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 24,
+        "by_state": {
+          "verified": 13,
+          "dispute_upheld": 1,
+          "open": 10
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-core/tests/feature-impact.test.ts: 10 pass, 19 fail. 11 fail with 'error: not implemented: analyseImpact'; 3 PR0 tests fail on assertions (features[] absent from spec.json, decisions length); 5 'AC-30 accepts features[] relation X' fail because spec-schema.json lacks features[]. Passing: knowledge-disabled and no-intersection PR0 regression guards, 7 schema rejection cases (vacuous until features[] added).",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "89 pass, 0 fail (feature-impact + contract-pr0); validate:schemas 30 passed 0 failed; check:types ok; check:biome: only docs/dev/ASDLC-1/trace.json format error (harness-owned, outside task files); task files biome-clean. Preflight full `bun test` timed out at 120s with no failures shown.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-19",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/feature-impact.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/knowledge/impact.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/schemas/spec-schema.json",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "packages/accord-core/src/knowledge/impact.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/contract/pr0.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/artifacts/render-spec-markdown.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-core/tests/feature-impact.test.ts packages/accord-core/tests/contract-pr0.test.ts"
+          }
         },
         {
           "id": "AC-30",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/feature-impact.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/schemas/spec-schema.json",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun run validate:schemas && bun run validate:assets"
+          }
         }
       ]
     },
@@ -5904,16 +5988,26 @@
     {
       "ac_id": "AC-19",
       "text": "Then an Impacted features table lists the feature with its relation (new, extends, modifies, deprecates, depends_on), depends_on and related traversal is included, and overlaps or contradicting ACs become decisions[]",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 45,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-core/tests/feature-impact.test.ts",
+        "packages/accord-core/src/knowledge/impact.ts",
+        "packages/accord-core/schemas/spec-schema.json",
+        "packages/accord-core/src/contract/pr0.ts",
+        "packages/accord-core/src/artifacts/render-spec-markdown.ts"
+      ],
+      "tests": [
+        "feature-impact.test.ts: ASDLC-1/AC-19 analyseImpact (relations, traversal, overlap/contradiction decisions)",
+        "feature-impact.test.ts: ASDLC-1/AC-19 PR0 impact analysis (features[] and table before lock, lock unchanged, decisions[], knowledge disabled)",
+        "contract-pr0.test.ts (ASDLC-1/AC-9 suite)"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-20",
@@ -6266,7 +6360,7 @@
         },
         {
           "task": 45,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 50,
@@ -6291,7 +6385,9 @@
         "packages/accord-core/src/orchestration/resolve/interview-task.ts",
         "packages/accord-core/tests/overrun-decision.test.ts",
         "packages/accord-core/tests/feature-docs.test.ts",
-        "packages/accord-core/schemas/feature-schema.json"
+        "packages/accord-core/schemas/feature-schema.json",
+        "packages/accord-core/tests/feature-impact.test.ts",
+        "packages/accord-core/schemas/spec-schema.json"
       ],
       "tests": [
         "ASDLC-1/AC-30 accepts ac_id (table)",
@@ -6313,7 +6409,9 @@
         "ASDLC-1/AC-30 written trace.json carries size, is schema-valid, malformed size is rejected",
         "ASDLC-1/AC-30 feature-schema.json declares the OKF frontmatter keys",
         "ASDLC-1/AC-30 both valid fixture frontmatters validate",
-        "ASDLC-1/AC-30 schema rejects the 6 frontmatter mutations"
+        "ASDLC-1/AC-30 schema rejects the 6 frontmatter mutations",
+        "feature-impact.test.ts: ASDLC-1/AC-30 spec schema features[] alignment",
+        "bun run validate:assets (preflight exit 0)"
       ],
       "verified": false
     },
@@ -11600,6 +11698,154 @@
         "outcome": "wont_fix_accepted",
         "note": "The enforcement half of AC-31 (validate:okf, validate:ste, check:biome) is verify-category. phase-verify-task should run `bun run validate:features && bun run validate:okf && bun run validate:ste && bun run check:biome && bun test`, per the plan's verify step."
       }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-003",
+      "state": "dispute_upheld",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Relation `new` is listed in AC-19 but is never produced or asserted. Related features accept any of the 5 relations, so labelling audit-log `modifies` or `deprecates` passes.",
+      "file": "packages/accord-core/tests/feature-impact.test.ts",
+      "line": 114,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "dispute_upheld",
+        "note": "Related row is now pinned to exactly 'depends_on' (that part is met). The 'new' half is upheld: AC-19's Given is anchor intersection, which cannot produce 'new', and spec-schema marks the AC feature slug as PROPOSED/unread. A human must decide when 'new' applies. The schema accepts 'new' (AC-30 it.each)."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The retry test does not check spec.json features[] after the failed attempt and the retry. A hook that appends rows to the existing features[] (to keep earlier entries) writes each row twice on retry, and the spec.md table repeats them.",
+      "file": "packages/accord-core/tests/feature-impact.test.ts",
+      "line": 586,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "No test sets knowledge.impact_analysis to false. The key is typed (types.ts:224), is in accord-schema.json:285, and is documented in knowledge-config.md (default true: list impacted features in the contract PR). An impl that ignores it still runs impact analysis when the user turned it off. This was missed in round 1; the code is unchanged.",
+      "file": "packages/accord-core/tests/feature-impact.test.ts",
+      "line": 515,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Impact hook gates only on knowledge.enabled and ignores the typed and documented knowledge.impact_analysis switch.",
+      "file": "packages/accord-core/src/contract/pr0.ts",
+      "line": 40,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Config reaches the hook through a module-level mutable `activeConfig`, a shared global side channel.",
+      "file": "packages/accord-core/src/contract/pr0.ts",
+      "line": 36,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "features[] is replaced wholesale instead of merged, so existing entries are dropped. The `new` relation can never be emitted.",
+      "file": "packages/accord-core/src/contract/pr0.ts",
+      "line": 54,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Anchor matching is exact-string only. Directory anchors, which validateFeatures accepts, never match.",
+      "file": "packages/accord-core/src/knowledge/impact.ts",
+      "line": 55,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Relation is computed per file and precedence-merged, so one deleted anchored file labels the whole feature `deprecates`.",
+      "file": "packages/accord-core/src/knowledge/impact.ts",
+      "line": 36,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Traversal follows `related` edges transitively with no depth limit.",
+      "file": "packages/accord-core/src/knowledge/impact.ts",
+      "line": 97,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "With knowledge enabled, a missing or unparseable index.json, plan or spec returns silently. The syncSpecMarkdownFromJson Result is ignored.",
+      "file": "packages/accord-core/src/contract/pr0.ts",
+      "line": 46,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 45,
+      "requirement": "AC-19",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Appending decisions does not bump the work item's `updated` timestamp.",
+      "file": "packages/accord-core/src/contract/pr0.ts",
+      "line": 76,
+      "raised": "C1/review-code"
     }
   ]
 }
