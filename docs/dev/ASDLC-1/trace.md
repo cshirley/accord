@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-04T11:05:55.765Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-04T11:32:14.154Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -54,8 +54,8 @@
 | 45 | [feature-knowledge] spec features[] and PR0 impact analysis | done | `c8d20fe` | 2/1/1 | 24 (verified 13, dispute_upheld 1, open 10) | 0 |
 | 46 | [feature-knowledge] Closeout feature-doc update and drift check | done | `3eb57f7` | 3/2/1 | 30 (verified 15, dispute_upheld 1, wont_fix_accepted 1, open 13) | 0 |
 | 47 | [feature-knowledge] Review invariants and CI drift rule | done | `2b68f82` | 2/1/1 | 23 (verified 9, wont_fix_accepted 2, open 12) | 0 |
-| 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | done | — | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
-| 49 | [feature-knowledge] accord feature CLI command | pending | — | 0/0/0 | 0 | 0 |
+| 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | done | `4d6754c` | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
+| 49 | [feature-knowledge] accord feature CLI command | done | — | 2/1/1 | 21 (verified 10, open 9, wont_fix_accepted 2) | 0 |
 | 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | pending | — | 0/0/0 | 0 | 0 |
 | 51 | [ci-driven-mode] Startup push-token check and cost cap key | pending | — | 0/0/0 | 0 | 0 |
 | 52 | [ci-driven-mode] CI builds PR0 from brief and spec | pending | — | 0/0/0 | 0 | 0 |
@@ -401,17 +401,18 @@
   - ASDLC-1/AC-20 block fails with the same finding
   - ASDLC-1/AC-20 block passes when the feature is declared unchanged, but only that feature
 
-### AC-21 — pending (not verified)
+### AC-21 — satisfied
 
 > Then results come from index.json (index, then feature, then change record, then evidence) and the same logic is available as dev_feature_* MCP tools
 
-- Tasks: 48 (satisfied), 49 (pending)
-- Files: `packages/accord-core/tests/feature-query.test.ts`, `packages/accord-core/src/knowledge/query.ts`, `packages/accord-core/src/tools/registry.ts`
-- Tests verified (4):
+- Tasks: 48 (satisfied), 49 (satisfied)
+- Files: `packages/accord-core/tests/feature-query.test.ts`, `packages/accord-core/src/knowledge/query.ts`, `packages/accord-core/src/tools/registry.ts`, `packages/accord-cli/tests/feature-cli.test.ts`, `packages/accord-cli/src/commands/feature.ts`, `packages/accord-cli/src/cli.ts`, `packages/accord-cli/src/dispatch.ts`, `packages/accord-cli/src/commands/index.ts`
+- Tests verified (5):
   - packages/accord-core/tests/feature-query.test.ts: 40 tests, all named ASDLC-1/AC-21 (progressive disclosure order, query/path match, impactFor, dev_feature_find/impact parity with findFeatures/impactFor, initFeatures)
   - bun run check:types
   - bun run check:bundle
   - bunx biome check on query.ts, registry.ts and feature-query.test.ts
+  - packages/accord-cli/tests/feature-cli.test.ts: all 'ASDLC-1/AC-21' cases (find query/path, impact, init, parity with dev_feature_* text, --json/--depth, --cwd)
 
 ### AC-22 — satisfied
 
@@ -477,13 +478,13 @@
   - stack-depth.test.ts › ASDLC-1/AC-27 the old child tip stays an ancestor of the new tip and no git call rewrites or force-pushes
   - stack-depth.test.ts › ASDLC-1/AC-27 a diverged remote child ref is never overwritten (push is not forced)
 
-### AC-28 — pending (not verified)
+### AC-28 — satisfied
 
 > Orchestration and domain logic (commit grammar, computeStack, evidence, state, feature knowledge) MUST live in packages/accord-core; pi-accord, accord-cli and accord-mcp stay thin adapters and Pi APIs never enter acco…
 
-- Tasks: 2 (satisfied), 9 (satisfied), 29 (satisfied), 31 (satisfied), 49 (pending)
-- Files: `packages/accord-core/tests/helpers-git.test.ts`, `packages/accord-core/tests/layering.test.ts`, `packages/accord-core/tests/helpers/temp-git-repo.ts`, `packages/accord-core/tests/helpers/fake-gh.ts`, `packages/accord-cli/tests/evidence-cli.test.ts`, `packages/accord-cli/src/commands/evidence.ts`, `packages/accord-core/tests/stack-service.test.ts`, `packages/accord-core/src/stack/service.ts`, `packages/accord-core/src/tools/registry.ts`, `packages/accord-core/src/index.ts`, `packages/accord-cli/tests/stack-cli.test.ts`, `packages/accord-cli/src/commands/stack.ts`, `packages/accord-cli/src/commands/index.ts`, `packages/accord-cli/src/dispatch.ts`
-- Tests verified (12):
+- Tasks: 2 (satisfied), 9 (satisfied), 29 (satisfied), 31 (satisfied), 49 (satisfied)
+- Files: `packages/accord-core/tests/helpers-git.test.ts`, `packages/accord-core/tests/layering.test.ts`, `packages/accord-core/tests/helpers/temp-git-repo.ts`, `packages/accord-core/tests/helpers/fake-gh.ts`, `packages/accord-cli/tests/evidence-cli.test.ts`, `packages/accord-cli/src/commands/evidence.ts`, `packages/accord-core/tests/stack-service.test.ts`, `packages/accord-core/src/stack/service.ts`, `packages/accord-core/src/tools/registry.ts`, `packages/accord-core/src/index.ts`, `packages/accord-cli/tests/stack-cli.test.ts`, `packages/accord-cli/src/commands/stack.ts`, `packages/accord-cli/src/commands/index.ts`, `packages/accord-cli/src/dispatch.ts`, `packages/accord-cli/tests/feature-cli.test.ts`, `packages/accord-cli/src/commands/feature.ts`
+- Tests verified (14):
   - packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*
   - packages/accord-core/tests/helpers-git.test.ts › ASDLC-1/AC-28 (temp git repo and fake gh)
   - bun run check:types
@@ -496,6 +497,8 @@
   - stack-cli.test.ts › ASDLC-1/AC-28 commands/stack.ts delegates to accord-core stack/service and has no Pi, git or gh logic
   - stack-cli.test.ts › ASDLC-1/AC-28 commands/index.ts exports runStackCommand and dispatch/cli route `stack`
   - no-pi-dep.test.ts
+  - ASDLC-1/AC-28 commands/feature.ts delegates to accord-core knowledge/tools and imports no Pi package
+  - ASDLC-1/AC-28 no accord-cli source file embeds the feature index path
 
 ### AC-29 — satisfied
 
@@ -561,9 +564,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`
-- Tests verified (50):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (satisfied), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-cli/tests/feature-cli.test.ts`
+- Tests verified (52):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -614,6 +617,8 @@
   - docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md documents the feature-drift rule
   - docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md lists the feature-drift test command
   - bunx biome check on task files (clean)
+  - ASDLC-1/AC-31 okf/references/accord-cli.md has a feature row naming find, impact, init, --depth, knowledge.enabled and dev_feature
+  - bun run validate:ste (preflight passed)
 
 ## Accepted risks and unresolved findings
 
@@ -1043,6 +1048,17 @@
 | 48 | AC-21 | F-018 | unresolved (advisory) | open | suggestion | A plan.json without a tasks array reaches analyseImpact and fails with an opaque TypeError. | packages/accord-core/src/knowledge/query.ts:125 |  |
 | 48 | AC-21 | F-019 | unresolved (advisory) | open | suggestion | Tools reimplement knowledge-config resolution, and query.ts re-declares helpers that already exist in the knowledge module. | packages/accord-core/src/tools/registry.ts:926 |  |
 | 48 | AC-21 | F-020 | unresolved (advisory) | open | suggestion | dev_feature_find and dev_feature_impact are in no Pi tool bundle, so under default dynamic tools they are never activated in Pi (MCP is unaffected). | packages/accord-core/src/tools/active-set.ts:26 |  |
+| 49 | AC-21 | F-013 | unresolved (advisory) | open | suggestion | The --depth parsing partition is only partly covered. The tests use `--depth index`, `--depth feature` and the default (evidence) after the argument, and a bogus or missing value. `--depth change`, an explicit `--depth evidence`, `--depth` before the argument and the `--depth=<level>` form are not tested. | packages/accord-cli/tests/feature-cli.test.ts:268 |  |
+| 49 | AC-21 | F-014 | unresolved (advisory) | open | suggestion | `--json` output on a failed tool result is not pinned. When the tool fails it returns no `details`, so an impl that runs `console.log(JSON.stringify(result.details))` prints 'undefined' and passes every test. | packages/accord-cli/tests/feature-cli.test.ts:268 |  |
+| 49 | AC-21 | F-015 | unresolved (advisory) | open | suggestion | With no AGENTS.md, loadDevHarnessConfig returns null and the CLI context config is null. No feature test covers this. An impl that reads `ctx.devConfig!.knowledge?.enabled` crashes with a TypeError, while the tool handler (`config?.knowledge?.enabled`) returns the disabled text. | packages/accord-cli/tests/feature-cli.test.ts:363 |  |
+| 49 | AC-21 | F-016 | unresolved (advisory) | open | warning | `feature find` treats an argument as a code path only if it contains '/', so slash-less anchors (package.json, AGENTS.md, Makefile) and backslash paths cannot use the tool's path mode. | packages/accord-cli/src/commands/feature.ts:42 |  |
+| 49 | AC-21 | F-017 | unresolved (advisory) | open | suggestion | `feature` is not registered in TOP_LEVEL_COMMANDS, so it is missing from `accord --help` and shell completion; `stack` is registered next to it. | packages/accord-cli/src/ui/command-catalog.ts:31 |  |
+| 49 | AC-21 | F-020 | unresolved (advisory) | open | suggestion | Depth levels are hardcoded here, duplicating DisclosureLevel/LEVELS in knowledge/query.ts; --depth is also accepted and silently ignored for `impact` and `init`; the inner `const rest` shadows the outer `let rest`. | packages/accord-cli/src/cli.ts:364 |  |
+| 49 | AC-28 | F-010 | accepted (advisory) | wont_fix_accepted | suggestion | Most of AC-28's enforcement cannot be shown by a unit test: check:types and check:bundle. TC-29's file is packages/accord-core/tests/layering.test.ts. That file exists and is unchanged, and it covers the 'Pi never enters accord-core' half. | packages/accord-cli/tests/feature-cli.test.ts:291 | wont_fix_accepted by T2/review-test — The enforcement half belongs to phase-verify-task: bun run check:types, bun run check:bundle and bun test packages/accord-core/tests/layering.test.ts. |
+| 49 | AC-28 | F-018 | unresolved (advisory) | open | suggestion | `init` obtains the 'knowledge disabled' text by calling dev_feature_find with a dummy query, and repeats the knowledge.enabled check and config load. | packages/accord-cli/src/commands/feature.ts:50 |  |
+| 49 | AC-28 | F-019 | unresolved (advisory) | open | suggestion | Tool context is cast `as never` although `{ getConfig }` already satisfies ToolHandlerContext, which hides type drift. | packages/accord-cli/src/commands/feature.ts:18 |  |
+| 49 | AC-31 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 requires a dated okf/log.md entry. No test asserts one, and okf/log.md is not in task 49's files. Plan task 50 (depends_on 49) owns the feature-knowledge log entry. TC-32's file docs-validation.test.ts is not touched by this task, but its generic validate:okf and validate:ste tests still apply. | packages/accord-cli/tests/feature-cli.test.ts:306 | wont_fix_accepted by T2/review-test — okf/log.md is not in task 49's files, and task 50 owns the dated entry. validate:okf, validate:ste and biome run in phase-verify-task. |
+| 49 | AC-31 | F-021 | unresolved (advisory) | open | suggestion | The feature row does not say how `find` distinguishes a path from a query (an argument containing '/' is a path) or that `--depth` applies only to `find`. | okf/references/accord-cli.md:49 |  |
 
 ## Decisions
 
@@ -2024,6 +2040,18 @@ feature-query.test.ts: 40 pass, 0 fail. check:types ok. check:bundle ok. biome o
 ```
 
 ### Task 49: [feature-knowledge] accord feature CLI command
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-cli/tests/feature-cli.test.ts: 0 pass, 14 fail. CLI tests fail with 'Unknown command "feature". Run accord --help.' (feature verb not routed yet). AC-28 fails: commands/feature.ts stub has no accord-core import. AC-31 fails: okf/references/accord-cli.md lacks 'accord feature find|impact|init'.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+feature-cli.test.ts: 19 pass, 0 fail. check:types: ok. validate:okf: passed (38 files). check:biome: exit 1, only docs/dev/ASDLC-1/trace.json format (git-ignored harness file). Preflight: validate:schemas, validate:assets, validate:ste, validate:features, check:bundle and check:runtime passed. Full `bun test` timed out at 120s in preflight (no failures seen in the output).
+```
 
 ### Task 50: [feature-knowledge] Schema description and OKF docs for feature knowledge
 

@@ -65,6 +65,13 @@ export type ParsedCli =
     }
   | { kind: "evidence"; workItemId: string; args: string[]; options: GlobalOptions }
   | {
+      kind: "feature";
+      verb: "find" | "impact" | "init";
+      args: string[];
+      depth?: string;
+      options: GlobalOptions;
+    }
+  | {
       kind: "stack";
       verb: "show" | "sync" | "submit" | "report";
       workItemId: string;
@@ -339,6 +346,40 @@ export function parseCli(argv: string[]): ParsedCli {
       return { kind: "error", message: "evidence requires a work item id" };
     }
     return { kind: "evidence", workItemId, args: tail.slice(1), options: flags };
+  }
+
+  if (command === "feature") {
+    const verbs = ["find", "impact", "init"] as const;
+    const verb = verbs.find((name) => name === tail[0]);
+    if (!verb) {
+      return { kind: "error", message: "usage: feature find <query|path> | impact <ID> | init" };
+    }
+    const args: string[] = [];
+    let depth: string | undefined;
+    const rest = tail.slice(1);
+    for (let tokenIndex = 0; tokenIndex < rest.length; tokenIndex++) {
+      const token = rest[tokenIndex] as string;
+      if (token === "--depth" || token.startsWith("--depth=")) {
+        const value = token === "--depth" ? rest[++tokenIndex] : token.slice("--depth=".length);
+        if (!value || !["index", "feature", "change", "evidence"].includes(value)) {
+          return {
+            kind: "error",
+            message: `feature ${verb}: --depth requires index|feature|change|evidence`,
+          };
+        }
+        depth = value;
+      } else {
+        args.push(token);
+      }
+    }
+    const expected = verb === "init" ? 0 : 1;
+    if (args.length !== expected || (verb === "find" && !args[0])) {
+      return {
+        kind: "error",
+        message: `usage: feature ${verb}${verb === "find" ? " <query|path>" : verb === "impact" ? " <ID>" : ""}`,
+      };
+    }
+    return { kind: "feature", verb, args, depth, options: flags };
   }
 
   if (command === "stack") {
