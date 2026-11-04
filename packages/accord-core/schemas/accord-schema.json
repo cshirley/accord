@@ -322,6 +322,18 @@
           "enum": ["rebase", "merge", "squash"],
           "description": "How task PRs land so evidence commits stay reachable. Squash is safe when evidence.asset is true. Default: rebase."
         },
+        "ci": {
+          "type": "object",
+          "description": "CI-driven mode settings.",
+          "additionalProperties": false,
+          "properties": {
+            "cost_cap_usd": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Maximum spend in USD for one CI-driven run. Unset by default."
+            }
+          }
+        },
         "evidence": {
           "type": "object",
           "description": "Evidence asset written as the final commit of each task PR.",

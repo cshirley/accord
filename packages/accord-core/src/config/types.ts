@@ -216,6 +216,7 @@ export interface DevHarnessStackConfig {
   };
   contract?: { lock?: boolean; tag?: boolean };
   require_flag?: boolean;
+  ci?: { cost_cap_usd?: number };
 }
 
 export interface DevHarnessKnowledgeConfig {

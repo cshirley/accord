@@ -115,3 +115,20 @@ bun test packages/accord-ci/tests/evidence-check-runner.test.ts
 bun test packages/accord-ci/tests/contract-lock-check.test.ts
 bun test packages/accord-ci/tests/evidence-check.test.ts
 ```
+
+## CI-driven mode push token
+
+CI-driven mode needs the secret `ACCORD_CI_PUSH_TOKEN` (a GitHub App token or
+PAT). Commits made with `GITHUB_TOKEN` do not trigger workflows, so the mode
+does not accept it. `assertCiDrivenEnv()` in
+`packages/accord-ci/src/ci-driven/startup.ts` fails with
+`MISSING_REQUIRED_SECRET: ACCORD_CI_PUSH_TOKEN` before any git or gh call.
+The secret is server-only: only `packages/accord-ci` reads it, and no log
+prints it. Owner: cshirley. Rotate it every 90-day period.
+
+`stack.ci.cost_cap_usd` in `accord.json` sets the spend cap per run. It has no
+default.
+
+```bash
+bun test packages/accord-ci/tests/ci-driven-startup.test.ts
+```

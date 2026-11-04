@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-04T11:46:15.892Z",
+  "generated_at": "2026-11-04T12:01:17.782Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -5386,7 +5386,9 @@
       "id": 50,
       "title": "[feature-knowledge] Schema description and OKF docs for feature knowledge",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "0d07304"
+      ],
       "rounds": {
         "T": 1,
         "C": 1,
@@ -5481,12 +5483,12 @@
     {
       "id": 51,
       "title": "[ci-driven-mode] Startup push-token check and cost cap key",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 1,
+        "C": 1,
+        "V": 1
       },
       "retries": {
         "test_review": 0,
@@ -5496,30 +5498,98 @@
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 8,
+        "by_state": {
+          "open": 8
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-25 ... token value never appears in stdout, stderr, logs or the error\n  error: not implemented: assertCiDrivenEnv\n(fail) ASDLC-1/AC-30 stack.ci.cost_cap_usd is a number with positive bound and no default\n  TypeError: undefined is not an object (evaluating 'ciSchema().type')\n(fail) ASDLC-1/AC-30 config types declare stack.ci.cost_cap_usd\n  Expected substring or pattern: /cost_cap_usd\\?:\\s*number/\n(fail) ASDLC-1/AC-31 documents the server-only secret, owner and 90-day rotation\n  Expected to contain: \"ACCORD_CI_PUSH_TOKEN\"\n\n 0 pass\n 9 fail\nRan 9 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "task test: 9 pass 0 fail; validate:schemas 30 passed 0 failed; check:types ok; check:bundle ok; token grep no match; ACCORD_CI_PUSH_TOKEN only in accord-ci startup.ts + test; check:biome: 1 error docs/dev/ASDLC-1/trace.json format; full bun test timed out at 120s in preflight (not re-run)",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-25",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/startup.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/startup.ts",
+              "action": "add",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 7,
+            "command": "bun test packages/accord-ci/tests/ci-driven-startup.test.ts"
+          }
         },
         {
           "id": "AC-30",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/schemas/accord-schema.json",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "packages/accord-core/src/config/types.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 6,
+            "command": "bun test packages/accord-ci/tests/ci-driven-startup.test.ts && bun run validate:schemas"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun run validate:okf && bun run validate:ste && bun run check:biome"
+          }
         }
       ]
     },
@@ -6454,16 +6524,27 @@
     {
       "ac_id": "AC-25",
       "text": "CI-driven mode treat ACCORD_CI_PUSH_TOKEN (a GitHub App token or PAT) as a required env var with no default, and MUST fail to start, before any step, when it is absent, because commits made with GITHUB_TOKEN do not tr…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 51,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-ci/tests/ci-driven-startup.test.ts",
+        "packages/accord-ci/src/ci-driven/startup.ts"
+      ],
+      "tests": [
+        "ASDLC-1/AC-25 absent token fails with MISSING_REQUIRED_SECRET before any git/gh call",
+        "ASDLC-1/AC-25 empty string token fails with MISSING_REQUIRED_SECRET before any git/gh call",
+        "ASDLC-1/AC-25 GITHUB_TOKEN or GH_PAT_PR alone does not satisfy the requirement",
+        "ASDLC-1/AC-25 near-miss var name (lowercase) is not accepted",
+        "ASDLC-1/AC-25 with the token set startup proceeds without throwing or spawning",
+        "ASDLC-1/AC-25 token value never appears in stdout, stderr, logs or the error",
+        "token-leak grep: no match; token confined to accord-ci files"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-26",
@@ -6700,7 +6781,7 @@
     {
       "ac_id": "AC-30",
       "text": "New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 11,
@@ -6740,7 +6821,7 @@
         },
         {
           "task": 51,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -6760,7 +6841,9 @@
         "packages/accord-core/schemas/feature-schema.json",
         "packages/accord-core/tests/feature-impact.test.ts",
         "packages/accord-core/schemas/spec-schema.json",
-        "packages/accord-core/tests/docs-validation.test.ts"
+        "packages/accord-core/tests/docs-validation.test.ts",
+        "packages/accord-ci/tests/ci-driven-startup.test.ts",
+        "packages/accord-core/src/config/types.ts"
       ],
       "tests": [
         "ASDLC-1/AC-30 accepts ac_id (table)",
@@ -6787,9 +6870,13 @@
         "bun run validate:assets (preflight exit 0)",
         "ASDLC-1/AC-30 knowledge description states keys are read by the harness and default off",
         "ASDLC-1/AC-30 spec feature field description states it is read by the harness and no longer proposed",
-        "ASDLC-1/AC-30 spec features[] description states default off"
+        "ASDLC-1/AC-30 spec features[] description states default off",
+        "ASDLC-1/AC-30 stack.ci.cost_cap_usd is a number with positive bound and no default",
+        "ASDLC-1/AC-30 config types declare stack.ci.cost_cap_usd",
+        "bun run validate:schemas (30 passed)",
+        "bun run check:bundle"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-31",
@@ -6870,7 +6957,7 @@
         },
         {
           "task": 51,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 52,
@@ -6917,7 +7004,8 @@
         "okf/playbooks/verify-a-change.md",
         "packages/accord-core/tests/feature-docs.test.ts",
         "packages/accord-cli/tests/feature-cli.test.ts",
-        "okf/references/knowledge-config.md"
+        "okf/references/knowledge-config.md",
+        "packages/accord-ci/tests/ci-driven-startup.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -6977,7 +7065,9 @@
         "ASDLC-1/AC-31 tool-surface.md documents dev_feature_find and dev_feature_impact",
         "ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 feature-knowledge entry naming knowledge-config and tool-surface, after the prior bullets",
         "bun run validate:features",
-        "bunx biome check okf packages/accord-core/schemas packages/accord-core/tests/docs-validation.test.ts"
+        "bunx biome check okf packages/accord-core/schemas packages/accord-core/tests/docs-validation.test.ts",
+        "ASDLC-1/AC-31 documents the server-only secret, owner and 90-day rotation",
+        "bun run check:biome (only failure: docs/dev/ASDLC-1/trace.json format, a harness-generated artifact outside the task files)"
       ],
       "verified": false
     }
@@ -13113,6 +13203,110 @@
       "file": "okf/log.md",
       "line": 93,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-25",
+      "finding_id": "F-001",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "TC-26 is integration tier ('Run the CI entry point ... assert non-zero exit'), but every AC-25 test calls assertCiDrivenEnv() in-process. No process runs, no exit code is checked, and stderr is not checked at the process boundary.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 75,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-25",
+      "finding_id": "F-002",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The 'no default / no substitute' partition is only partly tested. GH_TOKEN, the gh CLI's own env var, is not tested as a fallback. The 'lowercase near-miss' test sets accord_ci_push_token_x, which is not the lowercase name, so it cannot detect case-insensitive lookup.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 106,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-25",
+      "finding_id": "F-003",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The leak test runs at the default log level 'error'. accord-core createLogger writes debug, info and warn through console.error only when the level allows it, so a debug log of the token passes. The test also checks only for the full token, so partial leaks pass.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 122,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-25",
+      "finding_id": "F-006",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The spawn spies replace properties on the default child_process object. Calls through named imports (`import { execFile } from 'node:child_process'`, the style in accord-ci/src/checks/*.ts) may not reach the spies in Bun. Bun.$, fetch and fs writes are not spied. The 'zero git/gh calls' check may prove nothing for the most likely import style.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 33,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-30",
+      "finding_id": "F-004",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The types check matches /cost_cap_usd\\?:\\s*number/ anywhere in types.ts. It does not check that the key is under DevHarnessStackConfig.ci, so a misalignment between types and schema passes. Preventing that misalignment is the purpose of AC-30.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 154,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-30",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The schema check is structural only. No Ajv test checks real values. alignment.test.ts:64-90 already uses that pattern for review_security.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 140,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-31",
+      "finding_id": "F-005",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The test name says 'documents the server-only secret', but nothing asserts server-only. The 'section' is everything from the first mention of the token to the end of the file, so 'cshirley' and '90-day' can be in unrelated text.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 161,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 51,
+      "requirement": "AC-31",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Unit tests cannot prove that these commands pass on the task-51 files: check:biome, check:types, the token-leak grep and the server-side-only grep. TC-31 and TC-32 are covered by tests already in alignment.test.ts and docs-validation.test.ts.",
+      "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+      "line": 158,
+      "raised": "T1/review-test"
     }
   ]
 }
