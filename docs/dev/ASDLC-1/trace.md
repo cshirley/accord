@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-03T18:20:20.785Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-04T10:03:45.631Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -51,8 +51,8 @@
 | 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | `103c838` | 2/1/1 | 19 (verified 8, wont_fix_accepted 1, open 10) | 0 |
 | 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | `9b82742` | 2/1/1 | 24 (verified 12, reraised 1, open 11) | 0 |
 | 44 | [feature-knowledge] validate:features script and Dev Harness entry | done | `2349b1d` | 3/5/4 | 23 (verified 18, wont_fix_accepted 4, wont_fix_proposed 1) | 0 |
-| 45 | [feature-knowledge] spec features[] and PR0 impact analysis | done | — | 2/1/1 | 24 (verified 13, dispute_upheld 1, open 10) | 0 |
-| 46 | [feature-knowledge] Closeout feature-doc update and drift check | pending | — | 0/0/0 | 0 | 0 |
+| 45 | [feature-knowledge] spec features[] and PR0 impact analysis | done | `c8d20fe` | 2/1/1 | 24 (verified 13, dispute_upheld 1, open 10) | 0 |
+| 46 | [feature-knowledge] Closeout feature-doc update and drift check | done | — | 3/2/1 | 30 (verified 15, dispute_upheld 1, wont_fix_accepted 1, open 13) | 0 |
 | 47 | [feature-knowledge] Review invariants and CI drift rule | pending | — | 0/0/0 | 0 | 0 |
 | 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | pending | — | 0/0/0 | 0 | 0 |
 | 49 | [feature-knowledge] accord feature CLI command | pending | — | 0/0/0 | 0 | 0 |
@@ -384,11 +384,22 @@
   - feature-impact.test.ts: ASDLC-1/AC-19 PR0 impact analysis (features[] and table before lock, lock unchanged, decisions[], knowledge disabled)
   - contract-pr0.test.ts (ASDLC-1/AC-9 suite)
 
-### AC-20 — pending (not verified)
+### AC-20 — satisfied
 
 > Then the feature doc is updated with the AC delta and a changes[] entry linking the work item, PR, evidence and contract sha, the mapping from each work-item AC (<ID>/AC-<n>) to its feature AC id is recorded, the feat…
 
-- Tasks: 46 (pending)
+- Tasks: 46 (satisfied)
+- Files: `packages/accord-core/tests/feature-drift.test.ts`, `packages/accord-core/src/knowledge/closeout-update.ts`, `packages/accord-core/src/knowledge/drift.ts`, `packages/accord-core/src/orchestration/commit-on-task-done.ts`
+- Tests verified (9):
+  - ASDLC-1/AC-20 appends changes[] entry linking work item, PR, evidence and contract sha
+  - ASDLC-1/AC-20 applies AC delta and records <ID>/AC-<n> to feature AC id mapping
+  - ASDLC-1/AC-20 acs[].tests lists only tests carrying the exact qualified id (AC-1 is not AC-10)
+  - ASDLC-1/AC-20 commitWorkItemArtifacts commits feature docs with no contract lock
+  - ASDLC-1/AC-20 stack closeout commits the updated feature docs on a clean tree
+  - ASDLC-1/AC-20 off passes and reports nothing even when the doc was not updated
+  - ASDLC-1/AC-20 warn reports the drifted feature but still passes
+  - ASDLC-1/AC-20 block fails with the same finding
+  - ASDLC-1/AC-20 block passes when the feature is declared unchanged, but only that feature
 
 ### AC-21 — pending (not verified)
 
@@ -978,6 +989,21 @@
 | 45 | AC-19 | F-022 | unresolved (advisory) | open | suggestion | Traversal follows `related` edges transitively with no depth limit. | packages/accord-core/src/knowledge/impact.ts:97 |  |
 | 45 | AC-19 | F-023 | unresolved (advisory) | open | suggestion | With knowledge enabled, a missing or unparseable index.json, plan or spec returns silently. The syncSpecMarkdownFromJson Result is ignored. | packages/accord-core/src/contract/pr0.ts:46 |  |
 | 45 | AC-19 | F-024 | unresolved (advisory) | open | suggestion | Appending decisions does not bump the work item's `updated` timestamp. | packages/accord-core/src/contract/pr0.ts:76 |  |
+| 46 | AC-20 | F-004 | accepted (advisory) | dispute_upheld | suggestion | The commitWorkItemArtifacts hook is tested only with stack.enabled false. The plan requires the hook to run 'independent of stack.enabled'. In the stack.enabled path, commitWorkItemArtifacts first refuses to close out if the working tree is dirty. Two wrong placements pass every test: (a) the hook runs first at the top of the function, writes billing.md, and every stack closeout is refused with 'working tree is not clean'; (b) the hook runs only in the non-stack branch, so stack closeouts never update feature docs. | packages/accord-core/tests/feature-drift.test.ts:242 | dispute_upheld by T3/review-test — The AC-20 part is met: the clean-tree stack test commits BILLING and leaves docs/features clean, and the refused dirty-tree closeout writes no feature docs. The closeout.json co-commit assertion was not added. Phase-test's reason is wrong: state/closeout.ts:22 sets markerRel = `${devRel}/evidence/closeout.json`. That marker belongs to state closeout (task 36), not to AC-20, and the plan keeps this hook independent of task 36. This is the second unchanged dispute, so I am not re-raising it. A human can decide whether the marker check belongs here. |
+| 46 | AC-20 | F-015 | accepted (advisory) | wont_fix_accepted | suggestion | The seeded-doc test (added for F-001) sets tags, owners, depends_on, related, supersedes and anchors.interfaces to [] and has no extra frontmatter keys. parseFeatureDoc defaults missing arrays to [], so a hand-rolled serializer that writes only id/type/title/description/status/acs/anchors.code/changes still passes, even though it drops real metadata from existing docs. This defeats the new test but goes beyond what F-001's Done-when asked for, so it is a suggestion. | packages/accord-core/tests/feature-drift.test.ts:374 | wont_fix_accepted by T3/review-test — Advisory and beyond F-001's Done-when. The reason is acceptable. |
+| 46 | AC-20 | F-018 | unresolved (advisory) | open | suggestion | The real closeout entry point never records the PR in changes[]. Only the direct runKnowledgeCloseoutUpdate test (line 167) passes options.pr. The commitWorkItemArtifacts tests do not assert `pr`, so a closeout that always omits the PR passes every test. AC-20 requires the changes[] entry to link the PR 'when closeout runs'. This was missed in round 1; the code is unchanged since T1. | packages/accord-core/tests/feature-drift.test.ts:288 |  |
+| 46 | AC-20 | F-019 | unresolved (advisory) | open | suggestion | The evidence link is checked only by its `^docs/dev/<ID>/evidence/` prefix (lines 181 and 289), and the fixture plan has one task. Two wrong implementations pass: a constant `docs/dev/<ID>/evidence/` directory, or always `task-1`, even when another task touched the anchored file. Either would link features to the wrong evidence. This was missed in round 1. | packages/accord-core/tests/feature-drift.test.ts:181 |  |
+| 46 | AC-20 | F-020 | unresolved (advisory) | open | suggestion | Every closeout test gets its 'changed files' only from plan.json files[]. No test changes an anchored file that the plan does not list. A closeout that reads only plan files (the current implementation) leaves the feature doc stale when a task really changes an anchored file outside the plan (plan deviation). AC-20 says 'a change that touches files anchored by a feature'. This was missed in round 1. | packages/accord-core/tests/feature-drift.test.ts:136 |  |
+| 46 | AC-20 | F-021 | unresolved (advisory) | open | warning | Closeout derives the changed set from plan.json task files only, not from what the work item actually changed. | packages/accord-core/src/knowledge/closeout-update.ts:159 |  |
+| 46 | AC-20 | F-022 | unresolved (advisory) | open | warning | The production caller never supplies `pr`, so changes[] entries never link a PR, which AC-20 requires. | packages/accord-core/src/orchestration/commit-on-task-done.ts:341 |  |
+| 46 | AC-20 | F-023 | unresolved (advisory) | open | warning | Docs are written one by one inside the loop but `paths` is lost if a later doc throws, leaving written docs unstaged and the tree dirty. | packages/accord-core/src/knowledge/closeout-update.ts:217 |  |
+| 46 | AC-20 | F-024 | unresolved (advisory) | open | warning | The hook receives the git root, but docs/dev/<ID>/ lives under the nested scope cwd, so closeout silently does nothing in nested-package repos. | packages/accord-core/src/orchestration/commit-on-task-done.ts:341 |  |
+| 46 | AC-20 | F-025 | unresolved (advisory) | open | warning | Test discovery matches any quoted string containing the qualified id, not test names, so acs[].tests can list incidental strings and garbage refs. | packages/accord-core/src/knowledge/closeout-update.ts:112 |  |
+| 46 | AC-20 | F-026 | unresolved (advisory) | open | suggestion | findTests re-reads every test file and recompiles three regexes for each qualified AC id (N files × M ACs). | packages/accord-core/src/knowledge/closeout-update.ts:105 |  |
+| 46 | AC-20 | F-027 | unresolved (advisory) | open | suggestion | The recorded evidence link can dangle, and the `?? 1` fallback invents a task id. | packages/accord-core/src/knowledge/closeout-update.ts:208 |  |
+| 46 | AC-20 | F-028 | unresolved (advisory) | open | suggestion | Re-serialising the whole frontmatter with yaml `stringify` drops comments and reflows unrelated keys; the committed generated index is also left stale. | packages/accord-core/src/knowledge/closeout-update.ts:215 |  |
+| 46 | AC-20 | F-029 | unresolved (advisory) | open | suggestion | Local helpers duplicate existing ones instead of reusing them. | packages/accord-core/src/knowledge/closeout-update.ts:37 |  |
+| 46 | AC-20 | F-030 | unresolved (advisory) | open | suggestion | Commit message and summary text still describe closeout as docs/dev/ only. | packages/accord-core/src/orchestration/commit-on-task-done.ts:386 |  |
 
 ## Decisions
 
@@ -989,6 +1015,7 @@
 - **phase-test-stuck-2** (escalation, resolved): Task 42 files[] lacks okf/references/stack-config.md and okf/references/artifacts-and-state.md, but AC-31 ('update the affected okf/ concepts') requires updating both for trunk-hardening. Add them to task 42 files[]? → Yes: added okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[] in plan.json (modify). Proceed.
 - **esc-ASDLC-1-42-T2/phase-test#0** (escalation, resolved): Add okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[] so phase-code may edit them. → Done: both files added to task 42 files[] in plan.json. Proceed.
 - **esc-ASDLC-1-42-T2/phase-test.2#0** (escalation, resolved): Add okf/references/stack-config.md and okf/references/artifacts-and-state.md to task 42 files[]? → Done: both files added to task 42 files[] in plan.json. Proceed.
+- **esc-ASDLC-1-46-T2/phase-test#0** (escalation, resolved): AC-20 requires changes[] to link the PR, but commitWorkItemArtifacts takes no PR input and the plan defines no PR source for finalize. Should the PR come from gh discovery behind the StackProvider port, a work-item field, or an explicit null? → Use an explicit optional input: closeout/feature-update takes pr?: number|string|null, default null. No gh discovery inside finalize (keeps closeout offline and deterministic; provider failures must never block closeout). changes[].pr is nullable in the feature schema; a callers that know the PR (stack service, CI mode) pass it. AC-20 is met by the changes[] entry carrying work item, evidence, contract sha and pr (null when unknown).
 
 ## Deviations
 
@@ -1033,11 +1060,12 @@
 - Task 40 (accepted): Tests pin require_flag absent = off, but accord-schema.json:425 and okf/references/stack-config.md:51 document 'Default: true'. — Existing stack-service.test.ts fixtures submit unflagged plans with require_flag absent and expect ok. Human confirmation is needed; the docs or schema fix belongs to task 42.
 - Task 41 (accepted): Added no-op retarget to fake providers in stack-branches.test.ts and stack-service.test.ts, and 'retarget' to the port-method list in stack-provider-gh.test.ts — retarget is now required on StackProvider; without it check:types fails on fixtures outside task.files
 - Task 41 (accepted): Touched tests/state-redact.test.ts (outside task.files) to fix a biome useTemplate error — F-032 names it as failing check:biome
-- Task 44 (pending): Added test file packages/accord-core/tests/validate-features-script.test.ts (not in task.files); CLI --root semantics: dir containing docs/features is a repo, else each child dir with docs/features is validated and errors aggregated. — Spec step passes --root to the fixtures parent dir, whose children are the per-case repos.
-- Task 44 (pending): Tests pass without new impl: scripts/validate-features.ts already implemented in earlier rounds. — Retry round after impl; only test hardening and lint fix were needed.
-- Task 45 (pending): Defined analyseImpact return shape ({rows, decisions}) and 'contradiction' as modifying a deprecated feature's anchor, since the spec leaves both undefined — AC-19 names overlaps and contradicting ACs becoming decisions[] without defining detection; analyseImpact(plan, index) has no spec input
-- Task 45 (pending): AC-30 alignment of spec features[] is covered by schema accept/reject tests here; manifest/registry alignment for this task is enforced by validate:schemas and validate:assets in phase-verify-task — Config/architectural AC enforcement belongs to the verify commands
-- Task 45 (pending): PR0 test requires spec.md with the Impacted features table to be committed in PR0 (F-006) — Reviewer finding F-006; the spec does not say where the table lives, so this is my reading of AC-19. Implementation must add spec.md to PR0's owned list.
+- Task 44 (accepted): Added test file packages/accord-core/tests/validate-features-script.test.ts (not in task.files); CLI --root semantics: dir containing docs/features is a repo, else each child dir with docs/features is validated and errors aggregated. — Spec step passes --root to the fixtures parent dir, whose children are the per-case repos.
+- Task 44 (accepted): Tests pass without new impl: scripts/validate-features.ts already implemented in earlier rounds. — Retry round after impl; only test hardening and lint fix were needed.
+- Task 45 (accepted): Defined analyseImpact return shape ({rows, decisions}) and 'contradiction' as modifying a deprecated feature's anchor, since the spec leaves both undefined — AC-19 names overlaps and contradicting ACs becoming decisions[] without defining detection; analyseImpact(plan, index) has no spec input
+- Task 45 (accepted): AC-30 alignment of spec features[] is covered by schema accept/reject tests here; manifest/registry alignment for this task is enforced by validate:schemas and validate:assets in phase-verify-task — Config/architectural AC enforcement belongs to the verify commands
+- Task 45 (accepted): PR0 test requires spec.md with the Impacted features table to be committed in PR0 (F-006) — Reviewer finding F-006; the spec does not say where the table lives, so this is my reading of AC-19. Implementation must add spec.md to PR0's owned list.
+- Task 46 (accepted): Defined the public signatures and changes[] entry shape (work_item, pr, evidence, contract_sha, ac_map) for the closeout updater and drift check in the tests and stubs. — The spec names the behaviour but not the API. contract_sha is taken from the commit that first added contract.lock.json (trustedContractLock).
 
 ## Evidence by task
 
@@ -1893,6 +1921,22 @@ Final verification (`V1/phase-verify-task`):
 ```
 
 ### Task 46: [feature-knowledge] Closeout feature-doc update and drift check
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/feature-drift.test.ts: 1 pass, 16 fail. Failures are 'error: not implemented: checkDrift' and 'error: not implemented: runKnowledgeCloseoutUpdate' thrown from the stubs. The one pass is the knowledge-disabled closeout regression guard.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+feature-drift.test.ts: 31 pass, 0 fail, 111 expect() calls
+check:types: tsc --noEmit ok
+check:runtime: runtime smoke passed
+check:biome: exit 1, only docs/dev/ASDLC-1/trace.json format; task files clean (Checked 7 files, no fixes)
+validate:schemas/assets/okf/ste/features, check:bundle: pass (preflight)
+```
 
 ### Task 47: [feature-knowledge] Review invariants and CI drift rule
 

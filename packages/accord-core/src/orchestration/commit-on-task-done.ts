@@ -21,6 +21,7 @@ import {
   gitRoot,
   isSecretFile,
 } from "../git/helpers.js";
+import { runKnowledgeCloseoutUpdate } from "../knowledge/closeout-update.js";
 import { createLogger } from "../logging.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
 import { prepareCloseout } from "../state/closeout.js";
@@ -335,12 +336,23 @@ export async function commitWorkItemArtifacts(
     return { ok: true, skipped: true, reason: "not a git repository", task_commits: taskCommits };
   }
 
+  let knowledgePaths: string[] = [];
+  try {
+    knowledgePaths = (await runKnowledgeCloseoutUpdate(workItemId, devConfig, root, { signal }))
+      .paths;
+  } catch (e) {
+    log.warn(
+      `feature docs not updated for ${workItemId}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+
   let files: string[];
   let message = `[${workItemId}] Closeout: verify report, implementation trace, workflow cost`;
   try {
     if (stackEnabled) message = prepareCloseout(workItemId, root).message;
     files = resolveStagedFiles(await workingTreePaths(root, signal), [
       `${devArtifactDirRel(workItemId)}/`,
+      ...knowledgePaths,
     ]);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
