@@ -69,6 +69,8 @@ export interface TaskRequirementsSlice {
   test_files: string[];
   constraints: unknown[];
   resolved_questions: unknown[];
+  /** Answered work-item `decisions[]` (human answers to stuck/needs_input escalations). */
+  resolved_decisions?: { id: string; question: string; answer: string }[];
   scope_in: unknown[];
   scope_out: unknown[];
   rejected_alternatives: unknown[];
@@ -215,6 +217,13 @@ export function sliceTaskRequirements(
     test_files: testFiles,
     constraints: (spec.constraints as unknown[] | undefined) ?? [],
     resolved_questions: (spec.resolved_questions as unknown[] | undefined) ?? [],
+    resolved_decisions: (wi.decisions ?? [])
+      .filter((decision) => decision.status === "resolved" && decision.answer?.trim())
+      .map((decision) => ({
+        id: decision.id,
+        question: decision.question,
+        answer: String(decision.answer).trim(),
+      })),
     scope_in: (scope?.in as unknown[] | undefined) ?? [],
     scope_out: (scope?.out as unknown[] | undefined) ?? [],
     rejected_alternatives: (spec.rejected_alternatives as unknown[] | undefined) ?? [],
@@ -307,6 +316,15 @@ export function formatCodeTaskBrief(slice: TaskRequirementsSlice): string {
     s.push("");
   }
 
+  if (slice.resolved_decisions?.length) {
+    s.push("### Resolved Decisions");
+    s.push("");
+    for (const decision of slice.resolved_decisions ?? []) {
+      s.push(`- **${decision.question}** (${decision.id}): ${decision.answer}`);
+    }
+    s.push("");
+  }
+
   if (slice.scope_in.length) {
     s.push("### Scope In");
     s.push("");
@@ -390,6 +408,7 @@ function agentPayloadForSpawn(
     covered_acs: slice.covered_acs,
     constraints: slice.constraints,
     resolved_questions: slice.resolved_questions,
+    ...(slice.resolved_decisions?.length ? { resolved_decisions: slice.resolved_decisions } : {}),
     scope_in: slice.scope_in,
     scope_out: slice.scope_out,
     rejected_alternatives: slice.rejected_alternatives,

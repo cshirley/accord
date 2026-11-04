@@ -48,7 +48,9 @@ Answer every pending item (repeat `<id> "answer"` pairs in one call), then `/dev
 
    This sets `"status": "resolved"`, `"answer"` and `"resolved_at"` on each entry under the work
    item lock. An unknown id, empty answer or already-resolved entry fails the whole call without
-   writing; `--force` overwrites an existing answer.
+   writing; `--force` overwrites an existing answer. Resolved answers are added to every later
+   task brief under "Resolved Decisions" (`resolved_decisions` in the JSON slice), so the next
+   agent sees them. Durable rules still belong in `plan.json` guidance.
 3. `accord resume PROJ-1234` (or the specific phase, e.g. `accord spec PROJ-1234`).
 
 Pi: `/dev answer PROJ-1234 q1 "…"` is identical. Agents use the `dev_answer` tool (only with the

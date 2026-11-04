@@ -161,6 +161,94 @@ describe("task-requirements", () => {
     }
   });
 
+  test("buildImplementSpawnTaskBrief includes answered decisions but not pending ones", () => {
+    mkdirSync(join("docs", "dev", "TR-D"), { recursive: true });
+    writeFileSync(
+      join("docs", "dev", "TR-D", "spec.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        acceptance_criteria: [
+          { id: "AC-1", requirement: "MUST", type: "scenario", scenario: "does thing" },
+        ],
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join("docs", "dev", "TR-D", "plan.json"),
+      `${JSON.stringify({
+        schema_version: "1.0",
+        tasks: [
+          {
+            id: 1,
+            title: "t",
+            covers_ac: ["AC-1"],
+            challenge: false,
+            files: [{ path: "src/a.test.ts", action: "modify" }],
+            steps: [{ tag: "test", description: "red" }],
+          },
+        ],
+      })}\n`,
+      "utf8",
+    );
+    writeWorkItem("TR-D", {
+      schema_version: "1.0",
+      id: "TR-D",
+      title: "t",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "implementing",
+      spec: "docs/dev/TR-D/spec.json",
+      plan: "docs/dev/TR-D/plan.json",
+      verify: null,
+      brief: null,
+      task_ids: [1],
+      decisions: [
+        {
+          id: "phase-test-stuck-1",
+          source: "escalation",
+          status: "resolved",
+          question: "Which branch gets typed commits?",
+          asked_at: "2026-01-01T00:00:00.000Z",
+          answer: "The per-PR task branch, never main.",
+          resolved_at: "2026-01-01T01:00:00.000Z",
+        },
+        {
+          id: "phase-test-stuck-2",
+          source: "escalation",
+          status: "pending",
+          question: "Still open question?",
+          asked_at: "2026-01-01T02:00:00.000Z",
+        },
+      ],
+      deviations: [],
+      cost_usd: 0,
+    });
+    writeTaskFixture({
+      workItemId: "TR-D",
+      taskId: 1,
+      ownerNonce: "aabbcc",
+      phase: "phase-test",
+      coversAc: ["AC-1"],
+      acText: { "AC-1": "does thing" },
+    });
+
+    const brief = buildImplementSpawnTaskBrief({
+      workItemId: "TR-D",
+      dispatchAgent: "phase-test",
+      phase: "implementing",
+      title: "t",
+      pattern: "implement",
+      devConfig: minimalDevConfig(),
+    });
+    expect(brief.ok).toBe(true);
+    if (!brief.ok) throw new Error(brief.error);
+    expect(brief.value).toContain("Which branch gets typed commits?");
+    expect(brief.value).toContain("The per-PR task branch, never main.");
+    expect(brief.value).not.toContain("Still open question?");
+  });
+
   test("buildImplementSpawnTaskBrief passes test_output and spec contract fields to review-test", () => {
     mkdirSync(join("docs", "dev", "TR-RT"), { recursive: true });
     writeFileSync(
