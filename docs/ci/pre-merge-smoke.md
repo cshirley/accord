@@ -97,7 +97,20 @@ a commit has the trailer `outcome=closeout`. `trace.json` is not a closeout
 signal. `state/work-item.json` and in-flight task state pass while the work item
 is open.
 
+The `feature-drift` rule (`packages/accord-ci/src/checks/feature-drift.ts`)
+runs on every pull request, not only harness pull requests. It reads
+`knowledge.drift_check` from the Dev Harness config. It does nothing when
+`knowledge.enabled` is not true or when the value is `off`. It compares `head`
+with the merge-base of `base` and `head`. A feature drifts when the pull request
+changes a file that the feature doc anchors under `anchors.code`, and the
+feature doc under `knowledge.root` is not changed in the same pull request. A
+commit in `base..head` with the trailer `Feature-Unchanged: <slug>` declares
+that the feature is unchanged. In mode `warn` (default) the rule prints a
+warning and passes. In mode `block` the rule fails and names the feature and
+the files. In mode `block` the rule also fails when `base` cannot be resolved.
+
 ```bash
+bun test packages/accord-ci/tests/feature-drift-ci.test.ts
 bun test packages/accord-ci/tests/evidence-check-runner.test.ts
 bun test packages/accord-ci/tests/contract-lock-check.test.ts
 bun test packages/accord-ci/tests/evidence-check.test.ts
