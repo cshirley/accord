@@ -270,7 +270,7 @@
     },
     "knowledge": {
       "type": "object",
-      "description": "Feature knowledge layer (PROPOSED, not yet read by the harness): living feature-keyed docs beside the ticket-keyed change record docs/dev/<ID>/. See okf/references/knowledge-config.md.",
+      "description": "Feature knowledge layer (keys are read by the harness; default off): living feature-keyed docs beside the ticket-keyed change record docs/dev/<ID>/. See okf/references/knowledge-config.md.",
       "additionalProperties": false,
       "properties": {
         "enabled": {
