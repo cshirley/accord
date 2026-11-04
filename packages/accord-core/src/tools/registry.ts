@@ -24,6 +24,7 @@ import {
 import { devInitDetect } from "../config/init-detect.js";
 import { devInitWrite, type WriteTarget } from "../config/init-write.js";
 import type { DevHarnessConfig } from "../config/types.js";
+import { type DisclosureLevel, findFeatures, impactFor } from "../knowledge/query.js";
 import {
   commitWorkItemArtifacts,
   formatWorkItemArtifactsCommit,
@@ -63,10 +64,16 @@ import {
   initWriteTargetEnum,
   intentModeEnum,
   patternEnum,
+  stringEnum,
   terminalOutcomeEnum,
   variantEnum,
 } from "./enums.js";
 import { defineTool, type ToolDefinition } from "./types.js";
+
+const knowledgeDisabled = {
+  ok: false as const,
+  text: "Feature knowledge is disabled: set knowledge.enabled to true in accord.json",
+};
 
 function stringifyFieldValues(fields: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
@@ -894,6 +901,74 @@ export const ACCORD_TOOLS: readonly ToolDefinition[] = [
     parameters: Type.Object({ id: Type.String({ description: "Work item id" }) }),
     handler(params, ctx) {
       return stackReport(params.id, ctx.getConfig());
+    },
+  }),
+
+  defineTool({
+    name: "dev_feature_find",
+    label: "dev_feature_find",
+    description: "Find features by query or code path via docs/features/index.json",
+    promptSnippet: "Find features by query or code path via the feature index",
+    parameters: Type.Object({
+      query: Type.Optional(
+        Type.String({ description: "Text matched against id, title, description, tags" }),
+      ),
+      path: Type.Optional(Type.String({ description: "Code path anchored by a feature" })),
+      depth: Type.Optional(
+        stringEnum(["index", "feature", "change", "evidence"] as const, {
+          description: "Deepest disclosure level to read (default evidence)",
+        }),
+      ),
+      cwd: Type.Optional(Type.String({ description: "Repo root (defaults to process.cwd())" })),
+    }),
+    handler(params, ctx) {
+      const config = ctx.getConfig();
+      if (!config?.knowledge?.enabled) return knowledgeDisabled;
+      try {
+        const result = findFeatures({
+          repoRoot: params.cwd ?? process.cwd(),
+          root: config.knowledge.root,
+          query: params.query,
+          path: params.path,
+          depth: params.depth as DisclosureLevel | undefined,
+        });
+        const text = result.matches.length
+          ? result.matches
+              .map((match) => `${match.id}: ${match.title} [${match.status}]`)
+              .join("\n")
+          : "No matching features";
+        return { ok: true, text, details: result };
+      } catch (e: unknown) {
+        return { ok: false, text: `Error: ${e instanceof Error ? e.message : String(e)}` };
+      }
+    },
+  }),
+
+  defineTool({
+    name: "dev_feature_impact",
+    label: "dev_feature_impact",
+    description: "List features impacted by a work item plan via docs/features/index.json",
+    promptSnippet: "List features impacted by a work item plan",
+    parameters: Type.Object({
+      id: Type.String({ description: "Work item id" }),
+      cwd: Type.Optional(Type.String({ description: "Repo root (defaults to process.cwd())" })),
+    }),
+    handler(params, ctx) {
+      const config = ctx.getConfig();
+      if (!config?.knowledge?.enabled) return knowledgeDisabled;
+      try {
+        const result = impactFor({
+          repoRoot: params.cwd ?? process.cwd(),
+          root: config.knowledge.root,
+          id: params.id,
+        });
+        const text = result.rows.length
+          ? result.rows.map((row) => `${row.slug}: ${row.relation}`).join("\n")
+          : "No impacted features";
+        return { ok: true, text, details: result };
+      } catch (e: unknown) {
+        return { ok: false, text: `Error: ${e instanceof Error ? e.message : String(e)}` };
+      }
     },
   }),
 ];
