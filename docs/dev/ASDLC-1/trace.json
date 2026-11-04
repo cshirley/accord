@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-04T10:34:27.381Z",
+  "generated_at": "2026-11-04T11:05:55.765Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -5075,7 +5075,9 @@
       "id": 47,
       "title": "[feature-knowledge] Review invariants and CI drift rule",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "2b68f82"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -5172,33 +5174,71 @@
     {
       "id": 48,
       "title": "[feature-knowledge] Feature find/impact query and dev_feature_* tools",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 20,
+        "by_state": {
+          "reraised": 1,
+          "verified": 8,
+          "open": 11
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-21 impactFor > ASDLC-1/AC-21 throws naming plan.json when the work item has no plan\nerror: tool dev_feature_find not registered\n(fail) ASDLC-1/AC-21 dev_feature_* tools > ASDLC-1/AC-21 dev_feature_find returns the same result as findFeatures\n...\nerror: tool dev_feature_impact not registered\n(fail) ASDLC-1/AC-21 dev_feature_* tools > ASDLC-1/AC-21 dev_feature_impact returns the same result as impactFor\n\n 0 pass\n 15 fail\nRan 15 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "feature-query.test.ts: 40 pass, 0 fail. check:types ok. check:bundle ok. biome on the 3 touched files: no fixes needed. Preflight `bun test` timed out at 120s with no failures in the output shown. Preflight check:biome failures are JSON formatting in task-state JSON files, not in this task's files.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-21",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/feature-query.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-core/src/knowledge/query.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-core/src/knowledge/query.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/tools/registry.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-core/tests/feature-query.test.ts"
+          }
         }
       ]
     },
@@ -6183,15 +6223,24 @@
       "tasks": [
         {
           "task": 48,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 49,
           "status": "pending"
         }
       ],
-      "files": [],
-      "tests": [],
+      "files": [
+        "packages/accord-core/tests/feature-query.test.ts",
+        "packages/accord-core/src/knowledge/query.ts",
+        "packages/accord-core/src/tools/registry.ts"
+      ],
+      "tests": [
+        "packages/accord-core/tests/feature-query.test.ts: 40 tests, all named ASDLC-1/AC-21 (progressive disclosure order, query/path match, impactFor, dev_feature_find/impact parity with findFeatures/impactFor, initFeatures)",
+        "bun run check:types",
+        "bun run check:bundle",
+        "bunx biome check on query.ts, registry.ts and feature-query.test.ts"
+      ],
       "verified": false
     },
     {
@@ -12404,6 +12453,167 @@
       "issue": "Doc says declarations are read from commits in `base..head`, but the rule reads `<merge-base>..head`.",
       "file": "docs/ci/pre-merge-smoke.md",
       "line": 107,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-001",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Progressive disclosure (index → feature → change → evidence, read only as deep as needed) is checked only against the function's own `reads` log. The 'non-matching docs must never be read' guard is vacuous because billing.md and session-store.md are absent. No test makes deeper files unreadable at a shallower depth. Depth feature and change do not assert that the data at that depth is populated, and reads[2].path (change level) is never asserted.",
+      "file": "packages/accord-core/tests/feature-query.test.ts",
+      "line": 70,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Unmet part of Done-when: 'every findFeatures test asserts the complete reads array with toEqual'. The custom-root test at line 190 asserts only `result.reads[0]` (line 194). Adversary: findFeatures resolves doc paths as join(repoRoot,'docs/features',entry.path) and skips a missing doc. That impl passes this test and the dev_feature_find custom-root test, because parity compares against the same function. I narrowed the target to this test; depth-index tests that check only ids are covered by dedicated reads tests. Done when: the line-190 test asserts `result.reads` toEqual [{level:'index',path:'custom/kb/index.json'},{level:'feature',path:'custom/kb/auth-refresh.md'},{level:'change',path:'custom/kb/auth-refresh.md'},{level:'evidence',path:EVIDENCE_PATH}], asserts `result.matches[0].evidence` toEqual [{path:EVIDENCE_PATH, content:'EVIDENCE-SENTINEL-4471\\n'}], and asserts that existsSync(join(repo,'docs/features/auth-refresh.md')) is false."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "No test pins the behaviour when index.json lists a matched feature whose doc file is missing (the index and docs can drift). The impl may throw, skip silently or return partial data. Silent skipping also hides the default-root doc bug behind F-001. This gap was in round-1 code.",
+      "file": "packages/accord-core/tests/feature-query.test.ts",
+      "line": 98,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Four guards prove that matching and shallow depths never open deeper files: the full-depth non-matching guard and the depth index/feature/change guards. All of them use `it.skipIf(!CAN_POISON)`, so they are skipped when the suite runs as root (common in containers). A run as root then has no test proving that matching uses index.json only. A findFeatures that matches by loading every doc (for example by reusing loadFeatureDocs) would pass. An impl that catches EACCES errors and skips the file also passes these guards even as non-root.",
+      "file": "packages/accord-core/tests/feature-query.test.ts",
+      "line": 250,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The path-containment test covers only a `../` prefix on an evidence path. An impl that checks `startsWith('..')` or uses path.resolve still reads absolute paths and mid-path `..` that leave the repo. Feature-doc paths from the index entry `path` are not checked at all. A doc or index edited in a PR could then make the dev_feature_find tool return files from outside the repo.",
+      "file": "packages/accord-core/tests/feature-query.test.ts",
+      "line": 383,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "No test runs initFeatures when an index already exists. An unconditional writeJson replaces a populated docs/features/index.json with {features:[]} when `accord feature init` is run again, so the knowledge index is silently lost.",
+      "file": "packages/accord-core/tests/feature-query.test.ts",
+      "line": 416,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The ok:true text assertion `toContain('auth-refresh')` uses a query that equals the matched id. A tool that returns `Results for ${query}` passes without listing any match.",
+      "file": "packages/accord-core/tests/feature-query.test.ts",
+      "line": 450,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Features index.json and plan.json are read/written with raw fs + JSON.parse/writeFileSync instead of the mandated readJson/writeJson helpers.",
+      "file": "packages/accord-core/src/knowledge/query.ts",
+      "line": 132,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Evidence content is read in full and returned for every change of every match, with evidence as the default depth.",
+      "file": "packages/accord-core/src/knowledge/query.ts",
+      "line": 110,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "When both query and path are given, path silently wins and query is ignored; an unknown depth string silently behaves as depth=index.",
+      "file": "packages/accord-core/src/knowledge/query.ts",
+      "line": 69,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A plan.json without a tasks array reaches analyseImpact and fails with an opaque TypeError.",
+      "file": "packages/accord-core/src/knowledge/query.ts",
+      "line": 125,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Tools reimplement knowledge-config resolution, and query.ts re-declares helpers that already exist in the knowledge module.",
+      "file": "packages/accord-core/src/tools/registry.ts",
+      "line": 926,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 48,
+      "requirement": "AC-21",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "dev_feature_find and dev_feature_impact are in no Pi tool bundle, so under default dynamic tools they are never activated in Pi (MCP is unaffected).",
+      "file": "packages/accord-core/src/tools/active-set.ts",
+      "line": 26,
       "raised": "C1/review-code"
     }
   ]
