@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-04T11:46:15.892Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-04T12:01:17.782Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -56,8 +56,8 @@
 | 47 | [feature-knowledge] Review invariants and CI drift rule | done | `2b68f82` | 2/1/1 | 23 (verified 9, wont_fix_accepted 2, open 12) | 0 |
 | 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | done | `4d6754c` | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
 | 49 | [feature-knowledge] accord feature CLI command | done | `f06b2ee` | 2/1/1 | 21 (verified 10, open 9, wont_fix_accepted 2) | 0 |
-| 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | done | — | 1/1/1 | 13 (open 13) | 0 |
-| 51 | [ci-driven-mode] Startup push-token check and cost cap key | pending | — | 0/0/0 | 0 | 0 |
+| 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | done | `0d07304` | 1/1/1 | 13 (open 13) | 0 |
+| 51 | [ci-driven-mode] Startup push-token check and cost cap key | done | — | 1/1/1 | 8 (open 8) | 0 |
 | 52 | [ci-driven-mode] CI builds PR0 from brief and spec | pending | — | 0/0/0 | 0 | 0 |
 | 53 | [ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert | pending | — | 0/0/0 | 0 | 0 |
 | 54 | [ci-driven-mode] OKF and CI docs for CI-driven mode | pending | — | 0/0/0 | 0 | 0 |
@@ -436,11 +436,20 @@
 
 - Tasks: 53 (pending)
 
-### AC-25 — pending (not verified)
+### AC-25 — satisfied
 
 > CI-driven mode treat ACCORD_CI_PUSH_TOKEN (a GitHub App token or PAT) as a required env var with no default, and MUST fail to start, before any step, when it is absent, because commits made with GITHUB_TOKEN do not tr…
 
-- Tasks: 51 (pending)
+- Tasks: 51 (satisfied)
+- Files: `packages/accord-ci/tests/ci-driven-startup.test.ts`, `packages/accord-ci/src/ci-driven/startup.ts`
+- Tests verified (7):
+  - ASDLC-1/AC-25 absent token fails with MISSING_REQUIRED_SECRET before any git/gh call
+  - ASDLC-1/AC-25 empty string token fails with MISSING_REQUIRED_SECRET before any git/gh call
+  - ASDLC-1/AC-25 GITHUB_TOKEN or GH_PAT_PR alone does not satisfy the requirement
+  - ASDLC-1/AC-25 near-miss var name (lowercase) is not accepted
+  - ASDLC-1/AC-25 with the token set startup proceeds without throwing or spawning
+  - ASDLC-1/AC-25 token value never appears in stdout, stderr, logs or the error
+  - token-leak grep: no match; token confined to accord-ci files
 
 ### AC-26 — satisfied
 
@@ -530,13 +539,13 @@
   - ASDLC-1/AC-29 event carries the task id of the checked task
   - ASDLC-1/AC-29 goes through the shared logger: silent at error level, decision still raised
 
-### AC-30 — pending (not verified)
+### AC-30 — satisfied
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (satisfied), 45 (satisfied), 50 (satisfied), 51 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/schemas/feature-schema.json`, `packages/accord-core/tests/feature-impact.test.ts`, `packages/accord-core/schemas/spec-schema.json`, `packages/accord-core/tests/docs-validation.test.ts`
-- Tests verified (25):
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (satisfied), 45 (satisfied), 50 (satisfied), 51 (satisfied)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/schemas/feature-schema.json`, `packages/accord-core/tests/feature-impact.test.ts`, `packages/accord-core/schemas/spec-schema.json`, `packages/accord-core/tests/docs-validation.test.ts`, `packages/accord-ci/tests/ci-driven-startup.test.ts`, `packages/accord-core/src/config/types.ts`
+- Tests verified (29):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
@@ -562,14 +571,18 @@
   - ASDLC-1/AC-30 knowledge description states keys are read by the harness and default off
   - ASDLC-1/AC-30 spec feature field description states it is read by the harness and no longer proposed
   - ASDLC-1/AC-30 spec features[] description states default off
+  - ASDLC-1/AC-30 stack.ci.cost_cap_usd is a number with positive bound and no default
+  - ASDLC-1/AC-30 config types declare stack.ci.cost_cap_usd
+  - bun run validate:schemas (30 passed)
+  - bun run check:bundle
 
 ### AC-31 — pending (not verified)
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (satisfied), 50 (satisfied), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-cli/tests/feature-cli.test.ts`, `okf/references/knowledge-config.md`
-- Tests verified (58):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (satisfied), 50 (satisfied), 51 (satisfied), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-cli/tests/feature-cli.test.ts`, `okf/references/knowledge-config.md`, `packages/accord-ci/tests/ci-driven-startup.test.ts`
+- Tests verified (60):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -628,6 +641,8 @@
   - ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 feature-knowledge entry naming knowledge-config and tool-surface, after the prior bullets
   - bun run validate:features
   - bunx biome check okf packages/accord-core/schemas packages/accord-core/tests/docs-validation.test.ts
+  - ASDLC-1/AC-31 documents the server-only secret, owner and 90-day rotation
+  - bun run check:biome (only failure: docs/dev/ASDLC-1/trace.json format, a harness-generated artifact outside the task files)
 
 ## Accepted risks and unresolved findings
 
@@ -1081,6 +1096,14 @@
 | 50 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | The doc says the drift check 'runs locally and in CI' and mentions 'declare no change' without saying how. The only caller of checkDrift is the accord/evidence CI rule. | okf/references/knowledge-config.md:38 |  |
 | 50 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Index and config-table entries still label the knowledge layer 'Proposed' after knowledge-config.md moved to status: stable. | okf/references/index.md:8 |  |
 | 50 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | A stray blank line separates the new bullet from the other bullets under `## 2026-11-03`, unlike every other dated section. | okf/log.md:93 |  |
+| 51 | AC-25 | F-001 | unresolved (advisory) | open | warning | TC-26 is integration tier ('Run the CI entry point ... assert non-zero exit'), but every AC-25 test calls assertCiDrivenEnv() in-process. No process runs, no exit code is checked, and stderr is not checked at the process boundary. | packages/accord-ci/tests/ci-driven-startup.test.ts:75 |  |
+| 51 | AC-25 | F-002 | unresolved (advisory) | open | warning | The 'no default / no substitute' partition is only partly tested. GH_TOKEN, the gh CLI's own env var, is not tested as a fallback. The 'lowercase near-miss' test sets accord_ci_push_token_x, which is not the lowercase name, so it cannot detect case-insensitive lookup. | packages/accord-ci/tests/ci-driven-startup.test.ts:106 |  |
+| 51 | AC-25 | F-003 | unresolved (advisory) | open | warning | The leak test runs at the default log level 'error'. accord-core createLogger writes debug, info and warn through console.error only when the level allows it, so a debug log of the token passes. The test also checks only for the full token, so partial leaks pass. | packages/accord-ci/tests/ci-driven-startup.test.ts:122 |  |
+| 51 | AC-25 | F-006 | unresolved (advisory) | open | suggestion | The spawn spies replace properties on the default child_process object. Calls through named imports (`import { execFile } from 'node:child_process'`, the style in accord-ci/src/checks/*.ts) may not reach the spies in Bun. Bun.$, fetch and fs writes are not spied. The 'zero git/gh calls' check may prove nothing for the most likely import style. | packages/accord-ci/tests/ci-driven-startup.test.ts:33 |  |
+| 51 | AC-30 | F-004 | unresolved (advisory) | open | warning | The types check matches /cost_cap_usd\?:\s*number/ anywhere in types.ts. It does not check that the key is under DevHarnessStackConfig.ci, so a misalignment between types and schema passes. Preventing that misalignment is the purpose of AC-30. | packages/accord-ci/tests/ci-driven-startup.test.ts:154 |  |
+| 51 | AC-30 | F-007 | unresolved (advisory) | open | suggestion | The schema check is structural only. No Ajv test checks real values. alignment.test.ts:64-90 already uses that pattern for review_security. | packages/accord-ci/tests/ci-driven-startup.test.ts:140 |  |
+| 51 | AC-31 | F-005 | unresolved (advisory) | open | warning | The test name says 'documents the server-only secret', but nothing asserts server-only. The 'section' is everything from the first mention of the token to the end of the file, so 'cshirley' and '90-day' can be in unrelated text. | packages/accord-ci/tests/ci-driven-startup.test.ts:161 |  |
+| 51 | AC-31 | F-008 | unresolved (advisory) | open | suggestion | Unit tests cannot prove that these commands pass on the task-51 files: check:biome, check:types, the token-leak grep and the server-side-only grep. TC-31 and TC-32 are covered by tests already in alignment.test.ts and docs-validation.test.ts. | packages/accord-ci/tests/ci-driven-startup.test.ts:158 |  |
 
 ## Decisions
 
@@ -2100,6 +2123,29 @@ docs-validation.test.ts: 53 pass, 0 fail. validate:schemas/assets/okf/ste/featur
 ```
 
 ### Task 51: [ci-driven-mode] Startup push-token check and cost cap key
+
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-25 ... token value never appears in stdout, stderr, logs or the error
+  error: not implemented: assertCiDrivenEnv
+(fail) ASDLC-1/AC-30 stack.ci.cost_cap_usd is a number with positive bound and no default
+  TypeError: undefined is not an object (evaluating 'ciSchema().type')
+(fail) ASDLC-1/AC-30 config types declare stack.ci.cost_cap_usd
+  Expected substring or pattern: /cost_cap_usd\?:\s*number/
+(fail) ASDLC-1/AC-31 documents the server-only secret, owner and 90-day rotation
+  Expected to contain: "ACCORD_CI_PUSH_TOKEN"
+
+ 0 pass
+ 9 fail
+Ran 9 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+task test: 9 pass 0 fail; validate:schemas 30 passed 0 failed; check:types ok; check:bundle ok; token grep no match; ACCORD_CI_PUSH_TOKEN only in accord-ci startup.ts + test; check:biome: 1 error docs/dev/ASDLC-1/trace.json format; full bun test timed out at 120s in preflight (not re-run)
+```
 
 ### Task 52: [ci-driven-mode] CI builds PR0 from brief and spec
 
