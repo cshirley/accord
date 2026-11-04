@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-04T11:32:14.154Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-04T11:46:15.892Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -55,8 +55,8 @@
 | 46 | [feature-knowledge] Closeout feature-doc update and drift check | done | `3eb57f7` | 3/2/1 | 30 (verified 15, dispute_upheld 1, wont_fix_accepted 1, open 13) | 0 |
 | 47 | [feature-knowledge] Review invariants and CI drift rule | done | `2b68f82` | 2/1/1 | 23 (verified 9, wont_fix_accepted 2, open 12) | 0 |
 | 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | done | `4d6754c` | 2/1/1 | 20 (reraised 1, verified 8, open 11) | 0 |
-| 49 | [feature-knowledge] accord feature CLI command | done | — | 2/1/1 | 21 (verified 10, open 9, wont_fix_accepted 2) | 0 |
-| 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | pending | — | 0/0/0 | 0 | 0 |
+| 49 | [feature-knowledge] accord feature CLI command | done | `f06b2ee` | 2/1/1 | 21 (verified 10, open 9, wont_fix_accepted 2) | 0 |
+| 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | done | — | 1/1/1 | 13 (open 13) | 0 |
 | 51 | [ci-driven-mode] Startup push-token check and cost cap key | pending | — | 0/0/0 | 0 | 0 |
 | 52 | [ci-driven-mode] CI builds PR0 from brief and spec | pending | — | 0/0/0 | 0 | 0 |
 | 53 | [ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert | pending | — | 0/0/0 | 0 | 0 |
@@ -534,9 +534,9 @@
 
 > New agents, schemas and config keys MUST stay aligned across manifest.json, registry.ts and schemas/ (plan fields est_lines, concern, depends_on, flag, kind; spec features[]; stack and knowledge keys)
 
-- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (satisfied), 45 (satisfied), 50 (pending), 51 (pending)
-- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/schemas/feature-schema.json`, `packages/accord-core/tests/feature-impact.test.ts`, `packages/accord-core/schemas/spec-schema.json`
-- Tests verified (22):
+- Tasks: 11 (satisfied), 17 (satisfied), 18 (satisfied), 25 (satisfied), 32 (satisfied), 39 (satisfied), 43 (satisfied), 45 (satisfied), 50 (satisfied), 51 (pending)
+- Files: `packages/accord-core/tests/qualified-ac-refs.test.ts`, `packages/accord-core/src/evidence/qualify-ac.ts`, `packages/accord-core/schemas/trace-schema.json`, `packages/accord-core/tests/alignment.test.ts`, `packages/accord-core/schemas/accord-schema.json`, `packages/accord-core/tests/contract-lock.test.ts`, `packages/accord-core/schemas/contract-lock-schema.json`, `packages/accord-core/src/artifacts/validation.ts`, `packages/accord-core/schemas/plan-schema.json`, `packages/accord-assets/agents/accord/phase-plan.md`, `packages/accord-core/src/orchestration/resolve/interview-task.ts`, `packages/accord-core/tests/overrun-decision.test.ts`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-core/schemas/feature-schema.json`, `packages/accord-core/tests/feature-impact.test.ts`, `packages/accord-core/schemas/spec-schema.json`, `packages/accord-core/tests/docs-validation.test.ts`
+- Tests verified (25):
   - ASDLC-1/AC-30 accepts ac_id (table)
   - ASDLC-1/AC-30 rejects ac_id (table)
   - ASDLC-1/AC-30 multi-segment work item ids qualify and normalise
@@ -559,14 +559,17 @@
   - ASDLC-1/AC-30 schema rejects the 6 frontmatter mutations
   - feature-impact.test.ts: ASDLC-1/AC-30 spec schema features[] alignment
   - bun run validate:assets (preflight exit 0)
+  - ASDLC-1/AC-30 knowledge description states keys are read by the harness and default off
+  - ASDLC-1/AC-30 spec feature field description states it is read by the harness and no longer proposed
+  - ASDLC-1/AC-30 spec features[] description states default off
 
 ### AC-31 — pending (not verified)
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (satisfied), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-cli/tests/feature-cli.test.ts`
-- Tests verified (52):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (satisfied), 50 (satisfied), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-cli/tests/feature-cli.test.ts`, `okf/references/knowledge-config.md`
+- Tests verified (58):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -619,6 +622,12 @@
   - bunx biome check on task files (clean)
   - ASDLC-1/AC-31 okf/references/accord-cli.md has a feature row naming find, impact, init, --depth, knowledge.enabled and dev_feature
   - bun run validate:ste (preflight passed)
+  - ASDLC-1/AC-31 knowledge-config.md is no longer marked proposed
+  - ASDLC-1/AC-31 knowledge-config.md documents docs/features, impact analysis, drift check and the dev_feature tools
+  - ASDLC-1/AC-31 tool-surface.md documents dev_feature_find and dev_feature_impact
+  - ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 feature-knowledge entry naming knowledge-config and tool-surface, after the prior bullets
+  - bun run validate:features
+  - bunx biome check okf packages/accord-core/schemas packages/accord-core/tests/docs-validation.test.ts
 
 ## Accepted risks and unresolved findings
 
@@ -1059,6 +1068,19 @@
 | 49 | AC-28 | F-019 | unresolved (advisory) | open | suggestion | Tool context is cast `as never` although `{ getConfig }` already satisfies ToolHandlerContext, which hides type drift. | packages/accord-cli/src/commands/feature.ts:18 |  |
 | 49 | AC-31 | F-012 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 requires a dated okf/log.md entry. No test asserts one, and okf/log.md is not in task 49's files. Plan task 50 (depends_on 49) owns the feature-knowledge log entry. TC-32's file docs-validation.test.ts is not touched by this task, but its generic validate:okf and validate:ste tests still apply. | packages/accord-cli/tests/feature-cli.test.ts:306 | wont_fix_accepted by T2/review-test — okf/log.md is not in task 49's files, and task 50 owns the dated entry. validate:okf, validate:ste and biome run in phase-verify-task. |
 | 49 | AC-31 | F-021 | unresolved (advisory) | open | suggestion | The feature row does not say how `find` distinguishes a path from a query (an argument containing '/' is a path) or that `--depth` applies only to `find`. | okf/references/accord-cli.md:49 |  |
+| 50 | AC-30 | F-004 | unresolved (advisory) | open | warning | The schema-description negation checks are case-sensitive and match substrings, so a description that still says the layer is proposed and unread passes. | packages/accord-core/tests/docs-validation.test.ts:698 |  |
+| 50 | AC-30 | F-005 | unresolved (advisory) | open | suggestion | Tests need packages/accord-core/schemas/spec-schema.json edited, but that file is not in task.files[] (only the plan step text names it), and no biome check covers it. | packages/accord-core/tests/docs-validation.test.ts:706 |  |
+| 50 | AC-30 | F-006 | unresolved (advisory) | open | suggestion | This file does not prove AC-30 enforcement (validate:schemas, validate:assets) or the task's validate:features verify step. Those are runtime gates. | packages/accord-core/tests/docs-validation.test.ts:688 |  |
+| 50 | AC-31 | F-001 | unresolved (advisory) | open | warning | The okf/log.md test does not enforce append-only. It passes when the existing ASDLC-1 feature-knowledge bullet is edited, and it will fail on later valid appends because it requires the new bullet to be last. | packages/accord-core/tests/docs-validation.test.ts:750 |  |
+| 50 | AC-31 | F-002 | unresolved (advisory) | open | warning | knowledge-config.md tests pass after a one-line edit. 5 of the 7 required terms already exist, and the 'not proposed' test only checks that three exact strings are gone. The tests do not check that the concept describes the implemented layer or binds its sources. | packages/accord-core/tests/docs-validation.test.ts:729 |  |
+| 50 | AC-31 | F-003 | unresolved (advisory) | open | warning | The tool-surface.md test accepts the feature tool names anywhere in the file, including the Stack row, which says the tools need stack.enabled. The tools actually need knowledge.enabled. | packages/accord-core/tests/docs-validation.test.ts:744 |  |
+| 50 | AC-31 | F-007 | unresolved (advisory) | open | suggestion | The task-50 describe blocks do not carry a TC tag, and the AC-30 schema-description tests live here instead of next to the task-32 stack-description test in alignment.test.ts. | packages/accord-core/tests/docs-validation.test.ts:721 |  |
+| 50 | AC-31 | F-008 | unresolved (advisory) | open | warning | `impact_analysis` is documented as an active key, and the schema, intro and log entry say all keys are read by the harness, but nothing reads it. | okf/references/knowledge-config.md:25 |  |
+| 50 | AC-31 | F-009 | unresolved (advisory) | open | warning | `dev_feature_impact` is described as listing features that 'a set of paths' impacts; it takes a work item id. | okf/references/knowledge-config.md:40 |  |
+| 50 | AC-31 | F-010 | unresolved (advisory) | open | suggestion | Impact analysis is said to run 'at align and spec'. It runs in the contract PR0 pre-lock hook from plan.json. | okf/references/knowledge-config.md:37 |  |
+| 50 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | The doc says the drift check 'runs locally and in CI' and mentions 'declare no change' without saying how. The only caller of checkDrift is the accord/evidence CI rule. | okf/references/knowledge-config.md:38 |  |
+| 50 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Index and config-table entries still label the knowledge layer 'Proposed' after knowledge-config.md moved to status: stable. | okf/references/index.md:8 |  |
+| 50 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | A stray blank line separates the new bullet from the other bullets under `## 2026-11-03`, unlike every other dated section. | okf/log.md:93 |  |
 
 ## Decisions
 
@@ -1123,6 +1145,7 @@
 - Task 46 (accepted): Defined the public signatures and changes[] entry shape (work_item, pr, evidence, contract_sha, ac_map) for the closeout updater and drift check in the tests and stubs. — The spec names the behaviour but not the API. contract_sha is taken from the commit that first added contract.lock.json (trustedContractLock).
 - Task 47 (pending): Spec does not define the CI rule API or the no-change declaration form; tests pin createFeatureDriftRule(cwd,{config}), doc-change = owning feature doc in diff, and a 'Feature-Unchanged: <slug>' commit-message line. — TC-23 requires a no-change declaration but names no mechanism.
 - Task 47 (pending): AC-31 is architectural (okf log, STE, biome, pre-merge-smoke.md); no runtime test written. Covered by TC-32 docs-validation.test.ts and verification commands validate:okf, validate:ste, check:biome. — Enforcement belongs to verify commands, not task-47 tests.
+- Task 50 (pending): Edited packages/accord-core/schemas/spec-schema.json (feature and features[] descriptions) though not in task.files[] — Task 50 tests assert those spec-schema descriptions; the step names the spec-schema feature field
 
 ## Evidence by task
 
@@ -2054,6 +2077,27 @@ feature-cli.test.ts: 19 pass, 0 fail. check:types: ok. validate:okf: passed (38 
 ```
 
 ### Task 50: [feature-knowledge] Schema description and OKF docs for feature knowledge
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-core/tests/docs-validation.test.ts
+46 pass
+7 fail
+(fail) ASDLC-1/AC-30 feature-knowledge schema descriptions (task 50) > knowledge description states keys are read by the harness and default off
+(fail) ASDLC-1/AC-30 ... spec feature field description states it is read by the harness and no longer proposed
+(fail) ASDLC-1/AC-30 ... spec features[] description states default off
+(fail) ASDLC-1/AC-31 feature-knowledge docs (task 50) > knowledge-config.md is no longer marked proposed
+(fail) ASDLC-1/AC-31 ... knowledge-config.md documents docs/features, impact analysis, drift check and the dev_feature tools
+(fail) ASDLC-1/AC-31 ... tool-surface.md documents dev_feature_find and dev_feature_impact (Expected to contain: "dev_feature_find")
+(fail) ASDLC-1/AC-31 ... okf/log.md has a dated ASDLC-1 feature-knowledge entry (index -1)
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+docs-validation.test.ts: 53 pass, 0 fail. validate:schemas/assets/okf/ste/features, check:types/bundle/runtime exit 0. biome on task files: Checked 47 files, no fixes. Full-repo check:biome fails on formatting of .tasks/*.json (not task files). Preflight full bun test timed out at 120s in feature-drift.test.ts.
+```
 
 ### Task 51: [ci-driven-mode] Startup push-token check and cost cap key
 

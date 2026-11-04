@@ -684,3 +684,80 @@ describe("ASDLC-1/AC-31 feature-drift CI docs (task 47)", () => {
     expect(lines).toContain("bun test packages/accord-ci/tests/feature-drift-ci.test.ts");
   });
 });
+
+describe("ASDLC-1/AC-30 feature-knowledge schema descriptions (task 50)", () => {
+  const accordSchema = (): { properties: { knowledge: { description: string } } } =>
+    JSON.parse(read("packages/accord-core/schemas/accord-schema.json"));
+  const specSchema = (): {
+    properties: {
+      features: { description: string };
+      acceptance_criteria: { items: { properties: { feature: { description: string } } } };
+    };
+  } => JSON.parse(read("packages/accord-core/schemas/spec-schema.json"));
+
+  it("ASDLC-1/AC-30 knowledge description states keys are read by the harness and default off", () => {
+    const description = accordSchema().properties.knowledge.description;
+    expect(description).toContain("read by the harness");
+    expect(description).toContain("default off");
+    expect(description).not.toContain("not yet read");
+    expect(description).not.toContain("PROPOSED");
+  });
+
+  it("ASDLC-1/AC-30 spec feature field description states it is read by the harness and no longer proposed", () => {
+    const description =
+      specSchema().properties.acceptance_criteria.items.properties.feature.description;
+    expect(description).toContain("read by the harness");
+    expect(description).not.toContain("not yet read");
+    expect(description).not.toContain("PROPOSED");
+  });
+
+  it("ASDLC-1/AC-30 spec features[] description states default off", () => {
+    const description = specSchema().properties.features.description;
+    expect(description).toContain("knowledge.enabled");
+    expect(description).toContain("default off");
+  });
+});
+
+describe("ASDLC-1/AC-31 feature-knowledge docs (task 50)", () => {
+  it("ASDLC-1/AC-31 knowledge-config.md is no longer marked proposed", () => {
+    const text = read("okf/references/knowledge-config.md");
+    expect(text).not.toMatch(/^status: proposed/m);
+    expect(text).not.toContain("The harness does not read it yet");
+    expect(text).not.toContain("**Proposed.**");
+  });
+
+  it("ASDLC-1/AC-31 knowledge-config.md documents docs/features, impact analysis, drift check and the dev_feature tools", () => {
+    const text = read("okf/references/knowledge-config.md");
+    for (const term of [
+      "docs/features",
+      "index.json",
+      "impact",
+      "drift",
+      "validate:features",
+      "dev_feature_find",
+      "dev_feature_impact",
+    ]) {
+      expect(text).toContain(term);
+    }
+  });
+
+  it("ASDLC-1/AC-31 tool-surface.md documents dev_feature_find and dev_feature_impact", () => {
+    const text = read("okf/architecture/tool-surface.md");
+    expect(text).toContain("dev_feature_find");
+    expect(text).toContain("dev_feature_impact");
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 feature-knowledge entry naming knowledge-config and tool-surface, after the prior bullets", () => {
+    const bullets = datedBullets();
+    const index = bullets.findIndex(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1 feature-knowledge") &&
+        bullet.text.includes("/references/knowledge-config.md") &&
+        bullet.text.includes("/architecture/tool-surface.md"),
+    );
+    expect(index).toBeGreaterThan(-1);
+    expect(bullets[index]?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // append-only: the final bullet in the file must be the newest one
+    expect(index).toBe(bullets.length - 1);
+  });
+});
