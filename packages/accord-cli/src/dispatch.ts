@@ -14,6 +14,7 @@ import {
   runDeviationsCommand,
   runDriveCommand,
   runEvidenceCommand,
+  runFeatureCommand,
   runFinishCommand,
   runGapsCommand,
   runInitCommand,
@@ -93,6 +94,13 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
 
   if (parsed.kind === "evidence") {
     return runEvidenceCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "feature") {
+    return runFeatureCommand(parsed.verb, parsed.args, cwd, {
+      json: parsed.options.json,
+      depth: parsed.depth,
+    });
   }
 
   if (parsed.kind === "stack") {

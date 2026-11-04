@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-04T11:05:55.765Z",
+  "generated_at": "2026-11-04T11:32:14.154Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -5175,7 +5175,9 @@
       "id": 48,
       "title": "[feature-knowledge] Feature find/impact query and dev_feature_* tools",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "4d6754c"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -5245,45 +5247,130 @@
     {
       "id": 49,
       "title": "[feature-knowledge] accord feature CLI command",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 21,
+        "by_state": {
+          "verified": 10,
+          "open": 9,
+          "wont_fix_accepted": 2
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-cli/tests/feature-cli.test.ts: 0 pass, 14 fail. CLI tests fail with 'Unknown command \"feature\". Run accord --help.' (feature verb not routed yet). AC-28 fails: commands/feature.ts stub has no accord-core import. AC-31 fails: okf/references/accord-cli.md lacks 'accord feature find|impact|init'.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "feature-cli.test.ts: 19 pass, 0 fail. check:types: ok. validate:okf: passed (38 files). check:biome: exit 1, only docs/dev/ASDLC-1/trace.json format (git-ignored harness file). Preflight: validate:schemas, validate:assets, validate:ste, validate:features, check:bundle and check:runtime passed. Full `bun test` timed out at 120s in preflight (no failures seen in the output).",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-21",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/feature-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/feature.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/feature.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/cli.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/dispatch.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/index.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 1,
+            "command": "bun test packages/accord-cli/tests/feature-cli.test.ts"
+          }
         },
         {
           "id": "AC-28",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/feature-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/feature.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-cli/src/commands/feature.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-cli/tests/feature-cli.test.ts; bun run check:types"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-cli/tests/feature-cli.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "okf/references/accord-cli.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun run validate:okf"
+          }
         }
       ]
     },
@@ -6219,7 +6306,7 @@
     {
       "ac_id": "AC-21",
       "text": "Then results come from index.json (index, then feature, then change record, then evidence) and the same logic is available as dev_feature_* MCP tools",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 48,
@@ -6227,21 +6314,27 @@
         },
         {
           "task": 49,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
         "packages/accord-core/tests/feature-query.test.ts",
         "packages/accord-core/src/knowledge/query.ts",
-        "packages/accord-core/src/tools/registry.ts"
+        "packages/accord-core/src/tools/registry.ts",
+        "packages/accord-cli/tests/feature-cli.test.ts",
+        "packages/accord-cli/src/commands/feature.ts",
+        "packages/accord-cli/src/cli.ts",
+        "packages/accord-cli/src/dispatch.ts",
+        "packages/accord-cli/src/commands/index.ts"
       ],
       "tests": [
         "packages/accord-core/tests/feature-query.test.ts: 40 tests, all named ASDLC-1/AC-21 (progressive disclosure order, query/path match, impactFor, dev_feature_find/impact parity with findFeatures/impactFor, initFeatures)",
         "bun run check:types",
         "bun run check:bundle",
-        "bunx biome check on query.ts, registry.ts and feature-query.test.ts"
+        "bunx biome check on query.ts, registry.ts and feature-query.test.ts",
+        "packages/accord-cli/tests/feature-cli.test.ts: all 'ASDLC-1/AC-21' cases (find query/path, impact, init, parity with dev_feature_* text, --json/--depth, --cwd)"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-22",
@@ -6410,7 +6503,7 @@
     {
       "ac_id": "AC-28",
       "text": "Orchestration and domain logic (commit grammar, computeStack, evidence, state, feature knowledge) MUST live in packages/accord-core; pi-accord, accord-cli and accord-mcp stay thin adapters and Pi APIs never enter acco…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 2,
@@ -6430,7 +6523,7 @@
         },
         {
           "task": 49,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -6447,7 +6540,9 @@
         "packages/accord-cli/tests/stack-cli.test.ts",
         "packages/accord-cli/src/commands/stack.ts",
         "packages/accord-cli/src/commands/index.ts",
-        "packages/accord-cli/src/dispatch.ts"
+        "packages/accord-cli/src/dispatch.ts",
+        "packages/accord-cli/tests/feature-cli.test.ts",
+        "packages/accord-cli/src/commands/feature.ts"
       ],
       "tests": [
         "packages/accord-core/tests/layering.test.ts › ASDLC-1/AC-28 no accord-core src import resolves to @earendil-works/* or packages/pi-*",
@@ -6461,9 +6556,11 @@
         "stack-service.test.ts › ASDLC-1/AC-28 registry delegates dev_stack* tools to the stack service",
         "stack-cli.test.ts › ASDLC-1/AC-28 commands/stack.ts delegates to accord-core stack/service and has no Pi, git or gh logic",
         "stack-cli.test.ts › ASDLC-1/AC-28 commands/index.ts exports runStackCommand and dispatch/cli route `stack`",
-        "no-pi-dep.test.ts"
+        "no-pi-dep.test.ts",
+        "ASDLC-1/AC-28 commands/feature.ts delegates to accord-core knowledge/tools and imports no Pi package",
+        "ASDLC-1/AC-28 no accord-cli source file embeds the feature index path"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-29",
@@ -6696,7 +6793,7 @@
         },
         {
           "task": 49,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 50,
@@ -6749,7 +6846,8 @@
         "packages/accord-core/tests/validate-features-script.test.ts",
         "AGENTS.md",
         "okf/playbooks/verify-a-change.md",
-        "packages/accord-core/tests/feature-docs.test.ts"
+        "packages/accord-core/tests/feature-docs.test.ts",
+        "packages/accord-cli/tests/feature-cli.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -6801,7 +6899,9 @@
         "ASDLC-1/AC-31 okf/log.md appends a dated feature-knowledge entry naming validate:features",
         "docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md documents the feature-drift rule",
         "docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md lists the feature-drift test command",
-        "bunx biome check on task files (clean)"
+        "bunx biome check on task files (clean)",
+        "ASDLC-1/AC-31 okf/references/accord-cli.md has a feature row naming find, impact, init, --depth, knowledge.enabled and dev_feature",
+        "bun run validate:ste (preflight passed)"
       ],
       "verified": false
     }
@@ -12614,6 +12714,159 @@
       "issue": "dev_feature_find and dev_feature_impact are in no Pi tool bundle, so under default dynamic tools they are never activated in Pi (MCP is unaffected).",
       "file": "packages/accord-core/src/tools/active-set.ts",
       "line": 26,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-21",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The --depth parsing partition is only partly covered. The tests use `--depth index`, `--depth feature` and the default (evidence) after the argument, and a bogus or missing value. `--depth change`, an explicit `--depth evidence`, `--depth` before the argument and the `--depth=<level>` form are not tested.",
+      "file": "packages/accord-cli/tests/feature-cli.test.ts",
+      "line": 268,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-21",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`--json` output on a failed tool result is not pinned. When the tool fails it returns no `details`, so an impl that runs `console.log(JSON.stringify(result.details))` prints 'undefined' and passes every test.",
+      "file": "packages/accord-cli/tests/feature-cli.test.ts",
+      "line": 268,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-21",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "With no AGENTS.md, loadDevHarnessConfig returns null and the CLI context config is null. No feature test covers this. An impl that reads `ctx.devConfig!.knowledge?.enabled` crashes with a TypeError, while the tool handler (`config?.knowledge?.enabled`) returns the disabled text.",
+      "file": "packages/accord-cli/tests/feature-cli.test.ts",
+      "line": 363,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-21",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "`feature find` treats an argument as a code path only if it contains '/', so slash-less anchors (package.json, AGENTS.md, Makefile) and backslash paths cannot use the tool's path mode.",
+      "file": "packages/accord-cli/src/commands/feature.ts",
+      "line": 42,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-21",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`feature` is not registered in TOP_LEVEL_COMMANDS, so it is missing from `accord --help` and shell completion; `stack` is registered next to it.",
+      "file": "packages/accord-cli/src/ui/command-catalog.ts",
+      "line": 31,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-21",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Depth levels are hardcoded here, duplicating DisclosureLevel/LEVELS in knowledge/query.ts; --depth is also accepted and silently ignored for `impact` and `init`; the inner `const rest` shadows the outer `let rest`.",
+      "file": "packages/accord-cli/src/cli.ts",
+      "line": 364,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 49,
+      "requirement": "AC-28",
+      "finding_id": "F-010",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Most of AC-28's enforcement cannot be shown by a unit test: check:types and check:bundle. TC-29's file is packages/accord-core/tests/layering.test.ts. That file exists and is unchanged, and it covers the 'Pi never enters accord-core' half.",
+      "file": "packages/accord-cli/tests/feature-cli.test.ts",
+      "line": 291,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "The enforcement half belongs to phase-verify-task: bun run check:types, bun run check:bundle and bun test packages/accord-core/tests/layering.test.ts."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-28",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`init` obtains the 'knowledge disabled' text by calling dev_feature_find with a dummy query, and repeats the knowledge.enabled check and config load.",
+      "file": "packages/accord-cli/src/commands/feature.ts",
+      "line": 50,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-28",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Tool context is cast `as never` although `{ getConfig }` already satisfies ToolHandlerContext, which hides type drift.",
+      "file": "packages/accord-cli/src/commands/feature.ts",
+      "line": 18,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 49,
+      "requirement": "AC-31",
+      "finding_id": "F-012",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-31 requires a dated okf/log.md entry. No test asserts one, and okf/log.md is not in task 49's files. Plan task 50 (depends_on 49) owns the feature-knowledge log entry. TC-32's file docs-validation.test.ts is not touched by this task, but its generic validate:okf and validate:ste tests still apply.",
+      "file": "packages/accord-cli/tests/feature-cli.test.ts",
+      "line": 306,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "okf/log.md is not in task 49's files, and task 50 owns the dated entry. validate:okf, validate:ste and biome run in phase-verify-task."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 49,
+      "requirement": "AC-31",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The feature row does not say how `find` distinguishes a path from a query (an argument containing '/' is a path) or that `--depth` applies only to `find`.",
+      "file": "okf/references/accord-cli.md",
+      "line": 49,
       "raised": "C1/review-code"
     }
   ]
