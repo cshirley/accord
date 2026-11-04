@@ -2,7 +2,8 @@
 
 Run this checklist before merging changes that touch `packages/accord-ci/`,
 `.github/actions/setup-accord/`, or `.github/workflows/autopipeline*.yml`, or
-`.github/workflows/accord-evidence.yml`.
+`.github/workflows/accord-evidence.yml`, or
+`.github/workflows/accord-driven.yml`.
 
 ## 1 — Unit + contract (local, no secrets)
 
@@ -131,4 +132,23 @@ default.
 
 ```bash
 bun test packages/accord-ci/tests/ci-driven-startup.test.ts
+```
+
+## accord-driven — PR0 workflow
+
+`.github/workflows/accord-driven.yml` runs on `push` to `accord/*/**`. Local
+stack branches use `stack/<ID>/pr-<n>` and never trigger it. The checkout does
+not keep `GITHUB_TOKEN` and fetches full history. The first run step
+(`packages/accord-ci/src/ci-driven/gate.ts`) reads the `## Dev Harness` block
+of `AGENTS.md`. It sets the output `run=true` only when `stack.enabled` is
+`true` and the branch adds only `docs/dev/<ID>/brief.md` and
+`docs/dev/<ID>/spec.json`. Otherwise the job ends green and every later step is
+skipped. The next step runs `packages/accord-ci/src/ci-driven/pr0.ts`. It
+spawns `phase-plan`, commits `plan.json` and the proposed stack table to the
+branch, pushes with `ACCORD_CI_PUSH_TOKEN`, and stops at the human gate. The
+token comes only from `${{ secrets.ACCORD_CI_PUSH_TOKEN }}` in the `env` of that
+step and no log prints it. Set `ACCORD_CI_DRY_RUN=true` to skip the push.
+
+```bash
+bun test packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts
 ```

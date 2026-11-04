@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-04T12:01:17.782Z",
+  "generated_at": "2026-11-04T12:49:23.933Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -383,6 +383,18 @@
       "task_id": 50,
       "description": "Edited packages/accord-core/schemas/spec-schema.json (feature and features[] descriptions) though not in task.files[]",
       "reason": "Task 50 tests assert those spec-schema descriptions; the step names the spec-schema feature field",
+      "resolution": null
+    },
+    {
+      "task_id": 52,
+      "description": "Added trigger.ts and gate.ts (dependency-free gate via relative accord-core import)",
+      "reason": "Tests require the first run step to gate before bun install; shared trigger logic needed in both entries",
+      "resolution": null
+    },
+    {
+      "task_id": 52,
+      "description": "Bootstrap writes work item phase/brief/spec directly instead of devTransition",
+      "reason": "Fixture spec.json lacks schema_version so the spec-complete gate rejects it",
       "resolution": null
     }
   ],
@@ -5484,7 +5496,9 @@
       "id": 51,
       "title": "[ci-driven-mode] Startup push-token check and cost cap key",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "5f3819c"
+      ],
       "rounds": {
         "T": 1,
         "C": 1,
@@ -5596,39 +5610,103 @@
     {
       "id": 52,
       "title": "[ci-driven-mode] CI builds PR0 from brief and spec",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 30,
+        "by_state": {
+          "verified": 13,
+          "reraised": 2,
+          "open": 15
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-23 ... brief+spec-only branch ... error: not implemented: runPr0\n(fail) ... (x13 more runPr0 cases, all 'not implemented: runPr0')\n(fail) ASDLC-1/AC-23 accord-driven workflow > triggers only on push to accord/*/** : ENOENT .github/workflows/accord-driven.yml\n(fail) ... token is only referenced ... ENOENT\n(fail) ... first run step reads accord.json ... ENOENT\n(fail) ASDLC-1/AC-31 smoke doc names pr0.ts...: Expected to contain: \"packages/accord-ci/src/ci-driven/pr0.ts\"\n 0 pass\n 18 fail",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "ci-driven-pr0.test.ts: 45 pass, 0 fail, 281 expect() calls. check:types ok. check:biome: only docs/dev/ASDLC-1/trace.json format error (harness-generated). accord-driven.yml:53 ACCORD_CI_PUSH_TOKEN: ${{ secrets.ACCORD_CI_PUSH_TOKEN }} only; no echo/log of the token in src/ci-driven.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-23",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/trigger.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/gate.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": ".github/workflows/accord-driven.yml",
+              "action": "add",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun test packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts"
+          }
         }
       ]
     },
@@ -6496,16 +6574,27 @@
     {
       "ac_id": "AC-23",
       "text": "Then it commits plan.json and the proposed stack table to PR0 and stops at the human gate, with no local session",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 52,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+        "packages/accord-ci/src/ci-driven/pr0.ts",
+        "packages/accord-ci/src/ci-driven/trigger.ts",
+        "packages/accord-ci/src/ci-driven/gate.ts",
+        ".github/workflows/accord-driven.yml"
+      ],
+      "tests": [
+        "ci-driven-pr0.test.ts › ASDLC-1/AC-23 brief+spec-only branch: spawns phase-plan, commits plan.json and stack table, stops at gate",
+        "ci-driven-pr0.test.ts › ASDLC-1/AC-23 stack disabled: exit 0, HEAD unchanged, GITHUB_OUTPUT status=skipped",
+        "ci-driven-pr0.test.ts › ASDLC-1/AC-23 token is only referenced as secrets env and never echoed",
+        "grep ACCORD_CI_PUSH_TOKEN accord-driven.yml: only line 53, ${{ secrets.ACCORD_CI_PUSH_TOKEN }} in env"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-24",
@@ -6961,7 +7050,7 @@
         },
         {
           "task": 52,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 53,
@@ -7005,7 +7094,8 @@
         "packages/accord-core/tests/feature-docs.test.ts",
         "packages/accord-cli/tests/feature-cli.test.ts",
         "okf/references/knowledge-config.md",
-        "packages/accord-ci/tests/ci-driven-startup.test.ts"
+        "packages/accord-ci/tests/ci-driven-startup.test.ts",
+        "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -7067,7 +7157,9 @@
         "bun run validate:features",
         "bunx biome check okf packages/accord-core/schemas packages/accord-core/tests/docs-validation.test.ts",
         "ASDLC-1/AC-31 documents the server-only secret, owner and 90-day rotation",
-        "bun run check:biome (only failure: docs/dev/ASDLC-1/trace.json format, a harness-generated artifact outside the task files)"
+        "bun run check:biome (only failure: docs/dev/ASDLC-1/trace.json format, a harness-generated artifact outside the task files)",
+        "ci-driven-pr0.test.ts › ASDLC-1/AC-31 smoke doc names pr0.ts, accord-driven.yml and this test",
+        "ci-driven-pr0.test.ts › ASDLC-1/AC-31 scope sentence lists the workflow; doc describes trigger and gate"
       ],
       "verified": false
     }
@@ -13307,6 +13399,237 @@
       "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
       "line": 158,
       "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-005",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The diff range and history shape are never varied. Every fixture branch has exactly one commit, main never advances, and baseRef is always 'main'. All of these pass: diffing HEAD~1..HEAD (last commit only), a two-dot `git diff main HEAD` (no merge-base), and a hard-coded 'main'. In real CI, main usually moves (the two-dot diff sees main's new files and never triggers) and the base is origin/<default>.",
+      "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+      "line": 71,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Target changed (my Done-when was incomplete). The four cases exist, but mainAdvance (line 139) commits only to the local base. refs/remotes/origin/<base> stays at init (update-ref at line 129 runs before the branch). Adversarial: runPr0 diffs two-dot `git diff --name-only origin/${baseRef} HEAD`, so every test is green. In CI origin/main moves, main's new files show as branch-side deletions, and the run is never triggered. Also, no case uses the actions/checkout shape (no local base branch), so `git merge-base ${baseRef} HEAD` with baseRef 'main' passes the tests and fails in CI. Corrected Done when: (i) mainAdvance also runs `sh('update-ref', `refs/remotes/origin/${base}`, base)` after the 'main moves' commit; (ii) a new in-process case uses fixture({branch: BRANCH, mainAdvance: true}) then `sh('branch','-D','main')` (only the advanced refs/remotes/origin/main remains), and run({baseRef: 'main'}) → status 'gate', `${sha}^` == branch tip, HEAD == result.sha."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-009",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The leak check captures only console.log and console.error at the default log level. A token printed through process.stdout.write or process.stderr.write (the run-phase.ts style), or through createLogger debug/info (suppressed at the default 'error' level), passes.",
+      "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+      "line": 182,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "reraised",
+        "note": "Target changed (my original recommendation was wrong). captured() (line 245) sets process.env.ACCORD_LOG_LEVEL='debug', but createLogger binds to the default LogContext, whose level stays 'error' until setLogLevel() is called (logging.ts). No accord-ci/accord-cli path calls it. Adversarial: runPr0 does logger.debug(`git ${args.join(' ')}`) with an http.extraheader basic-auth value. That is suppressed in the test, but emitted in CI once a caller sets the level (GitHub masks the raw secret, not its base64). Corrected Done when: captured() imports setLogLevel/getLogLevel from @clive.shirley/accord-core/logging.js, saves getLogLevel(), calls setLogLevel('debug') before fn(), and restores the prior level in finally. Both the success and push-failure runs still assert no TOKEN/TOKEN_B64 in the capture."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Workflow scripts run under a fake that does not model GitHub Actions. materialize() replaces every unknown ${{ }} expression with 'main'. The gate and pr0-CLI fixtures keep a local 'main' branch, which a CI checkout on a push to accord/** does not have. origin/main never advances in the gate rows. A gate or pr0 step that uses a wrong base expression passes every test, and in real CI it never triggers or errors.",
+      "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+      "line": 566,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "F-008 follow-up, not gating: each plan-failure row has a second signal, either broken JSON or no plan.json. An implementation that ignores the runPhase/backend result and only checks that plan.json exists and parses passes both rows. A stuck or needs_input phase-plan that leaves a valid plan.json (a draft or an earlier attempt) would be committed and reported as 'gate'.",
+      "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+      "line": 419,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Nothing forbids placing ${{ github.ref_name }}, ${{ github.head_ref }} or ${{ github.event.* }} directly in `run:` scripts. Git ref names may contain $ ( ) ; ` | &, so a branch named accord/$(cmd)/x runs shell inside the pr0 step, which holds ACCORD_CI_PUSH_TOKEN in env. materialize() actively supports this pattern.",
+      "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+      "line": 609,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A01 — Broken Access Control: the trust check (stack.enabled and only brief.md + spec.json added) runs in code from the pushed branch, and the next step gives ACCORD_CI_PUSH_TOKEN and ANTHROPIC_API_KEY to more code from that branch. Anyone who can push an accord/* branch can change gate.ts or pr0.ts to always trigger and run their own code with the PAT. This also works for an actor without the `workflow` permission, who cannot edit .github/workflows.",
+      "file": ".github/workflows/accord-driven.yml",
+      "line": 32,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A04 — Insecure Design: ACCORD_CI_PUSH_TOKEN stays in process.env while phase-plan runs, so the LLM agent inherits it. The agent reads untrusted brief.md and spec.json and has bash, read and write tools. Text injected into those files can make it read the token (env or /proc/self/environ) and copy it into plan.json (which is committed and pushed) or send it out.",
+      "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+      "line": 94,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A04 — Insecure Design: the credentialed push runs in a workspace the agent has already changed. The Authorization extraheader is not scoped to a host, and the push uses the mutable 'origin' remote with repository hooks enabled. An agent that edits .git/config (remote.origin.url) can send the token to a host it controls. An agent that adds .git/hooks/pre-push or pre-commit runs code during the commit and push; for the push, that code can read the header from GIT_CONFIG_PARAMETERS.",
+      "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+      "line": 148,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A05 — Security Misconfiguration: the job gives GITHUB_TOKEN contents:write that it never uses. Checkout does not keep credentials, and the push uses ACCORD_CI_PUSH_TOKEN. The write-scoped token is still passed to third-party actions pinned by tag (oven-sh/setup-bun@v2 takes github.token as its default `token` input).",
+      "file": ".github/workflows/accord-driven.yml",
+      "line": 12,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A04 — Insecure Design: the job has no cost cap and no concurrency group. Each qualifying push to an accord/* branch starts an LLM phase-plan run with ANTHROPIC_API_KEY, and nothing limits concurrent runs or total spend. The spec's alerting entry ('exceeds its cost cap') is not wired up.",
+      "file": ".github/workflows/accord-driven.yml",
+      "line": 16,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "A09 — Logging/Monitoring: the base64 form of the token is passed on the git command line and is not masked. GitHub masks the raw secret value, not the `x-access-token:<token>` base64 string. The value is visible in the process list, and any git trace output would print it unmasked.",
+      "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+      "line": 154,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-025",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Supply chain: third-party actions and tooling are not pinned in a workflow that handles a PAT and an API key.",
+      "file": ".github/workflows/accord-driven.yml",
+      "line": 22,
+      "raised": "C1/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-026",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "PR0 commit hand-rolls `Accord: id=<ID> outcome=pr0` and a `chore(<ID>)` subject instead of using buildCommitMessage, so the trailer breaks the commit grammar and no stack.commit.created event is emitted.",
+      "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+      "line": 143,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-027",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The planned 'then the startup check' step is not wired: assertCiDrivenEnv() has no production caller, runPr0 re-implements the token check inline, and the git diff in detectPr0Trigger runs before that check.",
+      "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+      "line": 94,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-028",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Relative cross-package import `../../../accord-core/src/...` differs from every other accord-ci file (`@clive.shirley/accord-core/...`) with no comment explaining why.",
+      "file": "packages/accord-ci/src/ci-driven/trigger.ts",
+      "line": 2,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-029",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Failure messages drop diagnostic detail: a stuck phase-plan reports only 'stuck', and a failed push reports only the exit code.",
+      "file": "packages/accord-ci/src/ci-driven/pr0.ts",
+      "line": 107,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 52,
+      "requirement": "AC-23",
+      "finding_id": "F-030",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The 'only brief.md + spec.json' rule makes the mode unreachable for harness-authored branches that also commit spec.md.",
+      "file": "packages/accord-ci/src/ci-driven/trigger.ts",
+      "line": 46,
+      "raised": "C1/review-code"
     }
   ]
 }

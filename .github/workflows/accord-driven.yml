@@ -1,0 +1,57 @@
+# CI-driven mode: a push to accord/<ID>/** that adds only docs/dev/<ID>/brief.md and
+# spec.json (with stack.enabled true) makes CI build PR0 (plan.json + stack table).
+# Local stack branches use stack/<ID>/pr-<n> and never trigger this workflow.
+
+name: ACCORD driven
+
+on:
+  push:
+    branches:
+      - "accord/*/**"
+
+permissions:
+  contents: write
+
+jobs:
+  pr0:
+    name: accord/driven PR0
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Gate (Dev Harness stack.enabled and brief.md + spec.json only)
+        id: gate
+        env:
+          ACCORD_CI_BASE_REF: ${{ github.event.repository.default_branch }}
+        run: |
+          # Ends the job green unless stack.enabled is true and only brief.md + spec.json were added.
+          bun packages/accord-ci/src/ci-driven/gate.ts
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Git identity
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          git config --global user.name "accord-ci"
+          git config --global user.email "accord-ci@users.noreply.github.com"
+
+      - name: Build PR0
+        if: steps.gate.outputs.run == 'true'
+        env:
+          ACCORD_CI_PUSH_TOKEN: ${{ secrets.ACCORD_CI_PUSH_TOKEN }}
+          ACCORD_CI_BASE_REF: ${{ github.event.repository.default_branch }}
+          ACCORD_CI_HARNESS: claude
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: bun packages/accord-ci/src/ci-driven/pr0.ts
