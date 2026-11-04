@@ -659,3 +659,28 @@ describe("ASDLC-1/AC-31 trunk-hardening docs (task 42)", () => {
     expect(matching.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("ASDLC-1/AC-31 feature-drift CI docs (task 47)", () => {
+  const section = (): string => {
+    const text = read("docs/ci/pre-merge-smoke.md");
+    const start = text.indexOf("## accord/evidence");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const rest = text.slice(start + 3);
+    const next = rest.search(/^## /m);
+    return next === -1 ? rest : rest.slice(0, next);
+  };
+
+  it("ASDLC-1/AC-31 pre-merge-smoke.md documents the feature-drift rule in the accord/evidence section", () => {
+    const text = section();
+    expect(text).toContain("feature-drift");
+    expect(text).toContain("packages/accord-ci/src/checks/feature-drift.ts");
+    expect(text).toContain("knowledge.drift_check");
+    for (const mode of ["off", "warn", "block"]) expect(text).toContain(`\`${mode}\``);
+    expect(text).toContain("Feature-Unchanged:");
+  });
+
+  it("ASDLC-1/AC-31 pre-merge-smoke.md lists the feature-drift test command", () => {
+    const lines = section().split("\n");
+    expect(lines).toContain("bun test packages/accord-ci/tests/feature-drift-ci.test.ts");
+  });
+});

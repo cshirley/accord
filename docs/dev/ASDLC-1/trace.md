@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-04T10:03:45.631Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-04T10:34:27.381Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -52,8 +52,8 @@
 | 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | `9b82742` | 2/1/1 | 24 (verified 12, reraised 1, open 11) | 0 |
 | 44 | [feature-knowledge] validate:features script and Dev Harness entry | done | `2349b1d` | 3/5/4 | 23 (verified 18, wont_fix_accepted 4, wont_fix_proposed 1) | 0 |
 | 45 | [feature-knowledge] spec features[] and PR0 impact analysis | done | `c8d20fe` | 2/1/1 | 24 (verified 13, dispute_upheld 1, open 10) | 0 |
-| 46 | [feature-knowledge] Closeout feature-doc update and drift check | done | — | 3/2/1 | 30 (verified 15, dispute_upheld 1, wont_fix_accepted 1, open 13) | 0 |
-| 47 | [feature-knowledge] Review invariants and CI drift rule | pending | — | 0/0/0 | 0 | 0 |
+| 46 | [feature-knowledge] Closeout feature-doc update and drift check | done | `3eb57f7` | 3/2/1 | 30 (verified 15, dispute_upheld 1, wont_fix_accepted 1, open 13) | 0 |
+| 47 | [feature-knowledge] Review invariants and CI drift rule | done | — | 2/1/1 | 23 (verified 9, wont_fix_accepted 2, open 12) | 0 |
 | 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | pending | — | 0/0/0 | 0 | 0 |
 | 49 | [feature-knowledge] accord feature CLI command | pending | — | 0/0/0 | 0 | 0 |
 | 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | pending | — | 0/0/0 | 0 | 0 |
@@ -407,11 +407,15 @@
 
 - Tasks: 48 (pending), 49 (pending)
 
-### AC-22 — pending (not verified)
+### AC-22 — satisfied
 
 > Then review agents receive the impacted feature docs as invariants and a regression against an existing feature AC is a finding, and the same drift check runs in CI so a manual edit cannot invalidate a feature doc unn…
 
-- Tasks: 47 (pending)
+- Tasks: 47 (satisfied)
+- Files: `packages/accord-ci/tests/feature-drift-ci.test.ts`, `packages/accord-ci/src/checks/feature-drift.ts`, `packages/accord-ci/src/evidence-check.ts`, `packages/accord-core/src/briefing/task-requirements.ts`
+- Tests verified (2):
+  - packages/accord-ci/tests/feature-drift-ci.test.ts (ASDLC-1/AC-22 drift rule, registration, knowledge-disabled, range, declaration cases)
+  - packages/accord-core/tests/task-requirements.test.ts (Impacted features brief for review-code/security/test; nothing when disabled)
 
 ### AC-23 — pending (not verified)
 
@@ -551,9 +555,9 @@
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (pending), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (pending), 50 (pending), 51 (pending), 52 (pending), 53 (pending), 54 (pending)
 - Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`
-- Tests verified (47):
+- Tests verified (50):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -601,6 +605,9 @@
   - bunx biome check okf packages/accord-core/tests/docs-validation.test.ts
   - ASDLC-1/AC-31 verify-a-change.md documents validate:features
   - ASDLC-1/AC-31 okf/log.md appends a dated feature-knowledge entry naming validate:features
+  - docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md documents the feature-drift rule
+  - docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md lists the feature-drift test command
+  - bunx biome check on task files (clean)
 
 ## Accepted risks and unresolved findings
 
@@ -1004,6 +1011,20 @@
 | 46 | AC-20 | F-028 | unresolved (advisory) | open | suggestion | Re-serialising the whole frontmatter with yaml `stringify` drops comments and reflows unrelated keys; the committed generated index is also left stale. | packages/accord-core/src/knowledge/closeout-update.ts:215 |  |
 | 46 | AC-20 | F-029 | unresolved (advisory) | open | suggestion | Local helpers duplicate existing ones instead of reusing them. | packages/accord-core/src/knowledge/closeout-update.ts:37 |  |
 | 46 | AC-20 | F-030 | unresolved (advisory) | open | suggestion | Commit message and summary text still describe closeout as docs/dev/ only. | packages/accord-core/src/orchestration/commit-on-task-done.ts:386 |  |
+| 47 | AC-22 | F-009 | accepted (advisory) | wont_fix_accepted | suggestion | The rule loads config from the PR's working tree. A PR can set knowledge.drift_check to off or enabled to false in AGENTS.md together with an anchored edit and pass. contract-lock trusts base-side state instead. | packages/accord-ci/tests/feature-drift-ci.test.ts:203 | wont_fix_accepted by T2/review-test — The spec does not say whether config is read from base or head. This was suggestion level; leave it to a human or the implementer. |
+| 47 | AC-22 | F-012 | unresolved (advisory) | open | suggestion | Every warn-mode test passes its own `warn` sink through run(). The default sink used in production (evidenceRules() → createFeatureDriftRule() with no options) is never tested, so under the shipped default drift_check (warn) CI can report nothing. | packages/accord-ci/tests/feature-drift-ci.test.ts:219 |  |
+| 47 | AC-22 | F-013 | unresolved (advisory) | open | suggestion | The merge-base row (from my F-003 table) puts `Feature-Unchanged: widget` on the main-side commit. So declaration scanning over the symmetric range `git log base...head`, which also includes main commits made after the branch point, passes every commit-range test. | packages/accord-ci/tests/feature-drift-ci.test.ts:384 |  |
+| 47 | AC-22 | F-014 | unresolved (advisory) | open | suggestion | Fail-closed behaviour is tested only with the all-zero base. A rule that handles only that value and treats every other git error as 'no changes' passes. | packages/accord-ci/tests/feature-drift-ci.test.ts:466 |  |
+| 47 | AC-22 | F-015 | unresolved (advisory) | open | suggestion | AC-22 says the drift check runs on 'any PR (not only harness PRs)', but every fixture commit is a non-harness commit. Behaviour for harness commits (Accord: trailer) is not pinned. | packages/accord-ci/tests/feature-drift-ci.test.ts:126 |  |
+| 47 | AC-22 | F-016 | unresolved (advisory) | open | suggestion | Feature-Unchanged declaration splits the whole trailer value on whitespace and commas, so trailing prose can declare an unrelated drifting feature as unchanged. | packages/accord-ci/src/checks/feature-drift.ts:31 |  |
+| 47 | AC-22 | F-017 | unresolved (advisory) | open | suggestion | Impacted-features invariants include features of every status, including `deprecated` and `superseded`, whose ACs are retired, and `proposed`, whose ACs are not yet in force. | packages/accord-core/src/briefing/task-requirements.ts:523 |  |
+| 47 | AC-22 | F-018 | unresolved (advisory) | open | suggestion | Anchor-to-feature matching and path normalisation are re-implemented; knowledge/impact.ts (analyseImpact) and knowledge/drift.ts (private normalisePath) already do this. | packages/accord-core/src/briefing/task-requirements.ts:515 |  |
+| 47 | AC-22 | F-019 | unresolved (advisory) | open | suggestion | withImpactedFeatures wraps three near-identical branches, and the section is appended after the brief's closing 'Return the structured result packet…' line. | packages/accord-core/src/briefing/task-requirements.ts:653 |  |
+| 47 | AC-22 | F-020 | unresolved (advisory) | open | suggestion | Bare `catch {}` drops the git error. In warn mode an unresolvable base passes silently with no output, so a shallow or misconfigured checkout disables the rule unnoticed. This is also a third copy of the git/execFile helper. | packages/accord-ci/src/checks/feature-drift.ts:60 |  |
+| 47 | AC-22 | F-021 | unresolved (advisory) | open | suggestion | `git diff --name-only` without `-z` quotes non-ASCII or special-character paths, so such anchored files never match and drift is silently missed. | packages/accord-ci/src/checks/feature-drift.ts:55 |  |
+| 47 | AC-22 | F-022 | unresolved (advisory) | open | suggestion | Declarations live in commit messages, which a squash merge may drop. In block mode the push-to-main run of accord/evidence can then fail on a change the PR run passed. | packages/accord-ci/src/checks/feature-drift.ts:12 |  |
+| 47 | AC-31 | F-011 | accepted (advisory) | wont_fix_accepted | suggestion | AC-31 enforcement (ASD-STE100 procedure text, okf validity, biome) can only be proved by running the commands, not by unit tests. |  | wont_fix_accepted by T2/review-test — This is a verify-category item: phase-verify-task runs validate:okf, validate:ste and biome. Not phase-test scope. |
+| 47 | AC-31 | F-023 | unresolved (advisory) | open | suggestion | Doc says declarations are read from commits in `base..head`, but the rule reads `<merge-base>..head`. | docs/ci/pre-merge-smoke.md:107 |  |
 
 ## Decisions
 
@@ -1066,6 +1087,8 @@
 - Task 45 (accepted): AC-30 alignment of spec features[] is covered by schema accept/reject tests here; manifest/registry alignment for this task is enforced by validate:schemas and validate:assets in phase-verify-task — Config/architectural AC enforcement belongs to the verify commands
 - Task 45 (accepted): PR0 test requires spec.md with the Impacted features table to be committed in PR0 (F-006) — Reviewer finding F-006; the spec does not say where the table lives, so this is my reading of AC-19. Implementation must add spec.md to PR0's owned list.
 - Task 46 (accepted): Defined the public signatures and changes[] entry shape (work_item, pr, evidence, contract_sha, ac_map) for the closeout updater and drift check in the tests and stubs. — The spec names the behaviour but not the API. contract_sha is taken from the commit that first added contract.lock.json (trustedContractLock).
+- Task 47 (pending): Spec does not define the CI rule API or the no-change declaration form; tests pin createFeatureDriftRule(cwd,{config}), doc-change = owning feature doc in diff, and a 'Feature-Unchanged: <slug>' commit-message line. — TC-23 requires a no-change declaration but names no mechanism.
+- Task 47 (pending): AC-31 is architectural (okf log, STE, biome, pre-merge-smoke.md); no runtime test written. Covered by TC-32 docs-validation.test.ts and verification commands validate:okf, validate:ste, check:biome. — Enforcement belongs to verify commands, not task-47 tests.
 
 ## Evidence by task
 
@@ -1939,6 +1962,25 @@ validate:schemas/assets/okf/ste/features, check:bundle: pass (preflight)
 ```
 
 ### Task 47: [feature-knowledge] Review invariants and CI drift rule
+
+RED evidence (`T1/phase-test`):
+
+```text
+bun test packages/accord-ci/tests/feature-drift-ci.test.ts
+(fail) CI feature-drift rule > ... error: not implemented: createFeatureDriftRule (x13)
+(fail) review brief carries impacted feature docs as invariants > review-code|review-security|review-test brief has an Impacted features section: Expected to contain: "Impacted features" (x3)
+(pass) review briefs add nothing when knowledge disabled/unset (x3), phase-code excluded, no-anchor adds nothing
+
+ 5 pass
+ 18 fail
+Ran 23 tests across 1 file.
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+targeted: 96 pass, 0 fail (3 files). check:types ok. validate:schemas/assets/okf/ste/features, check:bundle, check:runtime ok (preflight). check:biome: only docs/dev/ASDLC-1/trace.json format error (not a task file); biome clean on task files. Full bun test hit the 120s preflight timeout with no failures shown.
+```
 
 ### Task 48: [feature-knowledge] Feature find/impact query and dev_feature_* tools
 

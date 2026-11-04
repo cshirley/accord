@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-04T10:03:45.631Z",
+  "generated_at": "2026-11-04T10:34:27.381Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -366,6 +366,18 @@
       "description": "Defined the public signatures and changes[] entry shape (work_item, pr, evidence, contract_sha, ac_map) for the closeout updater and drift check in the tests and stubs.",
       "reason": "The spec names the behaviour but not the API. contract_sha is taken from the commit that first added contract.lock.json (trustedContractLock).",
       "resolution": "accepted"
+    },
+    {
+      "task_id": 47,
+      "description": "Spec does not define the CI rule API or the no-change declaration form; tests pin createFeatureDriftRule(cwd,{config}), doc-change = owning feature doc in diff, and a 'Feature-Unchanged: <slug>' commit-message line.",
+      "reason": "TC-23 requires a no-change declaration but names no mechanism.",
+      "resolution": null
+    },
+    {
+      "task_id": 47,
+      "description": "AC-31 is architectural (okf log, STE, biome, pre-merge-smoke.md); no runtime test written. Covered by TC-32 docs-validation.test.ts and verification commands validate:okf, validate:ste, check:biome.",
+      "reason": "Enforcement belongs to verify commands, not task-47 tests.",
+      "resolution": null
     }
   ],
   "tasks": [
@@ -4979,7 +4991,9 @@
       "id": 46,
       "title": "[feature-knowledge] Closeout feature-doc update and drift check",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "3eb57f7"
+      ],
       "rounds": {
         "T": 3,
         "C": 2,
@@ -5060,39 +5074,98 @@
     {
       "id": 47,
       "title": "[feature-knowledge] Review invariants and CI drift rule",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 2,
+        "C": 1,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
+        "test_review": 1,
         "code_review": 0,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 23,
+        "by_state": {
+          "verified": 9,
+          "wont_fix_accepted": 2,
+          "open": 12
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-ci/tests/feature-drift-ci.test.ts\n(fail) CI feature-drift rule > ... error: not implemented: createFeatureDriftRule (x13)\n(fail) review brief carries impacted feature docs as invariants > review-code|review-security|review-test brief has an Impacted features section: Expected to contain: \"Impacted features\" (x3)\n(pass) review briefs add nothing when knowledge disabled/unset (x3), phase-code excluded, no-anchor adds nothing\n\n 5 pass\n 18 fail\nRan 23 tests across 1 file.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "targeted: 96 pass, 0 fail (3 files). check:types ok. validate:schemas/assets/okf/ste/features, check:bundle, check:runtime ok (preflight). check:biome: only docs/dev/ASDLC-1/trace.json format error (not a task file); biome clean on task files. Full bun test hit the 120s preflight timeout with no failures shown.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-22",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/checks/feature-drift.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/checks/feature-drift.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/evidence-check.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-core/src/briefing/task-requirements.ts",
+              "action": "modify",
+              "kind": "code"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 2,
+            "command": "bun test packages/accord-ci/tests/feature-drift-ci.test.ts packages/accord-core/tests/task-requirements.test.ts packages/accord-core/tests/docs-validation.test.ts"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/docs-validation.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 5,
+            "command": "bun test packages/accord-core/tests/docs-validation.test.ts; bun run validate:okf; bun run validate:ste"
+          }
         }
       ]
     },
@@ -6124,16 +6197,24 @@
     {
       "ac_id": "AC-22",
       "text": "Then review agents receive the impacted feature docs as invariants and a regression against an existing feature AC is a finding, and the same drift check runs in CI so a manual edit cannot invalidate a feature doc unn…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 47,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-ci/tests/feature-drift-ci.test.ts",
+        "packages/accord-ci/src/checks/feature-drift.ts",
+        "packages/accord-ci/src/evidence-check.ts",
+        "packages/accord-core/src/briefing/task-requirements.ts"
+      ],
+      "tests": [
+        "packages/accord-ci/tests/feature-drift-ci.test.ts (ASDLC-1/AC-22 drift rule, registration, knowledge-disabled, range, declaration cases)",
+        "packages/accord-core/tests/task-requirements.test.ts (Impacted features brief for review-code/security/test; nothing when disabled)"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-23",
@@ -6562,7 +6643,7 @@
         },
         {
           "task": 47,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 49,
@@ -6668,7 +6749,10 @@
         "docs-validation.test.ts › ASDLC-1/AC-31 trunk-hardening docs (task 42) (6 tests)",
         "bunx biome check okf packages/accord-core/tests/docs-validation.test.ts",
         "ASDLC-1/AC-31 verify-a-change.md documents validate:features",
-        "ASDLC-1/AC-31 okf/log.md appends a dated feature-knowledge entry naming validate:features"
+        "ASDLC-1/AC-31 okf/log.md appends a dated feature-knowledge entry naming validate:features",
+        "docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md documents the feature-drift rule",
+        "docs-validation.test.ts: ASDLC-1/AC-31 pre-merge-smoke.md lists the feature-drift test command",
+        "bunx biome check on task files (clean)"
       ],
       "verified": false
     }
@@ -12131,6 +12215,196 @@
       "file": "packages/accord-core/src/orchestration/commit-on-task-done.ts",
       "line": 386,
       "raised": "C2/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-009",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The rule loads config from the PR's working tree. A PR can set knowledge.drift_check to off or enabled to false in AGENTS.md together with an anchored edit and pass. contract-lock trusts base-side state instead.",
+      "file": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+      "line": 203,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "The spec does not say whether config is read from base or head. This was suggestion level; leave it to a human or the implementer."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Every warn-mode test passes its own `warn` sink through run(). The default sink used in production (evidenceRules() → createFeatureDriftRule() with no options) is never tested, so under the shipped default drift_check (warn) CI can report nothing.",
+      "file": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+      "line": 219,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The merge-base row (from my F-003 table) puts `Feature-Unchanged: widget` on the main-side commit. So declaration scanning over the symmetric range `git log base...head`, which also includes main commits made after the branch point, passes every commit-range test.",
+      "file": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+      "line": 384,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-014",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Fail-closed behaviour is tested only with the all-zero base. A rule that handles only that value and treats every other git error as 'no changes' passes.",
+      "file": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+      "line": 466,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-015",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-22 says the drift check runs on 'any PR (not only harness PRs)', but every fixture commit is a non-harness commit. Behaviour for harness commits (Accord: trailer) is not pinned.",
+      "file": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+      "line": 126,
+      "raised": "T2/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-016",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Feature-Unchanged declaration splits the whole trailer value on whitespace and commas, so trailing prose can declare an unrelated drifting feature as unchanged.",
+      "file": "packages/accord-ci/src/checks/feature-drift.ts",
+      "line": 31,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-017",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Impacted-features invariants include features of every status, including `deprecated` and `superseded`, whose ACs are retired, and `proposed`, whose ACs are not yet in force.",
+      "file": "packages/accord-core/src/briefing/task-requirements.ts",
+      "line": 523,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-018",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Anchor-to-feature matching and path normalisation are re-implemented; knowledge/impact.ts (analyseImpact) and knowledge/drift.ts (private normalisePath) already do this.",
+      "file": "packages/accord-core/src/briefing/task-requirements.ts",
+      "line": 515,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-019",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "withImpactedFeatures wraps three near-identical branches, and the section is appended after the brief's closing 'Return the structured result packet…' line.",
+      "file": "packages/accord-core/src/briefing/task-requirements.ts",
+      "line": 653,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-020",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Bare `catch {}` drops the git error. In warn mode an unresolvable base passes silently with no output, so a shallow or misconfigured checkout disables the rule unnoticed. This is also a third copy of the git/execFile helper.",
+      "file": "packages/accord-ci/src/checks/feature-drift.ts",
+      "line": 60,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-021",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "`git diff --name-only` without `-z` quotes non-ASCII or special-character paths, so such anchored files never match and drift is silently missed.",
+      "file": "packages/accord-ci/src/checks/feature-drift.ts",
+      "line": 55,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-22",
+      "finding_id": "F-022",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Declarations live in commit messages, which a squash merge may drop. In block mode the push-to-main run of accord/evidence can then fail on a change the PR run passed.",
+      "file": "packages/accord-ci/src/checks/feature-drift.ts",
+      "line": 12,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 47,
+      "requirement": "AC-31",
+      "finding_id": "F-011",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "AC-31 enforcement (ASD-STE100 procedure text, okf validity, biome) can only be proved by running the commands, not by unit tests.",
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "This is a verify-category item: phase-verify-task runs validate:okf, validate:ste and biome. Not phase-test scope."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 47,
+      "requirement": "AC-31",
+      "finding_id": "F-023",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Doc says declarations are read from commits in `base..head`, but the rule reads `<merge-base>..head`.",
+      "file": "docs/ci/pre-merge-smoke.md",
+      "line": 107,
+      "raised": "C1/review-code"
     }
   ]
 }
