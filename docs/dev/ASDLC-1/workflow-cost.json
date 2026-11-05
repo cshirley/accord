@@ -1,19 +1,30 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-05T10:43:54.006Z",
+  "generated_at": "2026-11-05T13:00:27.225Z",
   "source_usage_file": ".tasks/ASDLC-1-usage.jsonl",
   "summary": {
-    "total_input_tokens": 1728096,
-    "total_output_tokens": 4925450,
-    "total_cache_read_tokens": 194012173,
-    "total_cache_write_tokens": 22625505,
-    "total_calls": 464,
+    "total_input_tokens": 1728104,
+    "total_output_tokens": 4926881,
+    "total_cache_read_tokens": 194051395,
+    "total_cache_write_tokens": 22646201,
+    "total_calls": 465,
     "usage_missing_calls": 46,
     "carried_forward": false,
-    "total_cost_usd": 182.3881545
+    "total_cost_usd": 182.45814270000002
   },
   "rows": [
+    {
+      "scope": "Pipeline",
+      "agent": "phase-verify-acceptance",
+      "calls": 1,
+      "input_tokens": 8,
+      "output_tokens": 1431,
+      "cache_read_tokens": 39222,
+      "cache_write_tokens": 20696,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.07
+    },
     {
       "scope": "Task 1",
       "agent": "phase-code",
