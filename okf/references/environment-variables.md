@@ -28,6 +28,7 @@ sources:
 | `ACCORD_ORCHESTRATION_JUDGMENT` | off | `1` lets Pi run bounded judgment when `orchestration.judgment.enabled` |
 | `ACCORD_ALLOW_AGENT_WORKFLOW_WRITES` | off | `1`/`true`/`yes` lets agents write orchestrator-owned `.tasks/` state (legacy) |
 | `ACCORD_SUBAGENT_SPAWN_TIMEOUT_MS` | — | Orchestration default spawn timeout (else `subagent.json` `spawnTimeoutMs`) |
+| `ACCORD_VERIFY_TIMEOUT_MS` | `120000` | Per-command timeout for `verification_commands` (preflight, post-code, acceptance). Raise it when `bun test` alone exceeds two minutes; otherwise acceptance fails every AC on a timeout |
 | `ACCORD_LOG_LEVEL` | `error` | `debug`/`info`/`warn`/`error`/`silent`; overrides Dev Harness `log_level` |
 | `ACCORD_LOG_TIMESTAMP` | unset | `1`/`true` prefixes core log lines with an RFC 3339 UTC timestamp. The `accord` CLI always timestamps its own notifications |
 | `ACCORD_HARNESS` | — | Default harness backend id when not configured |
