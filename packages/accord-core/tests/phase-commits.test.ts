@@ -1046,3 +1046,86 @@ describe("ASDLC-1/AC-1 orchestrator wiring (processSubagentToolResult)", () => {
     });
   }
 });
+
+describe("ASDLC-1/AC-1 phase commit guards found by mutation sampling", () => {
+  function testPacket(files: string[]): Record<string, unknown> {
+    return { status: "done", test_files: files, usage: { prompt_tokens: 1, completion_tokens: 1 } };
+  }
+
+  it("ASDLC-1/AC-1 trailer seq increases by one for each commit of the same task", async () => {
+    write(TEST_FILE, "// t\n");
+    await tryCommitPhase(
+      ID,
+      TASK,
+      "T1/phase-test",
+      "phase-test",
+      testPacket([TEST_FILE]),
+      PHASE_CFG,
+      repo,
+    );
+    await tryCommitPhase(
+      ID,
+      TASK,
+      "T1/review-test",
+      "review-test",
+      reviewPacket([]),
+      PHASE_CFG,
+      repo,
+    );
+    await tryCommitPhase(ID, TASK, "C1/phase-code", "phase-code", codePacket([]), PHASE_CFG, repo);
+    const seqs = ["HEAD~2", "HEAD~1", "HEAD"].map((rev) => parseAccordTrailer(bodyOf(rev))?.seq);
+    expect(seqs).toEqual([1, 2, 3]);
+  });
+
+  it("ASDLC-1/AC-1 a reported .tasks path is never committed, even when .tasks is not gitignored", async () => {
+    git("rm", "-q", ".gitignore");
+    git("commit", "-q", "-m", "drop gitignore");
+    write(TEST_FILE, "// t\n");
+    const hostile = join(".tasks", "stray.json");
+    write(hostile, "{}\n");
+    await tryCommitPhase(
+      ID,
+      TASK,
+      "T1/phase-test",
+      "phase-test",
+      testPacket([TEST_FILE, hostile]),
+      PHASE_CFG,
+      repo,
+    );
+    expect(filesOf("HEAD")).toEqual([TEST_FILE]);
+    expect(statusAll()).toContain(".tasks/stray.json");
+  });
+
+  it("ASDLC-1/AC-1 a file staged by the agent but not part of the phase is unstaged, not committed", async () => {
+    write(TEST_FILE, "// t\n");
+    write("src/stray.ts", "export const stray = 1;\n");
+    git("add", "src/stray.ts");
+    await tryCommitPhase(
+      ID,
+      TASK,
+      "T1/phase-test",
+      "phase-test",
+      testPacket([TEST_FILE]),
+      PHASE_CFG,
+      repo,
+    );
+    expect(filesOf("HEAD")).toEqual([TEST_FILE]);
+    expect(git("diff", "--cached", "--name-only").trim()).toBe("");
+    expect(statusAll()).toContain("?? src/stray.ts");
+  });
+
+  it("ASDLC-1/AC-1 an agent outside the phase set makes no commit", async () => {
+    const before = commitCount();
+    const result = await tryCommitPhase(
+      ID,
+      TASK,
+      "T1/phase-test",
+      "phase-align",
+      testPacket([]),
+      PHASE_CFG,
+      repo,
+    );
+    expect(result).toMatchObject({ ok: true, skipped: true });
+    expect(commitCount()).toBe(before);
+  });
+});

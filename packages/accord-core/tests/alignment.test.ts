@@ -117,6 +117,17 @@ function planWith(taskExtra: Record<string, unknown>) {
 describe("ASDLC-1/AC-30 plan schema stack fields (ASDLC-1/TC-31)", () => {
   const validate = () => new Ajv({ strict: false, allErrors: true }).compile(planSchema);
 
+  it("ASDLC-1/AC-30 stack fields are optional: a task without them stays valid, and empty strings are rejected", () => {
+    const v = validate();
+    for (const field of ["est_lines", "concern", "flag", "kind"]) {
+      const required = (planSchema as { properties: { tasks: { items: { required: string[] } } } })
+        .properties.tasks.items.required;
+      expect(required).not.toContain(field);
+    }
+    expect(v(planWith({ concern: "" }))).toBe(false);
+    expect(v(planWith({ flag: "" }))).toBe(false);
+  });
+
   it("ASDLC-1/AC-30 baseline plan without stack fields still validates", () => {
     const v = validate();
     expect({ ok: v(planWith({})), errors: v.errors }).toEqual({ ok: true, errors: null });
@@ -238,6 +249,46 @@ describe("ASDLC-1/AC-30 phase-plan agent and docs carry the stack planning contr
     for (const word of ["vertical slice", "concern", "est_lines", "challenge"]) {
       expect(md.toLowerCase()).toContain(word);
     }
+  });
+
+  it("ASDLC-1/AC-30 the Stack planning section itself carries the gating and sizing rules", () => {
+    const md = read("packages/accord-assets/agents/accord/phase-plan.md");
+    const start = md.indexOf("## Stack planning");
+    expect(start).toBeGreaterThan(-1);
+    const rest = md.slice(start + 3);
+    const end = rest.indexOf("\n## ");
+    const section = end === -1 ? rest : rest.slice(0, end);
+    // gated: a plan without stack_enabled must skip the whole section
+    expect(section).toContain(
+      "Skip this section when the task text has no `stack_enabled: true` line.",
+    );
+    // independent tasks, one concern per task, depends_on only for a real dependency
+    expect(section).toContain("vertical slice");
+    expect(section).toContain(
+      "Keep tasks independent; add `depends_on` only for a real dependency.",
+    );
+    // oversized tasks are re-planned smaller or challenged, and never split across PRs
+    expect(section).toContain("`challenge: true`");
+    expect(section).toContain("Never split a task across PRs.");
+    // every stack field and every kind value is defined in the section
+    for (const field of ["`concern`", "`kind`", "`est_lines`", "`flag`"]) {
+      expect(section).toContain(field);
+    }
+    for (const kind of ["feature", "refactor", "schema", "interface", "enable"]) {
+      expect(section).toMatch(new RegExp(`\`${kind}\` = `));
+    }
+  });
+
+  it("ASDLC-1/AC-31 schemas.md describes each stack field with its type and the stack_enabled gate", () => {
+    const md = read("okf/references/schemas.md");
+    const line =
+      md.split("\n").find((l) => l.startsWith("Optional plan task fields for stacked PRs")) ?? "";
+    expect(line).not.toBe("");
+    expect(line).toContain("`est_lines` (integer >= 0");
+    expect(line).toContain("`concern` (string");
+    expect(line).toContain("`flag` (string");
+    expect(line).toContain("`kind` (`feature`, `refactor`, `schema`, `interface`, `enable`)");
+    expect(line).toContain("`stack_enabled: true`");
   });
 
   it("ASDLC-1/AC-31 okf/references/schemas.md documents the plan stack fields", () => {
