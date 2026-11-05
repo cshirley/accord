@@ -29,11 +29,17 @@ export interface VerificationResult {
 
 const execAsync = promisify(execCb);
 
+/** `ACCORD_VERIFY_TIMEOUT_MS`: per-command timeout override for large suites (positive integer). */
+function envTimeoutMs(): number | undefined {
+  const raw = Number(process.env.ACCORD_VERIFY_TIMEOUT_MS);
+  return Number.isInteger(raw) && raw > 0 ? raw : undefined;
+}
+
 export async function runVerificationCommands(
   commands: string[],
   opts?: { timeoutMs?: number; totalTimeoutMs?: number; cwd?: string },
 ): Promise<VerificationResult[]> {
-  const timeout = opts?.timeoutMs ?? 120_000;
+  const timeout = opts?.timeoutMs ?? envTimeoutMs() ?? 120_000;
   // Default total budget: 5 × per-command timeout. With six commands at 120s
   // each, this caps verify-preflight + post-code verification at 10 minutes
   // instead of letting a slow type-checker block subagent dispatch for an

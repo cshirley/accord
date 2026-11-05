@@ -42,3 +42,4 @@
 * **Addition** (2026-10-01): New playbook [Write in STE](/playbooks/write-in-ste.md), `ste` skill in `packages/pi-skills`, and `scripts/validate-ste.ts` (`bun run validate:ste`, opt-in via `style: ste` frontmatter). Added to `check`, Dev Harness `lint`/`verification_commands`, and the [Verify a change](/playbooks/verify-a-change.md) table.
 * **Update**: [Environment variables](/references/environment-variables.md): `accord` CLI notifications carry an RFC 3339 timestamp; core logger timestamps are opt-in via `ACCORD_LOG_TIMESTAMP`. Pi harness now passes host-measured usage and model into the result hook.
 * **Update**: [Answer decisions](/playbooks/answer-decisions.md): task briefs now include resolved work-item `decisions[]` answers (`resolved_decisions`), so agents no longer re-ask answered escalations.
+* **Update**: [Environment variables](/references/environment-variables.md): `ACCORD_VERIFY_TIMEOUT_MS` overrides the 120 s per-command verification timeout.
