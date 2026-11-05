@@ -152,3 +152,42 @@ step and no log prints it. Set `ACCORD_CI_DRY_RUN=true` to skip the push.
 ```bash
 bun test packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts
 ```
+
+## accord-driven — resume workflow
+
+After PR0 merges, the jobs `resume-gate` and `resume` in
+`.github/workflows/accord-driven.yml` continue the work item. Two events start
+them. The first event is a `push` to `main` that changes
+`docs/dev/<ID>/contract.lock.json`. The second event is an `issue_comment`
+(created) on a work item PR with the text `/accord approve` or `/accord unblock`
+from a user whose association is `OWNER`, `MEMBER` or `COLLABORATOR`. The text
+`/accord unblock <task> <reason>` names the blocked task and gives the reason.
+
+The job `resume-gate` runs `packages/accord-ci/src/ci-driven/resume-gate.ts`. It
+uses the same entry check as PR0: `stack.enabled` must be `true` and
+`docs/dev/<ID>/state/work-item.json` must exist. If a check fails, the job ends
+green and the job `resume` does not run. The gate reads pull requests with
+`github.token`. It never reads the push token.
+
+The job `resume` has the concurrency group `accord-<ID>` with
+`cancel-in-progress` set to `false`, so two runs for the same `<ID>` never
+overlap. `packages/accord-ci/src/ci-driven/resume.ts` also holds an on-disk lock
+for each `<ID>`. The job restores `.tasks/` from `docs/dev/<ID>/state/`, switches
+to the branch `stack/<ID>/pr-<N>` of the next unfinished PR, and reads the last
+typed commit. It runs `accord resume`, which can make several typed commits, pushes the
+current stack branch once without force with `ACCORD_CI_PUSH_TOKEN`, and repeats. A rerun after an interruption resumes
+from the last typed commit pushed to that branch. History is append-only: no
+amend and no force push. The gates are read from PR comments and from commits:
+`/accord approve`, `/accord unblock`, the `contract.lock.json` file, and a typed
+commit with `outcome=closeout`.
+
+When the cost reaches `stack.ci.cost_cap_usd`, or when a gate fails, the run
+stops. `packages/accord-ci/src/ci-driven/alert.ts` logs `stack.ci.alert` at
+error with `work_item_id` and `condition`. It then posts one PR comment with
+`gh` and `ACCORD_CI_PUSH_TOKEN`. The PR is the open PR for the current stack
+branch, or else the PR0 PR. If no PR exists, only the log event is written. If
+`stack.ci.cost_cap_usd` is not set, there is no cap.
+
+```bash
+bun test packages/accord-ci/tests/ci-driven-resume.test.ts
+```

@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-04T12:49:24.391Z",
+  "generated_at": "2026-11-05T10:31:32.683Z",
   "source_usage_file": ".tasks/ASDLC-1-usage.jsonl",
   "summary": {
-    "total_input_tokens": 1727440,
-    "total_output_tokens": 4436148,
-    "total_cache_read_tokens": 171604255,
-    "total_cache_write_tokens": 20820838,
-    "total_calls": 444,
+    "total_input_tokens": 1728002,
+    "total_output_tokens": 4877014,
+    "total_cache_read_tokens": 192127155,
+    "total_cache_write_tokens": 22344290,
+    "total_calls": 459,
     "usage_missing_calls": 46,
     "carried_forward": false,
-    "total_cost_usd": 166.22855780000003
+    "total_cost_usd": 180.5967054
   },
   "rows": [
     {
@@ -3169,6 +3169,78 @@
       "cache_write_tokens": 219454,
       "usage_missing_calls": 0,
       "cost_usd": 3.7376
+    },
+    {
+      "scope": "Task 53",
+      "agent": "phase-code",
+      "task_id": 53,
+      "calls": 2,
+      "input_tokens": 80,
+      "output_tokens": 56998,
+      "cache_read_tokens": 3508528,
+      "cache_write_tokens": 232851,
+      "usage_missing_calls": 0,
+      "cost_usd": 1.5031
+    },
+    {
+      "scope": "Task 53",
+      "agent": "phase-test",
+      "task_id": 53,
+      "calls": 5,
+      "input_tokens": 174,
+      "output_tokens": 128691,
+      "cache_read_tokens": 5683097,
+      "cache_write_tokens": 485289,
+      "usage_missing_calls": 0,
+      "cost_usd": 3.0688
+    },
+    {
+      "scope": "Task 53",
+      "agent": "phase-verify-task",
+      "task_id": 53,
+      "calls": 1,
+      "input_tokens": 6,
+      "output_tokens": 1639,
+      "cache_read_tokens": 30221,
+      "cache_write_tokens": 31873,
+      "usage_missing_calls": 0,
+      "cost_usd": 0.0991
+    },
+    {
+      "scope": "Task 53",
+      "agent": "review-code",
+      "task_id": 53,
+      "calls": 2,
+      "input_tokens": 78,
+      "output_tokens": 61794,
+      "cache_read_tokens": 3137873,
+      "cache_write_tokens": 228144,
+      "usage_missing_calls": 0,
+      "cost_usd": 1.5022
+    },
+    {
+      "scope": "Task 53",
+      "agent": "review-security",
+      "task_id": 53,
+      "calls": 2,
+      "input_tokens": 68,
+      "output_tokens": 44926,
+      "cache_read_tokens": 1913835,
+      "cache_write_tokens": 160933,
+      "usage_missing_calls": 0,
+      "cost_usd": 2.0862
+    },
+    {
+      "scope": "Task 53",
+      "agent": "review-test",
+      "task_id": 53,
+      "calls": 3,
+      "input_tokens": 156,
+      "output_tokens": 146818,
+      "cache_read_tokens": 6249346,
+      "cache_write_tokens": 384362,
+      "usage_missing_calls": 0,
+      "cost_usd": 6.1087
     }
   ]
 }
