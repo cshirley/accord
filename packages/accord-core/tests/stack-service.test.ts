@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { buildCommitMessage, parseAccordTrailer } from "../src/commit/commit-grammar.js";
-import { registerPrGroupResolver } from "../src/commit/hooks.js";
+import { registerPrGroupResolver, resolvePrGroup } from "../src/commit/hooks.js";
 import { resolveStackConfig } from "../src/config/stack-flags.js";
 import type { DevHarnessConfig } from "../src/config/types.js";
 import { computeStack } from "../src/stack/compute-stack.js";
@@ -23,7 +23,13 @@ import type {
   StackProvider,
 } from "../src/stack/provider.js";
 import { renderStackReport, renderStackTable } from "../src/stack/render.js";
-import { stackReport, stackShow, stackSubmit, stackSync } from "../src/stack/service.js";
+import {
+  resolveGroup,
+  stackReport,
+  stackShow,
+  stackSubmit,
+  stackSync,
+} from "../src/stack/service.js";
 import { ACCORD_TOOLS } from "../src/tools/registry.js";
 
 // Pinned contract (spec leaves shapes open):
@@ -41,11 +47,11 @@ import { ACCORD_TOOLS } from "../src/tools/registry.js";
 const ID = "ASDLC-1";
 const ENABLED = {
   test: { command: "bun test", file_pattern: "**/*.test.ts" },
-  stack: { enabled: true, provider: "gh" },
+  stack: { enabled: true, provider: "gh", require_flag: false },
 } as unknown as DevHarnessConfig;
 const CUSTOM = {
   test: { command: "bun test", file_pattern: "**/*.test.ts" },
-  stack: { enabled: true, provider: "gh", sizing: { min_pr_lines: 250 } },
+  stack: { enabled: true, provider: "gh", require_flag: false, sizing: { min_pr_lines: 250 } },
 } as unknown as DevHarnessConfig;
 const DISABLED = {
   test: { command: "bun test", file_pattern: "**/*.test.ts" },
@@ -557,7 +563,7 @@ describe("ASDLC-1/AC-11 stackSubmit", () => {
 
   it("ASDLC-1/AC-11 unsupported provider fails with a clear error and no PRs", async () => {
     const config = {
-      stack: { enabled: true, provider: "graphite" },
+      stack: { enabled: true, provider: "graphite", require_flag: false },
     } as unknown as DevHarnessConfig;
     const result = await stackSubmit(ID, config, { cwd: repo });
     expect(result.ok).toBe(false);
@@ -847,6 +853,31 @@ console.log(JSON.stringify([resolvePrGroup(3), resolvePrGroup(4), resolvePrGroup
 
   it("ASDLC-1/AC-11 loading src/stack/service.ts alone registers the resolver", () => {
     expect(runScript(["src/stack/service.ts"])).toEqual([[3, 4], [3, 4], [5], [99]]);
+  });
+
+  it("ASDLC-1/AC-11 resolver scopes to the given work item when two work items share task ids", () => {
+    // AAA-1 sorts before ASDLC-1 and plans tasks 3 and 4 with different concerns (separate PRs).
+    // ASDLC-1 merges 3 and 4. Without a work item id the first plan wins; with one, only its own.
+    writePlan(MERGED_PLAN);
+    write(
+      join(repo, "docs", "dev", "AAA-1", "plan.json"),
+      JSON.stringify({
+        work_item_id: "AAA-1",
+        tasks: [
+          { ...MERGED_PLAN.tasks[0], concern: "x", est_lines: 300 },
+          { ...MERGED_PLAN.tasks[1], concern: "y", est_lines: 300 },
+        ],
+      }),
+    );
+    const resolve = (taskId: number, workItemId?: string): number[] => {
+      process.chdir(repo);
+      return resolvePrGroup(taskId, workItemId);
+    };
+    registerPrGroupResolver(resolveGroup);
+    expect(resolve(3, ID)).toEqual([3, 4]);
+    expect(resolve(3, "AAA-1")).toEqual([3]);
+    expect(resolve(4, "AAA-1")).toEqual([4]);
+    expect(resolve(3, "NOPE-1")).toEqual([3]);
   });
 
   it.each([
