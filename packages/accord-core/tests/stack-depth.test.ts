@@ -856,7 +856,16 @@ function buildScenario(scenario: Scenario): Built {
       run("merge", "-q", "--squash", `origin/${headOf(1)}`);
       run("commit", "-q", "-m", "base (#1)");
     } else if (scenario.mode === "rebase") {
-      run("cherry-pick", `main..origin/${headOf(1)}`);
+      // A rebase merge rewrites commits. Pin a distinct committer date so the rewritten shas can
+      // never equal the originals when both run in the same second (that made the test flaky).
+      const previousDate = process.env.GIT_COMMITTER_DATE;
+      process.env.GIT_COMMITTER_DATE = "2030-01-01T00:00:00Z";
+      try {
+        run("cherry-pick", `main..origin/${headOf(1)}`);
+      } finally {
+        if (previousDate === undefined) delete process.env.GIT_COMMITTER_DATE;
+        else process.env.GIT_COMMITTER_DATE = previousDate;
+      }
     } else {
       run("merge", "-q", "--no-ff", "-m", "Merge base", `origin/${headOf(1)}`);
     }
