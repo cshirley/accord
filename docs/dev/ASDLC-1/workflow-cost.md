@@ -1,6 +1,6 @@
 # Workflow cost: ASDLC-1
 
-- Generated: 2026-11-05T13:37:20.969Z
+- Generated: 2026-11-05T14:16:26.534Z
 - Source: `.tasks/ASDLC-1-usage.jsonl`
 - Calls: **467**
 - Input tokens: **1,728,136** (+ cache read **194,319,759**, cache write **22,728,783**)
