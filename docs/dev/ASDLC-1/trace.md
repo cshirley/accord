@@ -1,6 +1,6 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-05T10:31:32.195Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-05T10:43:53.577Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
 
 ## Tasks
@@ -59,8 +59,8 @@
 | 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | done | `0d07304` | 1/1/1 | 13 (open 13) | 0 |
 | 51 | [ci-driven-mode] Startup push-token check and cost cap key | done | `5f3819c` | 1/1/1 | 8 (open 8) | 0 |
 | 52 | [ci-driven-mode] CI builds PR0 from brief and spec | done | `3b43fb7` | 2/1/1 | 30 (verified 13, reraised 2, open 15) | 0 |
-| 53 | [ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert | done | — | 3/2/1 | 50 (verified 28, reraised 5, open 9, wont_fix_accepted 8) | 0 |
-| 54 | [ci-driven-mode] OKF and CI docs for CI-driven mode | pending | — | 0/0/0 | 0 | 0 |
+| 53 | [ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert | done | `c66137e` | 3/2/1 | 50 (verified 28, reraised 5, open 9, wont_fix_accepted 8) | 0 |
+| 54 | [ci-driven-mode] OKF and CI docs for CI-driven mode | done | — | 1/1/1 | 13 (open 13) | 0 |
 
 ## Acceptance criteria
 
@@ -590,13 +590,13 @@
   - bun run validate:schemas (30 passed)
   - bun run check:bundle
 
-### AC-31 — pending (not verified)
+### AC-31 — satisfied
 
 > Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…
 
-- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (satisfied), 50 (satisfied), 51 (satisfied), 52 (satisfied), 53 (satisfied), 54 (pending)
-- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-cli/tests/feature-cli.test.ts`, `okf/references/knowledge-config.md`, `packages/accord-ci/tests/ci-driven-startup.test.ts`, `packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts`, `packages/accord-ci/tests/ci-driven-resume.test.ts`
-- Tests verified (64):
+- Tasks: 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfied), 20 (satisfied), 22 (satisfied), 23 (satisfied), 24 (satisfied), 25 (satisfied), 31 (satisfied), 32 (satisfied), 37 (satisfied), 38 (satisfied), 42 (satisfied), 44 (satisfied), 47 (satisfied), 49 (satisfied), 50 (satisfied), 51 (satisfied), 52 (satisfied), 53 (satisfied), 54 (satisfied)
+- Files: `packages/accord-ci/tests/evidence-check-runner.test.ts`, `packages/accord-ci/src/evidence-check.ts`, `.github/workflows/accord-evidence.yml`, `docs/ci/pre-merge-smoke.md`, `okf/log.md`, `okf/architecture/monorepo-packages.md`, `packages/accord-core/tests/docs-validation.test.ts`, `okf/references/commit-format.md`, `okf/architecture/evidence-stack.md`, `okf/references/accord-cli.md`, `okf/references/artifacts-and-state.md`, `okf/references/orchestration-policy.md`, `okf/references/stack-config.md`, `okf/architecture/agents.md`, `okf/architecture/crucible-verification.md`, `okf/references/task-file.md`, `okf/architecture/hooks.md`, `packages/accord-core/tests/contract-amend-session.test.ts`, `packages/accord-ci/tests/contract-lock-check.test.ts`, `okf/references/dev-command.md`, `packages/accord-core/tests/alignment.test.ts`, `okf/references/schemas.md`, `packages/accord-cli/tests/stack-cli.test.ts`, `okf/architecture/tool-surface.md`, `packages/accord-ci/tests/evidence-check.test.ts`, `okf/playbooks/answer-decisions.md`, `packages/accord-core/tests/validate-features-script.test.ts`, `AGENTS.md`, `okf/playbooks/verify-a-change.md`, `packages/accord-core/tests/feature-docs.test.ts`, `packages/accord-cli/tests/feature-cli.test.ts`, `okf/references/knowledge-config.md`, `packages/accord-ci/tests/ci-driven-startup.test.ts`, `packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts`, `packages/accord-ci/tests/ci-driven-resume.test.ts`, `okf/playbooks/adopt-autopipeline.md`, `okf/references/environment-variables.md`, `docs/ci/autopipeline.md`
+- Tests verified (69):
   - bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)
   - bun run validate:okf
   - bun run validate:ste
@@ -661,6 +661,11 @@
   - ci-driven-pr0.test.ts › ASDLC-1/AC-31 scope sentence lists the workflow; doc describes trigger and gate
   - ASDLC-1/AC-31 docs/ci/pre-merge-smoke.md covers resume mode
   - bunx biome check packages/accord-ci .github docs/ci
+  - ASDLC-1/AC-31 environment-variables.md documents ACCORD_CI_PUSH_TOKEN as required, server-only, 90-day rotation
+  - ASDLC-1/AC-31 docs/ci/autopipeline.md documents CI-driven mode trigger, gates, cost cap, alert channel and token
+  - ASDLC-1/AC-31 adopt-autopipeline.md playbook covers CI-driven mode and the push token step
+  - ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 ci-driven-mode entry naming the updated concepts, appended last
+  - bunx biome check <changed files>
 
 ## Accepted risks and unresolved findings
 
@@ -1161,6 +1166,19 @@
 | 53 | AC-24 | F-049 | unresolved (advisory) | open | warning | A stale `/accord unblock <task> <reason>` comment is re-applied to a task that was blocked again later, so the human blocked-task gate is bypassed. | packages/accord-ci/src/ci-driven/resume.ts:600 |  |
 | 53 | AC-24 | F-050 | unresolved (advisory) | open | warning | deriveBranch treats a merged PR as unfinished when its head branch was deleted after merge, so resume restarts finished work. | packages/accord-ci/src/ci-driven/resume.ts:343 |  |
 | 53 | AC-31 | F-014 | accepted (advisory) | wont_fix_accepted | suggestion | The smoke-doc declaration is pinned here. A unit test cannot prove enforcement of okf concept and log.md updates, ASD-STE100 style or biome. The okf and log.md work is planned in task 54. | packages/accord-ci/tests/ci-driven-resume.test.ts:1029 | wont_fix_accepted by T2/review-test — The smoke-doc declaration is pinned. validate:okf, validate:ste and check:biome enforcement belongs to phase-verify-task. The okf/log.md entry is task 54's scope. |
+| 54 | AC-31 | F-001 | unresolved (advisory) | open | warning | The docs/ci/autopipeline.md test checks keywords anywhere in the whole file, and one assertion is already satisfied by existing text. A doc that leaves out half of the task step's subjects (trigger, gates, cost cap, alert channel, token) still passes. | packages/accord-core/tests/docs-validation.test.ts:782 |  |
+| 54 | AC-31 | F-002 | unresolved (advisory) | open | warning | The playbook test does not pin the plan's 'ASD-STE100 for the playbook' requirement or a push-token step. adopt-autopipeline.md has no `style: ste`, so scripts/validate-ste.ts returns [] for it and the TC-32 validate:ste test passes whatever the prose looks like. The keyword checks also accept the terms anywhere, for example a trailing note instead of a numbered step. | packages/accord-core/tests/docs-validation.test.ts:797 |  |
+| 54 | AC-31 | F-003 | unresolved (advisory) | open | warning | The log-ordering assertions are wrong in both directions. The new ci-driven test requires `index === bullets.length - 1`, which breaks on the next unrelated okf/log.md append, so the suite stays red on main afterwards. The task-50 test (line 761), changed in this round, now uses `toBeLessThanOrEqual(bullets.length - 1)`, which is always true for any found index. It no longer checks that the feature-knowledge bullet comes after the prior bullets, as its test name says. | packages/accord-core/tests/docs-validation.test.ts:816 |  |
+| 54 | AC-31 | F-004 | unresolved (advisory) | open | suggestion | The environment-variables.md row check accepts the row in any table, and its patterns are loose. `/required/i` matches 'not required', and `/server/i` matches any mention of 'server' (for example the MCP server). AC-25 facts are also not checked: no default, GitHub App token or PAT, GITHUB_TOKEN not accepted, and the fail-fast MISSING_REQUIRED_SECRET message. | packages/accord-core/tests/docs-validation.test.ts:773 |  |
+| 54 | AC-31 | F-005 | unresolved (advisory) | open | suggestion | Nothing checks that the updated OKF concepts list the CI-driven code in their frontmatter `sources`. The 'Keeping it true' process re-checks a concept only when a listed source changes. Without these entries, later edits to startup.ts or accord-driven.yml never send anyone back to these concepts. Earlier tasks in this file assert `resource:` lines (lines 89, 101-102, 108-109). | packages/accord-core/tests/docs-validation.test.ts:766 |  |
+| 54 | AC-31 | F-006 | unresolved (advisory) | open | warning | AC-31 affected OKF concepts left stale: the evidence-stack concept still calls CI-driven mode 'long-term', and stack-config.md has no stack.ci.cost_cap_usd row. | okf/architecture/evidence-stack.md:99 |  |
+| 54 | AC-31 | F-007 | unresolved (advisory) | open | warning | Trigger description is wrong and incomplete: it conflates the PR0 build trigger and the resume trigger. | docs/ci/autopipeline.md:59 |  |
+| 54 | AC-31 | F-008 | unresolved (advisory) | open | warning | Setup steps omit `stack.enabled: true` and say CI reads accord.json. Without them CI-driven mode silently does nothing. | okf/playbooks/adopt-autopipeline.md:68 |  |
+| 54 | AC-31 | F-009 | unresolved (advisory) | open | warning | Step 1 tells consumers to copy `accord-driven.yml` into their repo, but the workflow only runs inside a repo that contains packages/accord-ci. | okf/playbooks/adopt-autopipeline.md:66 |  |
+| 54 | AC-31 | F-010 | unresolved (advisory) | open | suggestion | Token step omits what the token must be, and 'every 90-day period' is awkward STE. | okf/playbooks/adopt-autopipeline.md:67 |  |
+| 54 | AC-31 | F-011 | unresolved (advisory) | open | suggestion | 'channel `#accord-ci-alerts`' implies delivery to a chat channel, but the code only posts a PR comment. | docs/ci/autopipeline.md:63 |  |
+| 54 | AC-31 | F-012 | unresolved (advisory) | open | suggestion | Gate description omits `/accord approve` and who is authorised. | docs/ci/autopipeline.md:61 |  |
+| 54 | AC-31 | F-013 | unresolved (advisory) | open | suggestion | Playbook sources, description and tags, and the autopipeline 'Where to look' table are not extended for the CI-driven files. | okf/playbooks/adopt-autopipeline.md:8 |  |
 
 ## Decisions
 
@@ -2252,4 +2270,20 @@ Final verification (`V1/phase-verify-task`):
 
 ### Task 54: [ci-driven-mode] OKF and CI docs for CI-driven mode
 
+RED evidence (`T1/phase-test`):
+
+```text
+(fail) ASDLC-1/AC-31 ci-driven-mode docs (task 54) > docs/ci/autopipeline.md documents CI-driven mode ... Expected substring or pattern: /CI-driven/i
+(fail) ... adopt-autopipeline.md playbook covers CI-driven mode and the push token step: Expected /CI-driven/i
+(fail) ... okf/log.md has a dated ASDLC-1 ci-driven-mode entry ...: Expected: 55 Received: -1
+ 0 pass
+ 53 filtered out
+ 4 fail
+```
+
+Final verification (`V1/phase-verify-task`):
+
+```text
+docs-validation.test.ts: 57 pass, 0 fail (incl. 4 AC-31 task-54 tests). validate:okf, validate:ste, validate:schemas, validate:assets, validate:features, check:types, check:bundle, check:runtime pass. check:biome: 1 error, docs/dev/ASDLC-1/trace.json format (not a task file). biome on the 5 changed files: no fixes needed.
+```
 

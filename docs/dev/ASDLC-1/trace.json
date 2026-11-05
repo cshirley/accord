@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-05T10:31:32.195Z",
+  "generated_at": "2026-11-05T10:43:53.577Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -5778,7 +5778,9 @@
       "id": 53,
       "title": "[ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "c66137e"
+      ],
       "rounds": {
         "T": 3,
         "C": 2,
@@ -5936,12 +5938,12 @@
     {
       "id": 54,
       "title": "[ci-driven-mode] OKF and CI docs for CI-driven mode",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 1,
+        "C": 1,
+        "V": 1
       },
       "retries": {
         "test_review": 0,
@@ -5951,18 +5953,59 @@
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 13,
+        "by_state": {
+          "open": 13
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "(fail) ASDLC-1/AC-31 ci-driven-mode docs (task 54) > docs/ci/autopipeline.md documents CI-driven mode ... Expected substring or pattern: /CI-driven/i\n(fail) ... adopt-autopipeline.md playbook covers CI-driven mode and the push token step: Expected /CI-driven/i\n(fail) ... okf/log.md has a dated ASDLC-1 ci-driven-mode entry ...: Expected: 55 Received: -1\n 0 pass\n 53 filtered out\n 4 fail",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "docs-validation.test.ts: 57 pass, 0 fail (incl. 4 AC-31 task-54 tests). validate:okf, validate:ste, validate:schemas, validate:assets, validate:features, check:types, check:bundle, check:runtime pass. check:biome: 1 error, docs/dev/ASDLC-1/trace.json format (not a task file). biome on the 5 changed files: no fixes needed.",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-core/tests/docs-validation.test.ts",
+              "action": "modify",
+              "kind": "test"
+            },
+            {
+              "file": "okf/playbooks/adopt-autopipeline.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/references/environment-variables.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "docs/ci/autopipeline.md",
+              "action": "modify",
+              "kind": "config"
+            },
+            {
+              "file": "okf/log.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 7,
+            "command": "bun test packages/accord-core/tests/docs-validation.test.ts"
+          }
         }
       ]
     }
@@ -7165,7 +7208,7 @@
     {
       "ac_id": "AC-31",
       "text": "Each feature MUST update the affected okf/ concepts and append a dated entry to okf/log.md; procedure text in files marked style: ste follows ASD-STE100; changes under packages/accord-ci/ also update docs/ci/pre-merge…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 4,
@@ -7253,7 +7296,7 @@
         },
         {
           "task": 54,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -7291,7 +7334,10 @@
         "okf/references/knowledge-config.md",
         "packages/accord-ci/tests/ci-driven-startup.test.ts",
         "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
-        "packages/accord-ci/tests/ci-driven-resume.test.ts"
+        "packages/accord-ci/tests/ci-driven-resume.test.ts",
+        "okf/playbooks/adopt-autopipeline.md",
+        "okf/references/environment-variables.md",
+        "docs/ci/autopipeline.md"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -7357,9 +7403,14 @@
         "ci-driven-pr0.test.ts › ASDLC-1/AC-31 smoke doc names pr0.ts, accord-driven.yml and this test",
         "ci-driven-pr0.test.ts › ASDLC-1/AC-31 scope sentence lists the workflow; doc describes trigger and gate",
         "ASDLC-1/AC-31 docs/ci/pre-merge-smoke.md covers resume mode",
-        "bunx biome check packages/accord-ci .github docs/ci"
+        "bunx biome check packages/accord-ci .github docs/ci",
+        "ASDLC-1/AC-31 environment-variables.md documents ACCORD_CI_PUSH_TOKEN as required, server-only, 90-day rotation",
+        "ASDLC-1/AC-31 docs/ci/autopipeline.md documents CI-driven mode trigger, gates, cost cap, alert channel and token",
+        "ASDLC-1/AC-31 adopt-autopipeline.md playbook covers CI-driven mode and the push token step",
+        "ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 ci-driven-mode entry naming the updated concepts, appended last",
+        "bunx biome check <changed files>"
       ],
-      "verified": false
+      "verified": true
     }
   ],
   "accepted_risks": [
@@ -14179,6 +14230,175 @@
         "outcome": "wont_fix_accepted",
         "note": "The smoke-doc declaration is pinned. validate:okf, validate:ste and check:biome enforcement belongs to phase-verify-task. The okf/log.md entry is task 54's scope."
       }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-001",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The docs/ci/autopipeline.md test checks keywords anywhere in the whole file, and one assertion is already satisfied by existing text. A doc that leaves out half of the task step's subjects (trigger, gates, cost cap, alert channel, token) still passes.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 782,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-002",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The playbook test does not pin the plan's 'ASD-STE100 for the playbook' requirement or a push-token step. adopt-autopipeline.md has no `style: ste`, so scripts/validate-ste.ts returns [] for it and the TC-32 validate:ste test passes whatever the prose looks like. The keyword checks also accept the terms anywhere, for example a trailing note instead of a numbered step.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 797,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-003",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The log-ordering assertions are wrong in both directions. The new ci-driven test requires `index === bullets.length - 1`, which breaks on the next unrelated okf/log.md append, so the suite stays red on main afterwards. The task-50 test (line 761), changed in this round, now uses `toBeLessThanOrEqual(bullets.length - 1)`, which is always true for any found index. It no longer checks that the feature-knowledge bullet comes after the prior bullets, as its test name says.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 816,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-004",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The environment-variables.md row check accepts the row in any table, and its patterns are loose. `/required/i` matches 'not required', and `/server/i` matches any mention of 'server' (for example the MCP server). AC-25 facts are also not checked: no default, GitHub App token or PAT, GITHUB_TOKEN not accepted, and the fail-fast MISSING_REQUIRED_SECRET message.",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 773,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-005",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Nothing checks that the updated OKF concepts list the CI-driven code in their frontmatter `sources`. The 'Keeping it true' process re-checks a concept only when a listed source changes. Without these entries, later edits to startup.ts or accord-driven.yml never send anyone back to these concepts. Earlier tasks in this file assert `resource:` lines (lines 89, 101-102, 108-109).",
+      "file": "packages/accord-core/tests/docs-validation.test.ts",
+      "line": 766,
+      "raised": "T1/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-006",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "AC-31 affected OKF concepts left stale: the evidence-stack concept still calls CI-driven mode 'long-term', and stack-config.md has no stack.ci.cost_cap_usd row.",
+      "file": "okf/architecture/evidence-stack.md",
+      "line": 99,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-007",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Trigger description is wrong and incomplete: it conflates the PR0 build trigger and the resume trigger.",
+      "file": "docs/ci/autopipeline.md",
+      "line": 59,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-008",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Setup steps omit `stack.enabled: true` and say CI reads accord.json. Without them CI-driven mode silently does nothing.",
+      "file": "okf/playbooks/adopt-autopipeline.md",
+      "line": 68,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-009",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Step 1 tells consumers to copy `accord-driven.yml` into their repo, but the workflow only runs inside a repo that contains packages/accord-ci.",
+      "file": "okf/playbooks/adopt-autopipeline.md",
+      "line": 66,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-010",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Token step omits what the token must be, and 'every 90-day period' is awkward STE.",
+      "file": "okf/playbooks/adopt-autopipeline.md",
+      "line": 67,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-011",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "'channel `#accord-ci-alerts`' implies delivery to a chat channel, but the code only posts a PR comment.",
+      "file": "docs/ci/autopipeline.md",
+      "line": 63,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-012",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Gate description omits `/accord approve` and who is authorised.",
+      "file": "docs/ci/autopipeline.md",
+      "line": 61,
+      "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 54,
+      "requirement": "AC-31",
+      "finding_id": "F-013",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Playbook sources, description and tags, and the autopipeline 'Where to look' table are not extended for the CI-driven files.",
+      "file": "okf/playbooks/adopt-autopipeline.md",
+      "line": 8,
+      "raised": "C1/review-code"
     }
   ]
 }

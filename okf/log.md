@@ -97,3 +97,5 @@
 * **Update**: ASDLC-1 feature-knowledge: [Verify a change](/playbooks/verify-a-change.md) now lists `validate:features` (anchors, links, test references, `max_acs_per_feature`, index regeneration); the script is in `check`, the Dev Harness `lint` and `verification_commands`.
 
 * **Update**: ASDLC-1 feature-knowledge: [Knowledge configuration](/references/knowledge-config.md) (`docs/features`, impact analysis, drift check, `validate:features`, `dev_feature_*` tools) and [dev_* tool surface](/architecture/tool-surface.md) (`dev_feature_find`, `dev_feature_impact`) now describe the implemented behaviour; schema descriptions state the keys are read by the harness and default off.
+
+* **Update**: ASDLC-1 ci-driven-mode: [Adopt the autopipeline](/playbooks/adopt-autopipeline.md) (CI-driven mode steps, `accord-driven.yml`, `stack.ci.cost_cap_usd`, `#accord-ci-alerts`) and [Environment variables](/references/environment-variables.md) (`ACCORD_CI_PUSH_TOKEN`, required, server-only, 90-day rotation) now describe CI-driven mode; `docs/ci/autopipeline.md` updated.
