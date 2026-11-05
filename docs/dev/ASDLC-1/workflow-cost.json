@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-05T13:37:20.969Z",
+  "generated_at": "2026-11-05T14:16:26.534Z",
   "source_usage_file": ".tasks/ASDLC-1-usage.jsonl",
   "summary": {
     "total_input_tokens": 1728136,

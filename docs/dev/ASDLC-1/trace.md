@@ -1,9 +1,9 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-05T13:37:20.972Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-05T14:16:26.542Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
-- Outcome: **partially_achieved**
-- Next action: /dev gaps ASDLC-1
+- Outcome: **done**
+- Next action: /commit then open a PR
 
 ## Tasks
 
