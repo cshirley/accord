@@ -96,4 +96,7 @@
 
 * **Update**: ASDLC-1 feature-knowledge: [Knowledge configuration](/references/knowledge-config.md) (`docs/features`, impact analysis, drift check, `validate:features`, `dev_feature_*` tools) and [dev_* tool surface](/architecture/tool-surface.md) (`dev_feature_find`, `dev_feature_impact`) now describe the implemented behaviour; schema descriptions state the keys are read by the harness and default off.
 
+* **Update**: [Stack config](/references/stack-config.md): `stack.require_flag` now defaults to `true` in `stackSubmit` (`!== false`), as the schema, spec and docs already stated. Set `require_flag: false` to submit an unflagged plan.
+* **Update**: [Evidence stack](/architecture/evidence-stack.md): the PR group resolver (`commit/hooks.ts`) receives the work item id (`resolvePrGroup(taskId, workItemId)`), so task ids that repeat across work items no longer read another work item's plan.
+* **Update**: Biome ignores harness-written `docs/dev/*/trace.json` and `verify.json` (formatting is owned by the harness).
 * **Update**: ASDLC-1 ci-driven-mode: [Adopt the autopipeline](/playbooks/adopt-autopipeline.md) (CI-driven mode steps, `accord-driven.yml`, `stack.ci.cost_cap_usd`, `#accord-ci-alerts`) and [Environment variables](/references/environment-variables.md) (`ACCORD_CI_PUSH_TOKEN`, required, server-only, 90-day rotation) now describe CI-driven mode; `docs/ci/autopipeline.md` updated.
