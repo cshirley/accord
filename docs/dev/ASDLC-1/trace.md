@@ -1,7 +1,9 @@
 # Implementation trace: ASDLC-1
 
-- Generated: 2026-11-05T10:43:53.577Z (harness-generated from `.tasks/`; regenerate, don't edit)
+- Generated: 2026-11-05T13:00:27.229Z (harness-generated from `.tasks/`; regenerate, don't edit)
 - Pattern: implement
+- Outcome: **partially_achieved**
+- Next action: /dev gaps ASDLC-1
 
 ## Tasks
 
@@ -60,7 +62,7 @@
 | 51 | [ci-driven-mode] Startup push-token check and cost cap key | done | `5f3819c` | 1/1/1 | 8 (open 8) | 0 |
 | 52 | [ci-driven-mode] CI builds PR0 from brief and spec | done | `3b43fb7` | 2/1/1 | 30 (verified 13, reraised 2, open 15) | 0 |
 | 53 | [ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert | done | `c66137e` | 3/2/1 | 50 (verified 28, reraised 5, open 9, wont_fix_accepted 8) | 0 |
-| 54 | [ci-driven-mode] OKF and CI docs for CI-driven mode | done | — | 1/1/1 | 13 (open 13) | 0 |
+| 54 | [ci-driven-mode] OKF and CI docs for CI-driven mode | done | `7fb4cb6` | 1/1/1 | 13 (open 13) | 0 |
 
 ## Acceptance criteria
 
