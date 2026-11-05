@@ -351,6 +351,26 @@ describe("ASDLC-1/AC-15 closeout branch hook and clean-tree precondition", () =>
     expect(existsSync(join(repo, DEV, "state"))).toBe(false);
   });
 
+  test("ASDLC-1/AC-15 verify, trace and workflow-cost files written before closeout do not refuse it and are committed", async () => {
+    for (const file of [
+      "verify.json",
+      "verify.md",
+      "trace.json",
+      "trace.md",
+      "workflow-cost.json",
+    ]) {
+      write(`${DEV}/${file}`, file.endsWith(".json") ? "{}\n" : "# x\n");
+    }
+    const result = await commitWorkItemArtifacts(ID, STACK_ON, repo);
+    expect(result.ok).toBe(true);
+    expect(result.skipped).not.toBe(true);
+    const tracked = git("ls-files", DEV).split("\n");
+    for (const file of ["verify.json", "verify.md", "trace.json", "trace.md"]) {
+      expect(tracked).toContain(`${DEV}/${file}`);
+    }
+    expect(git("status", "--porcelain").trim()).toBe("");
+  });
+
   test("ASDLC-1/AC-15 hook is called exactly once per closeout", async () => {
     let calls = 0;
     registerCloseoutBranchHook(() => {
@@ -369,7 +389,7 @@ describe("ASDLC-1/AC-15 closeout branch hook and clean-tree precondition", () =>
         git("add", "src/staged.ts");
       },
     },
-    { name: "untracked artifact in work-item dir", setup: () => write(`${DEV}/verify.json`, "{}") },
+    { name: "untracked non-artifact in work-item dir", setup: () => write(`${DEV}/notes.md`, "x") },
     {
       name: "tracked modification in work-item dir",
       setup: () => write(`${DEV}/plan.json`, '{"tasks":[]}'),
