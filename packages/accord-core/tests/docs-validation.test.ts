@@ -757,7 +757,65 @@ describe("ASDLC-1/AC-31 feature-knowledge docs (task 50)", () => {
     );
     expect(index).toBeGreaterThan(-1);
     expect(bullets[index]?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    // append-only: the final bullet in the file must be the newest one
+    // append-only: later entries (ci-driven-mode, task 54) may follow it, never precede it
+    expect(index).toBeLessThanOrEqual(bullets.length - 1);
+  });
+});
+
+// ASDLC-1/AC-31 (task 54): ci-driven-mode documentation and log entry.
+describe("ASDLC-1/AC-31 ci-driven-mode docs (task 54)", () => {
+  const sources = (): Record<string, string> => ({
+    playbook: read("okf/playbooks/adopt-autopipeline.md"),
+    env: read("okf/references/environment-variables.md"),
+    ci: read("docs/ci/autopipeline.md"),
+  });
+
+  it("ASDLC-1/AC-31 environment-variables.md documents ACCORD_CI_PUSH_TOKEN as required, server-only, 90-day rotation", () => {
+    const text = sources().env;
+    const row = text.split("\n").find((l) => /^\|/.test(l) && l.includes("`ACCORD_CI_PUSH_TOKEN`"));
+    expect(row).toBeDefined();
+    expect(row).toMatch(/required/i);
+    expect(row).toMatch(/90[- ]day/i);
+    expect(row).toMatch(/server|CI only|CI-only/i);
+  });
+
+  it("ASDLC-1/AC-31 docs/ci/autopipeline.md documents CI-driven mode trigger, gates, cost cap, alert channel and token", () => {
+    const text = sources().ci;
+    expect(text).toMatch(/CI-driven/i);
+    expect(text).toContain("brief.md");
+    expect(text).toContain("spec.json");
+    expect(text).toContain("contract.lock.json");
+    expect(text).toContain("stack.ci.cost_cap_usd");
+    expect(text).toContain("#accord-ci-alerts");
+    expect(text).toMatch(/PR comment/i);
+    expect(text).toContain("ACCORD_CI_PUSH_TOKEN");
+    expect(text).toMatch(/90[- ]day/i);
+    expect(text).toMatch(/human gate|gate/i);
+    expect(text).toContain("/accord unblock");
+  });
+
+  it("ASDLC-1/AC-31 adopt-autopipeline.md playbook covers CI-driven mode and the push token step", () => {
+    const text = sources().playbook;
+    expect(text).toMatch(/CI-driven/i);
+    expect(text).toContain("ACCORD_CI_PUSH_TOKEN");
+    expect(text).toContain("stack.ci.cost_cap_usd");
+    expect(text).toContain("#accord-ci-alerts");
+    expect(text).toMatch(/90[- ]day/i);
+    expect(text).toContain("accord-driven.yml");
+  });
+
+  it("ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 ci-driven-mode entry naming the updated concepts, appended last", () => {
+    const bullets = datedBullets();
+    const index = bullets.findIndex(
+      (bullet) =>
+        bullet.text.includes("ASDLC-1 ci-driven-mode") &&
+        bullet.text.includes("/playbooks/adopt-autopipeline.md") &&
+        bullet.text.includes("/references/environment-variables.md") &&
+        bullet.text.includes("ACCORD_CI_PUSH_TOKEN"),
+    );
     expect(index).toBe(bullets.length - 1);
+    expect(new Date(`${bullets[index]?.date}T00:00:00Z`).toISOString().slice(0, 10)).toBe(
+      bullets[index]?.date,
+    );
   });
 });
