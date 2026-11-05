@@ -279,8 +279,22 @@ export async function commitWorkItemArtifacts(
     }
     try {
       const root = await gitRoot(cwd, signal);
-      const dirty = (await git(["status", "--porcelain"], root, signal)).trim();
-      if (dirty) {
+      // The verify, trace and workflow-cost files are written before closeout runs and are what
+      // the closeout commit records, so they are not "uncommitted changes" that block it.
+      const ownArtifacts = new Set(
+        [
+          "verify.json",
+          "verify.md",
+          "trace.json",
+          "trace.md",
+          "workflow-cost.json",
+          "workflow-cost.md",
+        ].map((file) => `${devArtifactDirRel(workItemId)}/${file}`),
+      );
+      const dirty = (await workingTreePaths(root, signal)).filter(
+        (file) => !ownArtifacts.has(file),
+      );
+      if (dirty.length > 0) {
         return {
           ok: false,
           reason:
