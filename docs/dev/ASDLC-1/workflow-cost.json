@@ -1,29 +1,29 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-05T14:16:26.534Z",
+  "generated_at": "2026-11-05T15:47:28.063Z",
   "source_usage_file": ".tasks/ASDLC-1-usage.jsonl",
   "summary": {
-    "total_input_tokens": 1728136,
-    "total_output_tokens": 4934448,
-    "total_cache_read_tokens": 194319759,
-    "total_cache_write_tokens": 22728783,
-    "total_calls": 467,
+    "total_input_tokens": 1728148,
+    "total_output_tokens": 4936025,
+    "total_cache_read_tokens": 194371216,
+    "total_cache_write_tokens": 22771686,
+    "total_calls": 468,
     "usage_missing_calls": 46,
     "carried_forward": false,
-    "total_cost_usd": 182.76716810000002
+    "total_cost_usd": 182.8953653
   },
   "rows": [
     {
       "scope": "Pipeline",
       "agent": "phase-verify-acceptance",
-      "calls": 3,
-      "input_tokens": 40,
-      "output_tokens": 8998,
-      "cache_read_tokens": 307586,
-      "cache_write_tokens": 103278,
+      "calls": 4,
+      "input_tokens": 52,
+      "output_tokens": 10575,
+      "cache_read_tokens": 359043,
+      "cache_write_tokens": 146181,
       "usage_missing_calls": 0,
-      "cost_usd": 0.379
+      "cost_usd": 0.5072
     },
     {
       "scope": "Task 1",
