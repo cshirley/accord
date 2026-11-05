@@ -156,7 +156,7 @@ async function commitEvidenceIfDone(
   try {
     const result = await commitTaskEvidence(
       workItemId,
-      resolvePrGroup(taskId),
+      resolvePrGroup(taskId, workItemId),
       devConfig,
       process.cwd(),
     );
