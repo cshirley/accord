@@ -1,4 +1,5 @@
-export type PrGroupResolver = (taskId: number) => number[];
+/** `workItemId` scopes the lookup: task ids repeat across work items, so a resolver must not guess. */
+export type PrGroupResolver = (taskId: number, workItemId?: string) => number[];
 
 const defaultResolver: PrGroupResolver = (taskId) => [taskId];
 let prGroupResolver: PrGroupResolver = defaultResolver;
@@ -8,8 +9,8 @@ export function registerPrGroupResolver(resolver: PrGroupResolver): void {
   prGroupResolver = resolver;
 }
 
-export function resolvePrGroup(taskId: number): number[] {
-  return prGroupResolver(taskId);
+export function resolvePrGroup(taskId: number, workItemId?: string): number[] {
+  return prGroupResolver(taskId, workItemId);
 }
 
 export type CloseoutBranchHook = (...args: unknown[]) => unknown;
