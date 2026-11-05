@@ -1,0 +1,38 @@
+[ASDLC-1][task-2] T1/phase-test: 4 failing tests (red)
+
+Wrote refresh.test.ts; 4 assertions fail against the stub.
+
+Accord: v=1 id=ASDLC-1 task=2 seq=1 ref=T1/phase-test agent=phase-test loop=test round=1 outcome=red t_pass=0 t_fail=4 red=assertion files=1 add_test=130 harness=pi model=sonnet spawns=1 tok_in=9000 tok_out=2100 usd_u=61000 ms=30000 usage=host
+=====
+[ASDLC-1][task-2] T1/review-test: 1 critical, 2 warning
+
+F-001 critical tests/refresh.test.ts:42  asserts on the mock, not behaviour (AC-3)
+F-002 warning  tests/refresh.test.ts:70  no expired-token case (AC-4)
+F-003 warning  tests/refresh.test.ts:91  test name does not state the expected result
+
+Accord: v=1 id=ASDLC-1 task=2 seq=2 ref=T1/review-test agent=review-test loop=test round=1 outcome=findings crit=1 warn=2 sugg=0 open_crit=1 open_warn=2 findings=F-001,F-002,F-003 ac=AC-3,AC-4 files=1 harness=pi model=sonnet spawns=1 tok_in=18200 tok_out=1900 tok_cache_r=12000 tok_cache_w=0 usd_u=118000 ms=41200 usage=host
+=====
+[ASDLC-1][task-2] C1/review-security: 1 warning, 1 suggestion
+
+F-004 warning    src/refresh.ts:12  token logged at debug level
+F-005 suggestion src/refresh.ts:30  prefer constant-time compare
+
+Accord: v=1 id=ASDLC-1 task=2 seq=3 ref=C1/review-security agent=review-security loop=code round=1 outcome=findings crit=0 warn=1 sugg=1 open_crit=0 open_warn=1 findings=F-004,F-005 files=1 harness=pi model=opus spawns=1 tok_in=7000 tok_out=800 usd_u=90000 ms=20000 usage=host x_team=platform
+=====
+[ASDLC-1][task-2] V1/phase-verify-task: pass, 4 of 4 criteria
+
+All acceptance criteria verified.
+
+Accord: v=1 id=ASDLC-1 task=2 seq=4 ref=V1/phase-verify-task agent=phase-verify-task loop=verify round=1 outcome=pass t_pass=12 t_fail=0 t_ms=2300 ac_pass=4 ac_fail=0 harness=pi model=sonnet spawns=1 tok_in=3000 tok_out=500 usd_u=20000 ms=9000 usage=host
+=====
+[ASDLC-1][task-2] state(task-2): snapshot
+
+State snapshot written.
+
+Accord: v=1 id=ASDLC-1 task=2 seq=5 ref=state(task-2) agent=orchestrator loop=state round=1 outcome=done
+=====
+[ASDLC-1][task-2] evidence(task-2): rolled up
+
+Evidence asset written.
+
+Accord: v=1 id=ASDLC-1 task=2 seq=6 ref=evidence(task-2) agent=orchestrator loop=evidence round=1 outcome=done rounds_test=1 rounds_code=1 findings_total=5 est_lines=300 act_lines=340

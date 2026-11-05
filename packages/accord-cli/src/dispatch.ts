@@ -12,6 +12,8 @@ import {
   runDevHelpCommand,
   runDeviationsCommand,
   runDriveCommand,
+  runEvidenceCommand,
+  runFeatureCommand,
   runFinishCommand,
   runGapsCommand,
   runInitCommand,
@@ -22,6 +24,7 @@ import {
   runReviewCommand,
   runRunCommand,
   runSpecGapsCommand,
+  runStackCommand,
   runTagCommand,
   runTaskReseedCommand,
   runTasksCommand,
@@ -82,6 +85,21 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
 
   if (parsed.kind === "unblock") {
     return runUnblockCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "evidence") {
+    return runEvidenceCommand(parsed.workItemId, parsed.args, { json: parsed.options.json });
+  }
+
+  if (parsed.kind === "feature") {
+    return runFeatureCommand(parsed.verb, parsed.args, cwd, {
+      json: parsed.options.json,
+      depth: parsed.depth,
+    });
+  }
+
+  if (parsed.kind === "stack") {
+    return runStackCommand(parsed.verb, parsed.workItemId, cwd);
   }
 
   if (parsed.kind === "trace") {

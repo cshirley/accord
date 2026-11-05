@@ -100,6 +100,7 @@ export function resolveForcedAgentOrchestration(
       pattern: state.pattern,
       variant: state.variant,
       dispatchAgent: agentId,
+      devConfig,
     }) ??
     buildResumeTaskBrief({
       workItemId: state.id,

@@ -52,6 +52,17 @@ The workflow accepts two triggers:
   `client_payload.status_at_trigger` — missing fields fail with
   `MISSING_REQUIRED_DISPATCH_FIELD: <field>` (AC-1).
 
+## CI-driven mode
+
+CI-driven mode continues a work item in CI after the contract PR merges. Workflow: `accord-driven.yml`.
+
+- **Trigger:** a push to the base branch that commits `brief.md` and `spec.json` with `docs/dev/<ID>/contract.lock.json`. The lock file yields the work item id; resume finds the next unfinished PR from the plan and tree state.
+- **Branches:** typed commits go to `stack/<ID>/pr-<N>` (closeout: `stack/<ID>/closeout`), never to the base branch.
+- **Gates:** every human gate stops the run. An authorised PR comment `/accord unblock <task> <reason>` unblocks a task and resume runs again; decisions use `accord answer`.
+- **Cost cap:** `stack.ci.cost_cap_usd`. A run over the cap stops.
+- **Alerts:** a failed gate or exceeded cost cap posts a PR comment, channel `#accord-ci-alerts`. The `stack.ci.alert` log event is always emitted; if no PR exists, only the log event is emitted.
+- **Token:** `ACCORD_CI_PUSH_TOKEN` is required, server-only, with 90-day rotation.
+
 ## Behaviour matrix
 
 | Branch | Phase entry / cause | Jira transition (default) | Exit | Artifact upload |

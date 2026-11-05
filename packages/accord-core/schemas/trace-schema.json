@@ -158,6 +158,16 @@
             }
           },
           "unblocks": { "type": "integer", "minimum": 0 },
+          "size": {
+            "type": "object",
+            "required": ["est_lines", "act_prod_lines", "act_test_lines"],
+            "additionalProperties": false,
+            "properties": {
+              "est_lines": { "type": "integer", "minimum": 0 },
+              "act_prod_lines": { "type": "integer", "minimum": 0 },
+              "act_test_lines": { "type": "integer", "minimum": 0 }
+            }
+          },
           "blocked": {
             "type": "object",
             "required": ["kind", "reason"],
@@ -251,7 +261,10 @@
         "required": ["ac_id", "text", "status", "tasks", "files", "tests", "verified"],
         "additionalProperties": false,
         "properties": {
-          "ac_id": { "type": "string", "pattern": "^(AC-\\d+|QF)$" },
+          "ac_id": {
+            "type": "string",
+            "pattern": "^(([A-Za-z][A-Za-z0-9_-]*/)?AC-\\d+|QF)$"
+          },
           "text": { "type": "string" },
           "status": { "$ref": "#/definitions/requirementStatus" },
           "tasks": {

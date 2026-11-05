@@ -54,6 +54,11 @@
           },
           "type": {
             "enum": ["scenario", "constraint", "architectural", "property"]
+          },
+          "feature": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+            "description": "Optional (read by the harness when knowledge.enabled): slug of the feature this AC belongs to. AC ids are local to the work item; closeout maps '<work_item_id>/AC-<n>' to the feature AC id in docs/features. Omit for cross-cutting ACs."
           }
         },
         "oneOf": [
@@ -110,6 +115,20 @@
             }
           }
         ]
+      }
+    },
+    "features": {
+      "type": "array",
+      "description": "Impacted features from PR0 impact analysis (knowledge.enabled; default off).",
+      "items": {
+        "type": "object",
+        "required": ["slug", "relation", "delta"],
+        "additionalProperties": false,
+        "properties": {
+          "slug": { "type": "string", "minLength": 1 },
+          "relation": { "enum": ["new", "extends", "modifies", "deprecates", "depends_on"] },
+          "delta": { "type": "string" }
+        }
       }
     },
     "scope": {

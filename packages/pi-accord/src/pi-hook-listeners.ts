@@ -4,6 +4,7 @@
  */
 
 import { loadDevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
+import { contractLockToolCallBlock } from "@clive.shirley/accord-core/contract/lock-guard.js";
 import {
   applyHarnessCostSeed,
   assembleHandoffContent,
@@ -98,6 +99,9 @@ export function registerPiHarnessHookListeners(pi: ExtensionAPI, state: HookStat
 
   pi.on("tool_call", async (event, ctx) => {
     maybeActivateDevToolCall(pi, state, event.toolName);
+
+    const lockReason = contractLockToolCallBlock(event.toolName, event.input, ctx.cwd);
+    if (lockReason) return { block: true, reason: lockReason };
 
     if (event.toolName !== "subagent") return;
     if (isPlanModeActive(ctx)) return { block: true, reason: planModeSubagentBlockReason() };

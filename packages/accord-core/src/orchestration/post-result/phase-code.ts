@@ -8,7 +8,7 @@
 
 import type { DevHarnessConfig } from "../../config/types.js";
 import { bumpRetry, capCheck, capForKey } from "../../tasks/decide.js";
-import { applyReviewFindings } from "../../tasks/model.js";
+import { allFindings, applyReviewFindings, refActor } from "../../tasks/model.js";
 import { claimRef, clearInFlight, logDecision, recordPhaseCode } from "../../tasks/record.js";
 import { devPromoteEvents, type PromotionResult } from "../../work-items/lifecycle.js";
 import { isTestFilePath, nextPhaseAfterPhaseCode } from "../review-paths.js";
@@ -140,7 +140,20 @@ export function applyPhaseCodePostResult(
       return true;
     }
 
-    const nextPhase = nextPhaseAfterPhaseCode(rec.filesChanged);
+    const unresolvedStates = new Set([
+      "open",
+      "addressed",
+      "disputed",
+      "wont_fix_proposed",
+      "reraised",
+    ]);
+    const openGatingSecurityFindings = allFindings(task).filter(
+      ({ finding }) =>
+        refActor(finding.raised) === "review-security" &&
+        finding.advisory !== true &&
+        unresolvedStates.has(finding.state),
+    ).length;
+    const nextPhase = nextPhaseAfterPhaseCode(rec.filesChanged, { openGatingSecurityFindings });
     task.control.phase = nextPhase === "phase-test" ? "review-code" : nextPhase;
     task.control.status = "pending";
     out = footer([

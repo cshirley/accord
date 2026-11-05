@@ -64,7 +64,7 @@ The repo documents itself as an [Open Knowledge Format (OKF) v0.2](https://githu
     "file_pattern": "**/*.test.ts"
   },
   "type_check": "bun run check:types",
-  "lint": "bun run check:biome && bun run validate:schemas && bun run validate:assets && bun run validate:okf && bun run validate:ste",
+  "lint": "bun run check:biome && bun run validate:schemas && bun run validate:assets && bun run validate:okf && bun run validate:ste && bun run validate:features",
   "format": null,
   "tracker": {
     "type": "github"
@@ -76,6 +76,7 @@ The repo documents itself as an [Open Knowledge Format (OKF) v0.2](https://githu
     "bun run validate:assets",
     "bun run validate:okf",
     "bun run validate:ste",
+    "bun run validate:features",
     "bun run check:types",
     "bun run check:bundle",
     "bun run check:runtime"

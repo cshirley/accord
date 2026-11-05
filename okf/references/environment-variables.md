@@ -75,6 +75,7 @@ sources:
 | Variable | Effect |
 |----------|--------|
 | `ACCORD_CI_HARNESS` | Exec backend for autopipeline phases (default `claude`) |
+| `ACCORD_CI_PUSH_TOKEN` | Required for CI-driven mode. Server-only (CI secret, never local). Pushes typed commits to `stack/<ID>/pr-<N>` branches. 90-day rotation |
 | `ACCORD_DISPATCH_KIND` | Canonicalised trigger kind (preferred over `GITHUB_EVENT_NAME` inside reusable workflows) |
 
 Secrets (`ANTHROPIC_API_KEY`, `JIRA_*`, `GH_PAT_PR`) are described in

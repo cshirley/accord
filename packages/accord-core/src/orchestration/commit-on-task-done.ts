@@ -11,6 +11,8 @@
 import * as path from "node:path";
 import { listWorkItemTaskIds, writeWorkItemTrace } from "../artifacts/trace-artifact.js";
 import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
+import { getCloseoutBranchHook } from "../commit/hooks.js";
+import { resolveStackConfig } from "../config/stack-flags.js";
 import type { DevHarnessConfig } from "../config/types.js";
 import {
   commitWithMessage,
@@ -19,8 +21,10 @@ import {
   gitRoot,
   isSecretFile,
 } from "../git/helpers.js";
+import { runKnowledgeCloseoutUpdate } from "../knowledge/closeout-update.js";
 import { createLogger } from "../logging.js";
 import { devVerifySummary } from "../queries/verify-summary.js";
+import { prepareCloseout } from "../state/closeout.js";
 import { allocateRef, appendLog, changedFiles, refActor } from "../tasks/model.js";
 import { loadTaskV2, mutateTaskV2 } from "../tasks/store.js";
 import type { TaskFileV2 } from "../tasks/types.js";
@@ -263,6 +267,62 @@ export async function commitWorkItemArtifacts(
   cwd: string,
   signal?: AbortSignal,
 ): Promise<CommitWorkItemArtifactsResult> {
+  const stackEnabled = resolveStackConfig(devConfig).enabled;
+  if (stackEnabled) {
+    if (!commitOnFinalizeFromDevConfig(devConfig)) {
+      return {
+        ok: false,
+        reason:
+          "Finalize refused: stack.enabled requires orchestration.commit.on_finalize to be true so the closeout commit removes docs/dev/<ID>/state/.",
+        task_commits: [],
+      };
+    }
+    try {
+      const root = await gitRoot(cwd, signal);
+      // The verify, trace and workflow-cost files are written before closeout runs and are what
+      // the closeout commit records, so they are not "uncommitted changes" that block it.
+      const ownArtifacts = new Set(
+        [
+          "verify.json",
+          "verify.md",
+          "trace.json",
+          "trace.md",
+          "workflow-cost.json",
+          "workflow-cost.md",
+        ].map((file) => `${devArtifactDirRel(workItemId)}/${file}`),
+      );
+      const dirty = (await workingTreePaths(root, signal)).filter(
+        (file) => !ownArtifacts.has(file),
+      );
+      if (dirty.length > 0) {
+        return {
+          ok: false,
+          reason:
+            "Closeout refused: working tree is not clean (uncommitted changes). Commit or stash them first.",
+          task_commits: [],
+        };
+      }
+      const hook = getCloseoutBranchHook();
+      if (hook) {
+        const outcome = (await hook(workItemId, devConfig, { cwd })) as
+          | { ok?: boolean; reason?: string }
+          | undefined;
+        if (outcome && outcome.ok === false) {
+          return {
+            ok: false,
+            reason: outcome.reason ?? "Closeout blocked by branch hook",
+            task_commits: [],
+          };
+        }
+      }
+    } catch (e) {
+      return {
+        ok: false,
+        reason: e instanceof Error ? e.message : String(e),
+        task_commits: [],
+      };
+    }
+  }
   const taskCommits = await commitDoneTasks(workItemId, devConfig, cwd, signal);
   // Refresh trace + verify.md so they record the task commits made by the sweep above.
   const wi = loadWorkItem(workItemId);
@@ -290,10 +350,23 @@ export async function commitWorkItemArtifacts(
     return { ok: true, skipped: true, reason: "not a git repository", task_commits: taskCommits };
   }
 
-  let files: string[];
+  let knowledgePaths: string[] = [];
   try {
+    knowledgePaths = (await runKnowledgeCloseoutUpdate(workItemId, devConfig, root, { signal }))
+      .paths;
+  } catch (e) {
+    log.warn(
+      `feature docs not updated for ${workItemId}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+
+  let files: string[];
+  let message = `[${workItemId}] Closeout: verify report, implementation trace, workflow cost`;
+  try {
+    if (stackEnabled) message = prepareCloseout(workItemId, root).message;
     files = resolveStagedFiles(await workingTreePaths(root, signal), [
       `${devArtifactDirRel(workItemId)}/`,
+      ...knowledgePaths,
     ]);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -308,9 +381,11 @@ export async function commitWorkItemArtifacts(
     };
   }
 
-  const message = `[${workItemId}] Closeout: verify report, implementation trace, workflow cost`;
   try {
-    const { hash } = await commitWithMessage(root, files, message, signal);
+    const committed = await commitWithMessage(root, files, message, signal);
+    const hash = stackEnabled
+      ? (await git(["rev-parse", "HEAD"], root, signal)).trim()
+      : committed.hash;
     return { ok: true, hash, files, task_commits: taskCommits };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

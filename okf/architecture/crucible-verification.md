@@ -35,7 +35,7 @@ flowchart LR
   C -->|test_issue / touched tests| T
   C --> PV["post-code verify<br/>type_check hard · tests advisory"]
   PV --> SEC{"security-sensitive?"}
-  SEC -->|yes| RS["review-security<br/>(advisory)"]
+  SEC -->|yes| RS["review-security<br/>(gate: severity_gate)"]
   SEC -->|no| RC["review-code"]
   RS --> RC
   RC -->|gating findings| C
@@ -52,7 +52,7 @@ Rules:
 - `phase-test` writes tests (and declares unimplemented stubs); `phase-code` **never writes tests** and must replace stubs. A violation becomes a test-loop finding and respawns `phase-test` (RGR).
 - Import/resolution-only RED (`Cannot find module`, `ModuleNotFoundError`, …) is detected deterministically and raised as a critical `import_only_red` finding by `<round>/harness`; it consumes a review-test retry slot so caps still trip.
 - Every finding has a stable `F-nnn` id under its AC. Fixers answer by id (`fixed | disputed | wont_fix`); the raising reviewer rechecks by id (`verified | reraised | dispute_upheld | wont_fix_accepted`). Retry briefs render the open findings with their history — see [Per-task file](/references/task-file.md).
-- An AC is `satisfied` only from phase-verify-task `evidence[]`; review-security findings are advisory.
+- An AC is `satisfied` only from phase-verify-task `evidence[]`; review-security findings gate only per `severity_gate`.
 - Retry caps and severity gates come from [Orchestration policy](/references/orchestration-policy.md). On cap, task goes `blocked`; see [Unblock a task](/playbooks/unblock-a-task.md).
 
 # Acceptance verification

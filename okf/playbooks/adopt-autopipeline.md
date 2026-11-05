@@ -59,7 +59,18 @@ Copy `examples/consumer-repo/AGENTS.md`; `## Dev Harness` must have non-empty `t
 Import `examples/consumer-repo/atlassian-automation-rule.json`; set actor, dispatch URL, PAT.
 Payload must carry `client_payload.ticket` and `status_at_trigger`. See `docs/ci/atlassian-automation.md`.
 
-## 5. Verify
+## 5. CI-driven mode (optional)
+
+Use CI-driven mode to let CI continue a work item after the contract PR merges.
+
+1. Copy `accord-driven.yml` into the consumer repo `.github/workflows/`.
+2. Create the secret `ACCORD_CI_PUSH_TOKEN`. It is required. Use it in CI only, never on a developer machine. Rotate it every 90-day period.
+3. Set `stack.ci.cost_cap_usd` in `accord.json`. CI stops a work item that goes over this cap.
+4. Tell the team that alerts go to `#accord-ci-alerts` as a PR comment.
+
+CI starts when a push to the base branch changes `docs/dev/<ID>/contract.lock.json`. Details: `docs/ci/autopipeline.md`.
+
+## 6. Verify
 
 Move a sample ticket to the trigger status; workflow should start within ~10s.
 

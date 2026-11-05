@@ -18,6 +18,12 @@ sources:
   - id: root-package
     resource: /package.json
     title: Root package.json (workspaces, pi manifest, scripts)
+  - id: evidence-check
+    resource: /packages/accord-ci/src/evidence-check.ts
+    title: accord/evidence check runner
+  - id: evidence-workflow
+    resource: /.github/workflows/accord-evidence.yml
+    title: accord/evidence required workflow
 ---
 
 # Layering
@@ -52,7 +58,7 @@ never enter `accord-core`.
 | `packages/accord-core` | `@clive.shirley/accord-core` | Orchestration (`src/orchestration/`), work items (`work-items/`), artifacts + validation, briefing, Crucible (`verification/`), harness hook callables (`harness/`), subagent prepare/result pipeline, standalone review, `dev_*` tool registry, config/detect, telemetry, **schemas/** |
 | `packages/accord-cli` | `@clive.shirley/accord-cli` | `accord` bin, argv parsing, commands (`resume`, `finish`, `drive`, `run`, `block`, …), harness backends (`pi`, `exec`, claude/cursor presets) |
 | `packages/accord-mcp` | `@clive.shirley/accord-mcp` | Stdio MCP server exposing the same `dev_*` tools; `ACCORD_MCP_HARNESS` execution |
-| `packages/accord-ci` | `@clive.shirley/accord-ci` | Autopipeline scripts + contract tests for `.github/workflows/autopipeline.yml` |
+| `packages/accord-ci` | `@clive.shirley/accord-ci` | Autopipeline scripts + contract tests for `.github/workflows/autopipeline.yml`; `evidence-check.ts` runs the `accord/evidence` commit-status check (`accord-evidence.yml`) with the `contract-lock` rule (`checks/contract-lock.ts`: locked files change only in `outcome=amend` commits) |
 | `packages/accord-assets` | `@clive.shirley/accord-assets` | Agent markdown (`agents/accord/*.md`), providers, lang-profiles, `manifest.json`, asset validator |
 | `packages/pi-accord` | `@clive.shirley/pi-accord` | Pi extension: `/dev` command, autocomplete, hook listeners, `cli-client.ts`, spawn bridge + UI, status bar, CI templates under `assets/` |
 | `packages/pi-subagent` | `@clive.shirley/pi-subagent` | `subagent` tool; `runSubagent()` / `spawnSubagent()` child `pi` processes; agent discovery; `subagent.json` profiles |
