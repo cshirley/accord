@@ -40,7 +40,7 @@ import { loadWorkItem } from "../src/work-items/io.js";
 //   "premature_enable" non-final task has kind "enable"
 //   "missing_enable"   the final task does not have kind "enable" (the last task flips the flag)
 //  requireFlag false -> { ok: true, violations: [] }.
-//  stackSubmit reads stack.require_flag from devConfig (explicit true to enforce) and stack.sizing.max_depth.
+//  stackSubmit reads stack.require_flag from devConfig (default true; explicit false disables) and stack.sizing.max_depth.
 //  Flag violations: { ok: false, text } naming the task and flag rule, with no provider call.
 
 const ID = "ASDLC-1";
@@ -626,14 +626,25 @@ describe("ASDLC-1/AC-17 stackSubmit: total open vs new creations, chain order, d
   });
 });
 
-describe("ASDLC-1/AC-17 stackSubmit require_flag absent or false", () => {
-  // Decision note (needs human confirmation, docs fix belongs to task 42): accord-schema.json and
-  // okf/references/stack-config.md say require_flag "Default: true", but existing stack-service tests
-  // submit unflagged plans with require_flag absent and expect ok. These tests pin absent = off.
-  it("ASDLC-1/TC-18 require_flag absent on an unflagged 8-chain: ok, creates heads 1..6", async () => {
+describe("ASDLC-1/AC-17 stackSubmit require_flag default (true) and explicit false", () => {
+  // accord-schema.json and okf/references/stack-config.md say require_flag "Default: true", so an
+  // absent key enforces flag validation exactly like an explicit true.
+  it("ASDLC-1/TC-18 require_flag absent on an unflagged chain enforces flags: reports it, opens nothing", async () => {
     writePlan(chainTasks(8, false));
     const fake = fakeProvider();
     const result = await stackSubmit(ID, config({}), { cwd: repo, provider: fake });
+    expect(result.ok).toBe(false);
+    expect(result.text).toContain("Flag validation failed");
+    expect(fake.creates).toEqual([]);
+  });
+
+  it("ASDLC-1/TC-18 require_flag false on an unflagged 8-chain: ok, creates heads 1..6", async () => {
+    writePlan(chainTasks(8, false));
+    const fake = fakeProvider();
+    const result = await stackSubmit(ID, config({ require_flag: false }), {
+      cwd: repo,
+      provider: fake,
+    });
     expect(result.ok).toBe(true);
     expect(new Set(createdHeads(fake))).toEqual(new Set([1, 2, 3, 4, 5, 6].map(headOf)));
   });

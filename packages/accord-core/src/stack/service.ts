@@ -180,7 +180,7 @@ export const stackSubmit: StackServiceFn = async (workItemId, devConfig, options
   if (!isPrepared(prepared)) return prepared;
   const { cwd, plan, stack } = prepared;
   const config = resolveStackConfig(devConfig);
-  const validation = validateFlags(plan, devConfig?.stack?.require_flag === true);
+  const validation = validateFlags(plan, devConfig?.stack?.require_flag !== false);
   if (!validation.ok) {
     const lines = validation.violations.map((v) => `- task ${v.task}: ${v.rule}`);
     return { ok: false, text: `Flag validation failed:\n${lines.join("\n")}\n` };
@@ -279,17 +279,24 @@ export const stackReport: StackServiceFn = async (workItemId, devConfig, options
   return { ok: true, text: renderStackReport(workItemId, [...rows.values()]) };
 };
 
-function resolveGroup(taskId: number): number[] {
+function groupFor(entry: string, taskId: number, cwd: string): number[] | undefined {
+  const plan = readPlan(entry, cwd);
+  if (!plan?.tasks.some((task) => task.id === taskId)) return undefined;
+  const group = computeStack(plan, resolveStackConfig(null).sizing).prs.find((pr) =>
+    pr.tasks.includes(taskId),
+  );
+  return group ? [...group.tasks] : [taskId];
+}
+
+/** Maps a task to the tasks of its PR from the committed plan (default PR group resolver). */
+export function resolveGroup(taskId: number, workItemId?: string): number[] {
   try {
     const cwd = process.cwd();
-    const root = join(cwd, "docs", "dev");
-    for (const entry of readdirSync(root)) {
-      const plan = readPlan(entry, cwd);
-      if (!plan?.tasks.some((task) => task.id === taskId)) continue;
-      const group = computeStack(plan, resolveStackConfig(null).sizing).prs.find((pr) =>
-        pr.tasks.includes(taskId),
-      );
-      return group ? [...group.tasks] : [taskId];
+    // Task ids repeat across work items: with a work item id only that plan is consulted.
+    if (workItemId) return groupFor(workItemId, taskId, cwd) ?? [taskId];
+    for (const entry of readdirSync(join(cwd, "docs", "dev"))) {
+      const group = groupFor(entry, taskId, cwd);
+      if (group) return group;
     }
   } catch {
     // fall through to the task itself

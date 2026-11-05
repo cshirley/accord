@@ -31,7 +31,7 @@ const HARNESS = (stack: unknown) => ({
   verification_commands: ["bun test"],
   stack,
 });
-const ENABLED_STACK = { enabled: true, provider: "gh" };
+const ENABLED_STACK = { enabled: true, provider: "gh", require_flag: false };
 
 const PLAN = {
   work_item_id: ID,
@@ -288,7 +288,7 @@ describe("ASDLC-1/AC-11 accord stack CLI matches dev_stack_* tools", () => {
   });
 
   it("ASDLC-1/AC-11 unsupported provider fails with a clear error and exit 1 (ASDLC-1/TC-12)", () => {
-    writeConfig({ enabled: true, provider: "graphite" });
+    writeConfig({ enabled: true, provider: "graphite", require_flag: false });
     const result = cli("stack", "submit", ID);
     expect(result.status).toBe(1);
     expect(`${result.stdout}${result.stderr}`).toContain('Unsupported stack provider "graphite"');
