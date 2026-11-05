@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
-  "generated_at": "2026-11-04T12:49:23.933Z",
+  "generated_at": "2026-11-05T10:31:32.195Z",
   "pattern": "implement",
   "outcome": {
     "terminal_outcome": null,
@@ -81,6 +81,38 @@
       "status": "resolved",
       "question": "AC-20 requires changes[] to link the PR, but commitWorkItemArtifacts takes no PR input and the plan defines no PR source for finalize. Should the PR come from gh discovery behind the StackProvider port, a work-item field, or an explicit null?",
       "answer": "Use an explicit optional input: closeout/feature-update takes pr?: number|string|null, default null. No gh discovery inside finalize (keeps closeout offline and deterministic; provider failures must never block closeout). changes[].pr is nullable in the feature schema; a callers that know the PR (stack service, CI mode) pass it. AC-20 is met by the changes[] entry carrying work item, evidence, contract sha and pr (null when unknown).",
+      "phase": "implementing"
+    },
+    {
+      "id": "phase-test-stuck-3",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Spec/plan leave the post-PR0 branch and PR topology undefined. Please define: (a) which branch the CI advance pushes typed commits to after PR0 merges (today the tests read typed refs from origin main, which is wrong); (b) how a merge-trigger (push to main touching contract.lock.json) rerun finds that task branch, since the gate currently outputs ref=main; (c) which PR is 'the work item PR' for stack.ci.alert comments on a push trigger, where github.event.issue.number is empty; (d) how '/accord unblock' reaches the orchestrator via the backend call; (e) which phase name the CI advance passes to the backend.",
+      "answer": "Decisions for task 53 (CI resume), grounded in existing code and the plan 3.2b:\n(a) Branch: after PR0 merges, typed commits go to the per-PR branch from core branchFor(id, pr) = stack/<ID>/pr-<N> (closeout: stack/<ID>/closeout), created via ensureTaskBranch/ensureCloseoutBranch, based on the tag accord/<ID>/contract. Never push typed commits to main. Tests must read typed refs from that branch, not origin main.\n(b) Merge-trigger rerun: the push-to-main gate resolves <ID> from the changed docs/dev/<ID>/contract.lock.json path, then runs stack computation (computeStack over committed plan + tree state) to find the next unfinished PR and its branch via branchFor. The gate outputs id (not ref=main); ref is derived by resume, not by the trigger.\n(c) Work-item PR for stack.ci.alert on push triggers (no issue number): the open PR for the current stack/<ID>/pr-<N> branch found with gh pr list --head <branch>; if none exists, fall back to the PR0 PR (head accord/<ID>/*). If still none, emit only the log event (stack.ci.alert at error) and skip the comment; never fail the alert path.\n(d) /accord unblock: the issue_comment handler parses '/accord unblock <task> <reason>' (authorised users only), and calls the existing accord-core unblock path through the accord-cli backend (accord unblock <ID> --task <n> with the matching --note/--accept/--waive flags) before resuming. Answers to decisions[] use accord answer the same way.\n(e) Phase name: the CI advance does not pass a fixed phase; it calls the backend resume entry (accord resume <ID>, i.e. the orchestrator picks the next agent from tree state), with phase left to the orchestrator's resolution. Only PR0 build passes plan.\nKeep it small: implement these as pure functions with injected gh/backend so tests stay offline.",
+      "phase": "implementing"
+    },
+    {
+      "id": "phase-test-stuck-4",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "After PR0 merges, (a) which branch does the CI resume advance push typed commits to (today tests push to origin main, which a correct impl pushing to a task branch would fail); (b) how does a merge-trigger (push to main touching docs/dev/<ID>/contract.lock.json) rerun find that branch (gate currently outputs ref=main); (c) which PR is 'the work item PR' for stack.ci.alert comments on a push trigger (event.issue.number is empty there); and (d) how does an '/accord unblock' gate reach the orchestrator on the createCiAdvance backend call (phase/extraArgs)?",
+      "answer": "Binding design decisions are now in plan.json guidance[] (q_guidance_6): task branch stack/<ID>/pr-<N> via branchFor; push trigger yields <ID> only; alert PR = open PR for the task branch with PR0 fallback; /accord unblock routes via accord unblock CLI; CI advance calls accord resume with no fixed phase. Re-read the brief and proceed; do not ask again.",
+      "phase": "implementing"
+    },
+    {
+      "id": "esc-ASDLC-1-53-T3/phase-test#0",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Define post-PR0 branch/PR topology for CI resume: (a) task branch for typed commits, (b) merge-trigger branch lookup, (c) PR number for alerts on push triggers, (d) unblock delivery to orchestrator, (e) backend phase name.",
+      "answer": "Resolved in plan.json guidance q_guidance_6; task already progressed to review-code.",
+      "phase": "implementing"
+    },
+    {
+      "id": "esc-ASDLC-1-53-T3/phase-test.2#0",
+      "source": "escalation",
+      "status": "resolved",
+      "question": "Post-PR0 CI advance: which branch receives typed commits, how does the merge trigger find it, which PR receives alerts on a push trigger, and how does /accord unblock reach the backend?",
+      "answer": "Resolved in plan.json guidance q_guidance_6; task already progressed to review-code.",
       "phase": "implementing"
     }
   ],
@@ -371,31 +403,61 @@
       "task_id": 47,
       "description": "Spec does not define the CI rule API or the no-change declaration form; tests pin createFeatureDriftRule(cwd,{config}), doc-change = owning feature doc in diff, and a 'Feature-Unchanged: <slug>' commit-message line.",
       "reason": "TC-23 requires a no-change declaration but names no mechanism.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 47,
       "description": "AC-31 is architectural (okf log, STE, biome, pre-merge-smoke.md); no runtime test written. Covered by TC-32 docs-validation.test.ts and verification commands validate:okf, validate:ste, check:biome.",
       "reason": "Enforcement belongs to verify commands, not task-47 tests.",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 50,
       "description": "Edited packages/accord-core/schemas/spec-schema.json (feature and features[] descriptions) though not in task.files[]",
       "reason": "Task 50 tests assert those spec-schema descriptions; the step names the spec-schema feature field",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 52,
       "description": "Added trigger.ts and gate.ts (dependency-free gate via relative accord-core import)",
       "reason": "Tests require the first run step to gate before bun install; shared trigger logic needed in both entries",
-      "resolution": null
+      "resolution": "accepted"
     },
     {
       "task_id": 52,
       "description": "Bootstrap writes work item phase/brief/spec directly instead of devTransition",
       "reason": "Fixture spec.json lacks schema_version so the spec-complete gate rejects it",
-      "resolution": null
+      "resolution": "accepted"
+    },
+    {
+      "task_id": 53,
+      "description": "Edited packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts: on.push.branches now uses toContain, and workflowSteps is scoped to the pr0 job",
+      "reason": "Adding the resume job and the main push / issue_comment triggers would otherwise break two existing PR0 assertions that require exactly ['accord/*/**'] and a gate before every step in every job",
+      "resolution": "accepted"
+    },
+    {
+      "task_id": 53,
+      "description": "Pinned a minimal createCiAdvance contract: one runBackend call per advance, the orchestrator's typed commit pushed once without force, done:true when no new typed commit exists. Also pinned the resume-gate job topology including a ref output.",
+      "reason": "Spec/plan do not define how the CI advance drives phases; F-005 and F-003 require a testable seam. Contract limited to what AC-24 and AC-27 need.",
+      "resolution": "accepted"
+    },
+    {
+      "task_id": 53,
+      "description": "Added AdvanceContext.branch, optional RunResumeOpts.prNumber/RaiseAlertOpts.prNumber and Gates.unblock to the stubs; gate comments accepted on stack/<ID>/pr-<N> and closeout branches; PR0 lock file on the tree counts as pr0_approved.",
+      "reason": "Needed to encode the binding q_guidance_6 topology (task branch, push-trigger PR resolution, /accord unblock <task> <reason> routing); the spec leaves the shapes open. The --note/--accept/--waive flag mapping is not pinned because the comment grammar carries no finding ids.",
+      "resolution": "accepted"
+    },
+    {
+      "task_id": 53,
+      "description": "Added packages/accord-ci/src/ci-driven/resume-gate.ts, a new gate script not in task.files, and exported defaultRunBackend from run-phase.ts",
+      "reason": "The workflow gate step needs its own script that runs before bun install, and the resume CLI needs the real exec-harness backend",
+      "resolution": "accepted"
+    },
+    {
+      "task_id": 53,
+      "description": "okf/ concepts and okf/log.md not updated in this task",
+      "reason": "Outside task.files; AC-31 okf log entry still needed in a follow-up",
+      "resolution": "accepted"
     }
   ],
   "tasks": [
@@ -5611,7 +5673,9 @@
       "id": 52,
       "title": "[ci-driven-mode] CI builds PR0 from brief and spec",
       "status": "done",
-      "commits": [],
+      "commits": [
+        "3b43fb7"
+      ],
       "rounds": {
         "T": 2,
         "C": 1,
@@ -5713,44 +5777,158 @@
     {
       "id": 53,
       "title": "[ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert",
-      "status": "pending",
+      "status": "done",
       "commits": [],
       "rounds": {
-        "T": 0,
-        "C": 0,
-        "V": 0
+        "T": 3,
+        "C": 2,
+        "V": 1
       },
       "retries": {
-        "test_review": 0,
-        "code_review": 0,
+        "test_review": 2,
+        "code_review": 1,
         "rgr": 0,
         "verify": 0
       },
       "unblocks": 0,
       "findings": {
-        "total": 0,
-        "by_state": {}
+        "total": 50,
+        "by_state": {
+          "verified": 28,
+          "reraised": 5,
+          "open": 9,
+          "wont_fix_accepted": 8
+        }
       },
       "human_actions": [],
-      "red_evidence": null,
-      "final_verification": null,
+      "red_evidence": {
+        "ref": "T1/phase-test",
+        "excerpt": "bun test packages/accord-ci/tests/ci-driven-resume.test.ts: 3 pass, 91 fail (Ran 94 tests across 1 file). Failures: 'error: not implemented: detectResumeTrigger' x35, 'not implemented: runResume' x16, 'not implemented: readGates' x6, 'not implemented: raiseAlert' x3, 'not implemented: planResume' x3, 'not implemented: acquireResumeLock' x3, plus assertion failures for the missing resume workflow job and docs/ci/pre-merge-smoke.md entries. The 3 passing tests are negative guards (no force/amend in sources, no token printed, PR0 doc section retained). ci-driven-pr0 e2e: 45 pass, 0 fail. check:types clean.",
+        "truncated": false
+      },
+      "final_verification": {
+        "ref": "V1/phase-verify-task",
+        "excerpt": "215 pass, 0 fail (3 files). check:types ok. biome (accord-ci/.github/docs/ci) clean. validate:okf passed (38 files). validate:ste passed. PUSH_TOKEN grep: no match. Preflight: full bun test timed out at 120s; repo-wide check:biome flagged .tasks/*.json formatting (outside task scope).",
+        "truncated": false
+      },
       "requirements": [
         {
           "id": "AC-24",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/resume.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/alert.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/resume.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/alert.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/resume-gate.ts",
+              "action": "add",
+              "kind": "code"
+            },
+            {
+              "file": "packages/accord-ci/src/run-phase.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": ".github/workflows/accord-driven.yml",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-ci/tests/ci-driven-resume.test.ts packages/accord-ci/tests/cost-cap.test.ts packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts"
+          }
         },
         {
           "id": "AC-27",
-          "status": "pending",
-          "changes": [],
-          "verification": null
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/resume.ts",
+              "action": "add",
+              "kind": "stub"
+            },
+            {
+              "file": "packages/accord-ci/src/ci-driven/resume.ts",
+              "action": "modify",
+              "kind": "code"
+            },
+            {
+              "file": ".github/workflows/accord-driven.yml",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 3,
+            "command": "bun test packages/accord-ci/tests/ci-driven-resume.test.ts"
+          }
         },
         {
           "id": "AC-31",
-          "status": "pending",
-          "changes": [],
+          "status": "satisfied",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+              "action": "add",
+              "kind": "test"
+            },
+            {
+              "file": "docs/ci/pre-merge-smoke.md",
+              "action": "modify",
+              "kind": "config"
+            }
+          ],
+          "verification": {
+            "by": "V1/phase-verify-task",
+            "result": "pass",
+            "test_count": 4,
+            "command": "bun run validate:okf && bun run validate:ste && bunx biome check packages/accord-ci .github docs/ci"
+          }
+        },
+        {
+          "id": "_task",
+          "text": "Changes/findings not attributable to one AC",
+          "status": "n/a",
+          "changes": [
+            {
+              "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+              "action": "modify",
+              "kind": "test"
+            }
+          ],
           "verification": null
         }
       ]
@@ -6599,16 +6777,27 @@
     {
       "ac_id": "AC-24",
       "text": "Then it resumes idempotently from the last typed commit, one concurrency lock per <ID> prevents parallel runs, gates (PR0 approval, blocked task, closeout) are signalled by PR comments or commits, and the per-work-ite…",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 53,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
-      "files": [],
-      "tests": [],
-      "verified": false
+      "files": [
+        "packages/accord-ci/tests/ci-driven-resume.test.ts",
+        "packages/accord-ci/src/ci-driven/resume.ts",
+        "packages/accord-ci/src/ci-driven/alert.ts",
+        "packages/accord-ci/src/ci-driven/resume-gate.ts",
+        "packages/accord-ci/src/run-phase.ts",
+        ".github/workflows/accord-driven.yml"
+      ],
+      "tests": [
+        "ci-driven-resume.test.ts: ASDLC-1/AC-24 resume trigger selection, concurrency lock, gates, planResume, interrupt/rerun, cost cap, failed-gate alert, raiseAlert, workflow triggers",
+        "cost-cap.test.ts",
+        "e2e/ci-driven-pr0.test.ts (AC-23 gate on resume triggers)"
+      ],
+      "verified": true
     },
     {
       "ac_id": "AC-25",
@@ -6687,7 +6876,7 @@
     {
       "ac_id": "AC-27",
       "text": "Evidence commits are append-only: the harness MUST NOT amend or force-push them, and a failed round adds commits and never rewrites them",
-      "status": "pending",
+      "status": "satisfied",
       "tasks": [
         {
           "task": 7,
@@ -6707,7 +6896,7 @@
         },
         {
           "task": 53,
-          "status": "pending"
+          "status": "satisfied"
         }
       ],
       "files": [
@@ -6721,7 +6910,10 @@
         "packages/accord-core/src/contract/amend.ts",
         "packages/accord-core/tests/stack-depth.test.ts",
         "packages/accord-core/src/stack/merge-bottom-up.ts",
-        "packages/accord-core/src/stack/gh-provider.ts"
+        "packages/accord-core/src/stack/gh-provider.ts",
+        "packages/accord-ci/tests/ci-driven-resume.test.ts",
+        "packages/accord-ci/src/ci-driven/resume.ts",
+        ".github/workflows/accord-driven.yml"
       ],
       "tests": [
         "append-only.test.ts › failed review round then retry only appends commits; earlier shas stay ancestors of HEAD",
@@ -6731,9 +6923,12 @@
         "contract-pr0.test.ts: ASDLC-1/AC-27 existing tag is left as is (not forced) and PR0 still commits",
         "contract-amend.test.ts: ASDLC-1/AC-27 amend adds a commit and never rewrites history",
         "stack-depth.test.ts › ASDLC-1/AC-27 the old child tip stays an ancestor of the new tip and no git call rewrites or force-pushes",
-        "stack-depth.test.ts › ASDLC-1/AC-27 a diverged remote child ref is never overwritten (push is not forced)"
+        "stack-depth.test.ts › ASDLC-1/AC-27 a diverged remote child ref is never overwritten (push is not forced)",
+        "ASDLC-1/AC-24 + ASDLC-1/AC-27 interrupt at each typed commit and rerun",
+        "ASDLC-1/AC-24 + ASDLC-1/AC-27 default CI advance: one typed commit, one non-force push",
+        "ASDLC-1/AC-24 + ASDLC-1/AC-27 rerun from a fresh clone resumes from the pushed typed commit"
       ],
-      "verified": false
+      "verified": true
     },
     {
       "ac_id": "AC-28",
@@ -7054,7 +7249,7 @@
         },
         {
           "task": 53,
-          "status": "pending"
+          "status": "satisfied"
         },
         {
           "task": 54,
@@ -7095,7 +7290,8 @@
         "packages/accord-cli/tests/feature-cli.test.ts",
         "okf/references/knowledge-config.md",
         "packages/accord-ci/tests/ci-driven-startup.test.ts",
-        "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts"
+        "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+        "packages/accord-ci/tests/ci-driven-resume.test.ts"
       ],
       "tests": [
         "bun test packages/accord-ci/tests/evidence-check-runner.test.ts (26 pass)",
@@ -7159,7 +7355,9 @@
         "ASDLC-1/AC-31 documents the server-only secret, owner and 90-day rotation",
         "bun run check:biome (only failure: docs/dev/ASDLC-1/trace.json format, a harness-generated artifact outside the task files)",
         "ci-driven-pr0.test.ts › ASDLC-1/AC-31 smoke doc names pr0.ts, accord-driven.yml and this test",
-        "ci-driven-pr0.test.ts › ASDLC-1/AC-31 scope sentence lists the workflow; doc describes trigger and gate"
+        "ci-driven-pr0.test.ts › ASDLC-1/AC-31 scope sentence lists the workflow; doc describes trigger and gate",
+        "ASDLC-1/AC-31 docs/ci/pre-merge-smoke.md covers resume mode",
+        "bunx biome check packages/accord-ci .github docs/ci"
       ],
       "verified": false
     }
@@ -13630,6 +13828,357 @@
       "file": "packages/accord-ci/src/ci-driven/trigger.ts",
       "line": 46,
       "raised": "C1/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-017",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The production default advance never has to produce gate_failed or read ctx.gates. Every createCiAdvance test passes `gates: NO_GATES` (793) and commitBackend, which always returns parsedReturn status 'done'. A wrong implementation passes every test: run the backend; if a new typed commit exists, push and return {done:false, ref}; else return {done:true}. In CI, a blocked or stuck task then ends runResume as 'completed' with no stack.ci.alert and no PR comment, so 'a failed gate raises the same alert' is never exercised on the real advance. An '/accord unblock' comment starts a run that behaves the same as no comment. The gate_failed tests (1049) cover only an injected advance.",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 776,
+      "raised": "T2/review-test",
+      "resolution": {
+        "by": "T3/review-test",
+        "outcome": "reraised",
+        "note": "Rows 1-3 and the runResume+createCiAdvance wiring test are met. TARGET CHANGED for row 4: the observable I suggested (backendCalls.phase) led to pinning phase 'unblock' (line 1086-1104). The production run-phase.ts defaultRunBackend handles only align/spec/plan/check/code/resume/verify/finish and returns {exitCode:1} for any other phase, so the unblock gate reaches only the fake. Also, the extraArgs check (/task/, /3/, the reason) accepts argv such as ['--task','3','--note','fixture was flaky'], which the real parseUnblockArgs rejects ('--note needs a target'). No test pins what happens when the unblock call fails. Corrected recommendation: (1) Replace the regex checks with the real parser: `const parsed = parseUnblockArgs([ID, ...unblockArgv]); expect(parsed.errors).toEqual([]); expect(parsed.taskId).toBe(3); expect(parsed.force ?? parsed.decisions[0]?.reason).toBe('fixture was flaky')`. (2) Prove the route works in production. Either pin an exec route (spyExec records the accord CLI with `unblock ASDLC-1 --task 3 …`, matching guidance (d) 'accord unblock <ID> --task <n>'), or export the backend the resume CLI wires and assert that it dispatches phase 'unblock' to accord-cli unblock (not the unknown-phase fallback). If PhaseRunBackend cannot carry (d), escalate stuck. (3) Add a case where the unblock call returns exitCode 1: no 'resume' backend call, zero pushes, and the result pinned (gate_failed matching /unblock/ or a rejection without TOKEN; pick one). Done when: (1) and (3) exist, and (2) exists or a stuck escalation names it."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-024",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "readGates is tested with one unblock comment only. If the code takes the first matching comment (the oldest, because gh lists comments in time order), a new '/accord unblock 4 …' re-applies an old task-3 unblock and the new request is ignored.",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 460,
+      "raised": "T3/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-025",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "On a push trigger, ghExec answers `gh pr list` without checking GH_TOKEN. The resume step env pins only ACCORD_CI_PUSH_TOKEN. A lookup exec without GH_TOKEN passes every test, but real gh in Actions exits 4. Because the alert path never fails, the result is log-only, and every push-trigger alert (gate or cost cap) posts no PR comment. AC-24 needs the comment through the existing push token. The cost-cap path on a push trigger is also never combined with the lookup.",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 746,
+      "raised": "T3/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-026",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "Branch derivation is tested only with a one-task plan. Guidance q_guidance_6(b) says resume derives the next unfinished PR through computeStack over the committed plan and tree state. An impl that always uses branchFor(id, 1), or the first task PR, passes. A rerun of the push trigger after task 1 finishes would then advance on pr-1 again instead of pr-2.",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 768,
+      "raised": "T3/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-027",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Follow-up to F-018 (a stronger adversary against the verified fix). The token-carriage check passes when the impl passes the whole env through to exec: opts.env.ACCORD_CI_PUSH_TOKEN contains TOKEN, but git does not use that variable. With persist-credentials false, the real push has no credential.",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 1053,
+      "raised": "T3/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-028",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Round-1 miss (advisory). Only `uses` steps may come before the gate step, so the gate script runs without `bun install`. runGate spawns from ROOT, where node_modules exists. A gate that imports resume.ts, which imports @clive.shirley/accord-core/* workspace packages, passes the tests but fails in Actions ('Cannot find package').",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 1699,
+      "raised": "T3/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-029",
+      "state": "open",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Round-1 miss (advisory). The resume CLI entry is tested only for skipped and missing-token paths. A CLI that calls runResume without fetchComments (so every comment gate is closed), or with an advance that returns done at once, passes every test. The unblock and approve comments are then dead in production.",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 1991,
+      "raised": "T3/review-test"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-030",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A04 — Insecure Design: ACCORD_CI_PUSH_TOKEN stays in process.env while the resume loop runs phase agents (phase-test/phase-code/review with bash) through the exec harness. The Claude subprocess inherits the full env, so an injected agent can read the PAT (env, /proc/self/environ) and exfiltrate it, or write it into files that CI then commits and pushes. Same root cause as F-020 (task 52), now with more agents and more rounds.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 670,
+      "raised": "C1/review-security",
+      "resolution": {
+        "by": "C2/review-security",
+        "outcome": "reraised",
+        "note": "Partly fixed. main() deletes ACCORD_CI_PUSH_TOKEN before createCliBackend, and claude-code-exec spawns with live process.env, so agents no longer inherit it. But unsetenv does not scrub the initial environ block: /proc/<bun pid>/environ and the parent `bash -e` step shell (GitHub sets the token in the step env) still hold it, and any same-uid agent bash can read them (`cat /proc/*/environ`). GitHub-hosted runners also have passwordless sudo (Runner.Worker memory). A stolen PAT can also post '/accord unblock' comments as OWNER, which then authorise themselves. The outgoing-diff token check and the harness env strip are still missing. Durable fix: run agents in a job without ACCORD_CI_PUSH_TOKEN, hand off the typed commits as a git bundle artifact, and push from a separate push-only job that runs no agent code."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-031",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A01 — Broken Access Control: an issue_comment gate makes the secret-bearing resume job check out and run code from the PR head branch, resolved by name only. The approval is not bound to the commit the human reviewed (TOCTOU between comment and checkout). That head contains agent commits pushed by CI, so an injected change to packages/accord-ci/src/ci-driven/*.ts or package.json persists and runs with ACCORD_CI_PUSH_TOKEN and ANTHROPIC_API_KEY on the next authorised comment. There is no cross-repository check either.",
+      "file": ".github/workflows/accord-driven.yml",
+      "line": 110,
+      "raised": "C1/review-security",
+      "resolution": {
+        "by": "C2/review-security",
+        "outcome": "wont_fix_accepted",
+        "note": "Cross-repo heads are now rejected (resume-gate.ts: view.isCrossRepository ? \"\" : headRefName, then PR_BRANCH fails). The residual TOCTOU needs write access or a compromised agent run, which F-030 already covers. Track the follow-up: pin the run to the gated headRefOid, run tooling from a default-branch checkout (bun install on the PR head runs the root package lifecycle scripts), and reject comments on closed or merged PRs (the gate does not check state)."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-032",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A01 — Broken Access Control: gate commands are authorised by comment author_association (OWNER/MEMBER/COLLABORATOR), not by repository permission. MEMBER covers any org member, even without access to the repo. COLLABORATOR covers read/triage outside collaborators. These users can trigger LLM spend (ANTHROPIC_API_KEY), PAT pushes, and /accord unblock decisions that are logged as actor:human.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 52,
+      "raised": "C1/review-security",
+      "resolution": {
+        "by": "C2/review-security",
+        "outcome": "wont_fix_accepted",
+        "note": "Accepted for this repo only: it is owned by a personal account (cshirley), so MEMBER cannot occur and COLLABORATOR implies write. 'Tests assert it' is not a security rationale. Replace it with the collaborators/<login>/permission check (admin|maintain|write) before the workflow is adopted in an org-owned repo, and update the tests and pre-merge-smoke.md."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-033",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A04 — Insecure Design (authorisation replay): readGates scans the whole PR comment history. The newest `/accord unblock <task> <reason>` is applied again at the start of every run on that PR, including runs triggered later by `/accord approve`. One human decision therefore clears blockers that appear after it (including review-security critical/warning findings in the C loop). Each replay is logged as actor:human, which corrupts the audit trail.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 177,
+      "raised": "C1/review-security",
+      "resolution": {
+        "by": "C2/review-security",
+        "outcome": "reraised",
+        "note": "The F-039 mitigation only covers tasks that are not blocked. If the same task is blocked again later (for example a new review-security critical or warning in a later C round), the next comment-triggered run (any '/accord approve') reads the old '/accord unblock <task> <reason>' (readGates resume.ts:168 scans all history; consumedUnblock only resets inside one run). createCliBackend (resume.ts:687-692) then emits `--note <F-n> <old reason>` for every current blocker, recorded as a human decision. This is a security-gate bypass and an audit-trail error. Bind the unblock to github.event.comment.id (resume-gate output -> ACCORD_CI_COMMENT_ID), or ignore unblock comments older than the task's latest blocked timestamp."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-036",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Supply chain — the resume job holds ACCORD_CI_PUSH_TOKEN and ANTHROPIC_API_KEY but uses tag-pinned actions (actions/checkout@v4, oven-sh/setup-bun@v2) and an unpinned toolchain (`bun-version: latest`). A moved tag or a compromised Bun release runs in the secret-bearing job.",
+      "file": ".github/workflows/accord-driven.yml",
+      "line": 115,
+      "raised": "C1/review-security",
+      "resolution": {
+        "by": "C2/review-security",
+        "outcome": "wont_fix_accepted",
+        "note": "Suggestion-level follow-up. Pin actions/checkout and oven-sh/setup-bun to commit SHAs and bun-version to the tested version before GA; this applies to the pr0, resume-gate and resume jobs."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-038",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "pushHead pushes HEAD to ctx.branch, which is fixed once before the loop, but the orchestrator switches branches when it starts the next PR's task.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 532,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "reraised",
+        "note": "pushHead now pushes the current validated branch plus other ahead stack branches, but the `others` filter (resume.ts:577) requires `refs/remotes/origin/<name>` to exist. A stack branch created in this job (deriveBranch/ensureTaskBranch) has no remote ref, so it is never pushed. Trace: fresh job, pr-1 created locally → typed commits → `accord resume` crosses to task 2 (preflight-runner calls ensureTaskBranch, which switches to a new pr-2) → pushHead pushes only pr-2 → pr-1 commits are lost with the runner, and the next run redoes task 1. Fix: when the remote ref is absent, push the local stack/<ID>/* branch (it is job-created) instead of skipping it. Done when: a test where the backend switches from a new, never-pushed pr-1 to pr-2 shows both stack/<ID>/pr-1 and stack/<ID>/pr-2 pushed without force."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-040",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The cost cap is enforced per job, not per work item. Spend from earlier jobs is not carried into a resumed run.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 355,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Accepted as scope: cross-job cost persistence needs a state design change. docs/ci/pre-merge-smoke.md:130 says the cap applies 'per run', so the limit is documented. A human should confirm that this satisfies AC-24's 'per-work-item' wording."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-042",
+      "state": "reraised",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "The resume step has no GH_TOKEN, and checkout does not persist credentials. The closeout path calls gh and fetches origin, and both will fail in Actions.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 333,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "reraised",
+        "note": "The cited test constraint covers the workflow YAML only. The gap is still real in code: the closeout path (resume.ts:351) calls ensureCloseoutBranch, whose gh StackProvider runs `gh pr list` inheriting process.env. main() deletes ACCORD_CI_PUSH_TOKEN and sets no GH_TOKEN, and the resume step has none, so gh in Actions fails with 'set the GH_TOKEN environment variable'. Closeout derivation then throws and the job fails once every task PR is done. Pass the token without touching the YAML or leaking it to the agent subprocess: set process.env.GH_TOKEN only around the ensureCloseoutBranch call in deriveBranch (restore it in finally), or give resolveStackProvider an env. Done when: a test with GH_TOKEN unset and ACCORD_CI_PUSH_TOKEN set shows the closeout gh call receives GH_TOKEN, and GH_TOKEN is absent from process.env after deriveBranch returns."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-043",
+      "state": "wont_fix_accepted",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "raiseAlert throws on a failed PR comment, so a failed comment masks the cost_capped/gate_failed result. It also runs gh without the repo cwd.",
+      "file": "packages/accord-ci/src/ci-driven/alert.ts",
+      "line": 55,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Tests assert that a comment failure rejects with the alert logged once, and phase-code cannot edit tests. The job exits 1 either way. cwd is now passed."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-045",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Duplicated helpers, and a mixed import style for accord-core.",
+      "file": "packages/accord-ci/src/ci-driven/alert.ts",
+      "line": 20,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Style only. trigger.ts uses the same relative import style as alert.ts."
+      }
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-046",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "Some gate values are read but never used. A bare `/accord unblock` triggers a run that cannot unblock anything.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 473,
+      "raised": "C1/review-code",
+      "resolution": {
+        "by": "C2/review-code",
+        "outcome": "wont_fix_accepted",
+        "note": "Tests require a bare /accord unblock to select resume. The bare form clears the task, so it is harmless."
+      }
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-048",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A04 — Insecure Design: the credentialed git push runs in the agent-writable checkout, so repo-local hooks and config reach the push token",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 543,
+      "raised": "C2/review-security"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-049",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "A stale `/accord unblock <task> <reason>` comment is re-applied to a task that was blocked again later, so the human blocked-task gate is bypassed.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 600,
+      "raised": "C2/review-code"
+    },
+    {
+      "kind": "unresolved",
+      "task_id": 53,
+      "requirement": "AC-24",
+      "finding_id": "F-050",
+      "state": "open",
+      "severity": "warning",
+      "advisory": true,
+      "issue": "deriveBranch treats a merged PR as unfinished when its head branch was deleted after merge, so resume restarts finished work.",
+      "file": "packages/accord-ci/src/ci-driven/resume.ts",
+      "line": 343,
+      "raised": "C2/review-code"
+    },
+    {
+      "kind": "accepted",
+      "task_id": 53,
+      "requirement": "AC-31",
+      "finding_id": "F-014",
+      "state": "wont_fix_accepted",
+      "severity": "suggestion",
+      "advisory": true,
+      "issue": "The smoke-doc declaration is pinned here. A unit test cannot prove enforcement of okf concept and log.md updates, ASD-STE100 style or biome. The okf and log.md work is planned in task 54.",
+      "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+      "line": 1029,
+      "raised": "T1/review-test",
+      "resolution": {
+        "by": "T2/review-test",
+        "outcome": "wont_fix_accepted",
+        "note": "The smoke-doc declaration is pinned. validate:okf, validate:ste and check:biome enforcement belongs to phase-verify-task. The okf/log.md entry is task 54's scope."
+      }
     }
   ]
 }

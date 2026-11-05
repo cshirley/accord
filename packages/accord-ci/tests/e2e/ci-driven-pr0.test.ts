@@ -559,7 +559,8 @@ const workflowDoc = () =>
     on: { push?: { branches?: string[] }; pull_request?: unknown; pull_request_target?: unknown };
     jobs: Record<string, { steps: Step[] }>;
   };
-const workflowSteps = () => Object.values(workflowDoc().jobs).flatMap((job) => job.steps);
+// Only the PR0 job: the resume job (ci-driven-resume.test.ts) has its own gate and steps.
+const workflowSteps = () => workflowDoc().jobs.pr0?.steps ?? [];
 const PR0_RUN = /bun packages\/accord-ci\/src\/ci-driven\/pr0\.ts/;
 
 /** Make a workflow `run` script executable against a fixture repo (expressions substituted). */
@@ -588,9 +589,9 @@ function runScript(script: string, branch: string, outputFile: string) {
 }
 
 describe("ASDLC-1/AC-23 accord-driven workflow (ASDLC-1/TC-24)", () => {
-  it("ASDLC-1/AC-23 triggers only on push to accord/*/**", () => {
+  it("ASDLC-1/AC-23 pr0 triggers on push to accord/*/** (the workflow may also listen elsewhere for resume)", () => {
     const parsed = workflowDoc();
-    expect(parsed.on.push?.branches).toEqual(["accord/*/**"]);
+    expect(parsed.on.push?.branches).toContain("accord/*/**");
     expect(parsed.on.pull_request).toBeUndefined();
     expect(parsed.on.pull_request_target).toBeUndefined();
   });
@@ -692,6 +693,49 @@ describe("ASDLC-1/AC-23 accord-driven workflow (ASDLC-1/TC-24)", () => {
         expect(isTrue).toBe(expectTrue);
       },
     );
+  });
+
+  describe("pr0 gate on the resume triggers (push to main, issue_comment)", () => {
+    const firstScript = () =>
+      workflowSteps().find((step) => typeof step.run === "string")?.run ?? "";
+    const runKeyLines = (output: string) => output.split("\n").filter((l) => l.endsWith("=true"));
+
+    it("ASDLC-1/AC-23 push to main (GITHUB_REF_NAME=main) never starts PR0, even with an enabled repo", () => {
+      fixture({ branch: BRANCH });
+      const outFile = join(repo, "..", `gate-main-${repo.slice(-6)}`);
+      writeFileSync(outFile, "");
+      const before = sh("rev-parse", "HEAD");
+      const proc = runScript(firstScript(), "main", outFile);
+      const output = readFileSync(outFile, "utf8");
+      rmSync(outFile, { force: true });
+      expect(proc.exitCode).toBe(0);
+      expect(sh("rev-parse", "HEAD")).toBe(before);
+      expect(runKeyLines(output)).toEqual([]);
+    });
+
+    it("ASDLC-1/AC-23 issue_comment event never starts PR0", () => {
+      fixture({ branch: BRANCH });
+      const outFile = join(repo, "..", `gate-comment-${repo.slice(-6)}`);
+      writeFileSync(outFile, "");
+      const sha = sh("rev-parse", "HEAD");
+      const proc = Bun.spawnSync(["bash", "-e", "-c", materialize(firstScript(), "main", sha)], {
+        cwd: repo,
+        env: {
+          PATH: process.env.PATH ?? "",
+          HOME: process.env.HOME ?? "",
+          GITHUB_EVENT_NAME: "issue_comment",
+          GITHUB_REF_NAME: "main",
+          GITHUB_SHA: sha,
+          GITHUB_OUTPUT: outFile,
+          GITHUB_WORKSPACE: repo,
+          CI: "true",
+        },
+      });
+      const output = readFileSync(outFile, "utf8");
+      rmSync(outFile, { force: true });
+      expect(proc.exitCode).toBe(0);
+      expect(runKeyLines(output)).toEqual([]);
+    });
   });
 
   describe("pr0 CLI entry (spawned as CI would, from the workflow's own command)", () => {

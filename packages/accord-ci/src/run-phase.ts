@@ -168,7 +168,7 @@ export function resultFromBackend(backend: PhaseBackendResult): RunPhaseResult {
   };
 }
 
-async function defaultRunBackend(opts: RunPhaseOpts): Promise<PhaseBackendResult> {
+export async function defaultRunBackend(opts: RunPhaseOpts): Promise<PhaseBackendResult> {
   const cwd = opts.cwd ?? process.cwd();
   const harnessRaw = opts.harness ?? process.env.ACCORD_CI_HARNESS ?? "claude";
   const ctx = createCliContext(cwd, { autoConfirm: true });

@@ -127,6 +127,11 @@
     {
       "directive": "Governance scaffolding: none delivered by ASDLC-1 (no Dependabot, PR template, CODEOWNERS or issue auto-link changes); the accord/evidence status check is a CI workflow, not governance scaffolding.",
       "source": "convention"
+    },
+    {
+      "directive": "CI-driven resume topology (task 53; engineer decision, binding): (a) after PR0 merges, typed commits are pushed to the per-PR branch from accord-core branchFor(id, pr) = stack/<ID>/pr-<N> (closeout: stack/<ID>/closeout), created with ensureTaskBranch/ensureCloseoutBranch from the accord/<ID>/contract tag; never to main, and tests must read typed refs from that branch, not origin main. (b) A push-to-main trigger touching docs/dev/<ID>/contract.lock.json yields <ID> only (not ref=main); resume derives the next unfinished PR and its branch via computeStack over the committed plan and tree state. (c) The work item PR for stack.ci.alert on a push trigger is the open PR whose head is the current stack/<ID>/pr-<N> branch (gh pr list --head), falling back to the PR0 PR (head accord/<ID>/*); if neither exists emit only the stack.ci.alert log event and skip the comment, and never fail the alert path. (d) An authorised '/accord unblock <task> <reason>' comment is parsed by the gate and routed through the accord-cli backend as `accord unblock <ID> --task <n>` with the matching --note/--accept/--waive flags, then resume runs; decisions use `accord answer`. (e) createCiAdvance does not pass a fixed phase: it calls the backend resume entry (accord resume <ID>) and the orchestrator picks the next agent from tree state; only the PR0 build passes plan. Implement as pure functions with injected gh and backend so tests stay offline.",
+      "source": "engineer",
+      "question": "q_guidance_6"
     }
   ],
   "reuse_candidates": [
