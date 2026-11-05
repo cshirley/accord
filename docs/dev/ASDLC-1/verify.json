@@ -2,570 +2,442 @@
   "schema_version": "1.0",
   "work_item_id": "ASDLC-1",
   "date": "2026-11-05",
-  "verdict": "gaps",
+  "verdict": "pass",
   "criteria": [
     {
       "ac_id": "AC-1",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-1 (ASDLC-1/TC covering AC-1)",
+          "file": "packages/accord-core/tests/phase-commits.test.ts",
+          "line": 137,
+          "run_log": "bun test packages/accord-core/tests/phase-commits.test.ts: 34 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-2",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-2 (ASDLC-1/TC covering AC-2)",
+          "file": "packages/accord-core/tests/commit-grammar.test.ts",
+          "line": 256,
+          "run_log": "bun test packages/accord-core/tests/commit-grammar.test.ts: 512 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-3",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-3 (ASDLC-1/TC covering AC-3)",
+          "file": "packages/accord-core/tests/commit-guard.test.ts",
+          "line": 32,
+          "run_log": "bun test packages/accord-core/tests/commit-guard.test.ts: 38 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-4",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-4 (ASDLC-1/TC covering AC-4)",
+          "file": "packages/accord-cli/tests/evidence-cli.test.ts",
+          "line": 212,
+          "run_log": "bun test packages/accord-cli/tests/evidence-cli.test.ts: 11 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-5",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-5 (ASDLC-1/TC covering AC-5)",
+          "file": "packages/accord-core/tests/evidence-asset.test.ts",
+          "line": 300,
+          "run_log": "bun test packages/accord-core/tests/evidence-asset.test.ts: 24 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-6",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-6 (ASDLC-1/TC covering AC-6)",
+          "file": "packages/accord-core/tests/qualified-ac-refs.test.ts",
+          "line": 101,
+          "run_log": "bun test packages/accord-core/tests/qualified-ac-refs.test.ts: 53 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-7",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-7 (ASDLC-1/TC covering AC-7)",
+          "file": "packages/accord-core/tests/review-security-gate.test.ts",
+          "line": 2,
+          "run_log": "bun test packages/accord-core/tests/review-security-gate.test.ts: 10 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-8",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-8 (ASDLC-1/TC covering AC-8)",
+          "file": "packages/accord-core/tests/review-security-gate-stack.test.ts",
+          "line": 2,
+          "run_log": "bun test packages/accord-core/tests/review-security-gate-stack.test.ts: 20 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-9",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-9 (ASDLC-1/TC covering AC-9)",
+          "file": "packages/accord-ci/tests/contract-lock-check.test.ts",
+          "line": 109,
+          "run_log": "bun test packages/accord-ci/tests/contract-lock-check.test.ts: 52 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-10",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-10 (ASDLC-1/TC covering AC-10)",
+          "file": "packages/accord-core/tests/compute-stack.test.ts",
+          "line": 53,
+          "run_log": "bun test packages/accord-core/tests/compute-stack.test.ts: 40 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-11",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-11 (ASDLC-1/TC covering AC-11)",
+          "file": "packages/accord-core/tests/stack-provider-gh.test.ts",
+          "line": 75,
+          "run_log": "bun test packages/accord-core/tests/stack-provider-gh.test.ts: 32 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-12",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-12 (ASDLC-1/TC covering AC-12)",
+          "file": "packages/accord-core/tests/state-snapshot.test.ts",
+          "line": 232,
+          "run_log": "bun test packages/accord-core/tests/state-snapshot.test.ts: 27 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-13",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-13 (ASDLC-1/TC covering AC-13)",
+          "file": "packages/accord-core/tests/e2e/state-resume.test.ts",
+          "line": 29,
+          "run_log": "bun test packages/accord-core/tests/e2e/state-resume.test.ts: 9 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-14",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-14 (ASDLC-1/TC covering AC-14)",
+          "file": "packages/accord-ci/tests/evidence-check.test.ts",
+          "line": 122,
+          "run_log": "bun test packages/accord-ci/tests/evidence-check.test.ts: 39 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-15",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-15 (ASDLC-1/TC covering AC-15)",
+          "file": "packages/accord-core/tests/closeout.test.ts",
+          "line": 67,
+          "run_log": "bun test packages/accord-core/tests/closeout.test.ts: 26 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-16",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-16 (ASDLC-1/TC covering AC-16)",
+          "file": "packages/accord-core/tests/overrun-decision.test.ts",
+          "line": 22,
+          "run_log": "bun test packages/accord-core/tests/overrun-decision.test.ts: 26 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-17",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-17 (ASDLC-1/TC covering AC-17)",
+          "file": "packages/accord-core/tests/stack-depth.test.ts",
+          "line": 30,
+          "run_log": "bun test packages/accord-core/tests/stack-depth.test.ts: 71 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-18",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-18 (ASDLC-1/TC covering AC-18)",
+          "file": "packages/accord-core/tests/feature-docs.test.ts",
+          "line": 98,
+          "run_log": "bun test packages/accord-core/tests/feature-docs.test.ts: 46 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-19",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-19 (ASDLC-1/TC covering AC-19)",
+          "file": "packages/accord-core/tests/feature-impact.test.ts",
+          "line": 67,
+          "run_log": "bun test packages/accord-core/tests/feature-impact.test.ts: 50 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-20",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-20 (ASDLC-1/TC covering AC-20)",
+          "file": "packages/accord-core/tests/feature-drift.test.ts",
+          "line": 166,
+          "run_log": "bun test packages/accord-core/tests/feature-drift.test.ts: 31 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-21",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-21 (ASDLC-1/TC covering AC-21)",
+          "file": "packages/accord-cli/tests/feature-cli.test.ts",
+          "line": 166,
+          "run_log": "bun test packages/accord-cli/tests/feature-cli.test.ts: 19 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-22",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-22 (ASDLC-1/TC covering AC-22)",
+          "file": "packages/accord-ci/tests/feature-drift-ci.test.ts",
+          "line": 62,
+          "run_log": "bun test packages/accord-ci/tests/feature-drift-ci.test.ts: 43 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-23",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-23 (ASDLC-1/TC covering AC-23)",
+          "file": "packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts",
+          "line": 283,
+          "run_log": "bun test packages/accord-ci/tests/e2e/ci-driven-pr0.test.ts: 47 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-24",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-24 (ASDLC-1/TC covering AC-24)",
+          "file": "packages/accord-ci/tests/ci-driven-resume.test.ts",
+          "line": 182,
+          "run_log": "bun test packages/accord-ci/tests/ci-driven-resume.test.ts: 162 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-25",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
+          "type": "test",
+          "name": "ASDLC-1/AC-25 (ASDLC-1/TC covering AC-25)",
+          "file": "packages/accord-ci/tests/ci-driven-startup.test.ts",
+          "line": 75,
+          "run_log": "bun test packages/accord-ci/tests/ci-driven-startup.test.ts: 9 pass, 0 fail"
         },
         {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "file",
+          "name": "assertCiDrivenEnv throws MISSING_REQUIRED_SECRET; pr0/resume/alert entry points guard token",
+          "file": "packages/accord-ci/src/ci-driven/startup.ts",
+          "line_range": "3-7"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-26",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
           "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
+          "name": "bun run check:runtime (packages/pi-accord/scripts/runtime-smoke.ts, TC-27)",
+          "file": "packages/pi-accord/scripts/runtime-smoke.ts",
+          "run_log": "exit 0"
         },
         {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-26 default-config no-op regression",
+          "file": "packages/accord-core/tests/phase-commits.test.ts",
+          "line": 595,
+          "run_log": "bun test packages/accord-core/tests/phase-commits.test.ts: 34 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-27",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-27 (ASDLC-1/TC covering AC-27)",
+          "file": "packages/accord-core/tests/append-only.test.ts",
+          "line": 90,
+          "run_log": "bun test packages/accord-core/tests/append-only.test.ts: 2 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-28",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
+          "type": "test",
+          "name": "ASDLC-1/AC-28 (ASDLC-1/TC covering AC-28)",
+          "file": "packages/accord-core/tests/layering.test.ts",
+          "line": 46,
+          "run_log": "bun test packages/accord-core/tests/layering.test.ts: 28 pass, 0 fail"
         },
         {
           "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "name": "bun run check:bundle",
+          "run_log": "exit 0"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-29",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
-        },
-        {
-          "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "type": "test",
+          "name": "ASDLC-1/AC-29 (ASDLC-1/TC covering AC-29)",
+          "file": "packages/accord-core/tests/stack-telemetry.test.ts",
+          "line": 46,
+          "run_log": "bun test packages/accord-core/tests/stack-telemetry.test.ts: 51 pass, 0 fail"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-30",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
+          "type": "test",
+          "name": "ASDLC-1/AC-30 (ASDLC-1/TC covering AC-30)",
+          "file": "packages/accord-core/tests/alignment.test.ts",
+          "line": 30,
+          "run_log": "bun test packages/accord-core/tests/alignment.test.ts: 52 pass, 0 fail"
         },
         {
           "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "name": "bun run validate:schemas/assets/okf/ste/features + check:biome",
+          "run_log": "all exit 0"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     },
     {
       "ac_id": "AC-31",
-      "status": "fail",
+      "status": "pass",
       "evidence": [
         {
-          "type": "command",
-          "name": "bun test",
-          "run_log": "exit 1: command timed out after 120000ms"
+          "type": "test",
+          "name": "ASDLC-1/AC-31 (ASDLC-1/TC covering AC-31)",
+          "file": "packages/accord-core/tests/docs-validation.test.ts",
+          "line": 32,
+          "run_log": "bun test packages/accord-core/tests/docs-validation.test.ts: 57 pass, 0 fail"
         },
         {
           "type": "command",
-          "name": "bun run check:biome",
-          "run_log": "exit 1: Some errors were emitted while running checks."
+          "name": "bun run validate:schemas/assets/okf/ste/features + check:biome",
+          "run_log": "all exit 0"
         }
-      ],
-      "gap": "verification.commands preflight failed: bun test \u2192 exit 1 (timed out after 120000ms); bun run check:biome \u2192 exit 1 (formatting diffs, e.g. JSON arrays in state/trace files)",
-      "suggested_action": "Run bun test and bun run check:biome locally; fix timeout/failing cases and format (bunx biome check --write <touched files>) before re-running verify"
+      ]
     }
   ],
   "summary": {
-    "pass": 0,
-    "fail": 31,
+    "pass": 31,
+    "fail": 0,
     "partial": 0,
     "not_verified": 0
   }
