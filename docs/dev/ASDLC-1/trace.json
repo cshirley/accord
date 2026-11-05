@@ -466,7 +466,7 @@
       "title": "[flags] Stack and knowledge switch resolver with default-off values",
       "status": "done",
       "commits": [
-        "0e9ed2e"
+        "aaa753e"
       ],
       "rounds": {
         "T": 1,
@@ -537,7 +537,7 @@
       "title": "[infra] Temp git repo, fake gh helpers and import-boundary test",
       "status": "done",
       "commits": [
-        "a018167"
+        "3872838"
       ],
       "rounds": {
         "T": 4,
@@ -637,7 +637,7 @@
       "title": "[telemetry] Stack event catalogue and emitter on the shared logger",
       "status": "done",
       "commits": [
-        "fcd446c"
+        "dbe5053"
       ],
       "rounds": {
         "T": 1,
@@ -703,7 +703,7 @@
       "title": "[infra] accord/evidence check runner and workflow",
       "status": "done",
       "commits": [
-        "fd02108"
+        "3bf92c6"
       ],
       "rounds": {
         "T": 2,
@@ -792,7 +792,7 @@
       "title": "[commit-evidence] Commit grammar: Accord trailer build, parse, validate",
       "status": "done",
       "commits": [
-        "2194f4d"
+        "032edd3"
       ],
       "rounds": {
         "T": 2,
@@ -869,7 +869,7 @@
       "title": "[commit-evidence] Commit guard and content redaction",
       "status": "done",
       "commits": [
-        "619a27f"
+        "cacc9cb"
       ],
       "rounds": {
         "T": 2,
@@ -993,7 +993,7 @@
       "title": "[commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase",
       "status": "done",
       "commits": [
-        "dfcd785"
+        "dcbc6c0"
       ],
       "rounds": {
         "T": 5,
@@ -1217,7 +1217,7 @@
       "title": "[commit-evidence] Evidence timeline from git trailers",
       "status": "done",
       "commits": [
-        "2a2e877"
+        "d4b3d1b"
       ],
       "rounds": {
         "T": 3,
@@ -1285,7 +1285,7 @@
       "title": "[commit-evidence] accord evidence CLI command",
       "status": "done",
       "commits": [
-        "831cf8e"
+        "a1759ce"
       ],
       "rounds": {
         "T": 1,
@@ -1393,7 +1393,7 @@
       "title": "[commit-evidence] OKF docs and docs validation test",
       "status": "done",
       "commits": [
-        "cfb68a8"
+        "21e7289"
       ],
       "rounds": {
         "T": 2,
@@ -1484,7 +1484,7 @@
       "title": "[evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled",
       "status": "done",
       "commits": [
-        "58b8d41"
+        "45d5865"
       ],
       "rounds": {
         "T": 2,
@@ -1594,7 +1594,7 @@
       "title": "[evidence-asset] Evidence asset writer (task-<N>.md and .json)",
       "status": "done",
       "commits": [
-        "96e4fcd"
+        "b229041"
       ],
       "rounds": {
         "T": 2,
@@ -1698,7 +1698,7 @@
       "title": "[evidence-asset] Final evidence(task-<N>) commit",
       "status": "done",
       "commits": [
-        "b946982"
+        "7d27096"
       ],
       "rounds": {
         "T": 2,
@@ -1844,7 +1844,7 @@
       "title": "[evidence-asset] OKF docs for the evidence asset",
       "status": "done",
       "commits": [
-        "96f2bbd"
+        "2cafbf3"
       ],
       "rounds": {
         "T": 2,
@@ -1917,7 +1917,7 @@
       "title": "[security-gate] review-security gating inside the C loop",
       "status": "done",
       "commits": [
-        "3e86b17"
+        "35e895d"
       ],
       "rounds": {
         "T": 2,
@@ -2053,7 +2053,7 @@
       "title": "[security-gate] Route open or disputed gating security findings back to review-security",
       "status": "done",
       "commits": [
-        "e8393f1"
+        "c3264b4"
       ],
       "rounds": {
         "T": 2,
@@ -2120,7 +2120,7 @@
       "title": "[security-gate] Schema description and OKF docs",
       "status": "done",
       "commits": [
-        "68d3fe7"
+        "d7a87c3"
       ],
       "rounds": {
         "T": 2,
@@ -2230,7 +2230,7 @@
       "title": "[contract-lock] contract.lock.json writer, verifier and schema",
       "status": "done",
       "commits": [
-        "3d58371"
+        "54b714e"
       ],
       "rounds": {
         "T": 3,
@@ -2334,7 +2334,7 @@
       "title": "[contract-lock] PR0 contract commit, tag and contract-amend",
       "status": "done",
       "commits": [
-        "fea6e0a"
+        "5c30480"
       ],
       "rounds": {
         "T": 2,
@@ -2464,7 +2464,7 @@
       "title": "[contract-lock] Pre-write lock guard in the tool_call hook",
       "status": "done",
       "commits": [
-        "a076d02"
+        "8043947"
       ],
       "rounds": {
         "T": 2,
@@ -2587,7 +2587,7 @@
       "title": "[contract-lock] Post-spawn lock verification, restore and amend-only commits",
       "status": "done",
       "commits": [
-        "7e4b1c0"
+        "b960186"
       ],
       "rounds": {
         "T": 4,
@@ -2674,7 +2674,7 @@
       "title": "[contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks",
       "status": "done",
       "commits": [
-        "f98ce01"
+        "39ec088"
       ],
       "rounds": {
         "T": 2,
@@ -2774,7 +2774,7 @@
       "title": "[contract-lock] Contract-lock rule in the accord/evidence CI check",
       "status": "done",
       "commits": [
-        "e448106"
+        "7549139"
       ],
       "rounds": {
         "T": 2,
@@ -2895,7 +2895,7 @@
       "title": "[contract-lock] OKF docs for contract PR0 and amendment",
       "status": "done",
       "commits": [
-        "7940f3b"
+        "416431c"
       ],
       "rounds": {
         "T": 1,
@@ -2972,7 +2972,7 @@
       "title": "[stack-compute] Plan schema fields, phase-plan prompt and alignment test",
       "status": "done",
       "commits": [
-        "50242d8"
+        "4cb6397"
       ],
       "rounds": {
         "T": 1,
@@ -3114,7 +3114,7 @@
       "title": "[stack-compute] computeStack: deterministic pack, flag and order",
       "status": "done",
       "commits": [
-        "89b79ee"
+        "7f373b0"
       ],
       "rounds": {
         "T": 3,
@@ -3196,7 +3196,7 @@
       "title": "[stack-compute] PR brief, stack map, stack table and report renderers",
       "status": "done",
       "commits": [
-        "c6f34b7"
+        "25a3bfd"
       ],
       "rounds": {
         "T": 2,
@@ -3291,7 +3291,7 @@
       "title": "[stack-compute] StackProvider port and gh provider",
       "status": "done",
       "commits": [
-        "eb2f03d"
+        "07bd1b6"
       ],
       "rounds": {
         "T": 2,
@@ -3368,7 +3368,7 @@
       "title": "[stack-compute] Stack service and dev_stack_* MCP tools",
       "status": "done",
       "commits": [
-        "3a7bfc8"
+        "ef1029f"
       ],
       "rounds": {
         "T": 2,
@@ -3478,7 +3478,7 @@
       "title": "[stack-compute] Per-PR branch lifecycle in the spawn preflight",
       "status": "done",
       "commits": [
-        "f7abffb"
+        "8d17395"
       ],
       "rounds": {
         "T": 2,
@@ -3562,7 +3562,7 @@
       "title": "[stack-compute] accord stack CLI command",
       "status": "done",
       "commits": [
-        "b7c7b0e"
+        "1760c79"
       ],
       "rounds": {
         "T": 2,
@@ -3704,7 +3704,7 @@
       "title": "[stack-compute] Schema description and OKF docs for the stack",
       "status": "done",
       "commits": [
-        "2efaca7"
+        "e4d2488"
       ],
       "rounds": {
         "T": 2,
@@ -3803,7 +3803,7 @@
       "title": "[tree-state] State size cap and task-file redaction",
       "status": "done",
       "commits": [
-        "fcba02c"
+        "a16abf7"
       ],
       "rounds": {
         "T": 2,
@@ -3870,7 +3870,7 @@
       "title": "[tree-state] State snapshot writer staged with every typed commit",
       "status": "done",
       "commits": [
-        "b7c261f"
+        "a707139"
       ],
       "rounds": {
         "T": 2,
@@ -3974,7 +3974,7 @@
       "title": "[tree-state] Stateless resume from committed state",
       "status": "done",
       "commits": [
-        "f299bdb"
+        "888dced"
       ],
       "rounds": {
         "T": 2,
@@ -4052,7 +4052,7 @@
       "title": "[tree-state] Closeout commit builds artifacts then removes state",
       "status": "done",
       "commits": [
-        "f48130a"
+        "bfffdfa"
       ],
       "rounds": {
         "T": 2,
@@ -4120,7 +4120,7 @@
       "title": "[tree-state] Leftover-state rule in the accord/evidence check",
       "status": "done",
       "commits": [
-        "adc441a"
+        "be0d070"
       ],
       "rounds": {
         "T": 2,
@@ -4215,7 +4215,7 @@
       "title": "[tree-state] OKF docs for committed state and closeout",
       "status": "done",
       "commits": [
-        "85f7289"
+        "cab631a"
       ],
       "rounds": {
         "T": 1,
@@ -4291,7 +4291,7 @@
       "title": "[trunk-hardening] Overrun measurement and re-plan decision",
       "status": "done",
       "commits": [
-        "f8d7bab"
+        "5cb3117"
       ],
       "rounds": {
         "T": 2,
@@ -4428,7 +4428,7 @@
       "title": "[trunk-hardening] Open-PR depth cap and flag validation",
       "status": "done",
       "commits": [
-        "e2aa296"
+        "71cab7e"
       ],
       "rounds": {
         "T": 2,
@@ -4500,7 +4500,7 @@
       "title": "[trunk-hardening] Bottom-up merge: retarget next PR by merging main",
       "status": "done",
       "commits": [
-        "d26040c"
+        "8b3bef2"
       ],
       "rounds": {
         "T": 5,
@@ -4654,7 +4654,7 @@
       "title": "[trunk-hardening] OKF docs for depth cap, merge order and overrun",
       "status": "done",
       "commits": [
-        "103c838"
+        "8703436"
       ],
       "rounds": {
         "T": 2,
@@ -4742,7 +4742,7 @@
       "title": "[feature-knowledge] Feature doc schema, parser and index generator",
       "status": "done",
       "commits": [
-        "9b82742"
+        "42cf120"
       ],
       "rounds": {
         "T": 2,
@@ -4852,7 +4852,7 @@
       "title": "[feature-knowledge] validate:features script and Dev Harness entry",
       "status": "done",
       "commits": [
-        "2349b1d"
+        "01cdf65"
       ],
       "rounds": {
         "T": 3,
@@ -4967,7 +4967,7 @@
       "title": "[feature-knowledge] spec features[] and PR0 impact analysis",
       "status": "done",
       "commits": [
-        "c8d20fe"
+        "1006aae"
       ],
       "rounds": {
         "T": 2,
@@ -5072,7 +5072,7 @@
       "title": "[feature-knowledge] Closeout feature-doc update and drift check",
       "status": "done",
       "commits": [
-        "3eb57f7"
+        "8290f1b"
       ],
       "rounds": {
         "T": 3,
@@ -5156,7 +5156,7 @@
       "title": "[feature-knowledge] Review invariants and CI drift rule",
       "status": "done",
       "commits": [
-        "2b68f82"
+        "e30cec8"
       ],
       "rounds": {
         "T": 2,
@@ -5256,7 +5256,7 @@
       "title": "[feature-knowledge] Feature find/impact query and dev_feature_* tools",
       "status": "done",
       "commits": [
-        "4d6754c"
+        "5884974"
       ],
       "rounds": {
         "T": 2,
@@ -5329,7 +5329,7 @@
       "title": "[feature-knowledge] accord feature CLI command",
       "status": "done",
       "commits": [
-        "f06b2ee"
+        "776713a"
       ],
       "rounds": {
         "T": 2,
@@ -5461,7 +5461,7 @@
       "title": "[feature-knowledge] Schema description and OKF docs for feature knowledge",
       "status": "done",
       "commits": [
-        "0d07304"
+        "49c1b21"
       ],
       "rounds": {
         "T": 1,
@@ -5559,7 +5559,7 @@
       "title": "[ci-driven-mode] Startup push-token check and cost cap key",
       "status": "done",
       "commits": [
-        "5f3819c"
+        "4143a34"
       ],
       "rounds": {
         "T": 1,
@@ -5674,7 +5674,7 @@
       "title": "[ci-driven-mode] CI builds PR0 from brief and spec",
       "status": "done",
       "commits": [
-        "3b43fb7"
+        "f78e23e"
       ],
       "rounds": {
         "T": 2,
@@ -5779,7 +5779,7 @@
       "title": "[ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert",
       "status": "done",
       "commits": [
-        "c66137e"
+        "6fcb209"
       ],
       "rounds": {
         "T": 3,
@@ -5940,7 +5940,7 @@
       "title": "[ci-driven-mode] OKF and CI docs for CI-driven mode",
       "status": "done",
       "commits": [
-        "7fb4cb6"
+        "8485ceb"
       ],
       "rounds": {
         "T": 1,

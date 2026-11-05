@@ -315,60 +315,60 @@ Implementation: tasks 4 (satisfied), 10 (satisfied), 14 (satisfied), 17 (satisfi
 
 | Task | Title | Status | Commits | Rounds T/C/V | Findings |
 | ---: | --- | --- | --- | --- | ---: |
-| 1 | [flags] Stack and knowledge switch resolver with default-off values | done | `0e9ed2e` | 1/1/1 | 8 |
-| 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | `a018167` | 4/4/1 | 21 |
-| 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | `fcd446c` | 1/1/1 | 9 |
-| 4 | [infra] accord/evidence check runner and workflow | done | `fd02108` | 2/1/1 | 21 |
-| 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | `2194f4d` | 2/1/1 | 13 |
-| 6 | [commit-evidence] Commit guard and content redaction | done | `619a27f` | 2/1/1 | 21 |
-| 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | `dfcd785` | 5/3/1 | 28 |
-| 8 | [commit-evidence] Evidence timeline from git trailers | done | `2a2e877` | 3/1/1 | 16 |
-| 9 | [commit-evidence] accord evidence CLI command | done | `831cf8e` | 1/1/1 | 11 |
-| 10 | [commit-evidence] OKF docs and docs validation test | done | `cfb68a8` | 2/1/1 | 13 |
-| 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | done | `58b8d41` | 2/1/1 | 15 |
-| 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | done | `96e4fcd` | 2/1/1 | 24 |
-| 13 | [evidence-asset] Final evidence(task-<N>) commit | done | `b946982` | 2/1/1 | 22 |
-| 14 | [evidence-asset] OKF docs for the evidence asset | done | `96f2bbd` | 2/1/1 | 12 |
-| 15 | [security-gate] review-security gating inside the C loop | done | `3e86b17` | 2/1/1 | 12 |
-| 16 | [security-gate] Route open or disputed gating security findings back to review-security | done | `e8393f1` | 2/1/1 | 11 |
-| 17 | [security-gate] Schema description and OKF docs | done | `68d3fe7` | 2/1/1 | 13 |
-| 18 | [contract-lock] contract.lock.json writer, verifier and schema | done | `3d58371` | 3/3/2 | 16 |
-| 19 | [contract-lock] PR0 contract commit, tag and contract-amend | done | `fea6e0a` | 2/1/1 | 24 |
-| 20 | [contract-lock] Pre-write lock guard in the tool_call hook | done | `a076d02` | 2/2/2 | 13 |
-| 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | done | `7e4b1c0` | 4/2/1 | 24 |
-| 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | done | `f98ce01` | 2/1/1 | 29 |
-| 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | done | `e448106` | 2/1/1 | 24 |
-| 24 | [contract-lock] OKF docs for contract PR0 and amendment | done | `7940f3b` | 1/2/2 | 10 |
-| 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | done | `50242d8` | 1/4/5 | 15 |
-| 26 | [stack-compute] computeStack: deterministic pack, flag and order | done | `89b79ee` | 3/3/2 | 23 |
-| 27 | [stack-compute] PR brief, stack map, stack table and report renderers | done | `c6f34b7` | 2/1/1 | 16 |
-| 28 | [stack-compute] StackProvider port and gh provider | done | `eb2f03d` | 2/1/1 | 23 |
-| 29 | [stack-compute] Stack service and dev_stack_* MCP tools | done | `3a7bfc8` | 2/1/1 | 26 |
-| 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | done | `f7abffb` | 2/1/1 | 25 |
-| 31 | [stack-compute] accord stack CLI command | done | `b7c7b0e` | 2/1/1 | 15 |
-| 32 | [stack-compute] Schema description and OKF docs for the stack | done | `2efaca7` | 2/1/1 | 14 |
-| 33 | [tree-state] State size cap and task-file redaction | done | `fcba02c` | 2/1/1 | 15 |
-| 34 | [tree-state] State snapshot writer staged with every typed commit | done | `b7c261f` | 2/1/1 | 21 |
-| 35 | [tree-state] Stateless resume from committed state | done | `f299bdb` | 2/1/1 | 10 |
-| 36 | [tree-state] Closeout commit builds artifacts then removes state | done | `f48130a` | 2/1/1 | 18 |
-| 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | `adc441a` | 2/1/1 | 15 |
-| 38 | [tree-state] OKF docs for committed state and closeout | done | `85f7289` | 1/1/1 | 13 |
-| 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | `f8d7bab` | 2/1/1 | 20 |
-| 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | `e2aa296` | 2/1/1 | 19 |
-| 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | `d26040c` | 5/7/4 | 43 |
-| 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | `103c838` | 2/1/1 | 19 |
-| 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | `9b82742` | 2/1/1 | 24 |
-| 44 | [feature-knowledge] validate:features script and Dev Harness entry | done | `2349b1d` | 3/5/4 | 23 |
-| 45 | [feature-knowledge] spec features[] and PR0 impact analysis | done | `c8d20fe` | 2/1/1 | 24 |
-| 46 | [feature-knowledge] Closeout feature-doc update and drift check | done | `3eb57f7` | 3/2/1 | 30 |
-| 47 | [feature-knowledge] Review invariants and CI drift rule | done | `2b68f82` | 2/1/1 | 23 |
-| 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | done | `4d6754c` | 2/1/1 | 20 |
-| 49 | [feature-knowledge] accord feature CLI command | done | `f06b2ee` | 2/1/1 | 21 |
-| 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | done | `0d07304` | 1/1/1 | 13 |
-| 51 | [ci-driven-mode] Startup push-token check and cost cap key | done | `5f3819c` | 1/1/1 | 8 |
-| 52 | [ci-driven-mode] CI builds PR0 from brief and spec | done | `3b43fb7` | 2/1/1 | 30 |
-| 53 | [ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert | done | `c66137e` | 3/2/1 | 50 |
-| 54 | [ci-driven-mode] OKF and CI docs for CI-driven mode | done | `7fb4cb6` | 1/1/1 | 13 |
+| 1 | [flags] Stack and knowledge switch resolver with default-off values | done | `aaa753e` | 1/1/1 | 8 |
+| 2 | [infra] Temp git repo, fake gh helpers and import-boundary test | done | `3872838` | 4/4/1 | 21 |
+| 3 | [telemetry] Stack event catalogue and emitter on the shared logger | done | `dbe5053` | 1/1/1 | 9 |
+| 4 | [infra] accord/evidence check runner and workflow | done | `3bf92c6` | 2/1/1 | 21 |
+| 5 | [commit-evidence] Commit grammar: Accord trailer build, parse, validate | done | `032edd3` | 2/1/1 | 13 |
+| 6 | [commit-evidence] Commit guard and content redaction | done | `cacc9cb` | 2/1/1 | 21 |
+| 7 | [commit-evidence] Orchestrator-only per-phase commits behind stack.commits phase | done | `dcbc6c0` | 5/3/1 | 28 |
+| 8 | [commit-evidence] Evidence timeline from git trailers | done | `d4b3d1b` | 3/1/1 | 16 |
+| 9 | [commit-evidence] accord evidence CLI command | done | `a1759ce` | 1/1/1 | 11 |
+| 10 | [commit-evidence] OKF docs and docs validation test | done | `21e7289` | 2/1/1 | 13 |
+| 11 | [evidence-asset] Work-item-qualified AC refs, trace.json qualification behind stack.enabled | done | `45d5865` | 2/1/1 | 15 |
+| 12 | [evidence-asset] Evidence asset writer (task-<N>.md and .json) | done | `b229041` | 2/1/1 | 24 |
+| 13 | [evidence-asset] Final evidence(task-<N>) commit | done | `7d27096` | 2/1/1 | 22 |
+| 14 | [evidence-asset] OKF docs for the evidence asset | done | `2cafbf3` | 2/1/1 | 12 |
+| 15 | [security-gate] review-security gating inside the C loop | done | `35e895d` | 2/1/1 | 12 |
+| 16 | [security-gate] Route open or disputed gating security findings back to review-security | done | `c3264b4` | 2/1/1 | 11 |
+| 17 | [security-gate] Schema description and OKF docs | done | `d7a87c3` | 2/1/1 | 13 |
+| 18 | [contract-lock] contract.lock.json writer, verifier and schema | done | `54b714e` | 3/3/2 | 16 |
+| 19 | [contract-lock] PR0 contract commit, tag and contract-amend | done | `5c30480` | 2/1/1 | 24 |
+| 20 | [contract-lock] Pre-write lock guard in the tool_call hook | done | `8043947` | 2/2/2 | 13 |
+| 21 | [contract-lock] Post-spawn lock verification, restore and amend-only commits | done | `b960186` | 4/2/1 | 24 |
+| 22 | [contract-lock] Connect /dev amend-spec to contract-amend, amend marker and blocked downstream tasks | done | `39ec088` | 2/1/1 | 29 |
+| 23 | [contract-lock] Contract-lock rule in the accord/evidence CI check | done | `7549139` | 2/1/1 | 24 |
+| 24 | [contract-lock] OKF docs for contract PR0 and amendment | done | `416431c` | 1/2/2 | 10 |
+| 25 | [stack-compute] Plan schema fields, phase-plan prompt and alignment test | done | `4cb6397` | 1/4/5 | 15 |
+| 26 | [stack-compute] computeStack: deterministic pack, flag and order | done | `7f373b0` | 3/3/2 | 23 |
+| 27 | [stack-compute] PR brief, stack map, stack table and report renderers | done | `25a3bfd` | 2/1/1 | 16 |
+| 28 | [stack-compute] StackProvider port and gh provider | done | `07bd1b6` | 2/1/1 | 23 |
+| 29 | [stack-compute] Stack service and dev_stack_* MCP tools | done | `ef1029f` | 2/1/1 | 26 |
+| 30 | [stack-compute] Per-PR branch lifecycle in the spawn preflight | done | `8d17395` | 2/1/1 | 25 |
+| 31 | [stack-compute] accord stack CLI command | done | `1760c79` | 2/1/1 | 15 |
+| 32 | [stack-compute] Schema description and OKF docs for the stack | done | `e4d2488` | 2/1/1 | 14 |
+| 33 | [tree-state] State size cap and task-file redaction | done | `a16abf7` | 2/1/1 | 15 |
+| 34 | [tree-state] State snapshot writer staged with every typed commit | done | `a707139` | 2/1/1 | 21 |
+| 35 | [tree-state] Stateless resume from committed state | done | `888dced` | 2/1/1 | 10 |
+| 36 | [tree-state] Closeout commit builds artifacts then removes state | done | `bfffdfa` | 2/1/1 | 18 |
+| 37 | [tree-state] Leftover-state rule in the accord/evidence check | done | `be0d070` | 2/1/1 | 15 |
+| 38 | [tree-state] OKF docs for committed state and closeout | done | `cab631a` | 1/1/1 | 13 |
+| 39 | [trunk-hardening] Overrun measurement and re-plan decision | done | `5cb3117` | 2/1/1 | 20 |
+| 40 | [trunk-hardening] Open-PR depth cap and flag validation | done | `71cab7e` | 2/1/1 | 19 |
+| 41 | [trunk-hardening] Bottom-up merge: retarget next PR by merging main | done | `8b3bef2` | 5/7/4 | 43 |
+| 42 | [trunk-hardening] OKF docs for depth cap, merge order and overrun | done | `8703436` | 2/1/1 | 19 |
+| 43 | [feature-knowledge] Feature doc schema, parser and index generator | done | `42cf120` | 2/1/1 | 24 |
+| 44 | [feature-knowledge] validate:features script and Dev Harness entry | done | `01cdf65` | 3/5/4 | 23 |
+| 45 | [feature-knowledge] spec features[] and PR0 impact analysis | done | `1006aae` | 2/1/1 | 24 |
+| 46 | [feature-knowledge] Closeout feature-doc update and drift check | done | `8290f1b` | 3/2/1 | 30 |
+| 47 | [feature-knowledge] Review invariants and CI drift rule | done | `e30cec8` | 2/1/1 | 23 |
+| 48 | [feature-knowledge] Feature find/impact query and dev_feature_* tools | done | `5884974` | 2/1/1 | 20 |
+| 49 | [feature-knowledge] accord feature CLI command | done | `776713a` | 2/1/1 | 21 |
+| 50 | [feature-knowledge] Schema description and OKF docs for feature knowledge | done | `49c1b21` | 1/1/1 | 13 |
+| 51 | [ci-driven-mode] Startup push-token check and cost cap key | done | `4143a34` | 1/1/1 | 8 |
+| 52 | [ci-driven-mode] CI builds PR0 from brief and spec | done | `f78e23e` | 2/1/1 | 30 |
+| 53 | [ci-driven-mode] Idempotent resume, concurrency lock, gates and cost-cap alert | done | `6fcb209` | 3/2/1 | 50 |
+| 54 | [ci-driven-mode] OKF and CI docs for CI-driven mode | done | `8485ceb` | 1/1/1 | 13 |
 
 ## Accepted risks and unresolved findings
 
