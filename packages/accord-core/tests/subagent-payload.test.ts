@@ -107,3 +107,11 @@ describe("applySubagentSpawnPayload", () => {
     expect(input.response).toBeUndefined();
   });
 });
+
+describe("standalone review agents need no harness config", () => {
+  test("review-security passes the config guard without devConfig", async () => {
+    const { prepareSubagentToolCall } = await import("../src/subagent/prepare.js");
+    const input = { agent: "review-security", task: "x" } as Record<string, unknown>;
+    expect(prepareSubagentToolCall(input, null).blockReason).toBeUndefined();
+  });
+});
