@@ -1,0 +1,13 @@
+ tokens=0
+code rounds=1 crit=0 warn=1
+evidence rounds=1 crit=0 warn=0
+opus tokens=7800
+orchestrator usd=0.00
+phase-test usd=0.06
+phase-verify-task usd=0.02
+review-security usd=0.09
+review-test usd=0.12
+sonnet tokens=34700
+state rounds=1 crit=0 warn=0
+test rounds=1 crit=1 warn=2
+verify rounds=1 crit=0 warn=0

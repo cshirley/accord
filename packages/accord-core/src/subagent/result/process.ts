@@ -6,6 +6,13 @@ import { existsSync } from "node:fs";
 import { agentRequiresVerification, agentSchemas } from "../../agents/registry.js";
 import { listWorkItemTaskIds } from "../../artifacts/trace-artifact.js";
 import { validateArtifact, validateReturnQuarantiningEvents } from "../../artifacts/validation.js";
+import { commitTaskEvidence } from "../../commit/evidence-commit.js";
+import { resolvePrGroup } from "../../commit/hooks.js";
+import { tryCommitPhase } from "../../commit/phase-commit.js";
+import { resolveStackConfig } from "../../config/stack-flags.js";
+import { advanceAmendAfterPhase } from "../../contract/amend-session.js";
+import { verifyAfterSpawn } from "../../contract/lock-verify.js";
+import { buildContractPr0 } from "../../contract/pr0.js";
 import { applyWorkflowStateFromValidatedReturn } from "../../harness/workflow-state-apply.js";
 import { createLogger } from "../../logging.js";
 import { commitDoneTasks, formatDoneTaskCommits } from "../../orchestration/commit-on-task-done.js";
@@ -21,6 +28,8 @@ import {
   recordTaskAgentMissingReturn,
   recordTaskAgentReturn,
 } from "../../orchestration/task-agent-audit.js";
+import { checkOverrun, resolveTaskDiffRange } from "../../stack/overrun.js";
+import { latestLogFor } from "../../tasks/model.js";
 import { loadTaskV2 } from "../../tasks/store.js";
 import type { PricingConfig } from "../../telemetry/usage.js";
 import {
@@ -43,6 +52,123 @@ import {
 } from "./packet.js";
 
 const log = createLogger("subagent");
+
+async function commitPhaseResult(
+  workItemId: string,
+  agentName: string,
+  taskId: number | null,
+  packet: Record<string, unknown>,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (taskId == null) {
+    log.warn(`phase commit skipped for ${workItemId}: no task_id for ${agentName}`);
+    return "";
+  }
+  const task = loadTaskV2(workItemId, taskId);
+  const ref = task ? latestLogFor(task, agentName)?.ref : undefined;
+  if (!ref) {
+    log.warn(
+      `phase commit skipped for ${workItemId} task ${String(taskId)}: no ref for ${agentName}`,
+    );
+    return "";
+  }
+  try {
+    const result = await tryCommitPhase(
+      workItemId,
+      taskId,
+      ref,
+      agentName,
+      packet,
+      devConfig,
+      process.cwd(),
+    );
+    if (result.ok && result.hash) {
+      const respawnNote = result.respawn
+        ? `\n\n**Guard rejected test edits:** ${result.respawn} respawn required (RGR).`
+        : "";
+      return `\n\n**Phase commit:** \`${result.hash}\` (${ref})${respawnNote}`;
+    }
+    if (!result.ok)
+      return `\n\n**Phase commit failed** (${ref}): ${result.reason ?? "unknown error"}`;
+  } catch (e) {
+    log.warn(
+      `phase commit failed for ${workItemId}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+  return "";
+}
+
+async function buildContractPr0IfPlanned(
+  workItemId: string,
+  agentName: string,
+  packet: Record<string, unknown>,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (agentName !== "phase-plan" || packet.status !== "done") return "";
+  if (!resolveStackConfig(devConfig).enabled) return "";
+  try {
+    const result = await buildContractPr0(workItemId, devConfig, process.cwd());
+    if (!result.ok)
+      return `\n\n**PR0 contract commit failed:** ${result.reason ?? "unknown error"}`;
+    if (result.skipped) return "";
+    const tagNote = result.tag ? `, tag \`${result.tag}\`` : "";
+    return `\n\n**PR0 contract commit:** \`${result.hash}\`${tagNote}`;
+  } catch (error) {
+    return `\n\n**PR0 contract commit failed:** ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+async function checkOverrunAfterGreen(
+  workItemId: string,
+  taskId: number | null,
+  agentName: string,
+  packet: Record<string, unknown>,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (agentName !== "phase-code" || packet.status !== "done" || packet.tests_passing !== true) {
+    return "";
+  }
+  if (taskId == null || !resolveStackConfig(devConfig).enabled) return "";
+  try {
+    const range = await resolveTaskDiffRange(workItemId, taskId, process.cwd());
+    if (!range) return "";
+    const result = await checkOverrun(workItemId, taskId, {
+      cwd: process.cwd(),
+      config: devConfig,
+      ...range,
+    });
+    if (!result.overrun) return "";
+    return `\n\n**Overrun:** task ${String(taskId)} changed ${String(result.act_lines)} lines against est_lines ${String(result.est_lines)}; decision \`${result.decision_id ?? ""}\` raised.`;
+  } catch (error) {
+    log.warn(
+      `overrun check failed for ${workItemId} task ${String(taskId)}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return "";
+  }
+}
+
+async function commitEvidenceIfDone(
+  workItemId: string,
+  taskId: number | null,
+  devConfig: HarnessMutableState["devConfig"],
+): Promise<string> {
+  if (taskId == null) return "";
+  try {
+    const result = await commitTaskEvidence(
+      workItemId,
+      resolvePrGroup(taskId, workItemId),
+      devConfig,
+      process.cwd(),
+    );
+    if (result.ok && result.hash) return `\n\n**Evidence commit:** \`${result.hash}\``;
+    if (!result.ok) return `\n\n**Evidence commit failed:** ${result.reason ?? "unknown error"}`;
+  } catch (e) {
+    log.warn(
+      `evidence commit failed for ${workItemId}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+  return "";
+}
 
 const COARSE_PHASE_AGENTS = new Set(["phase-align", "phase-spec", "phase-plan"]);
 
@@ -227,6 +353,16 @@ export async function processSubagentToolResult(
       state.costCache.set(workItemId, totalCost);
       updateWorkItemCost(workItemId, totalCost);
       billableTotals.set(workItemId, totalCost);
+    }
+
+    if (workItemId && agentName) {
+      try {
+        await verifyAfterSpawn(workItemId, process.cwd(), agentName);
+      } catch (error) {
+        log.error(
+          `contract lock verification failed for ${workItemId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
 
     const msgs = Array.isArray(result.messages) ? result.messages : [];
@@ -417,6 +553,41 @@ export async function processSubagentToolResult(
           subagentResult: result,
           ...(validation.droppedEvents.length ? { droppedEvents: validation.droppedEvents } : {}),
         });
+        const amendNote = await advanceAmendAfterPhase(
+          workItemId,
+          agentName,
+          (packet as { status?: unknown }).status,
+          process.cwd(),
+        );
+        if (amendNote !== null) contentAppend += amendNote;
+        else
+          contentAppend += await buildContractPr0IfPlanned(
+            workItemId,
+            agentName,
+            packet as Record<string, unknown>,
+            state.devConfig,
+          );
+        if (resolveStackConfig(state.devConfig).commits === "phase") {
+          contentAppend += await commitPhaseResult(
+            workItemId,
+            agentName,
+            extractTaskIdFromTaskText(task),
+            packet as Record<string, unknown>,
+            state.devConfig,
+          );
+          contentAppend += await checkOverrunAfterGreen(
+            workItemId,
+            extractTaskIdFromTaskText(task),
+            agentName,
+            packet as Record<string, unknown>,
+            state.devConfig,
+          );
+          contentAppend += await commitEvidenceIfDone(
+            workItemId,
+            extractTaskIdFromTaskText(task),
+            state.devConfig,
+          );
+        }
       }
     } else if (
       !packet &&
@@ -508,9 +679,11 @@ export async function processSubagentToolResult(
     state.sessionCost = total;
   }
 
+  const stackCommitsPhase = resolveStackConfig(state.devConfig).commits === "phase";
   // Every task that reached `done` gets a commit: sweep after the batch so tasks finished by
   // this result, by a human unblock, or whose earlier commit failed are all committed.
   for (const touchedId of touchedWorkItems) {
+    if (stackCommitsPhase) continue;
     try {
       contentAppend += formatDoneTaskCommits(
         await commitDoneTasks(touchedId, state.devConfig, process.cwd()),

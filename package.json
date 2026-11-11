@@ -14,6 +14,7 @@
     "validate:assets": "bun packages/accord-assets/scripts/validate-assets.ts && bun packages/pi-skills/scripts/validate-pi-skills.ts",
     "validate:okf": "bun scripts/validate-okf.ts",
     "validate:ste": "bun scripts/validate-ste.ts",
+    "validate:features": "bun scripts/validate-features.ts",
     "install:assets": "bun packages/pi-accord/scripts/install-assets.ts",
     "install:assets:force": "bun packages/pi-accord/scripts/install-assets.ts --force",
     "install:shim": "bun packages/accord-cli/scripts/install-shim.ts",
@@ -29,7 +30,7 @@
     "check:runtime": "bun packages/pi-accord/scripts/runtime-smoke.ts",
     "mcp": "bun run packages/accord-mcp/src/server.ts",
     "accord": "bun packages/accord-cli/src/main.ts",
-    "check": "npm run test && npm run check:biome && npm run validate:schemas && npm run validate:assets && npm run validate:okf && npm run validate:ste && npm run check:types && npm run check:bundle && npm run check:runtime",
+    "check": "npm run test && npm run check:biome && npm run validate:schemas && npm run validate:assets && npm run validate:okf && npm run validate:ste && npm run validate:features && npm run check:types && npm run check:bundle && npm run check:runtime",
     "smoke:act:self-test": "bun run packages/accord-ci/src/smoke-act.ts pull_request -W .github/workflows/test-autopipeline.yml",
     "smoke:act:autopipeline": "bun run packages/accord-ci/src/smoke-act.ts workflow_dispatch -W .github/workflows/autopipeline-smoke.yml --input ticket=DEMO-1 --input dry_run=true --secret-file .env.smoke",
     "smoke:gh:autopipeline": "bash scripts/smoke-gh-autopipeline.sh"

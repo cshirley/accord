@@ -11,6 +11,8 @@ export {
   planDriveStatus,
   runDriveWorkflow,
 } from "./drive.js";
+export { runEvidenceCommand } from "./evidence.js";
+export { runFeatureCommand } from "./feature.js";
 export { type FinishCommandResult, runFinishCommand } from "./finish.js";
 export { runGapsCommand } from "./gaps.js";
 export { accordHelpText, runDevHelpCommand } from "./help.js";
@@ -22,6 +24,7 @@ export { runRetroCommand } from "./retro.js";
 export { runReviewCommand } from "./review.js";
 export { runDriveCommand, runRunCommand } from "./run.js";
 export { runSpecGapsCommand } from "./spec-gaps.js";
+export { runStackCommand } from "./stack.js";
 export { runSubcommandCommand, type SubcommandCommandResult } from "./subcommand.js";
 export { runTagCommand } from "./tag.js";
 export { runTaskReseedCommand } from "./task-reseed.js";

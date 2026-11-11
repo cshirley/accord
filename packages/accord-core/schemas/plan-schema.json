@@ -91,6 +91,21 @@
               "minimum": 1
             }
           },
+          "est_lines": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "concern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "flag": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": ["feature", "refactor", "schema", "interface", "enable"]
+          },
           "files": {
             "type": "array",
             "minItems": 1,

@@ -15,6 +15,15 @@ sources:
   - id: config-doc
     resource: /docs/configuration.md
     title: Project configuration
+  - id: stack-overrun
+    resource: /packages/accord-core/src/stack/overrun.ts
+    title: Overrun check after GREEN
+  - id: stack-depth
+    resource: /packages/accord-core/src/stack/depth.ts
+    title: Depth cap and flag validation
+  - id: merge-bottom-up
+    resource: /packages/accord-core/src/stack/merge-bottom-up.ts
+    title: advanceStack (bottom-up merge)
   - id: decide
     resource: /packages/accord-core/src/tasks/decide.ts
     title: Loop decisions from the findings ledger
@@ -32,6 +41,7 @@ All keys live under `orchestration` in the Dev Harness block (project) or global
 | `max_unblocks_per_task` | `1` | `/dev unblock` resets allowed per task, ever |
 | `max_lifetime_retries` | retries × (unblocks + 1) | Hard ceiling `/dev unblock` never resets |
 | `max_rgr_respawns` | `3` | `phase-code` → `phase-test` respawns (test_issue / touched tests) before block |
+| `review_security` | schema `advisory` | `severity_gate`: `advisory` (never gates), `warn`, `block`, `none`. With `stack.enabled` the effective default is `warn`. A gating finding is fixed in the next `C` round and uses the `code_review` retry counter. See [Stack configuration](/references/stack-config.md) |
 | `review_test`, `review_code` | — | Per-loop overrides (`severity_gate`, `max_retries`, `max_lifetime_retries`) |
 
 Findings persist under `requirements[].findings` on the task file ([Per-task file](/references/task-file.md)); counters are `control.retries.*`.
@@ -51,7 +61,20 @@ Findings persist under `requirements[].findings` on the task file ([Per-task fil
 | `max_retries` | `3` | Verify-fail → phase-code bounces (each a full code round) before the task blocks for a human |
 | `max_lifetime_retries` | retries × (unblocks + 1) | Never reset by unblock |
 
-review-security findings are always advisory (recorded, briefed, never gate).
+review-security gates only through `review_loop.review_security.severity_gate`; `suggestion` findings stay advisory.
+
+# Stack trunk hardening
+
+These rules apply only when `stack.enabled` is `true`. Design: [Evidence stack](/architecture/evidence-stack.md).
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `stack.sizing.max_depth` | `6` | Maximum open PRs in a `depends_on` chain. The next PR opens when its base merges |
+| `stack.require_flag` | `true` | Non-final tasks keep the feature unreachable. The last task enables it. A violation stops `stack submit` |
+| `stack.sizing.overrun_factor` | `1.5` | Limit of actual lines against `est_lines` |
+
+* **Overrun.** With `stack.commits: phase`, the harness measures the production and test lines of a task after GREEN (the `phase-code` commit). If the total is more than the limit, it raises the decision `overrun-task-<N>`. Answer it with a re-plan (`/dev amend-spec <ID> <reason> --replan`) or with `accept` and a reason.
+* **Bottom-up merge.** `advanceStack` finds each open task PR whose parent PR has merged. It merges `main` into the child branch and pushes without force. Then it retargets the PR with `gh pr edit <pr> --base main`. It never uses rebase, amend or force-push. An unresolved conflict raises a decision.
 
 # resume
 
@@ -64,7 +87,7 @@ review-security findings are always advisory (recorded, briefed, never gate).
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `on_task_done` | `true` | Every task that reaches `done` gets a commit: refresh `docs/dev/<ID>/trace.*`, stage task-scoped paths (`plan.tasks[].files[].path`, test files, changed files, `docs/dev/<ID>/`) ∩ `git status --untracked-files=all`, commit (empty commit when nothing remains); logs a `<round>/commit` entry. Done tasks without one are swept after every subagent result (core `processSubagentToolResult`, all hosts), so unblocked or failed-commit tasks are retried |
+| `on_task_done` | `true` | Every task that reaches `done` gets a commit: refresh `docs/dev/<ID>/trace.*`, stage task-scoped paths (`plan.tasks[].files[].path`, test files, changed files, `docs/dev/<ID>/`) ∩ `git status --untracked-files=all`, commit (empty commit when nothing remains); logs a `<round>/commit` entry. Done tasks without one are swept after every subagent result (core `processSubagentToolResult`, all hosts), so unblocked or failed-commit tasks are retried. With `stack.commits: "phase"` the sweep is skipped and the orchestrator commits each phase completion instead |
 | `on_finalize` | `true` | At closeout (`/dev finish`, `dev_finalize`): sweep uncommitted done tasks, refresh `trace.*` + `verify.md`, then commit `docs/dev/<ID>/` (`[<ID>] Closeout: …`) |
 
 # Other

@@ -15,6 +15,9 @@ sources:
   - id: gate
     resource: /packages/accord-core/src/orchestration/pending-decisions-gate.ts
     title: Pending-decisions gate
+  - id: overrun
+    resource: /packages/accord-core/src/stack/overrun.ts
+    title: Overrun decision (overrun-task-<N>)
   - id: answer
     resource: /packages/accord-core/src/queries/answer-decision.ts
     title: answer / dev_answer
@@ -24,6 +27,7 @@ sources:
 
 - Resume halts with pending questions, or `accord` exits `2` (stuck).
 - Pi notifies pending decisions at end of turn / status bar shows a count.
+- The decision `overrun-task-<N>` is pending. A task changed more lines than `stack.sizing.overrun_factor` allows.
 - Resume refuses to spawn `phase-test`, `phase-code`, `review-test`, `review-code`, `phase-verify-task` because of pending decisions.
 
 # Steps
@@ -58,6 +62,18 @@ user's answers). Hand-editing `.tasks/PROJ-1234.json` still works but is no long
 
 The checkpoint's `answered`/`pending` lists are a derived cache — editing `decisions[]` alone is
 enough.
+
+# Overrun decision
+
+The decision `overrun-task-<N>` has two options:
+
+1. Re-plan. Run `/dev amend-spec PROJ-1234 "<reason>" --replan`. The plan agent splits the task into smaller tasks.
+2. Accept. Answer with `accept` and a reason:
+
+   ```
+   /dev answer PROJ-1234 overrun-task-3 "accept: the extra lines are generated tables"
+   accord answer PROJ-1234 overrun-task-3 "accept: the extra lines are generated tables"
+   ```
 
 # Bypass
 

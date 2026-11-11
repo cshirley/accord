@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "contract-lock-schema.json",
+  "title": "ACCORD contract.lock.json",
+  "type": "object",
+  "required": ["schema_version", "work_item_id", "preceding_commit", "files"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "work_item_id": { "type": "string", "pattern": "^[A-Z]+(-[A-Z]+)*-\\d+$" },
+    "preceding_commit": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+    "amendments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["diff", "reason", "affected_acs", "stale_task_ids"],
+        "additionalProperties": false,
+        "properties": {
+          "diff": { "type": "string" },
+          "reason": { "type": "string", "minLength": 1 },
+          "affected_acs": { "type": "array", "items": { "type": "string" } },
+          "stale_task_ids": { "type": "array", "items": { "type": "integer" } },
+          "at": { "type": "string" }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 3,
+      "maxProperties": 3,
+      "propertyNames": { "pattern": "^docs/dev/[^/]+/(brief\\.md|spec\\.json|plan\\.json)$" },
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+      "allOf": [
+        { "not": { "patternProperties": { "/brief\\.md$": false } } },
+        { "not": { "patternProperties": { "/spec\\.json$": false } } },
+        { "not": { "patternProperties": { "/plan\\.json$": false } } }
+      ]
+    }
+  }
+}

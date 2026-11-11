@@ -68,6 +68,7 @@ function compileValidator(ajv: AjvCompatible, schemaPath: string, schema: unknow
 const SCHEMA_MAP: { match: RegExp; schema: string }[] = [
   { match: /(?:^|-)?spec\.json$/, schema: "spec-schema.json" },
   { match: /(?:^|-)?plan\.json$/, schema: "plan-schema.json" },
+  { match: /(?:^|-)?contract\.lock\.json$/, schema: "contract-lock-schema.json" },
   { match: /(?:^|-)?verify\.json$/, schema: "verify-schema.json" },
   { match: /(?:^|-)?workflow-cost\.json$/, schema: "workflow-cost-schema.json" },
   { match: /(?:^|-)?trace\.json$/, schema: "trace-schema.json" },

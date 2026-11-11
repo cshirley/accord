@@ -13,6 +13,7 @@ import {
 } from "../artifacts/trace-artifact.js";
 import { validateArtifact } from "../artifacts/validation.js";
 import { devPersistWorkflowCost } from "../artifacts/workflow-cost-artifact.js";
+import { normalizeAcId } from "../evidence/qualify-ac.js";
 import { err, ok, type Result } from "../types/result.js";
 import { loadWorkItem, readJson } from "../work-items/io.js";
 
@@ -44,15 +45,15 @@ export function findVerifyTraceDiscrepancies(
 ): string[] {
   if (!trace || trace.tasks.length === 0) return [];
   const out: string[] = [];
-  const traceByAc = new Map(trace.acceptance.map((entry) => [entry.ac_id, entry]));
+  const traceByAc = new Map(trace.acceptance.map((entry) => [normalizeAcId(entry.ac_id), entry]));
   const verifyIds = new Set<string>();
 
   for (const criterion of criteria) {
     const row = criterion as Record<string, unknown>;
     const acId = String(row.ac_id ?? row.id ?? "");
     if (!acId) continue;
-    verifyIds.add(acId);
-    const traced = traceByAc.get(acId);
+    verifyIds.add(normalizeAcId(acId));
+    const traced = traceByAc.get(normalizeAcId(acId));
     if (!traced) {
       if (row.status === "pass") {
         out.push(`${acId}: verify says pass, but no task requirement covers it in the trace.`);
@@ -66,7 +67,10 @@ export function findVerifyTraceDiscrepancies(
     }
   }
   for (const entry of trace.acceptance) {
-    if (entry.ac_id.startsWith("AC-") && !verifyIds.has(entry.ac_id)) {
+    if (
+      normalizeAcId(entry.ac_id).startsWith("AC-") &&
+      !verifyIds.has(normalizeAcId(entry.ac_id))
+    ) {
       out.push(`${entry.ac_id}: covered by the trace but missing from verify.json.`);
     }
   }
@@ -153,7 +157,9 @@ function renderTraceSections(trace: WorkItemTrace | null, discrepancies: string[
 }
 
 function renderAcTrace(trace: WorkItemTrace | null, acId: string): string[] {
-  const entry = trace?.acceptance.find((candidate) => candidate.ac_id === acId);
+  const entry = trace?.acceptance.find(
+    (candidate) => normalizeAcId(candidate.ac_id) === normalizeAcId(acId),
+  );
   if (!trace) return [];
   if (!entry) return ["Implementation: no task requirement covers this AC in the trace.", ""];
   const lines = [

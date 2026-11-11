@@ -45,6 +45,9 @@ Requires AGENTS.md with a `## Dev Harness` block (`accord init --write` creates 
 | `gaps`, `spec-gaps`, `deviations`, `rehydrate`, `retro`, `tag` | Same as `/dev` equivalents |
 | `init [--json] [--write [--target local\|root\|root_replace\|link_only]]` | Stack detect + AGENTS.md write |
 | `config init [--write] [--force] [--harness <id>] [-y]` | Generate `~/.config/accord/accord.json` |
+| `evidence <ID> [task-<N>] [--format md\|tsv]` | Print the commit timeline of a work item or one task, from the `Accord:` trailers (default `md`) |
+| `stack [sync\|submit\|report] <ID>` | Print the computed PR stack table (`sync` refreshes it from provider state, `submit` creates or updates the stacked PRs, `report` renders the per-PR roll-up from trailers); same output as the `dev_stack*` tools. Needs `stack.enabled` |
+| `feature find <query\|path> [--depth index\|feature\|change\|evidence]` \| `feature impact <ID>` \| `feature init` | Query the feature knowledge index: `find` matches a query or code path, `impact` lists features a work item plan touches, `init` creates an empty index (never scans). Output equals the `dev_feature_find` and `dev_feature_impact` tools; `--json` prints their details. Needs `knowledge.enabled` |
 | `review [--json]` | Standalone diff review (`review-code`, `review-security`, optional `review-test`) |
 
 Naming trap: `accord plan resume X` = preview; `accord plan X` = spawn `phase-plan`.

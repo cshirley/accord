@@ -12,6 +12,9 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { loadDevHarnessConfig } from "../config/agents-md.js";
+import { resolveStackConfig } from "../config/stack-flags.js";
+import { normalizeAcId, qualifyAcRef } from "../evidence/qualify-ac.js";
 import { parseRef, parseRound, refActor } from "../tasks/model.js";
 import { loadTaskResult, readTaskSidecar, sidecarName } from "../tasks/store.js";
 import type {
@@ -79,6 +82,8 @@ export interface TraceTask {
   red_evidence: TraceExcerpt | null;
   final_verification: TraceExcerpt | null;
   quick_fix_contract?: QuickFixContract;
+  /** Planned vs actual size; present once the post-GREEN overrun check has measured the task. */
+  size?: { est_lines: number; act_prod_lines: number; act_test_lines: number };
   requirements: TraceRequirement[];
 }
 
@@ -359,8 +364,10 @@ function rollupAcceptance(
       (taskEntry) => taskEntry.status === "satisfied" || taskEntry.status === "waived",
     );
   }
-  const order = (id: string) =>
-    id.startsWith("AC-") ? Number(id.slice(3)) : Number.MAX_SAFE_INTEGER;
+  const order = (id: string) => {
+    const bare = normalizeAcId(id);
+    return bare.startsWith("AC-") ? Number(bare.slice(3)) : Number.MAX_SAFE_INTEGER;
+  };
   return [...byAc.values()].sort((a, b) => order(a.ac_id) - order(b.ac_id));
 }
 
@@ -380,6 +387,25 @@ export function listWorkItemTaskIds(workItemId: string, wi: WorkItem | null): nu
   return [...ids].sort((a, b) => a - b);
 }
 
+function readTaskSize(workItemId: string, taskId: number): TraceTask["size"] | undefined {
+  const raw = readTaskSidecar(workItemId, taskId, "size.json");
+  if (raw === null) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const { est_lines, act_prod_lines, act_test_lines } = parsed;
+    if (
+      typeof est_lines === "number" &&
+      typeof act_prod_lines === "number" &&
+      typeof act_test_lines === "number"
+    ) {
+      return { est_lines, act_prod_lines, act_test_lines };
+    }
+  } catch {
+    // ignore malformed sidecar
+  }
+  return undefined;
+}
+
 /** Build the trace from `.tasks/` without writing it. */
 export function buildWorkItemTrace(
   workItemId: string,
@@ -391,10 +417,20 @@ export function buildWorkItemTrace(
   const tasks: TraceTask[] = [];
   const risks: TraceRisk[] = [];
   const sources = new Map<number, Array<{ id: string; text: string; tests: string[] }>>();
+  const qualify = resolveStackConfig(loadDevHarnessConfig()).enabled;
   for (const taskId of listWorkItemTaskIds(workItemId, wi)) {
     const loaded = loadTaskResult(workItemId, taskId);
     if (loaded.kind !== "ok") continue;
     const projected = projectTask(loaded.task);
+    if (qualify) {
+      const q = (id: string) =>
+        ACCEPTANCE_ID.test(id) && id !== "QF" ? qualifyAcRef(workItemId, id) : id;
+      for (const req of projected.task.requirements) req.id = q(req.id);
+      for (const risk of projected.risks) risk.requirement = q(risk.requirement);
+      for (const source of projected.acceptance) source.id = q(source.id);
+    }
+    const size = readTaskSize(workItemId, taskId);
+    if (size) projected.task.size = size;
     tasks.push(projected.task);
     risks.push(...projected.risks);
     sources.set(projected.task.id, projected.acceptance);

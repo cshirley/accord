@@ -4,6 +4,8 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
+import { resolveKnowledgeConfig } from "../config/stack-flags.js";
+import { loadFeatureDocs } from "../knowledge/feature-doc.js";
 import { resolveActivePrimaryTaskId } from "../orchestration/post-result/primary-task.js";
 import type { PlanTaskStep } from "../plan/task-pipeline-profile.js";
 import { TEST_KINDS } from "../tasks/model.js";
@@ -515,6 +517,44 @@ function agentPayloadForSpawn(
   return base;
 }
 
+const REVIEW_INVARIANT_AGENTS: ReadonlySet<string> = new Set([
+  "review-code",
+  "review-security",
+  "review-test",
+]);
+
+/** Impacted feature docs as review invariants; empty when knowledge is off or no feature is anchored. */
+export function formatImpactedFeaturesSection(
+  slice: TaskRequirementsSlice,
+  config: DevHarnessConfig | null,
+  repoRoot: string = process.cwd(),
+): string {
+  const knowledge = resolveKnowledgeConfig(config);
+  if (!knowledge.enabled) return "";
+  const files = slice.task.files;
+  if (!Array.isArray(files)) return "";
+  const touched = new Set(
+    files
+      .map((file) => (file as { path?: unknown } | null)?.path)
+      .filter((path): path is string => typeof path === "string")
+      .map((path) => path.replace(/\\/g, "/").replace(/^(\.\/)+/, "")),
+  );
+  const impacted = loadFeatureDocs(repoRoot, knowledge.root).filter((doc) =>
+    doc.anchors.code.some((anchor) => touched.has(anchor.replace(/^(\.\/)+/, ""))),
+  );
+  if (impacted.length === 0) return "";
+  const lines = [
+    "### Impacted features",
+    "",
+    "Treat the acceptance criteria of these feature docs as invariants. A regression against an existing feature AC is a finding.",
+  ];
+  for (const doc of impacted) {
+    lines.push("", `#### ${doc.id} — ${doc.title}`);
+    for (const ac of doc.acs) lines.push(`- **${ac.id}**: ${ac.text}`);
+  }
+  return lines.join("\n");
+}
+
 export function formatImplementSpawnTaskBrief(input: {
   agent: string;
   pattern: string;
@@ -561,6 +601,17 @@ export function formatImplementSpawnTaskBrief(input: {
     "Return the structured result packet required by your agent contract.",
   ];
   return lines.join("\n");
+}
+
+function withImpactedFeatures(
+  agent: string,
+  slice: TaskRequirementsSlice,
+  config: DevHarnessConfig | null,
+  brief: string,
+): string {
+  if (!REVIEW_INVARIANT_AGENTS.has(agent)) return brief;
+  const section = formatImpactedFeaturesSection(slice, config);
+  return section ? `${brief}\n\n${section}` : brief;
 }
 
 /**
@@ -618,20 +669,46 @@ export function buildImplementSpawnTaskBrief(input: {
         ? "quick_fix_contract.test.strategy is no_test — review scope, stubs, and contract only (no new test files)."
         : undefined;
     return ok(
-      formatImplementSpawnTaskBrief({
-        agent: input.dispatchAgent,
-        pattern: input.pattern,
-        phase: input.phase,
-        title: input.title,
-        variant: input.variant,
+      withImpactedFeatures(
+        input.dispatchAgent,
         slice,
-        preImplNote,
-      }),
+        input.devConfig,
+        formatImplementSpawnTaskBrief({
+          agent: input.dispatchAgent,
+          pattern: input.pattern,
+          phase: input.phase,
+          title: input.title,
+          variant: input.variant,
+          slice,
+          preImplNote,
+        }),
+      ),
     );
   }
 
   if (input.dispatchAgent === "review-security") {
     return ok(
+      withImpactedFeatures(
+        input.dispatchAgent,
+        slice,
+        input.devConfig,
+        formatImplementSpawnTaskBrief({
+          agent: input.dispatchAgent,
+          pattern: input.pattern,
+          phase: input.phase,
+          title: input.title,
+          variant: input.variant,
+          slice,
+        }),
+      ),
+    );
+  }
+
+  return ok(
+    withImpactedFeatures(
+      input.dispatchAgent,
+      slice,
+      input.devConfig,
       formatImplementSpawnTaskBrief({
         agent: input.dispatchAgent,
         pattern: input.pattern,
@@ -640,17 +717,6 @@ export function buildImplementSpawnTaskBrief(input: {
         variant: input.variant,
         slice,
       }),
-    );
-  }
-
-  return ok(
-    formatImplementSpawnTaskBrief({
-      agent: input.dispatchAgent,
-      pattern: input.pattern,
-      phase: input.phase,
-      title: input.title,
-      variant: input.variant,
-      slice,
-    }),
+    ),
   );
 }

@@ -282,6 +282,22 @@ Example — disable per-task commits (e.g. when you prefer manual `/commit`):
 }
 ```
 
+## Evidence stack (`stack`, proposed)
+
+Top-level `stack` key in `accord.json` (global or project block). Splits a work item into a contract PR, size-bounded task PRs, and a closeout PR, with typed red/green/review commits. Validates against the schema today; the harness does not read it yet. Keys and defaults: [`okf/references/stack-config.md`](../okf/references/stack-config.md). Design: [`docs/plans/evidence-stack-plan.md`](plans/evidence-stack-plan.md).
+
+```json
+"stack": { "enabled": true, "provider": "gh", "commits": "phase", "evidence": { "asset": true }, "state": { "persist": "tree" }, "sizing": { "max_pr_lines": 400, "max_depth": 6 } }
+```
+
+## Feature knowledge (`knowledge`, proposed)
+
+Top-level `knowledge` key in `accord.json`. A living, feature-keyed layer (`docs/features/` by default) beside the ticket-keyed change record `docs/dev/<ID>/`, used for discovery and cross-referencing new changes against old. Validates against the schema today; the harness does not read it yet. Keys: [`okf/references/knowledge-config.md`](../okf/references/knowledge-config.md). Design: [`docs/plans/evidence-stack-plan.md`](plans/evidence-stack-plan.md).
+
+```json
+"knowledge": { "enabled": true, "root": "docs/features", "drift_check": "warn" }
+```
+
 ## Supported stacks
 
 | Language | Marker | Test | Type check | Lint |

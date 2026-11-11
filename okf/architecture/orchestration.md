@@ -49,7 +49,7 @@ and leaves only local handlers and in-session tools — not recommended.
 | `pending-decisions-gate.ts` | Blocks implementation agents while `decisions[]` has pending entries |
 | `test-red-classification.ts` | Detects import-only RED in `phase-test` output and bounces back without spending a `review-test` spawn |
 | `judgment.ts` | Optional bounded LLM supplement (Pi only); validated against `orchestration-judgment-packet.json`, cannot carry routing fields |
-| `commit-on-task-done.ts` | Per-task commit for every `done` task (swept after each subagent result by core `processSubagentToolResult`, all hosts) and the closeout commit of `docs/dev/<ID>/` |
+| `commit-on-task-done.ts` | Per-task commit for every `done` task (swept after each subagent result by core `processSubagentToolResult`, all hosts; skipped when `stack.commits` is `"phase"`, where `commit/phase-commit.ts` commits each phase instead) and the closeout commit of `docs/dev/<ID>/` |
 | `graph.ts`, `guards.ts`, `interpreter.ts` | Declarative graph + guard registry; reference graph validated in CI |
 
 # Host ports

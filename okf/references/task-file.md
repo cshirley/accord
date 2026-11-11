@@ -55,7 +55,7 @@ harness decisions; a re-run in the same round gets a `.2` suffix.
 | Loop | Fixer | Reviewers | Retry counter | Exit |
 |------|-------|-----------|---------------|------|
 | T | phase-test | review-test | `test_review` | no gating → open `C` |
-| C | phase-code | review-security (advisory) → review-code | `code_review` | no gating → open `V` (or `done` when `verify_loop.enabled: false`) |
+| C | phase-code | review-security (gate: severity_gate) → review-code | `code_review` | no gating → open `V` (or `done` when `verify_loop.enabled: false`) |
 | RGR | phase-test (new `T`) | review-test | `rgr` | back to a new `C` |
 | V | phase-verify-task | — (fail → full `C` round) | `verify` | all ACs pass → `done` |
 
@@ -68,8 +68,8 @@ harness decisions; a re-run in the same round gets a `.2` suffix.
 - Lifecycle: `open` → `addressed` (fixer `fixed`) → `verified` | `reraised`; `disputed` →
   `dispute_upheld` | `reraised`; `wont_fix_proposed` → `wont_fix_accepted` (reviewer or human);
   `waived` (human). A reviewer silently not re-raising an addressed/disputed finding closes it.
-- Gating = `open | reraised | disputed | wont_fix_proposed`, non-advisory. Below-gate findings and
-  all review-security findings are `advisory` (shown, never block).
+- Gating = `open | reraised | disputed | wont_fix_proposed`, non-advisory. Below-gate findings are
+  `advisory` (shown, never block); review-security gates per `severity_gate`.
 - Requirement `status`: `pending → covered → open → implemented → satisfied` (`satisfied` only
   from phase-verify-task `evidence[]`), or `waived`.
 
