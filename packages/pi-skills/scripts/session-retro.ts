@@ -84,6 +84,10 @@ let sessionsWithDev = 0;
 let sessionsWithSubagent = 0;
 let sessionsWithWt = 0;
 let rgBashInvocations = 0;
+let cdPrefixBash = 0;
+const costByProject: Record<string, number> = {};
+const costByModel: Record<string, number> = {};
+const longSessions: Array<[string, number, number]> = [];
 
 const INTENT: Array<[string, RegExp]> = [
   ["fix", /\b(fix|broken|bug|failing)\b/i],
@@ -100,9 +104,12 @@ for (const file of files) {
   let hadSubagent = false;
   let hadWt = false;
   let sessionCost = 0;
+  let assistantTurns = 0;
+  let model = "unknown";
 
   for (const line of (await readFile(file, "utf8")).split("\n").filter(Boolean)) {
     const event = JSON.parse(line);
+    if (event.type === "model_change" && event.modelId) model = String(event.modelId);
     if (event.type !== "message" || !event.message) continue;
     const message = event.message;
 
@@ -116,7 +123,12 @@ for (const file of files) {
     }
 
     if (message.role === "assistant") {
-      if (message.usage?.cost?.total) sessionCost += message.usage.cost.total;
+      assistantTurns += 1;
+      const turnCost = Number(message.usage?.cost?.total ?? 0);
+      if (turnCost) {
+        sessionCost += turnCost;
+        costByModel[model] = (costByModel[model] ?? 0) + turnCost;
+      }
       if (!Array.isArray(message.content)) continue;
       for (const part of message.content) {
         if (part?.type !== "toolCall") continue;
@@ -129,6 +141,7 @@ for (const file of files) {
         if (name === "bash" && part.arguments?.command) {
           const command = String(part.arguments.command).trim();
           if (/^rg\b/.test(command)) rgBashInvocations += 1;
+          if (/^cd\s+\S+\s*(&&|;)/.test(command)) cdPrefixBash += 1;
           const prefix = command.split(/\s+/).slice(0, 2).join(" ");
           inc(bashPrefixes, prefix.slice(0, 50));
         }
@@ -144,6 +157,13 @@ for (const file of files) {
   }
 
   totalCost += sessionCost;
+  costByProject[projectFromPath(file)] = (costByProject[projectFromPath(file)] ?? 0) + sessionCost;
+  if (assistantTurns > 200)
+    longSessions.push([
+      file.split("/").pop() ?? file,
+      assistantTurns,
+      Math.round(sessionCost * 100) / 100,
+    ]);
   if (hadDev) sessionsWithDev += 1;
   if (hadSubagent) sessionsWithSubagent += 1;
   if (hadWt) sessionsWithWt += 1;
@@ -167,6 +187,11 @@ const report = {
   intentSignals: top(intentSignals, 10),
   topBashPrefixes: top(bashPrefixes, 15),
   rgBashInvocations,
+  cdPrefixBash,
+  costByProject: top(costByProject, 8).map(([k, v]) => [k, Math.round(v)]),
+  costByModel: top(costByModel, 8).map(([k, v]) => [k, Math.round(v)]),
+  longSessionCount: longSessions.length,
+  longSessions: longSessions.sort((a, b) => b[2] - a[2]).slice(0, 8),
   suggestions: [
     (toolCounts.bash ?? 0) > 500 && (toolErrors.bash ?? 0) / (toolCounts.bash ?? 1) > 0.12
       ? "High bash error rate — triage failed rg/cd/gh (pi.dev prefers rg in bash; do not push read/grep tool over rg)"
@@ -179,6 +204,12 @@ const report = {
       : null,
     sessionsWithWt < files.length * 0.05
       ? "Low wt_* usage — use /worktree + git_worktree_resolve"
+      : null,
+    (toolCounts.bash ?? 0) > 200 && cdPrefixBash / (toolCounts.bash ?? 1) > 0.3
+      ? "Most bash calls start with `cd <dir> &&` — prefer absolute paths, git -C, bun --cwd, or wt_exec"
+      : null,
+    longSessions.length > 5
+      ? `${longSessions.length} sessions over 200 turns — compact or start a fresh session per phase`
       : null,
     (bashPrefixes["gh run"] ?? 0) + (bashPrefixes["gh pr checks"] ?? 0) > 10
       ? "Repeated gh CI commands — use gh_ci_context + /ci-debug"
@@ -194,6 +225,9 @@ if (args.json) {
     `Turns: ${report.totalUserTurns}  Tools: ${report.totalToolCalls}  ~$${report.estimatedCostUsd}  dev/subagent/wt sessions: ${report.sessionsWithDev}/${report.sessionsWithSubagent}/${report.sessionsWithWt}\n`,
   );
   console.log("Top tools:", report.topTools.map(([k, v]) => `${k}(${v})`).join(", "));
+  console.log("\nCost by model:", report.costByModel.map(([k, v]) => `${k} $${v}`).join(", "));
+  console.log("Cost by project:", report.costByProject.map(([k, v]) => `${k} $${v}`).join(", "));
+  console.log(`Long sessions (>200 turns): ${report.longSessionCount}`);
   console.log("\nSuggestions:");
   for (const line of report.suggestions) console.log(`  - ${line}`);
 }
