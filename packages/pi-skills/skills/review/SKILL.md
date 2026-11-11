@@ -190,6 +190,30 @@ Address **Critical** first, then warnings. Agent `findings[]` order is advisory;
 
 **Agent failures** (`exitCode !== 0`, parse errors): treat that agent as incomplete; do not assume “clean” for that dimension. Re-spawn failed agent or narrow scope if user asks.
 
+### Record the review
+
+The mark must describe what was actually reviewed, so capture it in two steps (paths relative to
+this skill, same worktree as the diff):
+
+1. **At diff capture (Step 1)**, right after `git_review_context`:
+   `../verify/scripts/green.sh fingerprint` (absolute path, shell in the reviewed worktree root). **Write the printed 40- or 64-character hex hash down**: shell variables may not survive between tool calls, and `mark` rejects an empty or blank `--tree`. Edits made while the reviewers run then make the
+   mark stale instead of being attested.
+2. **After the report**, when **every** reviewer agent completed (no agent failures):
+
+   ```bash
+   ../verify/scripts/green.sh mark review --tree <hash from step 1> --source <local|branch> --critical <N>
+   ```
+
+   - `--source` is `details.source`. A `local` review covers only uncommitted changes, so
+     `check review` fails while the branch has commits ahead of `origin/HEAD`. Re-run on a clean tree
+     (`branch`) to cover them.
+   - `--source` and `--critical` are both required (`mark review` exits 64 without them). `--critical` is the number of Critical findings **still open**. `check review` fails while it is
+     above 0. If the user accepts the risk, add `--accepted '<reason>'` (their words, plus a ticket if
+     any). Never add it on your own. **Single-quote user text** and write an embedded `'` as `'\''`; never put it inside double quotes, where `$(…)` and backticks run.
+
+Mark even when Warnings or Suggestions remain: the mark means "reviewed with this outcome", not
+"clean". Do not mark when an agent failed. After fixes, run `/review` again to refresh the mark.
+
 ### Suggested next steps (do not auto-run)
 
 1. Fix findings → stage if pre-commit → `/review` again (confirm `source` still matches intent).

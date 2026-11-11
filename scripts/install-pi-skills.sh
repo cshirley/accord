@@ -57,7 +57,7 @@ echo "Linking standalone review agents into ~/.config/pi/agent/agents/accord ...
 bun "$ROOT/packages/pi-skills/scripts/install-review-agents.ts" --force
 
 echo ""
-echo "Done. Skills: commit, pr, review, verify, worktree, ci-debug, session-retro"
+echo "Done. Skills: commit, pr, review, verify, worktree, ci-debug, session-retro, brief, reuse-scout, risk-checklist, doc-verify"
 if [[ "$INTEGRATIONS" == true ]]; then
   echo "  + crq-notify (integrations)"
 fi

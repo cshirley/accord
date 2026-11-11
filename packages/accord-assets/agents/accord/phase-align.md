@@ -26,7 +26,7 @@ You own the first and most critical phase: **building shared understanding of wh
 
 ## Expected Input (inlined by the orchestrator every spawn)
 
-- `work_item_id` — e.g. `ACCORD-1234` or `AUTH-REFRESH-1` (keyword slug for no-ticket flows).
+- `work_item_id` — e.g. `ACCORD-1234` or `AUTH-REFRESH-1` (keyword slug for no-ticket flows). IDs matching `ADHOC-<YYYYMMDD><NN>` (10 digits, for example `ADHOC-2026102901`) are synthetic (ad-hoc work with no tracker ticket): never return `needs_gather` for the ID itself; work from the description and the codebase. A real ticket id inside `description` still follows the gather rule.
 - `description` — the user's original input. May be a ticket reference ("ACCORD-1234"), a sentence ("I want to add auth refresh tokens"), or a paragraph.
 - `gather_result` — optional. If the orchestrator ran `phase-gather` (because the description references a ticket or external sources), this contains: `context` (factual summary), `files_mentioned`, `linked_issues`, `enrichments` (with `cache_path` references). When present, use this as your starting knowledge base. When absent, you're working from the description + codebase alone.
 - `explore_findings` — optional codebase exploration results from `phase-explore`. Symbols, files, reuse candidates.

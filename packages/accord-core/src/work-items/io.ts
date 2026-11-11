@@ -24,6 +24,9 @@ export const TASKS_DIR = ".tasks";
 /** Canonical pattern for work item IDs (e.g. ACCORD-1234, MY_TEAM_123, MYTEAM_42, MY-TEAM-123). */
 export const WORK_ITEM_ID_PATTERN = /[A-Z]+([_-][A-Z]+)*[_-]\d+/;
 
+/** Anchored form of {@link WORK_ITEM_ID_PATTERN}: the whole string is a work item id. */
+export const WORK_ITEM_ID_EXACT = new RegExp(`^${WORK_ITEM_ID_PATTERN.source}$`);
+
 /** Matches a `.tasks/<ID>.json` filename. */
 export const WORK_ITEM_FILE_PATTERN = /^[A-Z]+([_-][A-Z]+)*[_-]\d+\.json$/;
 

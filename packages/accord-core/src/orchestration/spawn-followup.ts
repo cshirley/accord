@@ -3,7 +3,14 @@
  */
 
 import type { DevHarnessConfig } from "../config/index.js";
-import { loadWorkItem, mutateJson, now, workItemJsonPath } from "../work-items/io.js";
+import {
+  loadWorkItem,
+  mutateJson,
+  now,
+  WORK_ITEM_ID_EXACT,
+  workItemJsonPath,
+} from "../work-items/io.js";
+import { isSyntheticWorkItemId } from "../work-items/synthetic.js";
 import type { WorkItem } from "../work-items/types.js";
 import type { OrchestrationRuntimeHost } from "./host.js";
 import { maxGatherAttemptsFromDevConfig } from "./policy.js";
@@ -44,9 +51,31 @@ function parseGatherHint(parsedReturn: unknown): AlignGatherHint | undefined {
   return { ticket_id, reason };
 }
 
+/**
+ * True when an align `gather_hint` names a real tracker ticket. Only a well-formed id counts;
+ * filler such as "none" or "N/A", and synthetic ad-hoc ids, do not.
+ */
+function hintNamesRealTicket(hint: AlignGatherHint | undefined): boolean {
+  const ticket = hint?.ticket_id?.trim();
+  return !!ticket && WORK_ITEM_ID_EXACT.test(ticket) && !isSyntheticWorkItemId(ticket);
+}
+
+/** Notice shown when the gather budget is exhausted and the escalation was raised. */
+export function gatherEscalationNotice(workItemId: string): string {
+  return isSyntheticWorkItemId(workItemId)
+    ? `Align kept asking for external context for ad-hoc item ${workItemId} (no tracker ticket) — escalated to decisions[]. Answer it, then resume.`
+    : `phase-gather budget exhausted for ${workItemId} — escalated to decisions[]. Answer it, then resume.`;
+}
+
 export interface SpawnFollowUpPlan {
   agent: string;
   task: string;
+  /**
+   * True when this follow-up replaces a gather the harness chose not to run (synthetic id). It
+   * still spends the persisted gather budget so a looping align cannot respawn forever and the
+   * cap escalates to a human via `escalateGatherCapIfExhausted`.
+   */
+  consumesGatherBudget?: boolean;
 }
 
 export interface PlanSpawnFollowUpInput {
@@ -72,6 +101,28 @@ export function planSpawnFollowUp(input: PlanSpawnFollowUpInput): SpawnFollowUpP
   const status = extractReturnStatus(input.parsedReturn);
 
   if (input.agent === "phase-align" && status === "needs_gather") {
+    // A synthetic ADHOC id is not a tracker ticket: skip the lookup and re-run align without it.
+    // A real ticket named in the hint (e.g. "fix CLD-4639 timeout") still gathers.
+    if (
+      isSyntheticWorkItemId(input.workItemId) &&
+      !hintNamesRealTicket(parseGatherHint(input.parsedReturn))
+    ) {
+      return {
+        agent: "phase-align",
+        consumesGatherBudget: true,
+        task: buildAlignSpawnTask({
+          workItemId: input.workItemId,
+          title: input.title,
+          pattern: input.pattern,
+          variant: input.variant,
+          devConfig: input.devConfig,
+          gatherResult: {
+            status: "done",
+            context: `No external context: ${input.workItemId} is a synthetic ad-hoc work item, not a tracker ticket. Work from the description and the codebase.`,
+          },
+        }),
+      };
+    }
     return {
       agent: "phase-gather",
       task: buildGatherSpawnTask(
@@ -159,12 +210,18 @@ export function escalateGatherCapIfExhausted(
 
   const max = maxGatherAttemptsFromDevConfig(devConfig);
   const hint = parseGatherHint(lastSpawn.parsedReturn);
+  // Synthetic wording only when no tracker lookup ran: a real ticket named in the hint does gather.
+  const synthetic = isSyntheticWorkItemId(workItemId) && !hintNamesRealTicket(hint);
   applyStuckPostResult(workItemId, "phase-align", {
     status: "stuck",
-    question: `phase-align still needs more context after ${String(max)} phase-gather attempt(s). What additional context, source, or decision should alignment use?`,
+    question: synthetic
+      ? `phase-align kept asking for external context after ${String(max)} re-run(s), but ${workItemId} is an ad-hoc item with no tracker ticket to fetch. What context, source, or decision should alignment use?`
+      : `phase-align still needs more context after ${String(max)} phase-gather attempt(s). What additional context, source, or decision should alignment use?`,
     context:
       hint?.reason ?? "phase-align returned needs_gather again after the gather budget was spent.",
-    tried: `${String(max)} phase-gather spawn(s)${hint?.ticket_id ? ` for ${hint.ticket_id}` : ""}`,
+    tried: synthetic
+      ? `${String(max)} align re-run(s) without a tracker lookup (synthetic id)`
+      : `${String(max)} gather attempt(s)${hint?.ticket_id ? ` for ${hint.ticket_id}` : ""}`,
   });
   mutateJson<WorkItem>(workItemJsonPath(workItemId), (wi) => {
     if (!wi) return undefined;
@@ -220,7 +277,7 @@ export async function runSpawnFollowUpChain(
       break;
     }
 
-    if (plan.agent === "phase-gather") {
+    if (plan.agent === "phase-gather" || plan.consumesGatherBudget) {
       // Persisted budget: an align↔gather cycle must stop across resumes / drive rounds too.
       if (gatherCapReached(input.workItemId, input.devConfig)) {
         break;

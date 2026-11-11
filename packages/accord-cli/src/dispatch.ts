@@ -7,6 +7,7 @@ import type { ParsedCli } from "./cli.js";
 import {
   runAnswerCommand,
   runBlockCommand,
+  runBootstrapCommand,
   runCompletionCommand,
   runConfigInitCommand,
   runDevHelpCommand,
@@ -72,6 +73,10 @@ export async function executeParsed(parsed: ParsedCli): Promise<number> {
 
   if (parsed.kind === "retro") {
     return runRetroCommand({ json: parsed.options.json });
+  }
+
+  if (parsed.kind === "bootstrap") {
+    return runBootstrapCommand(parsed.args, { json: parsed.options.json });
   }
 
   if (parsed.kind === "tag") {

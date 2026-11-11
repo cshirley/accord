@@ -24,6 +24,12 @@ PR flow uses **Pi tools from `pi-git`**, not shell `git push`/`gh pr` and not `a
 
 ## Process
 
+0. **Gates** (shell in the PR's worktree root; script paths are relative to this `SKILL.md`, call them by absolute path):
+   - `../verify/scripts/green.sh check` — exit 1 or 2: run the `verify` skill first.
+   - `../verify/scripts/green.sh check review` — exit 1 or 2: run the `review` skill first (it marks on completion). The check also fails when the last review left open **Critical** findings (unless the user accepted them: `mark review --source <local|branch> --critical <N> --accepted '<reason>'`. **Single-quote user text** and write an embedded `'` as `'\''`; never use double quotes, where `$(…)` and backticks run) and when a `local`-source review left commits ahead of `origin/HEAD` unreviewed. Read the message and follow it.
+   - Exit 4 (fingerprint failed) or 64 (usage error): stop, show stderr, do not proceed; skip only with the user's explicit approval.
+   - Exit 3 (not a git repo): the gate does not apply. Confirm with `git rev-parse --show-toplevel` in the intended directory; if that succeeds the directory is wrong, so fix it instead of skipping.
+   - **Skip** a gate only when the user explicitly says so. Record each skip and its reason in the PR body under `## Risks / notes`.
 1. Call `gh_pr_context` — gathers existing PR, branch/ticket, commits, diffstat, spec doc, verify report in one call
 2. Review response:
    - **ghAuth** false → tell user to run `gh auth login`, stop
@@ -33,6 +39,7 @@ PR flow uses **Pi tools from `pi-git`**, not shell `git push`/`gh pr` and not `a
 ### 3a. Update flow
 - Call `gh_pr_submit` with no title/body (push-only; sets upstream/tracking with `git push --set-upstream origin HEAD`)
 - Report: `Pushed to <branch>. PR #<number> updated: <url>`
+- Then run the **CI check** (below)
 
 ### 3b. Create flow
 - Draft **title**: `[TICKET-ID] short imperative summary` (≤70 chars)
@@ -41,6 +48,15 @@ PR flow uses **Pi tools from `pi-git`**, not shell `git push`/`gh pr` and not `a
 - Draft **body** using sections below, enriched from spec/verify when available
 - Call `gh_pr_submit` with title + body (sets upstream/tracking with `git push --set-upstream origin HEAD`)
 - Report new PR URL
+- Then run the **CI check** (below)
+
+### CI check (after every submit)
+
+Call `gh_ci_context` once after the push. Report each check as pass, fail or pending, with the failing job names.
+- **Fail:** hand off to the `ci-debug` skill. Do not call the PR ready.
+- **Pending:** say so. Zero checks registered yet, or no run for the pushed head SHA, also counts as pending (checks usually appear seconds after the push): re-check once after a short wait. Do not claim CI passed. Offer to wait and re-check (the `pr-babysit` skill, when it is installed).
+- **Passed:** report it.
+Never end the turn without reporting the CI state.
 
 ## PR Body Structure
 
@@ -58,6 +74,8 @@ PR flow uses **Pi tools from `pi-git`**, not shell `git push`/`gh pr` and not `a
 <Commands to verify. From spec if available.>
 
 ## Verification evidence
+Verify gate: <green at tree <hash> | skipped — reason>
+Review gate: <reviewed at tree <hash>, <n> critical / <n> warning open | skipped — reason>
 <If verify report: extract verdict, check results, AC table from report content.>
 <If no report:>
 ⚠️ No verification report — run `/dev finish <ID>` before merging.
@@ -70,6 +88,8 @@ PR flow uses **Pi tools from `pi-git`**, not shell `git push`/`gh pr` and not `a
 
 ## Rules
 
+- Never open or update a PR with a failing verify or review gate without an explicit, recorded skip
+- Gate only: no stack, retarget or `Accord:` evidence-section changes here; those belong to ASDLC-1 (`stack-compute`, `trunk-hardening`, `evidence-asset`)
 - Never force push
 - Never target a branch other than repo default unless user specifies
 - Push rejection → stop, tell user to pull/rebase. Do not force push.

@@ -5,6 +5,7 @@
 import path from "node:path";
 import { DEV_WORK_ITEM_ID_PATTERN } from "@clive.shirley/accord-core/commands/dispatch.js";
 import type { WriteTarget } from "@clive.shirley/accord-core/config/init-write.js";
+import { type BootstrapArgs, parseBootstrapArgs } from "./commands/bootstrap.js";
 import type { PlanCommand } from "./commands/plan.js";
 import { WORKFLOW_SUBCOMMANDS, type WorkflowSubcommand } from "./commands/workflow.js";
 import { renderHelp } from "./ui/help-display.js";
@@ -41,6 +42,7 @@ export type ParsedCli =
   | { kind: "tasks"; options: GlobalOptions }
   | { kind: "retro"; options: GlobalOptions }
   | { kind: "tag"; rawArgs: string; options: GlobalOptions }
+  | { kind: "bootstrap"; args: BootstrapArgs; options: GlobalOptions }
   | { kind: "rehydrate"; workItemId: string; options: GlobalOptions }
   | { kind: "spec-gaps"; workItemId: string; options: GlobalOptions }
   | {
@@ -112,6 +114,12 @@ function parseGlobalFlags(argv: string[]): { flags: GlobalOptions; rest: string[
 
   for (let index = 0; index < argv.length; index++) {
     const token = argv[index];
+    if (token === "--") {
+      // A bare `--` ends global flag parsing: the rest is passed through untouched (for example a
+      // `bootstrap` title that contains `--json` or `-h`).
+      rest.push(...argv.slice(index));
+      break;
+    }
     if (token === "--json") {
       flags.json = true;
     } else if (token === "-y" || token === "--yes") {
@@ -261,6 +269,14 @@ export function parseCli(argv: string[]): ParsedCli {
 
   if (command === "tag") {
     return { kind: "tag", rawArgs: tail.join(" "), options: flags };
+  }
+
+  if (command === "bootstrap") {
+    const parsedBootstrap = parseBootstrapArgs(tail);
+    if (!parsedBootstrap.ok) {
+      return { kind: "error", message: parsedBootstrap.message };
+    }
+    return { kind: "bootstrap", args: parsedBootstrap.args, options: flags };
   }
 
   if (command === "rehydrate") {

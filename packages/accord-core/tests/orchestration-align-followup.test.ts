@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -183,5 +183,209 @@ describe("align gather spawn follow-up", () => {
     expect(out.stalledReason).toBe("needs_input");
     expect(out.iterations).toBe(1);
     expect(out.lastRun.lastSpawn?.agent).toBe("phase-align");
+  });
+});
+
+describe("synthetic ADHOC work items", () => {
+  test("align needs_gather for ADHOC id re-runs align without tracker lookup", () => {
+    const plan = planSpawnFollowUp({
+      workItemId: "ADHOC-2026102901",
+      agent: "phase-align",
+      exitCode: 0,
+      parsedReturn: {
+        status: "needs_gather",
+        gather_hint: { ticket_id: "ADHOC-2026102901", reason: "ticket context required" },
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      },
+      phase: "aligning",
+      title: "add token refresh",
+      pattern: "implement",
+      devConfig: minimalDevConfig(),
+    });
+    expect(plan?.agent).toBe("phase-align");
+    expect(plan?.consumesGatherBudget).toBe(true);
+    expect(plan?.task).toContain("synthetic ad-hoc work item");
+    expect(plan?.task).not.toContain("phase-gather");
+  });
+
+  test("align needs_gather without a ticket hint also skips gather for an ADHOC id", () => {
+    const plan = planSpawnFollowUp({
+      workItemId: "ADHOC-2026102901",
+      agent: "phase-align",
+      exitCode: 0,
+      parsedReturn: {
+        status: "needs_gather",
+        gather_hint: { reason: "docs mentioned" },
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      },
+      phase: "aligning",
+      title: "t",
+      pattern: "implement",
+      devConfig: minimalDevConfig(),
+    });
+    expect(plan?.agent).toBe("phase-align");
+    expect(plan?.consumesGatherBudget).toBe(true);
+  });
+
+  test("filler hints such as none or N/A are not tickets and skip gather for an ADHOC id", () => {
+    for (const ticket_id of ["none", "N/A", "n/a", "TBD", ""]) {
+      const plan = planSpawnFollowUp({
+        workItemId: "ADHOC-2026102901",
+        agent: "phase-align",
+        exitCode: 0,
+        parsedReturn: {
+          status: "needs_gather",
+          gather_hint: { ticket_id, reason: "x" },
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        },
+        phase: "aligning",
+        title: "t",
+        pattern: "implement",
+        devConfig: minimalDevConfig(),
+      });
+      expect([ticket_id, plan?.agent]).toEqual([ticket_id, "phase-align"]);
+    }
+  });
+
+  test("a different well-formed synthetic id in the hint (even padded) is not a real ticket", () => {
+    for (const ticket_id of ["ADHOC-2026102801", " ADHOC-2026102801 "]) {
+      const plan = planSpawnFollowUp({
+        workItemId: "ADHOC-2026102901",
+        agent: "phase-align",
+        exitCode: 0,
+        parsedReturn: {
+          status: "needs_gather",
+          gather_hint: { ticket_id, reason: "x" },
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        },
+        phase: "aligning",
+        title: "t",
+        pattern: "implement",
+        devConfig: minimalDevConfig(),
+      });
+      expect([ticket_id, plan?.agent, plan?.consumesGatherBudget]).toEqual([
+        ticket_id,
+        "phase-align",
+        true,
+      ]);
+    }
+  });
+
+  test("a synthetic id whose align names a real ticket escalates with the gather wording", async () => {
+    writeWorkItem("ADHOC-2026102901", {
+      schema_version: "1.0",
+      id: "ADHOC-2026102901",
+      title: "fix STEP-123 timeout",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "aligning",
+      spec: null,
+      plan: null,
+      verify: null,
+      brief: null,
+      task_ids: [],
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    const host = {
+      notify: () => {},
+      spawnSubagent: async (input: { agent: string }) =>
+        input.agent === "phase-gather"
+          ? {
+              exitCode: 0,
+              parsedReturn: {
+                status: "done",
+                context: "c",
+                usage: { prompt_tokens: 1, completion_tokens: 1 },
+              },
+            }
+          : {
+              exitCode: 0,
+              parsedReturn: {
+                status: "needs_gather",
+                gather_hint: { ticket_id: "STEP-123", reason: "names a ticket" },
+                usage: { prompt_tokens: 1, completion_tokens: 1 },
+              },
+            },
+    };
+    const devConfig = { ...minimalDevConfig(), orchestration: { max_gather_attempts: 1 } };
+    const out = await runResumeOrchestrationWithReplans("ADHOC-2026102901", devConfig, host);
+    expect(out.stalledReason).toBe("stuck");
+    const saved = JSON.parse(readFileSync(join(".tasks", "ADHOC-2026102901.json"), "utf8"));
+    const text = JSON.stringify(saved.decisions[0]);
+    expect(text).toContain("phase-gather attempt");
+    expect(text).not.toContain("no tracker ticket");
+  });
+
+  test("a real ticket in the hint still gathers for an ADHOC work item", () => {
+    const plan = planSpawnFollowUp({
+      workItemId: "ADHOC-2026102901",
+      agent: "phase-align",
+      exitCode: 0,
+      parsedReturn: {
+        status: "needs_gather",
+        gather_hint: { ticket_id: "STEP-123", reason: "description names a ticket" },
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      },
+      phase: "aligning",
+      title: "fix STEP-123 timeout",
+      pattern: "implement",
+      devConfig: minimalDevConfig(),
+    });
+    expect(plan?.agent).toBe("phase-gather");
+    expect(plan?.task).toContain("STEP-123");
+    expect(plan?.consumesGatherBudget).toBeUndefined();
+  });
+
+  test("a looping ADHOC align spends the gather budget and escalates instead of respawning forever", async () => {
+    writeWorkItem("ADHOC-2026102901", {
+      schema_version: "1.0",
+      id: "ADHOC-2026102901",
+      title: "adhoc loop",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      pattern: "implement",
+      variant: "standard",
+      phase: "aligning",
+      spec: null,
+      plan: null,
+      verify: null,
+      brief: null,
+      task_ids: [],
+      decisions: [],
+      deviations: [],
+      cost_usd: 0,
+    });
+    const spawns: string[] = [];
+    const host = {
+      notify: () => {},
+      spawnSubagent: async (input: { agent: string; task: string }) => {
+        spawns.push(input.agent);
+        return {
+          exitCode: 0,
+          parsedReturn: {
+            status: "needs_gather",
+            gather_hint: { ticket_id: "ADHOC-2026102901", reason: "wants context" },
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          },
+        };
+      },
+    };
+
+    // A budget of 2 is below the follow-up cap (4), so the exact spawn count proves the
+    // re-aligns spent the gather budget rather than hitting the chain cap.
+    const devConfig = { ...minimalDevConfig(), orchestration: { max_gather_attempts: 2 } };
+    const out = await runResumeOrchestrationWithReplans("ADHOC-2026102901", devConfig, host);
+    expect(spawns).toEqual(["phase-align", "phase-align", "phase-align"]);
+    expect(out.stalledReason).toBe("stuck");
+    const saved = JSON.parse(readFileSync(join(".tasks", "ADHOC-2026102901.json"), "utf8"));
+    expect(saved.decisions.length).toBe(1);
+    expect(saved.gather_attempts).toBe(0); // reset when the escalation was raised
+    const text = JSON.stringify(saved.decisions[0]);
+    expect(text).toContain("ad-hoc item with no tracker ticket");
+    expect(text).not.toContain("phase-gather attempt");
   });
 });

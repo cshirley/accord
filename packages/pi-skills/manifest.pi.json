@@ -4,12 +4,16 @@
   "package": "@clive.shirley/pi-skills",
   "assets": {
     "skills": [
+      "brief",
       "ci-debug",
       "commit",
       "crq-notify",
+      "doc-verify",
       "pr",
       "pr-review",
+      "reuse-scout",
       "review",
+      "risk-checklist",
       "session-retro",
       "ste",
       "verify",

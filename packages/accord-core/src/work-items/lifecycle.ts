@@ -49,6 +49,12 @@ const ENTRY_PHASES: Record<string, Record<string, string>> = {
   analyse: { _default: "researching" },
 };
 
+/** Coarse phase a new work item of this pattern/variant starts in. */
+export function entryPhaseFor(pattern: WorkItemPattern, variant?: string): string {
+  const phases = ENTRY_PHASES[pattern] || { _default: "speccing" };
+  return (variant && phases[variant]) || phases._default || "speccing";
+}
+
 export interface IntentContractInput {
   intent_mode?: IntentMode;
   intent_confidence?: IntentConfidence;
@@ -58,15 +64,15 @@ export interface IntentContractInput {
   expected_finish?: string;
 }
 
-export function devBootstrap(
+/** Build (without writing) the work item `devBootstrap` would persist. */
+export function buildBootstrapWorkItem(
   id: string,
   title: string,
   pattern: WorkItemPattern,
   variant?: string,
   intent?: IntentContractInput,
-): { path: string; work_item: WorkItem } {
-  const phases = ENTRY_PHASES[pattern] || { _default: "speccing" };
-  const phase = (variant && phases[variant]) || phases._default || "speccing";
+): WorkItem {
+  const phase = entryPhaseFor(pattern, variant);
   const timestamp = now();
 
   const wi: WorkItem = {
@@ -96,7 +102,17 @@ export function devBootstrap(
   if (intent?.expected_finish) wi.expected_finish = intent.expected_finish;
 
   if (!wi.variant) wi.variant = undefined;
+  return wi;
+}
 
+export function devBootstrap(
+  id: string,
+  title: string,
+  pattern: WorkItemPattern,
+  variant?: string,
+  intent?: IntentContractInput,
+): { path: string; work_item: WorkItem } {
+  const wi = buildBootstrapWorkItem(id, title, pattern, variant, intent);
   const wiPath = workItemJsonPath(id);
   writeJson(wiPath, wi);
   return { path: wiPath, work_item: wi };

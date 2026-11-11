@@ -1,5 +1,10 @@
 # Bundle Update Log
 
+## 2026-10-29
+
+* **Addition**: `accord bootstrap <ID> <title…>` and `accord bootstrap --adhoc <title…>` (`packages/accord-cli/src/commands/bootstrap.ts` parses and prints; logic in `packages/accord-core/src/work-items/bootstrap.ts`); synthetic `ADHOC-<YYYYMMDD><NN>` work item ids (`packages/accord-core/src/work-items/synthetic.ts`). Orchestrator re-runs `phase-align` without `phase-gather` when a synthetic id returns `needs_gather` (`orchestration/spawn-followup.ts`). Updated [accord CLI](/references/accord-cli.md).
+* **Addition**: `pi-skills` gains `brief`, `reuse-scout`, `risk-checklist` and `doc-verify`; `verify`, `commit`, `pr`, `review` and `worktree` gain last-green/last-review gates (`verify/scripts/green.sh`) and a worktree pinning guard (`worktree/scripts/wt-guard.sh`); `session-retro` reports gate and adoption metrics. Updated [Monorepo packages](/architecture/monorepo-packages.md).
+
 ## 2026-10-06
 
 * **Creation**: Telemetry/observability coverage closed from brief through code review. `phase-align.md` gains a 10th coverage dimension (`telemetry_and_observability`; `return-schemas/phase-align.json` + `examples/phase-align.json` updated). `phase-spec.md` gains topic 17 `telemetry_topology` (`log_events[]`, `metrics[]`, `trace_propagation`, `alerting[]`; new `spec-schema.json` property) \u2014 required items become an architectural AC or a justified `scope.out`, same as topics 13\u201316. `review-spec.md` 7b now includes `telemetry_topology` in the silent-omission check and gains 7j (metrics/log-events tied to `critical_path`/MUST ACs need a backing AC). `review-code.md`'s Observability dimension checks against `telemetry_topology` when present (AC-coverage drift, can reach `critical`) instead of pure judgment; falls back to the prior advisory behavior when the field is absent (standalone `/review`, or specs predating this change). Previously telemetry/logging requirements had no capture point before code review and could only be raised as a `suggestion`.
