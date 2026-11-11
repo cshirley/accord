@@ -47,8 +47,10 @@ Test areas:
    - Context: what problem, why now
    - Decisions: alternatives considered, why this approach
    - Test areas: what could break
-4. Present draft, **wait for user confirmation**
-5. Call `git_commit_execute` with confirmed **suggestedFiles** and **message**
+4. Decide whether to confirm:
+   - **Auto-commit** (show the message, do not wait) when `secretWarnings` is empty, `ticket` is known, and the user asked to commit ("commit", "/skill:commit").
+   - **Wait for confirmation** only when `secretWarnings` is non-empty, `ticket` is null, files outside the user's stated scope are staged, or the user said "ask first" / "draft".
+5. Call `git_commit_execute` with **suggestedFiles** and **message**
 6. Confirm success from response
 
 ## Rules
@@ -57,7 +59,7 @@ Test areas:
 - Body: blank-line-separated sections, bullet points
 - Focus on info not obvious from the diff
 - Never amend unless user explicitly asks
-- Always confirm before `git_commit_execute`
+- Confirm before `git_commit_execute` only in the cases listed in step 4
 
 ## Example
 

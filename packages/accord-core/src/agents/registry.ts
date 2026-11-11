@@ -131,9 +131,10 @@ const REGISTRY: Record<string, AgentMeta> = {
     verifyAfter: false,
     deferConfigGuard: false,
   },
+  // Runs in the standalone `review` / `pr-review` skills, which have no harness config.
   "review-security": {
     schemas: ["spec-schema.json", "return-schemas/review.json"],
-    requiresConfig: true,
+    requiresConfig: false,
     verifyAfter: false,
     deferConfigGuard: false,
   },
