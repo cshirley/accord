@@ -3,7 +3,7 @@
  * retry-brief contents, and per-task feedback targeting (v2 task file).
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -154,6 +154,32 @@ describe("import-only RED guard (phase-test post-result)", () => {
     expect(hit?.finding.detail?.recommendation).toContain("phase-test Step 3");
     expect(hit?.finding.detail?.recommendation).toContain("Do NOT mock the module under test");
     expect(task.control.retries.test_review).toEqual({ used: 1, lifetime: 1 });
+  });
+
+  test("reads full output from test_output_file instead of the short inline excerpt", () => {
+    seed();
+    writeTaskFixture({ workItemId: WI, taskId: 1 });
+    writeFileSync("red-run.txt", IMPORT_ONLY_OUTPUT);
+    const note = applyPhaseTestPostResult(
+      WI,
+      {
+        status: "done",
+        test_files: ["src/proration.test.ts"],
+        red_confirmed: true,
+        test_output_file: join(tempCwd, "red-run.txt"),
+        test_output: "1 fail",
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      },
+      devConfig(),
+    );
+    expect(note).toContain("import-only RED");
+    const task = readTask();
+    expect(task.control.phase).toBe("phase-test");
+    const sidecar = task.control.last_test_run?.output;
+    expect(sidecar).toBeTruthy();
+    expect(readFileSync(join(".tasks", `${WI}-task-1`, String(sidecar)), "utf8")).toBe(
+      IMPORT_ONLY_OUTPUT,
+    );
   });
 
   test("blocks once the review-test retry cap is exhausted", () => {

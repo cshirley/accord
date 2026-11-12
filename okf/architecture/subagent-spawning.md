@@ -46,13 +46,18 @@ Prepare (`accord-core/src/subagent/prepare.ts`, `payload.ts`) sets:
 |-------|---------|
 | `agentFile` | Absolute path to `accord-assets/agents/accord/<agent>.md` |
 | `systemAppend` | `## Project Stack` from Dev Harness config + intent-contract brief |
-| `response` | Return-schema contract; pi-subagent appends schema text + validated examples |
+| `response` | Return-schema contract; pi-subagent appends the schema + validated examples, minified (`compactJsonText`, ~30% fewer tokens) |
 | `task` | Role-specific brief (see `briefing/`) |
 
 Result (`subagent/result/`): prefer `parsedReturn` from `runSubagent`, else the last fenced
 ` ```json ` block in the final assistant message. Validation uses the schema mapped in
 `agents/registry.ts`. `stuck` packets are promoted to `decisions[]` even if other validation
 fails.
+
+Runner output: `phase-test` and `phase-verify-task` write the full test/verify output to a file
+and return its path (`test_output_file` / `verify_output_file`) plus a short inline excerpt.
+The post-result handlers read the file (`orchestration/packet-output.ts`, last 64 KiB) for
+crash detection, Check 0 and the task sidecar; the inline field is the fallback.
 
 # Harness backends
 

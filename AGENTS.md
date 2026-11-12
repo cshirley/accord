@@ -27,6 +27,7 @@ The repo documents itself as an [Open Knowledge Format (OKF) v0.2](https://githu
 | Retry caps, blocked tasks, auto-chain, auto-commit | `okf/references/orchestration-policy.md`, `okf/playbooks/unblock-a-task.md` |
 | `.tasks/` vs `docs/dev/`, `decisions[]` | `okf/references/artifacts-and-state.md`, `okf/playbooks/answer-decisions.md` |
 | Env vars (log level, harness, timeouts) | `okf/references/environment-variables.md` |
+| Cutting token/context cost | `okf/playbooks/optimise-token-usage.md` |
 | Local install / Pi setup | `okf/playbooks/local-development-setup.md` |
 | Adding an agent / provider / language | `okf/playbooks/add-*.md` |
 
@@ -49,7 +50,7 @@ The repo documents itself as an [Open Knowledge Format (OKF) v0.2](https://githu
 
 ## Verify before commit
 
-`bun run check` runs everything in `verification_commands` below. Changes under `packages/accord-ci/` also need `docs/ci/pre-merge-smoke.md`. See `okf/playbooks/verify-a-change.md`.
+`bun run check` runs everything in `verification_commands` below; use `bun run check:changed` while iterating. Changes under `packages/accord-ci/` also need `docs/ci/pre-merge-smoke.md`. See `okf/playbooks/verify-a-change.md`.
 
 ## Dev Harness
 

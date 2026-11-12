@@ -53,7 +53,7 @@ The orchestrator sets `mode`. **Harness pipeline:** `review-test` runs **pre-imp
 
 **Standalone `/review` skill** may run `review-test` in `post-impl` mode against a finished diff (no harness phase boundary).
 
-Run **Checks 0–7** in every mode. **Check 6** adds post-impl-only steps when `production_files` are present and the suite is green.
+Run **Checks 0–9** in every mode. **Check 6** adds post-impl-only steps when `production_files` are present and the suite is green.
 
 ### Quick-fix test strategies (pre-impl annex)
 
@@ -61,7 +61,7 @@ When `quick_fix_contract.test.strategy` is set:
 
 | Strategy | Review focus |
 | --- | --- |
-| `new_red_test` | Full Checks 0–7; require behaviour RED (Check 0), not import-only. |
+| `new_red_test` | Full Checks 0–9; require behaviour RED (Check 0), not import-only. |
 | `existing_tests` | No new RED required — confirm failures (if any) match `expected_finish`, not unrelated flakes; baseline must not mask the bug. Flag if tests already pass for the reported defect. |
 | `no_test` | No `test_files` — review **contract only**: `plan.expected_finish`, `target_paths`, verification commands, and documented reason tests are skipped. Flag if the finish condition is not mechanically verifiable anywhere. |
 
@@ -80,7 +80,7 @@ If `phase-code` reports test issues or modifies test files, the harness respawns
 - `## Prior test findings to recheck (harness ledger)` — retry rounds: every prior test finding by **`F-nnn` id**, grouped by requirement, with its **history** (phase-test's `fixed`/`disputed`/`wont_fix` responses, earlier re-raises, human notes). See "Retry rounds" below.
 - `test_output` — raw stdout/stderr from the latest phase-test run (the harness reads it from the task sidecar folder).
 
-Schemas of truth: Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk.
+> The return schema and examples are appended under `## Response contract`. Do not read schema files from disk.
 
 ## Check 0 — Executable red state (pre-impl guard)
 
@@ -298,12 +298,7 @@ Severity:
 
 ## Findings ordering
 
-`severity` is the harness priority signal — do not add a separate `priority` field.
-
-1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
-2. Within the same severity: Check 0 / false-green and MUST AC adversarial gaps before inventory and fixture nits; then ascending `ac_id` / `tc_id`; then test `file` path (and `line` within a file).
-3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `file`+`line` unless categories differ materially.
-4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+Follow the `findings` ordering rules in the return schema. Within a severity: Check 0 / false-green and MUST AC adversarial gaps before inventory and fixture nits; then ascending `ac_id` / `tc_id`; then test `file` path (and `line` within a file).
 
 ## Rules
 

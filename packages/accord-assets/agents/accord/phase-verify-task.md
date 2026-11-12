@@ -46,7 +46,8 @@ Emit exactly one fenced ```json block last. Required fields:
 
 - `status`: `"done"` (verification ran — even if some ACs failed) or `"stuck"`
 - `evidence`: one entry per covered AC — `{ac_id, result: "pass" | "fail", tests: [test names or commands], command?, note?}` (`note` = failure excerpt)
-- `verify_output`: truncated combined output (last 64 KiB)
+- `verify_output_file`: absolute path to a file with the full combined output. Run each command as `<cmd> >>"$out" 2>&1` with `out=$(mktemp "${TMPDIR:-/tmp}/accord-<work_item_id>-task-<id>-verify.XXXXXX")`, and read it with `tail` / `grep -n`, not in full
+- `verify_output`: short excerpt only (failing commands and errors, at most ~200 lines)
 - `usage`: `{ prompt_tokens, completion_tokens }`
 
-Do **not** include `test_files` or `red_confirmed`. `ac_covered` is deprecated (use `evidence`).
+Do **not** include `test_files`, `red_confirmed` or `ac_covered`.

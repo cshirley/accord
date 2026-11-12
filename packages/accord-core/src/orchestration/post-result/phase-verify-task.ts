@@ -12,6 +12,7 @@ import type { DevHarnessConfig } from "../../config/types.js";
 import { bumpRetry, capForKey, decideLoop } from "../../tasks/decide.js";
 import { claimRef, clearInFlight, logDecision, recordVerify } from "../../tasks/record.js";
 import { sidecarName, writeTaskSidecar } from "../../tasks/store.js";
+import { resolvePacketOutput } from "../packet-output.js";
 import { detectTestRunnerCrash } from "../test-crash-detection.js";
 import {
   analysisFrom,
@@ -49,7 +50,7 @@ export function applyPhaseVerifyTaskPostResult(
     const ref = claimRef(task, "phase-verify-task");
     if (!ref) return false;
 
-    const verifyOutput = typeof packet.verify_output === "string" ? packet.verify_output : "";
+    const verifyOutput = resolvePacketOutput(packet, "verify_output", "verify_output_file");
     if (verifyOutput) {
       writeTaskSidecar(workItemId, task.task, sidecarName(ref, "output.txt"), verifyOutput);
     }

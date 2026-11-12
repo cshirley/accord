@@ -16,6 +16,7 @@
     },
     "findings": {
       "type": "array",
+      "description": "Sort by severity: critical, then warning, then suggestion (severity is the harness priority signal; do not add a priority field). Cap at ~15. Merge duplicate root causes. At most one finding per location (file+line, or ref) unless categories differ materially. Give each finding one severity: the highest the evidence supports under the agent's severity rules.",
       "items": {
         "type": "object",
         "required": ["severity", "issue"],

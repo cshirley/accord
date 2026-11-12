@@ -44,7 +44,11 @@
     "verify_output": {
       "type": "string",
       "maxLength": 65536,
-      "description": "Truncated stdout/stderr from verification commands"
+      "description": "Short excerpt of verification output: failing commands and errors, at most ~200 lines. Full output goes in verify_output_file. Used only when verify_output_file is absent or unreadable (then last 64 KiB)."
+    },
+    "verify_output_file": {
+      "type": "string",
+      "description": "Absolute path to a file holding the full combined stdout/stderr of the verification commands. The harness reads it for crash detection and the task sidecar."
     },
     "ac_covered": {
       "type": "array",
