@@ -46,7 +46,8 @@ Emit exactly one fenced ```json block last. Required fields:
 
 - `status`: `"done"` (verification ran — even if some ACs failed) or `"stuck"`
 - `evidence`: one entry per covered AC — `{ac_id, result: "pass" | "fail", tests: [test names or commands], command?, note?}` (`note` = failure excerpt)
-- `verify_output`: truncated combined output (last 64 KiB)
+- `verify_output_file`: the brief's `output_file` (absolute path in the task's harness-owned `runs/` folder) holding the full combined output of the final run. Empty it first with `: >"<output_file>"`, then run each command as `{ echo "$ <cmd>"; <cmd>; echo "exit=$?"; } >>"<output_file>" 2>&1`. Write the literal path every time (shell variables do not persist between tool calls). Read it with `tail` / `grep -n`, not in full. The harness ignores paths outside `runs/`. If the brief has no `output_file`, put the last 64 KiB inline in `verify_output`
+- `verify_output`: short excerpt only (failing commands and errors, at most ~200 lines)
 - `usage`: `{ prompt_tokens, completion_tokens }`
 
-Do **not** include `test_files` or `red_confirmed`. `ac_covered` is deprecated (use `evidence`).
+Do **not** include `test_files`, `red_confirmed` or `ac_covered`.

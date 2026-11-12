@@ -185,7 +185,11 @@
     "test_output": {
       "type": "string",
       "maxLength": 65536,
-      "description": "Truncated stdout/stderr from the RED test run (implement pipeline). Last ~64 KiB if longer."
+      "description": "When the brief gave output_file: short excerpt of the RED test run: failing tests and errors, at most ~200 lines; the full output goes in test_output_file. When the brief had no output_file: the last 64 KiB of output. Also the fallback when test_output_file is rejected or unreadable."
+    },
+    "test_output_file": {
+      "type": "string",
+      "description": "The brief's output_file: absolute path inside the task's harness-owned runs/ folder, holding the full stdout/stderr of the final RED test run. The harness reads it for Check 0, crash detection and the task sidecar, then deletes it. Paths outside runs/, symlinks and non-regular files are ignored (inline test_output is used)."
     },
     "ac_covered": {
       "type": "array",

@@ -494,14 +494,34 @@ describe("harness gather preflight", () => {
   });
 
   test("blocks when user declines proceed on unavailable sources", async () => {
-    const input: Record<string, unknown> = {
-      agent: "phase-gather",
-      task: "work_item_id: GTH-1",
+    // Isolate from the developer's global accord.json / Pi agent dir: a user-level provider
+    // with an installed CLI fallback would make the tracker "available" and skip confirm.
+    const isolated = mkdtempSync(join(tmpdir(), "accord-gather-preflight-"));
+    const saved = {
+      config: process.env.ACCORD_CONFIG_DIR,
+      piAgent: process.env.ACCORD_PI_AGENT_DIR,
     };
-    const r = await runGatherPreflightOnSubagentCall(input, null, new Set(), {
-      confirm: async () => false,
-    });
-    expect(r.blockReason).toMatch(/cancelled/);
+    process.env.ACCORD_CONFIG_DIR = join(isolated, "accord");
+    process.env.ACCORD_PI_AGENT_DIR = join(isolated, "pi-agent");
+    try {
+      const input: Record<string, unknown> = {
+        agent: "phase-gather",
+        task: "work_item_id: GTH-1",
+      };
+      const r = await runGatherPreflightOnSubagentCall(input, null, new Set(), {
+        confirm: async () => false,
+      });
+      expect(r.blockReason).toMatch(/cancelled/);
+    } finally {
+      for (const [key, value] of [
+        ["ACCORD_CONFIG_DIR", saved.config],
+        ["ACCORD_PI_AGENT_DIR", saved.piAgent],
+      ] as const) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+      rmSync(isolated, { recursive: true, force: true });
+    }
   });
 
   test("plain-text tracker with no enrichments proceeds without block", async () => {

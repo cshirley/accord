@@ -28,6 +28,8 @@ sources:
 
 # Steps
 
+While iterating, `bun run check:changed` runs only checks for changed files (`--types` adds `tsc`). Run the full suite before commit.
+
 ```bash
 bun run check        # full suite
 ```

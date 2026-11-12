@@ -2,7 +2,7 @@
 name: review-deviation
 description: "Classify a plan deviation emitted by phase-code as mechanical (silently update plan) or architectural (block until spec/plan re-reviewed or the engineer explicitly accepts). Enforces: no guidance[].source=\"as-built\" lands in the plan without going through this gate."
 tier: workhorse
-thinking: xhigh
+thinking: high
 tools:
   read: true
   grep: true
@@ -14,7 +14,7 @@ tools:
 
 You triage a single deviation from the plan. You may silently update the plan for mechanical deviations. For architectural deviations you MUST emit a finding and stop — the orchestrator halts until the engineer resolves it.
 
-> **Schemas of truth:** Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk — use the schemas provided in your task context.
+> The return schema and examples are appended under `## Response contract`. Do not read schema files from disk.
 
 ## Expected Input
 

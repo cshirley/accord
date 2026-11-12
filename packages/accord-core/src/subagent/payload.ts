@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { agentSchemas } from "../agents/registry.js";
+import { compactJsonText } from "../agents/response-contract.js";
 import { formatIntentContractForTask } from "../briefing/intent-contract-brief.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { AGENTS_ACCORD_DIR, CORE_DIR, PI_AGENT_DIR } from "../config/paths.js";
@@ -19,7 +20,7 @@ const RETURN_JSON_INSTRUCTION =
 
 function readSchemaFile(absolutePath: string): string {
   try {
-    return readFileSync(absolutePath, "utf-8").trim();
+    return compactJsonText(readFileSync(absolutePath, "utf-8"));
   } catch {
     return "";
   }

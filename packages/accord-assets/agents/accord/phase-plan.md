@@ -13,7 +13,7 @@ tools:
 
 One round of plan construction. Integrate any new answers, then either ask the next guidance question batch or write the final plan.
 
-> **Schemas of truth:** Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk — use the schemas provided in your task context.
+> The return schema and examples are appended under `## Response contract`. Do not read schema files from disk.
 
 ## Expected Input
 

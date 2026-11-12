@@ -13,7 +13,7 @@ tools:
 
 Two-round Jira ticket creation from a verify report.
 
-> **Schemas of truth:** Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk — use the schemas provided in your task context.
+> The return schema and examples are appended under `## Response contract`. Do not read schema files from disk.
 
 ## Expected Input
 

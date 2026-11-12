@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { agentSchemas } from "../agents/registry.js";
+import { compactJsonText } from "../agents/response-contract.js";
 import type { DevHarnessConfig } from "../config/index.js";
 import { CORE_DIR } from "../config/paths.js";
 import { createLogger } from "../logging.js";
@@ -144,7 +145,7 @@ function loadSchema(relativePath: string): string {
   const cached = schemaCache.get(relativePath);
   if (cached) return cached;
   try {
-    const content = readFileSync(join(SCHEMAS_DIR, relativePath), "utf8");
+    const content = compactJsonText(readFileSync(join(SCHEMAS_DIR, relativePath), "utf8"));
     schemaCache.set(relativePath, content);
     return content;
   } catch {

@@ -44,7 +44,11 @@
     "verify_output": {
       "type": "string",
       "maxLength": 65536,
-      "description": "Truncated stdout/stderr from verification commands"
+      "description": "When the brief gave output_file: short excerpt of the verification output: failing commands and errors, at most ~200 lines; the full output goes in verify_output_file. When the brief had no output_file: the last 64 KiB of output. Also the fallback when verify_output_file is rejected or unreadable."
+    },
+    "verify_output_file": {
+      "type": "string",
+      "description": "The brief's output_file: absolute path inside the task's harness-owned runs/ folder, holding the full combined stdout/stderr of the verification commands. The harness reads it for crash detection and the task sidecar, then deletes it. Paths outside runs/, symlinks and non-regular files are ignored (inline verify_output is used)."
     },
     "ac_covered": {
       "type": "array",

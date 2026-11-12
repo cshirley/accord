@@ -15,6 +15,7 @@ import * as path from "node:path";
 import { loadDevHarnessConfig } from "../config/agents-md.js";
 import { resolveStackConfig } from "../config/stack-flags.js";
 import { normalizeAcId, qualifyAcRef } from "../evidence/qualify-ac.js";
+import { redactText } from "../state/redact.js";
 import { parseRef, parseRound, refActor } from "../tasks/model.js";
 import { loadTaskResult, readTaskSidecar, sidecarName } from "../tasks/store.js";
 import type {
@@ -176,7 +177,8 @@ export function traceMarkdownPath(workItemId: string): string {
 }
 
 function excerpt(text: string, ref: string): TraceExcerpt {
-  const trimmed = text.trim();
+  // trace.json / trace.md are committed: redact runner output before it enters git history.
+  const trimmed = redactText(text).value.trim();
   const truncated = trimmed.length > TRACE_EXCERPT_MAX_CHARS;
   return {
     ref,

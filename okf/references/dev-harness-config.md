@@ -72,7 +72,7 @@ is the canonical example — see `/AGENTS.md`.
 }
 ```
 
-Agent `tier:` frontmatter selects the tier. Legacy single `harness.exec` still works with
+Agent `tier:` frontmatter selects the tier; `review-*` agents use `tiers.review` when it is set. Frontmatter `thinking:` overrides the tier's `thinking` on every backend. Review agents: `review-test`, `review-code` and `review-security` set `xhigh`; `review-spec`, `review-plan`, `review-design`, `review-deviation` and `review-investigation` set `high`. Legacy single `harness.exec` still works with
 `default: "exec"`.
 
 # Stack detection
