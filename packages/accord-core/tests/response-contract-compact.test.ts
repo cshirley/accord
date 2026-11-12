@@ -6,8 +6,14 @@ import {
   formatResponseContractAppendix,
 } from "../src/agents/response-contract.js";
 import { buildSubagentResponseContract } from "../src/subagent/payload.js";
+import { buildOutboundTaskText } from "../src/subagent/response-contract.js";
+import { formatSchemaBrief } from "../src/verification/runner.js";
 
-const SCHEMA = path.resolve(import.meta.dir, "../schemas/return-schemas/phase-test.json");
+const SCHEMAS = path.resolve(import.meta.dir, "../schemas");
+const minified = (rel: string): string =>
+  JSON.stringify(JSON.parse(fs.readFileSync(path.join(SCHEMAS, rel), "utf8")));
+/** Any pretty-printed JSON line: newline followed by indentation and a quoted key. */
+const PRETTY = /\n {2,}"/;
 
 describe("compactJsonText", () => {
   test("minifies valid JSON without changing its value", () => {
@@ -21,15 +27,34 @@ describe("compactJsonText", () => {
   });
 });
 
-describe("response contract schema injection", () => {
-  test("injects return schema and examples minified", () => {
-    const contract = buildSubagentResponseContract("phase-test");
-    expect(contract?.format).toBe("json_schema_path");
-    if (!contract) throw new Error("no contract");
-    const appendix = formatResponseContractAppendix(contract);
-    const original = fs.readFileSync(SCHEMA, "utf8");
-    expect(appendix).toContain(JSON.stringify(JSON.parse(original)));
-    expect(appendix).not.toContain('{\n  "');
-    expect(appendix.length).toBeLessThan(original.length);
+describe("response contract schema injection is minified on every path", () => {
+  const contract = buildSubagentResponseContract("phase-test");
+  if (!contract) throw new Error("no contract");
+
+  test.each([
+    ["pi appendix", () => formatResponseContractAppendix(contract)],
+    ["exec outbound task", () => buildOutboundTaskText("task", contract)],
+    ["schema brief", () => formatSchemaBrief("phase-test")],
+  ])("%s carries minified schema and examples", (_label, render) => {
+    const text = render();
+    expect(text).toContain(minified("return-schemas/phase-test.json"));
+    expect(text).toContain(minified("examples/phase-test.json"));
+    expect(text).not.toMatch(PRETTY);
+  });
+
+  test("json_schema contracts are minified on pi and exec paths", () => {
+    const inline = {
+      format: "json_schema" as const,
+      schema: { a: { b: 1 } },
+      examples: [{ x: 1 }],
+    };
+    for (const text of [
+      formatResponseContractAppendix(inline),
+      buildOutboundTaskText("t", inline),
+    ]) {
+      expect(text).toContain('{"a":{"b":1}}');
+      expect(text).toContain('[{"x":1}]');
+      expect(text).not.toMatch(PRETTY);
+    }
   });
 });

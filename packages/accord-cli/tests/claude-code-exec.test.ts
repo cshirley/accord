@@ -81,8 +81,11 @@ describe("accord.json tier resolution honours frontmatter thinking", () => {
     expect(resolved?.thinking).toBe("high");
   });
 
-  test("review-code keeps xhigh from its frontmatter", () => {
-    expect(resolveSpawnModelFromAgentFile(REVIEW_CODE, harness)?.thinking).toBe("xhigh");
+  test("review-code keeps xhigh from its frontmatter over a lower tier value", () => {
+    const lowReview = {
+      tiers: { ...harness.tiers, review: { ...harness.tiers.review, thinking: "low" as const } },
+    };
+    expect(resolveSpawnModelFromAgentFile(REVIEW_CODE, lowReview)?.thinking).toBe("xhigh");
   });
 
   test("agent without frontmatter thinking uses the tier default", () => {

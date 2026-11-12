@@ -142,14 +142,19 @@ If the missing piece cannot be declared without inventing behaviour the spec nev
 
 ## Step 4 — Confirm RED
 
-Run the test command from `verification_commands` (the test-specific one) and write the full output to a file. Do not print it all into your context:
+Run the test command from `verification_commands` (the test-specific one). Write the full output to the brief's `output_file` (an absolute path in the task's harness-owned `runs/` folder). Do not print it all into your context:
 
 ```bash
-out=$(mktemp "${TMPDIR:-/tmp}/accord-<work_item_id>-task-<id>-test.XXXXXX")   # once per run
-<test command> >"$out" 2>&1; echo "exit=$?"; tail -n 80 "$out"
+<test command> >"<output_file>" 2>&1; echo "exit=$?"; tail -n 80 "<output_file>"
 ```
 
-Use `grep -n` on `$out` to find more failures. Return the absolute path as `test_output_file`; the harness reads the full file. Classify the output:
+- Write the literal path in every command. Shell variables do not persist between tool calls.
+- `>` replaces the previous run, so the file holds only the final run.
+- Use `grep -n` on the file to find more failures.
+- Return the same path as `test_output_file`. The harness reads only files inside that `runs/` folder; any other path is ignored.
+- If the brief has no `output_file`, put the last 64 KiB of output inline in `test_output` instead.
+
+Classify the output:
 
 - **Behaviour red (required):** tests loaded the system under test, executed, and failed on an assertion **or** on a Step 3 stub's "not implemented" error. This is the correct RED state — set `red_confirmed: true`.
 - **Import / resolution red (must be fixed before you finish — the harness enforces this):** The orchestrator scans `test_output` for resolution signatures; if any match, your round is bounced straight back to phase-test (consuming a retry slot) without a review-test pass. `Cannot find module`, `Failed to resolve import`, `MODULE_NOT_FOUND`, unresolved symbol, or a compile error from a missing production declaration. **Do not return this as your result.** Go back to Step 3, add the missing unimplemented declaration, and re-run. Only if you genuinely cannot declare it (see Step 3's escalation clause) may you finish with `red_confirmed: false` plus an `escalation` event explaining exactly which symbol could not be declared and why.
@@ -174,7 +179,7 @@ Emit exactly one fenced ```json block as the **last** thing in your response. Ma
 Key content expectations:
 - **`changes`** — **every** file you created/modified/deleted this run: `{file, action: add|modify|delete, kind: test|stub|fixture|config, ac_ids: ["AC-n"], tc_ids?, tests?: [test names]}`. `ac_ids` ties the change to the requirement it serves — reviewers use it to attribute findings, so be precise. Stub skeletons from Step 3 use `kind: "stub"` (phase-code replaces them).
 - **`red_confirmed`** — `true` only when the suite actually executed against the system under test and failed on an assertion or a Step 3 "not implemented" stub. Set `false` when the run died on import/resolution or syntax errors and no assertion ran — and in that case you must also emit an `escalation` event, because Step 4 requires you to fix that before finishing.
-- **`test_output_file`** — absolute path to the full output of the final test run (Step 4). Required when `status: "done"` in the implement pipeline.
+- **`test_output_file`** — the brief's `output_file`, holding the full output of the final test run (Step 4). Required when `status: "done"` and the brief has `output_file`.
 - **`test_output`** — short excerpt only: the failing tests and their errors, at most ~200 lines. Do not copy the whole file. The harness falls back to this field only when it cannot read `test_output_file`.
 - **`review_responses`** — retry rounds only: one `{finding_id, resolution: "fixed" | "disputed" | "wont_fix", note}` per finding in `## Open test findings (harness ledger)`. Omitting it on a retry is flagged by the harness and leaves those findings open.
 

@@ -48,7 +48,7 @@
     },
     "verify_output_file": {
       "type": "string",
-      "description": "Absolute path to a file holding the full combined stdout/stderr of the verification commands. The harness reads it for crash detection and the task sidecar."
+      "description": "The brief's output_file: absolute path inside the task's harness-owned runs/ folder, holding the full combined stdout/stderr of the verification commands. The harness reads it for crash detection and the task sidecar, then deletes it. Paths outside runs/, symlinks and non-regular files are ignored (inline verify_output is used)."
     },
     "ac_covered": {
       "type": "array",

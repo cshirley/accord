@@ -11,6 +11,7 @@ import type { PlanTaskStep } from "../plan/task-pipeline-profile.js";
 import { TEST_KINDS } from "../tasks/model.js";
 import { requirementMap } from "../tasks/render.js";
 import {
+  ensureTaskRunOutputPath,
   legacyTaskFileMessage,
   loadTaskResult,
   loadTaskV2,
@@ -427,6 +428,7 @@ function agentPayloadForSpawn(
   if (agent === "phase-verify-task") {
     return {
       ...base,
+      output_file: ensureTaskRunOutputPath(slice.work_item_id, slice.task_id, "phase-verify-task"),
       covered_acs: slice.covered_acs,
       verification_commands: slice.verification_commands,
       test_cases: slice.test_cases,
@@ -441,6 +443,7 @@ function agentPayloadForSpawn(
     const isRetry = slice.test_files.length > 0;
     return {
       ...base,
+      output_file: ensureTaskRunOutputPath(slice.work_item_id, slice.task_id, "phase-test"),
       test_cases: slice.test_cases,
       ...(slice.telemetry_topology !== undefined
         ? { telemetry_topology: slice.telemetry_topology }

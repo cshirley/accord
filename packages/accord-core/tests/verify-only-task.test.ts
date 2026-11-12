@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { applyPhaseVerifyTaskPostResult } from "@clive.shirley/accord-core/orchestration/post-result/phase-verify-task.js";
+import { taskRunsDir } from "@clive.shirley/accord-core/tasks/store.js";
 import type { TaskFileV2 } from "@clive.shirley/accord-core/tasks/types.js";
 import {
   bootstrapImplementTasksFromPlan,
@@ -154,5 +155,45 @@ describe("verify-only implement tasks", () => {
     expect(task.control.phase).toBe("phase-verify-task");
     expect(task.control.blocked?.kind).toBe("crash");
     expect(task.control.blocked?.reason).toContain("unhandled promise rejection");
+  });
+
+  const CRASH = "UnhandledPromiseRejectionWarning: Error: boom\n  at foo (bar.js:1:1)\n";
+
+  test("reads verify_output_file from the task runs folder: crash only in the file still blocks", () => {
+    const { id, planPath } = setupProject();
+    bootstrapImplementTasksFromPlan(id, planPath);
+    const runs = taskRunsDir(id, 1);
+    mkdirSync(runs, { recursive: true });
+    const file = join(runs, "phase-verify-task-output.txt");
+    writeFileSync(file, CRASH);
+    const out = applyPhaseVerifyTaskPostResult(id, {
+      status: "done" as const,
+      verify_output: "all green",
+      verify_output_file: file,
+      ac_covered: ["AC-1"],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    expect(out).toContain("CRASH detected");
+    const task = readTask(id);
+    expect(task.control.status).toBe("blocked");
+    expect(task.control.blocked?.kind).toBe("crash");
+    expect(
+      readFileSync(join(".tasks", `${id}-task-1`, "V1-phase-verify-task.output.txt"), "utf8"),
+    ).toBe(CRASH);
+  });
+
+  test("ignores a verify_output_file outside the runs folder and uses inline output", () => {
+    const { id, planPath } = setupProject();
+    bootstrapImplementTasksFromPlan(id, planPath);
+    writeFileSync("outside.txt", "all green");
+    const out = applyPhaseVerifyTaskPostResult(id, {
+      status: "done" as const,
+      verify_output: CRASH,
+      verify_output_file: join(process.cwd(), "outside.txt"),
+      ac_covered: ["AC-1"],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    expect(out).toContain("CRASH detected");
+    expect(readTask(id).control.blocked?.kind).toBe("crash");
   });
 });

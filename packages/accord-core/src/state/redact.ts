@@ -14,6 +14,7 @@ const ASSIGNMENT_RE = new RegExp(
 );
 const BEARER_RE = /\bBearer\s+([A-Za-z0-9._~+/=-]{8,})/g;
 const TOKEN_RES: RegExp[] = [
+  /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
   /\bgh[pousr]_[A-Za-z0-9]{36,}/g,
   /\bgithub_pat_[A-Za-z0-9_]{22,}/g,
   /\bsk-[A-Za-z0-9_-]{20,}/g,

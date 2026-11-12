@@ -46,7 +46,7 @@ Prepare (`accord-core/src/subagent/prepare.ts`, `payload.ts`) sets:
 |-------|---------|
 | `agentFile` | Absolute path to `accord-assets/agents/accord/<agent>.md` |
 | `systemAppend` | `## Project Stack` from Dev Harness config + intent-contract brief |
-| `response` | Return-schema contract; pi-subagent appends the schema + validated examples, minified (`compactJsonText`, ~30% fewer tokens) |
+| `response` | Return-schema contract; the schema + validated examples are appended minified (`compactJsonText`, ~30% fewer tokens) on pi and exec backends |
 | `task` | Role-specific brief (see `briefing/`) |
 
 Result (`subagent/result/`): prefer `parsedReturn` from `runSubagent`, else the last fenced
@@ -54,10 +54,14 @@ Result (`subagent/result/`): prefer `parsedReturn` from `runSubagent`, else the 
 `agents/registry.ts`. `stuck` packets are promoted to `decisions[]` even if other validation
 fails.
 
-Runner output: `phase-test` and `phase-verify-task` write the full test/verify output to a file
-and return its path (`test_output_file` / `verify_output_file`) plus a short inline excerpt.
-The post-result handlers read the file (`orchestration/packet-output.ts`, last 64 KiB) for
-crash detection, Check 0 and the task sidecar; the inline field is the fallback.
+Runner output: the brief for `phase-test` and `phase-verify-task` carries `output_file`, an
+absolute path in the harness-owned `.tasks/<ID>-task-<N>/runs/` folder (`ensureTaskRunOutputPath`).
+The agent writes the full test/verify output there and returns the path (`test_output_file` /
+`verify_output_file`) plus a short inline excerpt. The post-result handlers read it with
+`orchestration/packet-output.ts`: the real path must be inside `runs/`, not a symlink, a regular
+file owned by the current user; only the last 64 KiB is read, and the file is deleted after the
+read. Any failed check falls back to the inline field. Excerpts copied into the committed
+`trace.json` / `trace.md` are redacted (`state/redact.ts`, including PEM private keys).
 
 # Harness backends
 

@@ -13,7 +13,7 @@ import { resolvePlanTaskProfile } from "../../plan/load-task-profile.js";
 import { bumpRetry, capForKey, decideLoop } from "../../tasks/decide.js";
 import { allocateRef, appendLog, applyReviewFindings, owedFindings } from "../../tasks/model.js";
 import { claimRef, clearInFlight, logDecision, recordPhaseTest } from "../../tasks/record.js";
-import { sidecarName, writeTaskSidecar } from "../../tasks/store.js";
+import { sidecarName, taskRunsDir, writeTaskSidecar } from "../../tasks/store.js";
 import type { TaskFileV2 } from "../../tasks/types.js";
 import { loadWorkItem } from "../../work-items/io.js";
 import { resolvePacketOutput } from "../packet-output.js";
@@ -111,7 +111,12 @@ export function applyPhaseTestPostResult(
     if (!ref) return false;
 
     const owedBefore = owedFindings(task, ["T"]).filter(({ finding }) => !finding.advisory).length;
-    const testOutput = resolvePacketOutput(packet, "test_output", "test_output_file");
+    const testOutput = resolvePacketOutput(
+      packet,
+      "test_output",
+      "test_output_file",
+      taskRunsDir(workItemId, task.task),
+    );
     const outputSidecar = testOutput ? sidecarName(ref, "output.txt") : undefined;
     if (outputSidecar) writeTaskSidecar(workItemId, task.task, outputSidecar, testOutput);
 

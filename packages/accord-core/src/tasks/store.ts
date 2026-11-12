@@ -110,6 +110,29 @@ export function sidecarName(ref: string, suffix: "json" | "output.txt" | "no-pac
   return `${ref.replace(/\//g, "-")}.${suffix}`;
 }
 
+/** Agents whose runner output the harness reads back from a file. */
+export type RunOutputAgent = "phase-test" | "phase-verify-task";
+
+/** `.tasks/<ID>-task-<N>/runs/` — harness-owned folder for agent runner output (absolute). */
+export function taskRunsDir(workItemId: string, taskId: string | number, cwd?: string): string {
+  return path.resolve(taskSidecarDir(workItemId, taskId, cwd), "runs");
+}
+
+/**
+ * Absolute output file an agent writes its full runner output to. Creates the runs folder so
+ * the agent can write straight away. The harness only reads output back from inside this folder.
+ */
+export function ensureTaskRunOutputPath(
+  workItemId: string,
+  taskId: string | number,
+  agent: RunOutputAgent,
+  cwd?: string,
+): string {
+  const dir = taskRunsDir(workItemId, taskId, cwd);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  return path.join(dir, `${agent}-output.txt`);
+}
+
 export function writeTaskSidecar(
   workItemId: string,
   taskId: string | number,

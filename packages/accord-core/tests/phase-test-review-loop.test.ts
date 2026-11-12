@@ -3,7 +3,7 @@
  * retry-brief contents, and per-task feedback targeting (v2 task file).
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -16,6 +16,7 @@ import {
 } from "@clive.shirley/accord-core/orchestration/index.js";
 import { resetSpawnPreflightCheckForTests } from "@clive.shirley/accord-core/queries/subagent-preflight-shared.js";
 import { findFinding, stateFromHistory } from "@clive.shirley/accord-core/tasks/model.js";
+import { taskRunsDir } from "@clive.shirley/accord-core/tasks/store.js";
 import type { Requirement } from "@clive.shirley/accord-core/tasks/types.js";
 import { readTaskFixture, writeTaskFixture } from "./helpers/task-fixture.js";
 
@@ -159,14 +160,16 @@ describe("import-only RED guard (phase-test post-result)", () => {
   test("reads full output from test_output_file instead of the short inline excerpt", () => {
     seed();
     writeTaskFixture({ workItemId: WI, taskId: 1 });
-    writeFileSync("red-run.txt", IMPORT_ONLY_OUTPUT);
+    const runs = taskRunsDir(WI, 1);
+    mkdirSync(runs, { recursive: true });
+    writeFileSync(join(runs, "phase-test-output.txt"), IMPORT_ONLY_OUTPUT);
     const note = applyPhaseTestPostResult(
       WI,
       {
         status: "done",
         test_files: ["src/proration.test.ts"],
         red_confirmed: true,
-        test_output_file: join(tempCwd, "red-run.txt"),
+        test_output_file: join(runs, "phase-test-output.txt"),
         test_output: "1 fail",
         usage: { prompt_tokens: 1, completion_tokens: 1 },
       },
@@ -180,6 +183,26 @@ describe("import-only RED guard (phase-test post-result)", () => {
     expect(readFileSync(join(".tasks", `${WI}-task-1`, String(sidecar)), "utf8")).toBe(
       IMPORT_ONLY_OUTPUT,
     );
+  });
+
+  test("ignores a test_output_file outside the task runs folder", () => {
+    seed();
+    writeTaskFixture({ workItemId: WI, taskId: 1 });
+    writeFileSync("outside.txt", "FAIL\n  Expected: 1\n  Received: 0\n");
+    const note = applyPhaseTestPostResult(
+      WI,
+      {
+        status: "done",
+        test_files: ["src/proration.test.ts"],
+        red_confirmed: true,
+        test_output_file: join(tempCwd, "outside.txt"),
+        test_output: IMPORT_ONLY_OUTPUT,
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      },
+      devConfig(),
+    );
+    // Inline fallback (import-only) wins; the outside file is never read.
+    expect(note).toContain("import-only RED");
   });
 
   test("blocks once the review-test retry cap is exhausted", () => {
@@ -352,6 +375,10 @@ describe("retry briefs", () => {
     if (!brief.ok || !brief.value) throw new Error("expected phase-test brief");
     expect(brief.value).toContain('"prior_round"');
     expect(brief.value).toContain('"stub_files"');
+    // Harness-owned output path: absolute, inside .tasks/<ID>-task-1/runs/, folder created.
+    const outputFile = join(taskRunsDir(WI, 1), "phase-test-output.txt");
+    expect(brief.value).toContain(JSON.stringify(outputFile));
+    expect(existsSync(taskRunsDir(WI, 1))).toBe(true);
     const withFeedback = appendReviewFeedbackToResumeBrief(WI, brief.value, "phase-test");
     expect(withFeedback).toContain("## Open test findings (harness ledger)");
     expect(withFeedback).toContain("import_only_red");

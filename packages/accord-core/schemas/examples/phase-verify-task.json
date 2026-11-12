@@ -16,7 +16,7 @@
         "note": "Expected 429, received 200 on 6th request"
       }
     ],
-    "verify_output_file": "/tmp/accord-ACCORD-1234-task-3-verify.txt",
+    "verify_output_file": "/repo/.tasks/ACCORD-1234-task-3/runs/phase-verify-task-output.txt",
     "verify_output": "1 pass\n1 fail\n  AC-3 refresh is rate limited: Expected 429, received 200",
     "usage": {
       "prompt_tokens": 3000,

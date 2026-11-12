@@ -189,7 +189,7 @@
     },
     "test_output_file": {
       "type": "string",
-      "description": "Absolute path to a file holding the full stdout/stderr of the final RED test run. The harness reads it for Check 0, crash detection and the task sidecar. Preferred over a long inline test_output."
+      "description": "The brief's output_file: absolute path inside the task's harness-owned runs/ folder, holding the full stdout/stderr of the final RED test run. The harness reads it for Check 0, crash detection and the task sidecar, then deletes it. Paths outside runs/, symlinks and non-regular files are ignored (inline test_output is used)."
     },
     "ac_covered": {
       "type": "array",
