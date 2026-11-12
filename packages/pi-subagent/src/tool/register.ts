@@ -4,7 +4,8 @@ import { createSubagentTool } from "./create-tool.js";
 
 export default function registerSubagentExtension(pi: ExtensionAPI): void {
   const subagentTool = createSubagentTool();
-  pi.registerTool(subagentTool);
+  // Deferred: loaded on demand via pi's `tool_search` (review skills instruct this).
+  pi.registerTool({ ...subagentTool, exposure: "deferred" } as typeof subagentTool);
   setSubagentToolRenderers(
     subagentTool as import("../subagent-tool-renderers.js").SubagentToolRenderers,
   );

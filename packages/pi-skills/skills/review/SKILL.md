@@ -1,6 +1,7 @@
 ---
 name: review
 description: Standalone code review on the current git diff via review-code, review-security, and review-test. No /dev harness, spec, plan, or work item. For quick fixes, ad-hoc changes, or pre-commit checks in any repo.
+disable-model-invocation: true
 ---
 
 # Review
@@ -22,7 +23,7 @@ General-purpose diff review using `review-*` subagents. No `/dev` workflow — p
 
 ## Invocation
 
-- If a tool is **not active**, call `search_accord_tools` first (progressive discovery), then use the exact tool name.
+- If a tool is **not active**, call `tool_search` first (progressive discovery), then use the exact tool name.
 Standalone review uses **`pi-git`** for diff + task briefs and **`pi-subagent`** for reviewers — not shell `git diff`, not `accord-mcp` (`dev_*` only), not **`accord review`**.
 
 | Step | Tool name (exact) |
@@ -34,7 +35,8 @@ Standalone review uses **`pi-git`** for diff + task briefs and **`pi-subagent`**
 - **Pi TUI:** call those names from the agent tool list.
 - **Cursor + pi package:** bridged names are often `mcp_pi_git_review_context`, `mcp_pi_git_review_tasks`, `mcp_pi_subagent` (or similar). Names are not truncated.
 - **Do not** paste the full diff into subagent briefs; reviewers read `details.diff_path` from `git_review_context`.
-- **Do not** search MCP/bash to “find” these tools. If missing, ask the user to run `bash scripts/install-pi-skills.sh` from the accord monorepo (or `pi install` **pi-git** + **pi-subagent** + **pi-skills**).
+- **First step:** these tools are deferred — call `tool_search` (query `review subagent`) to load `git_review_context`, `git_review_tasks`, `subagent` before anything else.
+- **Do not** search MCP/bash to “find” these tools beyond that. If missing, ask the user to run `bash scripts/install-pi-skills.sh` from the accord monorepo (or `pi install` **pi-git** + **pi-subagent** + **pi-skills**).
 
 ## When to use
 

@@ -1,6 +1,7 @@
 ---
 name: pr-review
 description: Review a GitHub pull request (by number or URL) with the standalone review-code, review-security and review-test agents, sharded for large PRs, and leave the findings as a pending (draft) inline review. Use when the user asks to review a PR. For local or pre-commit changes use the `review` skill instead.
+disable-model-invocation: true
 ---
 
 # PR review
@@ -18,7 +19,7 @@ Nothing is posted as a submitted review. The review is left **pending** for the 
 
 ## Tools
 
-Call `search_accord_tools` first if a tool is not active (`pr_review_context`, `pr_review_report`, `pr_review_post`). Use `subagent` for reviewers and `bash` for `gh` and `git worktree remove`.
+Call `tool_search` first if a tool is not active (`pr_review_context`, `pr_review_report`, `pr_review_post`). Use `subagent` for reviewers and `bash` for `gh` and `git worktree remove`.
 
 ## Step 1: Prepare
 

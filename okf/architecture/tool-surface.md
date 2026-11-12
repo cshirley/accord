@@ -48,7 +48,7 @@ Default on (`ACCORD_DYNAMIC_TOOLS=0` disables). Core set always active: `dev_int
 bootstrap, orchestration dispatch, or when the model calls an inactive `dev_*` tool.
 
 Separate but related: `pi-git` / `pi-integrations` progressive tools (`PI_PROGRESSIVE_TOOLS`,
-`PI_GIT_DYNAMIC_TOOLS`, `PI_INTEGRATIONS_DYNAMIC_TOOLS`) loaded via `search_accord_tools`.
+`PI_GIT_DYNAMIC_TOOLS`, `PI_INTEGRATIONS_DYNAMIC_TOOLS`) loaded via `tool_search`.
 
 # MCP
 
