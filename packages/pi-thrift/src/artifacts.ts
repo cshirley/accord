@@ -340,6 +340,7 @@ export class ArtifactStore {
  */
 export function registerRecallTool(pi: ExtensionAPI, store: ArtifactStore): void {
   pi.registerTool({
+    exposure: "deferred",
     name: "thrift_recall",
     label: "recall",
     description:

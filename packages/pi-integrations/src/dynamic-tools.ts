@@ -2,7 +2,6 @@ import {
   buildLoaderActiveSet,
   isProgressiveToolsEnabled,
   registerSearchableTools,
-  registerToolsMatchedHandler,
   SEARCH_ACCORD_TOOLS,
 } from "@clive.shirley/accord-core/tools/progressive-discovery.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -69,26 +68,7 @@ export function maybeActivateIntegrationsToolCall(pi: ExtensionAPI, toolName: st
   return true;
 }
 
-export function initIntegrationsDynamicTools(pi: ExtensionAPI): void {
+/** Native replacement: managed tools register deferred (see framework.ts); pi's `tool_search` loads them. */
+export function initIntegrationsDynamicTools(_pi: ExtensionAPI): void {
   registerSearchableTools(INTEGRATIONS_MANAGED_TOOL_NAMES);
-
-  registerToolsMatchedHandler((toolNames) => {
-    const bundles: IntegrationsToolBundle[] = [];
-    for (const name of toolNames) {
-      const bundle = integrationsBundleForTool(name);
-      if (bundle) bundles.push(bundle);
-    }
-    if (bundles.length > 0) {
-      activateIntegrationBundles(bundles);
-      applyIntegrationsActiveTools(pi);
-    }
-  });
-
-  pi.on("session_start", () => {
-    applyIntegrationsSessionStart(pi);
-  });
-
-  pi.on("tool_call", async (event) => {
-    maybeActivateIntegrationsToolCall(pi, event.toolName);
-  });
 }

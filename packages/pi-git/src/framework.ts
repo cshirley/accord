@@ -5,12 +5,14 @@
  * Add a slash command: commands/*.commands.ts exporting defineSlashCommand({ ... }).
  */
 
+import { isProgressiveToolsEnabled } from "@clive.shirley/accord-core/tools/progressive-discovery.js";
 import type {
   AgentToolResult,
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { type TObject, type TSchema, Type } from "typebox";
+import { isGitManagedTool } from "./tool-bundles.js";
 
 export type ParamType = "string" | "number" | "boolean" | "string[]" | "number[]";
 
@@ -119,6 +121,9 @@ function registerOneTool<TParams>(pi: ExtensionAPI, def: ToolDef<TParams>): void
   const parameters = schemaToTypeBox(def.params);
 
   pi.registerTool({
+    ...(isProgressiveToolsEnabled("PI_GIT_DYNAMIC_TOOLS") && isGitManagedTool(def.name)
+      ? { exposure: "deferred" as const }
+      : {}),
     name: def.name,
     label: def.label,
     description: def.description,

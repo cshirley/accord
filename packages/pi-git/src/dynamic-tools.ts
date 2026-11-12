@@ -71,7 +71,7 @@ export function maybeActivateGitToolCall(pi: ExtensionAPI, toolName: string): bo
   return true;
 }
 
-function ensureSearchTool(pi: ExtensionAPI): void {
+function _ensureSearchTool(pi: ExtensionAPI): void {
   if (searchToolRegistered) return;
   // Action methods (getAllTools) are unavailable during extension load (pi-coding-agent 0.85+).
 
@@ -132,16 +132,10 @@ function ensureSearchTool(pi: ExtensionAPI): void {
   searchToolRegistered = true;
 }
 
-export function initGitDynamicTools(pi: ExtensionAPI): void {
+/**
+ * Native replacement: managed tools register with `exposure: "deferred"` (see framework.ts)
+ * and are loaded via pi's built-in `tool_search`. No custom loader/hooks needed.
+ */
+export function initGitDynamicTools(_pi: ExtensionAPI): void {
   registerSearchableTools(GIT_MANAGED_TOOL_NAMES);
-  ensureSearchTool(pi);
-
-  pi.on("session_start", () => {
-    resetGitToolBundles();
-    applyGitSessionStartActiveSet(pi);
-  });
-
-  pi.on("tool_call", async (event) => {
-    maybeActivateGitToolCall(pi, event.toolName);
-  });
 }

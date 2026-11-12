@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Stage all changes, generate a detailed commit message with context and decisions, then commit to the current branch. Use when the user asks to commit changes, create a commit, or save their work with a commit message.
+description: Stage all changes and commit with a detailed message. Use when asked to commit.
 ---
 
 # Detailed Commit

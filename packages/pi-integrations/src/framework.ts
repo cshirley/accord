@@ -12,9 +12,11 @@
  * onUpdate progress, executeChain wiring, auth gating, error aggregation.
  */
 
+import { isProgressiveToolsEnabled } from "@clive.shirley/accord-core/tools/progressive-discovery.js";
 import type { AgentToolResult, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type TObject, type TSchema, Type } from "typebox";
 import { getMcpRegistry, mcpText } from "./mcp-registry.js";
+import { isIntegrationsManagedTool } from "./tool-bundles.js";
 
 // ---------------------------------------------------------------------------
 // ToolDef — what each tool definition file exports
@@ -261,6 +263,10 @@ function registerOneTool<TParams, TResult>(pi: ExtensionAPI, def: ToolDef<TParam
   const parameters = schemaToTypeBox(def.params);
 
   pi.registerTool({
+    ...(isProgressiveToolsEnabled("PI_INTEGRATIONS_DYNAMIC_TOOLS") &&
+    isIntegrationsManagedTool(def.name)
+      ? { exposure: "deferred" as const }
+      : {}),
     name: def.name,
     label: def.label,
     description: def.description,
