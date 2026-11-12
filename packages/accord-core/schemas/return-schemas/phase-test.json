@@ -185,7 +185,7 @@
     "test_output": {
       "type": "string",
       "maxLength": 65536,
-      "description": "Short excerpt of the RED test run: failing tests and errors, at most ~200 lines. Full output goes in test_output_file. Used only when test_output_file is absent or unreadable (then last 64 KiB)."
+      "description": "When the brief gave output_file: short excerpt of the RED test run: failing tests and errors, at most ~200 lines; the full output goes in test_output_file. When the brief had no output_file: the last 64 KiB of output. Also the fallback when test_output_file is rejected or unreadable."
     },
     "test_output_file": {
       "type": "string",

@@ -121,16 +121,25 @@ export function taskRunsDir(workItemId: string, taskId: string | number, cwd?: s
 /**
  * Absolute output file an agent writes its full runner output to. Creates the runs folder so
  * the agent can write straight away. The harness only reads output back from inside this folder.
+ * Returns `null` when the folder cannot be created (e.g. read-only `.tasks`, or `runs` is not a
+ * real directory): briefs then omit `output_file` and agents fall back to inline output. Brief
+ * building also runs from status/plan queries, so this must never throw.
  */
 export function ensureTaskRunOutputPath(
   workItemId: string,
   taskId: string | number,
   agent: RunOutputAgent,
   cwd?: string,
-): string {
+): string | null {
   const dir = taskRunsDir(workItemId, taskId, cwd);
-  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  return path.join(dir, `${agent}-output.txt`);
+  try {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    if (!fs.lstatSync(dir).isDirectory()) return null;
+    fs.chmodSync(dir, 0o700);
+    return path.join(dir, `${agent}-output.txt`);
+  } catch {
+    return null;
+  }
 }
 
 export function writeTaskSidecar(

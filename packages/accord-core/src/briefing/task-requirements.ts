@@ -396,6 +396,15 @@ export function formatCodeTaskBrief(slice: TaskRequirementsSlice): string {
   return s.join("\n");
 }
 
+/** `{ output_file }` for runner agents, or `{}` when the harness cannot create the runs folder. */
+function outputFileField(
+  slice: TaskRequirementsSlice,
+  agent: "phase-test" | "phase-verify-task",
+): { output_file?: string } {
+  const outputFile = ensureTaskRunOutputPath(slice.work_item_id, slice.task_id, agent);
+  return outputFile ? { output_file: outputFile } : {};
+}
+
 function agentPayloadForSpawn(
   agent: string,
   slice: TaskRequirementsSlice,
@@ -428,7 +437,7 @@ function agentPayloadForSpawn(
   if (agent === "phase-verify-task") {
     return {
       ...base,
-      output_file: ensureTaskRunOutputPath(slice.work_item_id, slice.task_id, "phase-verify-task"),
+      ...outputFileField(slice, "phase-verify-task"),
       covered_acs: slice.covered_acs,
       verification_commands: slice.verification_commands,
       test_cases: slice.test_cases,
@@ -443,7 +452,7 @@ function agentPayloadForSpawn(
     const isRetry = slice.test_files.length > 0;
     return {
       ...base,
-      output_file: ensureTaskRunOutputPath(slice.work_item_id, slice.task_id, "phase-test"),
+      ...outputFileField(slice, "phase-test"),
       test_cases: slice.test_cases,
       ...(slice.telemetry_topology !== undefined
         ? { telemetry_topology: slice.telemetry_topology }

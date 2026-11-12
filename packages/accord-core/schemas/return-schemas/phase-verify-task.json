@@ -44,7 +44,7 @@
     "verify_output": {
       "type": "string",
       "maxLength": 65536,
-      "description": "Short excerpt of verification output: failing commands and errors, at most ~200 lines. Full output goes in verify_output_file. Used only when verify_output_file is absent or unreadable (then last 64 KiB)."
+      "description": "When the brief gave output_file: short excerpt of the verification output: failing commands and errors, at most ~200 lines; the full output goes in verify_output_file. When the brief had no output_file: the last 64 KiB of output. Also the fallback when verify_output_file is rejected or unreadable."
     },
     "verify_output_file": {
       "type": "string",

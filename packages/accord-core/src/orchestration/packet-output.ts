@@ -7,8 +7,8 @@
  * inline excerpt, so the packet does not carry up to 64 KiB of output (~16k output tokens).
  *
  * The path comes from a model-controlled packet, so the read is confined: the real path must be
- * inside `allowedDir`, the final component must not be a symlink, it must be a regular file
- * owned by this process's user, and only the tail is read. Anything else falls back to the
+ * a direct child of `allowedDir` (itself not a symlink), not a symlink, FIFO or hardlink, a
+ * regular file owned by this process's user, and only the tail is read. Anything else falls back to the
  * inline field. The file is deleted after a successful read so a later round cannot reuse it.
  */
 
@@ -37,19 +37,40 @@ function isInside(root: string, candidate: string): boolean {
 function readConfinedTail(filePath: string, allowedDir: string): string | null {
   let fd: number | undefined;
   try {
+    // The runs folder itself must be a real directory, not a symlink planted to widen the root.
+    if (!fs.lstatSync(allowedDir).isDirectory()) return null;
     const root = fs.realpathSync(allowedDir);
     const candidate = path.isAbsolute(filePath) ? filePath : path.resolve(root, filePath);
     const real = fs.realpathSync(candidate);
-    if (!isInside(root, real)) return null;
-    fd = fs.openSync(real, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
+    // Direct children only: no sub-folders that could be swapped for a symlink after realpath.
+    if (!isInside(root, real) || path.dirname(real) !== root) return null;
+    // Fail fast on FIFOs/devices before open; O_NONBLOCK stops a FIFO open from blocking anyway.
+    if (!fs.lstatSync(real).isFile()) return null;
+    fd = fs.openSync(
+      real,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0) | (fs.constants.O_NONBLOCK ?? 0),
+    );
     const stat = fs.fstatSync(fd);
     if (!stat.isFile()) return null;
+    // A harness-created output file has one link; a hardlink to another file has more.
+    if (stat.nlink !== 1) return null;
     const uid = process.getuid?.();
     if (uid !== undefined && stat.uid !== uid) return null;
     const length = Math.min(stat.size, MAX_PACKET_OUTPUT_BYTES);
     const buffer = Buffer.alloc(length);
-    fs.readSync(fd, buffer, 0, length, stat.size - length);
-    const content = buffer.toString("utf8");
+    let bytesRead = 0;
+    while (bytesRead < length) {
+      const read = fs.readSync(
+        fd,
+        buffer,
+        bytesRead,
+        length - bytesRead,
+        stat.size - length + bytesRead,
+      );
+      if (read === 0) break;
+      bytesRead += read;
+    }
+    const content = buffer.toString("utf8", 0, bytesRead);
     try {
       fs.unlinkSync(real);
     } catch {

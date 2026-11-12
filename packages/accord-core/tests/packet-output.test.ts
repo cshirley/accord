@@ -1,11 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   MAX_PACKET_OUTPUT_CHARS,
   resolvePacketOutput,
 } from "../src/orchestration/packet-output.js";
+import { ensureTaskRunOutputPath } from "../src/tasks/store.js";
 
 const KEYS = ["test_output", "test_output_file"] as const;
 
@@ -89,6 +99,46 @@ describe("resolvePacketOutput", () => {
     expect(resolve({ test_output: "inline", test_output_file: makePath() })).toBe("inline");
   });
 
+  test.skipIf(process.platform === "win32")("rejects a FIFO without blocking", () => {
+    const fifo = join(runs, "pipe");
+    execFileSync("mkfifo", [fifo]);
+    expect(resolve({ test_output: "inline", test_output_file: fifo })).toBe("inline");
+  });
+
+  test("rejects a hardlink to a file outside the folder and leaves the original intact", () => {
+    const secret = join(root, "secret.txt");
+    writeFileSync(secret, "SECRET");
+    linkSync(secret, join(runs, "phase-test-output.txt"));
+    expect(
+      resolve({ test_output: "inline", test_output_file: join(runs, "phase-test-output.txt") }),
+    ).toBe("inline");
+    expect(existsSync(secret)).toBe(true);
+  });
+
+  test("rejects files in sub-folders of the runs folder", () => {
+    mkdirSync(join(runs, "sub"));
+    writeFileSync(join(runs, "sub", "out.txt"), "nested");
+    expect(resolve({ test_output: "inline", test_output_file: join(runs, "sub", "out.txt") })).toBe(
+      "inline",
+    );
+  });
+
+  test("rejects everything when the runs folder itself is a symlink", () => {
+    const real = join(root, "elsewhere");
+    mkdirSync(real);
+    writeFileSync(join(real, "out.txt"), "SECRET");
+    const linked = join(root, "linked-runs");
+    symlinkSync(real, linked);
+    expect(
+      resolvePacketOutput(
+        { test_output: "inline", test_output_file: join(linked, "out.txt") },
+        ...KEYS,
+        linked,
+      ),
+    ).toBe("inline");
+    expect(existsSync(join(real, "out.txt"))).toBe(true);
+  });
+
   test("rejected outside file is not deleted", () => {
     const secret = join(root, "secret.txt");
     writeFileSync(secret, "SECRET");
@@ -113,5 +163,21 @@ describe("resolvePacketOutput", () => {
     const result = resolve({ test_output: `${"y".repeat(MAX_PACKET_OUTPUT_CHARS)}END` });
     expect(result.length).toBe(MAX_PACKET_OUTPUT_CHARS);
     expect(result.endsWith("END")).toBe(true);
+  });
+});
+
+describe("ensureTaskRunOutputPath", () => {
+  test("returns null instead of throwing when runs/ cannot be a directory", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "accord-runs-"));
+    try {
+      const first = ensureTaskRunOutputPath("RUN-1", 1, "phase-test", cwd);
+      expect(first?.endsWith(join("runs", "phase-test-output.txt"))).toBe(true);
+      const runsDir = join(first ?? "", "..");
+      rmSync(runsDir, { recursive: true, force: true });
+      writeFileSync(runsDir, "not a directory");
+      expect(ensureTaskRunOutputPath("RUN-1", 1, "phase-test", cwd)).toBeNull();
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
   });
 });
