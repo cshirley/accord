@@ -804,7 +804,7 @@ describe("ASDLC-1/AC-31 ci-driven-mode docs (task 54)", () => {
     expect(text).toContain("accord-driven.yml");
   });
 
-  it("ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 ci-driven-mode entry naming the updated concepts, appended last", () => {
+  it("ASDLC-1/AC-31 okf/log.md has a dated ASDLC-1 ci-driven-mode entry naming the updated concepts", () => {
     const bullets = datedBullets();
     const index = bullets.findIndex(
       (bullet) =>
@@ -813,7 +813,8 @@ describe("ASDLC-1/AC-31 ci-driven-mode docs (task 54)", () => {
         bullet.text.includes("/references/environment-variables.md") &&
         bullet.text.includes("ACCORD_CI_PUSH_TOKEN"),
     );
-    expect(index).toBe(bullets.length - 1);
+    // The log is append-only, so later entries follow this one; require presence, not position.
+    expect(index).toBeGreaterThanOrEqual(0);
     expect(new Date(`${bullets[index]?.date}T00:00:00Z`).toISOString().slice(0, 10)).toBe(
       bullets[index]?.date,
     );

@@ -34,7 +34,7 @@ Orchestrator inlines:
 - `requirement_map` (harness pipeline): each requirement (`AC-n`) with the files changed for it (`changes[]`). Set each finding's `ac_id` from the file it concerns (use `also_affects` when the file serves several ACs).
 - `## Prior code findings to recheck (harness ledger)` (retry rounds): your earlier findings by **`F-nnn` id** with their history (phase-code's `fixed`/`disputed`/`wont_fix` responses, human notes). See **Retry rounds** below.
 
-Schemas of truth: Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk.
+> The return schema and examples are appended under `## Response contract`. Do not read schema files from disk.
 
 ## Review dimensions
 
@@ -115,12 +115,7 @@ Findings without `file` + `line` (and without `ref`) are auto-downgraded to `sug
 
 ## Findings ordering
 
-`severity` is the harness priority signal — do not add a separate `priority` field.
-
-1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
-2. Within the same severity: ❌ drift on MUST AC or spec `constraints` before other drift; then correctness and runtime reliability; then remaining dimensions (existing-pattern / consistency findings after correctness, before nits); then ascending `file` path (and `line` within a file).
-3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `file`+`line` unless categories differ materially.
-4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+Follow the `findings` ordering rules in the return schema. Within a severity: ❌ drift on MUST AC or spec `constraints` before other drift; then correctness and runtime reliability; then remaining dimensions (existing-pattern / consistency findings after correctness, before nits); then ascending `file` path (and `line` within a file).
 
 ## Rules
 

@@ -260,9 +260,10 @@ describe("ASDLC-1/AC-31 validate:features docs", () => {
     const lastHeading = headings[headings.length - 1] ?? "";
     expect(new Date(`${lastHeading}T00:00:00Z`).toISOString().slice(0, 10)).toBe(lastHeading);
     expect(lastHeading >= "2026-11-03").toBe(true);
+    // Append-only log: later entries may follow, so match any heading on or after 2026-11-03.
     const matches = datedBullets.filter(
       (b) =>
-        b.date === lastHeading &&
+        b.date >= "2026-11-03" &&
         b.text.includes("ASDLC-1") &&
         b.text.includes("feature-knowledge") &&
         !b.text.includes("trunk-hardening") &&

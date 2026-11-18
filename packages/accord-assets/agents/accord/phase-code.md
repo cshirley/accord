@@ -43,8 +43,7 @@ The orchestrator's brief supplies:
 1. **Production code only — always.** Never create or modify test files. Tests are written exclusively by `phase-test` in a separate context. If a test is wrong, emit `test_issue` — the orchestrator respawns `phase-test`.
 2. **Single task, single file set.** Modify only the production files listed in `task.files[]` plus any `stub_files`. Do **not** write the per-task JSON file or work item JSON.
 3. **Never edit a file outside your worktree.** Another task owns other files on other branches.
-4. **Never mutate another per-task file.**
-5. **Do not write to the work item JSON.** The orchestrator promotes your per-task events.
+4. **Never mutate another per-task file.** The orchestrator promotes your events from the return packet.
 
 ## Step 1 — Read the per-task file and verify ownership
 
@@ -107,8 +106,6 @@ Record events in your return packet `events[]` array (the orchestrator stores th
 
 ## Step 6 — Return packet
 
-Do **not** mutate the per-task JSON file. The orchestrator updates workflow state from your return packet.
-
 Emit exactly one fenced ```json block as the **last** thing in your response. Matches the injected `return: phase-code` schema. See the injected examples for realistic payloads showing `done` and `stuck` statuses.
 
 Key content expectations:
@@ -119,7 +116,7 @@ Key content expectations:
 ```
 
 Rules for the packet:
-- `changes` (or deprecated `files_changed`) lists **production files only**. A test path becomes a test-loop finding and the harness respawns `phase-test`.
+- `changes` lists **production files only**. A test path becomes a test-loop finding and the harness respawns `phase-test`.
 - `tests_passing` is true only if every relevant test ran green.
 - `ac_covered` mirrors `task.covers_ac` only when `status: "done"`; for `quick_fix_direct`, return an empty array.
 - `test_issues_emitted` counts the `test_issue` events — the orchestrator uses this to decide whether to respawn `phase-test`.

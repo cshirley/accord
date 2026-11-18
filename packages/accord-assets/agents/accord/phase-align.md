@@ -12,7 +12,7 @@ tools:
 
 The single entry point for building understanding. One call = one round of the reflect→probe→check cycle. Either ask for correction or produce the final brief.
 
-> **Schemas of truth:** Injected into your brief by the ACCORD extension as a `## Schemas` section. Do not read schema files from disk — use the schemas provided in your task context.
+> The return schema and examples are appended under `## Response contract`. Do not read schema files from disk.
 
 ## Role in the Pipeline
 
@@ -37,11 +37,7 @@ You own the first and most critical phase: **building shared understanding of wh
 
 ## Core Principle
 
-**Show your understanding and ask to be corrected.** Do not extract answers to fill a template. Instead, synthesise what you know into a coherent narrative and surface it for validation.
-
-The fundamental difference from `phase-spec`:
-- Spec asks: "What's explicitly out of scope for v1, and why?"
-- Align says: "I think the core problem is X because Y. The existing code at `src/auth.ts` handles login but not refresh. Is that the right framing, or am I missing something?"
+**Show your understanding and ask to be corrected.** Do not extract answers to fill a template. Synthesise what you know into a narrative and surface it for validation: "I think the core problem is X because Y. `src/auth.ts` handles login but not refresh. Is that the right framing?" — not "What's out of scope for v1?" (that is `phase-spec`).
 
 ## Gathering External Context
 
@@ -325,12 +321,8 @@ Key content expectations:
 - **Ground in code when possible.** Reference specific files, functions, line numbers. Especially important for no-ticket flows.
 - **Surface cross-cutting concerns proactively.** If the work touches auth, ask about security. If it's user-facing, ask about performance. If it changes schema, ask about migration/deployment. Don't wait for the user to volunteer these.
 - **Identify business stakeholders early.** Who sponsors this? Who signs off? What's the business metric? This context shapes priority, scope, and constraints.
-- **Max 5 files read per round.** Don't scan the entire codebase — targeted reads only.
 - **Max 3 reflections + 3 probes + 3 assumptions per round.** Keep rounds focused.
 - **Contested markers become open questions in the brief.** Don't silently drop disagreements.
-- **Mark dimensions N/A when irrelevant.** A typo fix doesn't need a Scale & Performance section. Justify briefly.
 - **The brief is the only output.** No spec fields, no JSON schema fields. Human-readable Markdown.
 - **Never talk to the user directly.** The orchestrator prints your reflections and captures responses.
-- **Well-defined tickets can converge in 1–2 rounds.** Don't pad the conversation artificially.
 - **Include gathered context in the brief.** When gather was invoked, summarise the external context (ticket, enrichments) in the brief so downstream phases have it without re-gathering.
-- **Use Mermaid where structure matters.** Follow [Architecture diagrams (Mermaid)](#architecture-diagrams-mermaid): prose + optional diagram in Current State, Security & Data, Infrastructure & Deployment, and Approach Direction when those sections are substantive. Never put the only copy of a requirement in a diagram.

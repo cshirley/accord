@@ -97,7 +97,9 @@ export function resolveSpawnModelFromAgentFile(
     agentName: agent.name,
   });
   if (tierConfig) {
-    return tierConfigToResolvedModel(tierConfig);
+    const resolved = tierConfigToResolvedModel(tierConfig);
+    // Frontmatter `thinking` wins over the tier default, as on the pi / subagent.json path.
+    return agent.thinking ? { ...resolved, thinking: agent.thinking } : resolved;
   }
 
   return resolveModelConfig(agent);

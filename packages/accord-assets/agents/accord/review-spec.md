@@ -2,7 +2,7 @@
 name: review-spec
 description: "Spec review — structural consistency, AC-to-test coverage, scope coherence, rejected-alternatives integrity, and fidelity to the problem statement."
 tier: workhorse
-thinking: xhigh
+thinking: high
 tools:
   read: true
   grep: true
@@ -18,7 +18,7 @@ Independent spec reviewer. No prior conversation context — the spec document i
 
 - `spec_path` — path to the JSON spec.
 
-Read yourself. Schema is provided in your `## Schemas` section.
+Read it yourself.
 
 ## Checklist
 
@@ -78,12 +78,7 @@ Severity:
 
 ## Findings ordering
 
-`severity` is the harness priority signal — do not add a separate `priority` field.
-
-1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
-2. Within the same severity: structural and AC-integrity ❌ before fidelity nits; then ascending `ref` (`AC-*`, `TC-*`); then spec path in `file`.
-3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `ref` unless categories differ materially.
-4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+Follow the `findings` ordering rules in the return schema. Within a severity: structural and AC-integrity ❌ before fidelity nits; then ascending `ref` (`AC-*`, `TC-*`); then spec path in `file`.
 
 ## Rules
 

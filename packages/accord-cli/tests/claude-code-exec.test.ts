@@ -65,6 +65,35 @@ describe("claude code model resolution from frontmatter", () => {
   });
 });
 
+describe("accord.json tier resolution honours frontmatter thinking", () => {
+  const harness = {
+    tiers: {
+      reasoning: { harness: "claude", model: "claude-opus-4-7", thinking: "medium" as const },
+      workhorse: { harness: "claude", model: "claude-sonnet-4-6", thinking: "low" as const },
+      review: { harness: "claude", model: "claude-opus-4-7", thinking: "xhigh" as const },
+    },
+  };
+  const REVIEW_SPEC = path.join(REPO_ROOT, "packages/accord-assets/agents/accord/review-spec.md");
+
+  test("frontmatter thinking overrides the review tier default", () => {
+    const resolved = resolveSpawnModelFromAgentFile(REVIEW_SPEC, harness);
+    expect(resolved?.model).toBe("claude-opus-4-7");
+    expect(resolved?.thinking).toBe("high");
+  });
+
+  test("review-code keeps xhigh from its frontmatter over a lower tier value", () => {
+    const lowReview = {
+      tiers: { ...harness.tiers, review: { ...harness.tiers.review, thinking: "low" as const } },
+    };
+    expect(resolveSpawnModelFromAgentFile(REVIEW_CODE, lowReview)?.thinking).toBe("xhigh");
+  });
+
+  test("agent without frontmatter thinking uses the tier default", () => {
+    const resolved = resolveSpawnModelFromAgentFile(PHASE_ALIGN, harness);
+    expect(resolved?.thinking).toBe("medium");
+  });
+});
+
 describe("claude code exec spawn (mock)", () => {
   test("passes system prompt, effort, model, and task separately", async () => {
     const mockDir = fs.mkdtempSync(path.join(os.tmpdir(), "accord-claude-mock-"));

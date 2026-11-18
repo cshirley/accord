@@ -5,9 +5,25 @@
 import * as fs from "node:fs";
 import type { SubagentResponseContract } from "../types/subagent-spawn.js";
 
+/**
+ * Minify JSON text for prompt injection. Whitespace in pretty-printed schemas
+ * costs ~30% of their tokens and carries no meaning for the model. Returns the
+ * trimmed input unchanged when it is not valid JSON.
+ */
+export function compactJsonText(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return "";
+  try {
+    return JSON.stringify(JSON.parse(trimmed));
+  } catch {
+    return trimmed;
+  }
+}
+
 function readOptionalFile(filePath: string): string {
   try {
-    return fs.readFileSync(filePath, "utf-8").trim();
+    const content = fs.readFileSync(filePath, "utf-8");
+    return filePath.endsWith(".json") ? compactJsonText(content) : content.trim();
   } catch {
     return "";
   }
@@ -49,23 +65,9 @@ export function formatResponseContractAppendix(contract: SubagentResponseContrac
         lines.push(contract.instruction.trim(), "");
       }
       const label = contract.label ?? "response";
-      lines.push(
-        `### return: ${label}`,
-        "",
-        "```json",
-        JSON.stringify(contract.schema, null, 2),
-        "```",
-        "",
-      );
+      lines.push(`### return: ${label}`, "", "```json", JSON.stringify(contract.schema), "```", "");
       if (contract.examples !== undefined) {
-        lines.push(
-          "### Examples",
-          "",
-          "```json",
-          JSON.stringify(contract.examples, null, 2),
-          "```",
-          "",
-        );
+        lines.push("### Examples", "", "```json", JSON.stringify(contract.examples), "```", "");
       }
       break;
     }

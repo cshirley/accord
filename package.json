@@ -24,6 +24,7 @@
     "check:bundle": "bun build ./packages/pi-accord/src/index.ts --target=node --outfile=/tmp/accord-check.js --external @earendil-works/pi-ai --external @earendil-works/pi-agent-core --external @earendil-works/pi-coding-agent --external @earendil-works/pi-tui --external @clive.shirley/accord-core --external typebox",
     "check:types": "tsc --noEmit",
     "check:biome": "biome check .",
+    "check:changed": "bun scripts/check-changed.ts",
     "check:biome:fix": "biome check --write .",
     "lint": "biome check .",
     "format": "biome format --write .",

@@ -136,6 +136,18 @@ describe("buildWorkItemTrace", () => {
     expect(task?.final_verification?.excerpt.length).toBe(TRACE_EXCERPT_MAX_CHARS + 1);
   });
 
+  test("redacts secrets in runner output excerpts before they reach trace.json", () => {
+    const token = `${"gh"}p_${"A1b2".repeat(9)}`;
+    writeSidecar("T1-phase-test.output.txt", `FAIL login works\nGITHUB_TOKEN=${token}\n`);
+    writeSidecar("V1-phase-verify-task.output.txt", `ok\nAuthorization: Bearer ${token}\n`);
+    const built = buildWorkItemTrace(ID);
+    if (!built.ok) throw new Error(built.error);
+    const [task] = built.value.tasks;
+    expect(task?.red_evidence?.excerpt).toBe("FAIL login works\nGITHUB_TOKEN=[REDACTED]");
+    expect(task?.final_verification?.excerpt).toBe("ok\nAuthorization: Bearer [REDACTED]");
+    expect(JSON.stringify(built.value)).not.toContain(token);
+  });
+
   test("records harness commits from the task log", () => {
     const task = exampleTask();
     task.log.push({

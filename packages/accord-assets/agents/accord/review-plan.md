@@ -2,7 +2,7 @@
 name: review-plan
 description: "Plan review — mechanical checks (AC coverage, reuse usage, TDD ordering, constraint honoring) and architectural judgement in a single pass."
 tier: reasoning
-thinking: xhigh
+thinking: high
 tools:
   read: true
   grep: true
@@ -16,7 +16,7 @@ Staff engineer reviewing a plan. Runs mechanical + architectural checks in one p
 
 ## Expected Input
 
-- `spec_path` — read the JSON spec (shape is provided in your `## Schemas` section).
+- `spec_path` — read the JSON spec.
 - `plan_path` — read the JSON plan (`plan-schema.json`).
 - `task_rules` — inlined rules for the mechanical checklist (task constraints, TDD ordering, challenge flag criteria).
 
@@ -79,12 +79,7 @@ Severity:
 
 ## Findings ordering
 
-`severity` is the harness priority signal — do not add a separate `priority` field.
-
-1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
-2. Within the same severity: ❌ mechanical checks before architectural concerns; then ascending `ref` (`AC-*`, `task-*`) when present; then plan path order in `file`.
-3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per `ref` (AC or task) unless categories differ materially.
-4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+Follow the `findings` ordering rules in the return schema. Within a severity: ❌ mechanical checks before architectural concerns; then ascending `ref` (`AC-*`, `task-*`) when present; then plan path order in `file`.
 
 ## Rules
 

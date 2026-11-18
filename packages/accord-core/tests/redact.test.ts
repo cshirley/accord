@@ -215,3 +215,14 @@ describe("ASDLC-1/AC-12 redactText is idempotent", () => {
     expect(second.redactions).toBe(0);
   });
 });
+
+describe("private key blocks", () => {
+  it("redacts a PEM private key block", () => {
+    const begin = `-----BEGIN ${"OPENSSH PRIVATE"} KEY-----`;
+    const end = `-----END ${"OPENSSH PRIVATE"} KEY-----`;
+    const text = `before\n${begin}\nb3BlbnNzaC1rZXktdjEAAAAA\nAAAABG5vbmUAAAAEbm9uZQ\n${end}\nafter`;
+    const result = redactText(text);
+    expect(result.value).toBe("before\n[REDACTED]\nafter");
+    expect(result.redactions).toBe(1);
+  });
+});

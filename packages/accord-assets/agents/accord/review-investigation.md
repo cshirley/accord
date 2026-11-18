@@ -2,7 +2,7 @@
 name: review-investigation
 description: "Challenge an investigation's hypotheses — anti-anchoring, citation check, alternative explanations. Fires after phase-hypothesise and before committing to a root cause."
 tier: workhorse
-thinking: xhigh
+thinking: high
 tools:
   read: true
   grep: true
@@ -52,12 +52,7 @@ Severity:
 
 ## Findings ordering
 
-`severity` is the harness priority signal — do not add a separate `priority` field.
-
-1. Emit `findings[]` sorted: `critical` → `warning` → `suggestion`.
-2. Within the same severity: untestable or contradictory hypotheses before calibration nits; then ascending hypothesis `ref` (`H1`, `H2`, …).
-3. Cap at ~15 findings. Merge duplicate root causes. At most one finding per hypothesis `ref` unless categories differ materially.
-4. One primary severity per finding — choose the highest tier the evidence supports; do not upgrade to `critical` without matching the severity rules above.
+Follow the `findings` ordering rules in the return schema. Within a severity: untestable or contradictory hypotheses before calibration nits; then ascending hypothesis `ref` (`H1`, `H2`, …).
 
 ## Rules
 

@@ -45,7 +45,7 @@ Example:
 
 ## Harness backends and tiers
 
-`accord config init` writes `harness.backends[]` (one entry per installed CLI) and `harness.tiers` (per-tier `harness`, `model`, `thinking`). At spawn time, accord-cli resolves the backend from the agent markdown `tier:` frontmatter (or review agent name) and routes to `pi` or the matching exec backend.
+`accord config init` writes `harness.backends[]` (one entry per installed CLI) and `harness.tiers` (per-tier `harness`, `model`, `thinking`). At spawn time, accord-cli resolves the backend from the agent markdown `tier:` frontmatter (or review agent name) and routes to `pi` or the matching exec backend. Frontmatter `thinking:` overrides the tier's `thinking` on every backend; the tier supplies the model.
 
 Example (abbreviated):
 
