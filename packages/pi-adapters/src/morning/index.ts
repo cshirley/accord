@@ -10,7 +10,6 @@ import {
   formatEmailResult,
   formatMorningRunSummary,
   runMorningPipeline,
-  type WeekEmailResult,
 } from "@clive.shirley/accord-core/morning/pipeline.js";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
