@@ -9,6 +9,8 @@ harness, and CI, uses the same capabilities through these CLIs:
 | `accord-guardrail hook claude` | Claude Code `PreToolUse` hook (JSON on stdin) | 0 |
 | `accord-notify "<msg>"` / `hook claude` | OSC 9 terminal notification, tmux-aware | 0 |
 | `gdoc-md <url\|id> [-o out.md] [--json]` | Google Doc to Markdown | 0, 1 error, 64 usage |
+| `accord-morning run\|briefing\|email` | Daily briefing, journal, weekly objectives email (draft unless `--send`) | 0, 1 error, 64 usage |
+| `accord-sync [--apply] [--codex]` | Link pi skills, generate Claude agents and MCP snippets | 0 |
 | `accord-tools list\|describe\|run` | git/gh/Jira/Slack/Google tool defs as JSON | 0, 1 tool error, 64 usage |
 
 Install locally with `bun run install:shim` (installs all shims to `~/.local/bin`).

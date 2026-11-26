@@ -7,7 +7,7 @@ describe("host-neutral modules", () => {
   test("guardrail/gdoc/notify import no pi packages", () => {
     const root = path.join(import.meta.dir, "..", "src");
     const bad: string[] = [];
-    for (const dir of ["guardrail", "gdoc", "notify"]) {
+    for (const dir of ["guardrail", "gdoc", "notify", "sync", "morning"]) {
       for (const f of new Glob(`${dir}/**/*.ts`).scanSync(root)) {
         if (/@earendil-works\//.test(readFileSync(path.join(root, f), "utf8"))) bad.push(f);
       }
