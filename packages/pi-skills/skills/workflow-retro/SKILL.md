@@ -1,10 +1,10 @@
 ---
-name: session-retro
+name: workflow-retro
 description: Analyze local Pi session logs (jsonl) for tool usage, friction, and skill gaps. Use when the user wants a retro on agentic workflow or monthly Pi hygiene.
 disable-model-invocation: true
 ---
 
-# Session Retro
+# Workflow Retro
 
 Offline analysis of Pi sessions under `~/.config/pi/agent/sessions`.
 

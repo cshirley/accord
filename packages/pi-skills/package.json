@@ -23,7 +23,7 @@
       "./skills/crq-notify",
       "./skills/reuse-scout",
       "./skills/risk-checklist",
-      "./skills/session-retro",
+      "./skills/workflow-retro",
       "./skills/ste",
       "./skills/verify",
       "./skills/worktree"
