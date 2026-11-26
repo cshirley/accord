@@ -39,33 +39,36 @@ import { initIntegrationsDynamicTools } from "./dynamic-tools.js";
 import { registerCommands, registerToolDefs } from "./framework.js";
 import { resetMcpRegistry } from "./mcp-registry.js";
 
+/** Host-neutral tool defs; also consumed by the accord-tools CLI. */
+export const integrationToolDefs = [
+  // Jira
+  jiraSearch,
+  jiraGet,
+  jiraGetFields,
+  jiraListFields,
+  jiraCrqChanges,
+  // Google Workspace
+  gmailSearch,
+  gmailGet,
+  gmailThread,
+  calendarEvents,
+  // Slack
+  slackSearch,
+  slackUserInfo,
+  slackUserLookup,
+  slackConversations,
+  slackChannelHistory,
+  slackDmHistory,
+  slackUnread,
+  slackSend,
+  // Unified inbox
+  inboxUnread,
+  // Preflight
+  preflight,
+];
+
 export default function tools(pi: ExtensionAPI) {
-  const toolDefs = [
-    // Jira
-    jiraSearch,
-    jiraGet,
-    jiraGetFields,
-    jiraListFields,
-    jiraCrqChanges,
-    // Google Workspace
-    gmailSearch,
-    gmailGet,
-    gmailThread,
-    calendarEvents,
-    // Slack
-    slackSearch,
-    slackUserInfo,
-    slackUserLookup,
-    slackConversations,
-    slackChannelHistory,
-    slackDmHistory,
-    slackUnread,
-    slackSend,
-    // Unified inbox
-    inboxUnread,
-    // Preflight
-    preflight,
-  ];
+  const toolDefs = integrationToolDefs;
 
   registerToolDefs(pi, toolDefs);
 

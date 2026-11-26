@@ -1,0 +1,21 @@
+{
+  "name": "@clive.shirley/pi-adapters",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi extension adapters (guardrail, notify, gdoc-md) over harness-neutral accord-core",
+  "keywords": [
+    "pi-package"
+  ],
+  "main": "./src/index.ts",
+  "files": [
+    "src/"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "^1.3.0",
+    "@earendil-works/pi-tui": "^1.3.0",
+    "typebox": "^1.3.7"
+  },
+  "dependencies": {
+    "@clive.shirley/accord-core": "workspace:*"
+  }
+}

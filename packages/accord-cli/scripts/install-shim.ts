@@ -8,7 +8,7 @@
 
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { installAccordShim } from "../src/install-shim.js";
+import { COMPANION_BINS, installAccordShim } from "../src/install-shim.js";
 
 type Args = {
   force: boolean;
@@ -40,6 +40,16 @@ try {
     dryRun: args.dryRun,
   });
   console.log(result.message);
+  for (const bin of COMPANION_BINS) {
+    const r = await installAccordShim({
+      repoRoot,
+      force: args.force,
+      dryRun: args.dryRun,
+      name: bin.name,
+      entry: bin.entry,
+    });
+    console.log(r.message);
+  }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(message);

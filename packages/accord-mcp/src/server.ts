@@ -9,6 +9,7 @@ import path from "node:path";
 import { loadDevHarnessConfig } from "@clive.shirley/accord-core/config/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { registerNeutralMcpTools } from "./register-neutral-tools.js";
 import { registerAccordMcpTools } from "./register-tools.js";
 
 const workspaceRoot = path.resolve(process.env.ACCORD_CWD?.trim() || process.cwd());
@@ -33,6 +34,8 @@ const mcp = new McpServer(
 );
 
 registerAccordMcpTools(mcp, () => loadDevHarnessConfig(workspaceRoot), { cwd: workspaceRoot });
+
+registerNeutralMcpTools(mcp, { cwd: workspaceRoot });
 
 const transport = new StdioServerTransport();
 await mcp.connect(transport);

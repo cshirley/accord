@@ -1,0 +1,51 @@
+# Harness-neutral CLIs (accord-guardrail, accord-notify, gdoc-md, accord-tools).
+# Proves the shared core runs with no pi session, TUI or hooks, as any CI job
+# or headless agent (`claude -p`, `codex exec`) would use it.
+
+name: Harness-neutral CLIs
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "packages/accord-core/src/guardrail/**"
+      - "packages/accord-core/src/gdoc/**"
+      - "packages/accord-core/src/notify/**"
+      - "packages/accord-cli/**"
+      - "packages/accord-tools/**"
+      - "packages/pi-adapters/**"
+      - "packages/pi-git/**"
+      - "packages/pi-integrations/**"
+      - ".github/workflows/harness-neutral-cli.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Core imports no host packages
+        run: bun test packages/accord-core/tests/no-host-imports.test.ts
+      - name: CLI contract tests
+        run: bun test packages/accord-cli/tests/guardrail-cli.test.ts packages/accord-tools packages/pi-adapters
+      - name: Smoke - guardrail exit codes (0 allow, 1 ask, 2 deny)
+        run: |
+          set -u
+          G="bun packages/accord-cli/src/guardrail-main.ts"
+          $G check "ls -la"; test $? -eq 0
+          set +e
+          $G check "git push --force origin main"; test $? -eq 1 || exit 1
+          $G check "sudo rm -rf /"; test $? -eq 2 || exit 1
+      - name: Smoke - accord-tools lists git and integration tools
+        run: |
+          bun packages/accord-tools/src/main.ts list --json | grep -q repo_verify
+          bun packages/accord-tools/src/main.ts list --json | grep -q atlassian-getJiraIssue
+      - name: Smoke - accord-tools runs a git tool headlessly
+        run: bun packages/accord-tools/src/main.ts run repo_harness_context --cwd "$PWD"

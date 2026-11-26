@@ -21,7 +21,21 @@ export type InstallAccordShimOptions = {
   dryRun?: boolean;
   /** Resolved `bun` binary (default: `command -v bun` or `bun`). */
   bunPath?: string;
+  /** Shim name (default `accord`). */
+  name?: string;
+  /** Entry file relative to repoRoot (default `packages/accord-cli/src/main.ts`). */
+  entry?: string;
 };
+
+/** Harness-neutral companion CLIs installed alongside `accord`. */
+export const COMPANION_BINS: ReadonlyArray<{ name: string; entry: string }> = [
+  { name: "accord-guardrail", entry: "packages/accord-cli/src/guardrail-main.ts" },
+  { name: "accord-notify", entry: "packages/accord-cli/src/notify-main.ts" },
+  { name: "accord-morning", entry: "packages/accord-cli/src/morning-main.ts" },
+  { name: "accord-sync", entry: "packages/accord-cli/src/sync-main.ts" },
+  { name: "accord-tools", entry: "packages/accord-tools/src/main.ts" },
+  { name: "gdoc-md", entry: "packages/accord-cli/src/gdoc-main.ts" },
+];
 
 export type InstallAccordShimResult = {
   path: string;
@@ -34,13 +48,20 @@ export function resolveAccordCliMain(repoRoot: string): string {
   return resolve(repoRoot, "packages/accord-cli/src/main.ts");
 }
 
-export function resolveAccordShimPath(binDir: string = DEFAULT_LOCAL_BIN_DIR): string {
-  return join(binDir, "accord");
+export function resolveAccordShimPath(
+  binDir: string = DEFAULT_LOCAL_BIN_DIR,
+  name = "accord",
+): string {
+  return join(binDir, name);
 }
 
-export function buildAccordShimContent(options: { repoRoot: string; bunPath?: string }): string {
+export function buildAccordShimContent(options: {
+  repoRoot: string;
+  bunPath?: string;
+  entry?: string;
+}): string {
   const repoRoot = resolve(options.repoRoot);
-  const mainTs = resolveAccordCliMain(repoRoot);
+  const mainTs = options.entry ? resolve(repoRoot, options.entry) : resolveAccordCliMain(repoRoot);
   const bun = options.bunPath?.trim() || "bun";
   return `#!/usr/bin/env bash
 # ACCORD CLI shim — installed by @clive.shirley/accord (install-dev / install:shim)
@@ -77,13 +98,14 @@ export async function installAccordShim(
   options: InstallAccordShimOptions,
 ): Promise<InstallAccordShimResult> {
   const repoRoot = resolve(options.repoRoot);
-  const mainTs = resolveAccordCliMain(repoRoot);
+  const mainTs = options.entry ? resolve(repoRoot, options.entry) : resolveAccordCliMain(repoRoot);
   await access(mainTs, constants.R_OK);
 
   const binDir = resolve(options.binDir ?? DEFAULT_LOCAL_BIN_DIR);
-  const shimPath = resolveAccordShimPath(binDir);
+  const shimPath = resolveAccordShimPath(binDir, options.name);
+  const label = options.name ?? "accord";
   const bunPath = options.bunPath ?? resolveBunPath();
-  const content = buildAccordShimContent({ repoRoot, bunPath });
+  const content = buildAccordShimContent({ repoRoot, bunPath, entry: options.entry });
 
   if (!options.dryRun) {
     await mkdir(binDir, { recursive: true });
@@ -126,7 +148,7 @@ export async function installAccordShim(
     written: !options.dryRun,
     skipped: false,
     message: options.dryRun
-      ? `Would install accord shim at ${shimPath}`
-      : `Installed accord shim at ${shimPath}.${pathHint}`,
+      ? `Would install ${label} shim at ${shimPath}`
+      : `Installed ${label} shim at ${shimPath}.${pathHint}`,
   };
 }

@@ -1,0 +1,14 @@
+{
+  "name": "@clive.shirley/accord-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Harness-neutral CLI over pi-git and pi-integrations tool defs (git/gh/Jira/Slack/Google) for any agent or CI",
+  "type": "module",
+  "bin": {
+    "accord-tools": "./src/main.ts"
+  },
+  "dependencies": {
+    "@clive.shirley/pi-git": "workspace:*",
+    "@clive.shirley/pi-integrations": "workspace:*"
+  }
+}
