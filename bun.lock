@@ -44,6 +44,9 @@
       "version": "0.1.0",
       "bin": {
         "accord": "./src/main.ts",
+        "accord-guardrail": "./src/guardrail-main.ts",
+        "accord-notify": "./src/notify-main.ts",
+        "gdoc-md": "./src/gdoc-main.ts",
       },
       "dependencies": {
         "@clive.shirley/accord-assets": "workspace:*",
@@ -75,6 +78,17 @@
         "zod": "^4.4.3",
       },
     },
+    "packages/accord-tools": {
+      "name": "@clive.shirley/accord-tools",
+      "version": "0.1.0",
+      "bin": {
+        "accord-tools": "./src/main.ts",
+      },
+      "dependencies": {
+        "@clive.shirley/pi-git": "workspace:*",
+        "@clive.shirley/pi-integrations": "workspace:*",
+      },
+    },
     "packages/pi-accord": {
       "name": "@clive.shirley/pi-accord",
       "version": "0.1.0",
@@ -86,6 +100,18 @@
       "peerDependencies": {
         "@earendil-works/pi-agent-core": "^1.3.0",
         "@earendil-works/pi-ai": "^1.3.0",
+        "@earendil-works/pi-coding-agent": "^1.3.0",
+        "@earendil-works/pi-tui": "^1.3.0",
+        "typebox": "^1.3.7",
+      },
+    },
+    "packages/pi-adapters": {
+      "name": "@clive.shirley/pi-adapters",
+      "version": "0.1.0",
+      "dependencies": {
+        "@clive.shirley/accord-core": "workspace:*",
+      },
+      "peerDependencies": {
         "@earendil-works/pi-coding-agent": "^1.3.0",
         "@earendil-works/pi-tui": "^1.3.0",
         "typebox": "^1.3.7",
@@ -213,7 +239,11 @@
 
     "@clive.shirley/accord-mcp": ["@clive.shirley/accord-mcp@workspace:packages/accord-mcp"],
 
+    "@clive.shirley/accord-tools": ["@clive.shirley/accord-tools@workspace:packages/accord-tools"],
+
     "@clive.shirley/pi-accord": ["@clive.shirley/pi-accord@workspace:packages/pi-accord"],
+
+    "@clive.shirley/pi-adapters": ["@clive.shirley/pi-adapters@workspace:packages/pi-adapters"],
 
     "@clive.shirley/pi-git": ["@clive.shirley/pi-git@workspace:packages/pi-git"],
 

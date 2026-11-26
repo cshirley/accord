@@ -27,24 +27,27 @@ import { initGitDynamicTools } from "./dynamic-tools.js";
 import { registerToolDefs } from "./framework.js";
 import { initWorktreeSession } from "./worktree/runtime.js";
 
+/** Host-neutral tool defs; also consumed by the accord-tools CLI. */
+export const gitToolDefs = [
+  gitCommitContext,
+  gitCommitExecute,
+  ghPrContext,
+  ghPrSubmit,
+  ghCiContext,
+  gitReviewContext,
+  gitReviewTasks,
+  prReviewContext,
+  prReviewPost,
+  prReviewReport,
+  repoHarnessContext,
+  repoVerify,
+  gitWorktreeResolve,
+];
+
 export default function gitExtension(pi: ExtensionAPI) {
   initWorktreeSession(pi);
 
-  const toolDefs = [
-    gitCommitContext,
-    gitCommitExecute,
-    ghPrContext,
-    ghPrSubmit,
-    ghCiContext,
-    gitReviewContext,
-    gitReviewTasks,
-    prReviewContext,
-    prReviewPost,
-    prReviewReport,
-    repoHarnessContext,
-    repoVerify,
-    gitWorktreeResolve,
-  ];
+  const toolDefs = gitToolDefs;
 
   registerToolDefs(pi, toolDefs);
 

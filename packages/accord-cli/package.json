@@ -9,7 +9,10 @@
     "./*": "./src/*"
   },
   "bin": {
-    "accord": "./src/main.ts"
+    "accord": "./src/main.ts",
+    "accord-guardrail": "./src/guardrail-main.ts",
+    "accord-notify": "./src/notify-main.ts",
+    "gdoc-md": "./src/gdoc-main.ts"
   },
   "scripts": {
     "start": "bun src/main.ts",

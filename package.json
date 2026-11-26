@@ -69,6 +69,7 @@
       "./packages/pi-subagent/src/index.ts",
       "./packages/pi-thrift/src/index.ts",
       "./packages/pi-git/src/index.ts",
+      "./packages/pi-adapters/src/index.ts",
       "./packages/pi-integrations/src/index.ts",
       "./packages/pi-accord/src/index.ts"
     ],
