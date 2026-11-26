@@ -23,13 +23,13 @@ Self-contained morning workflow for Pi: gather Jira/Slack/Calendar/Gmail, write 
 
 ## Configuration
 
-Optional JSON file at `~/.pi/agent/morning-briefing.json` (override the location
-with `$MORNING_CONFIG_PATH`). Every key is optional — anything you omit falls
+Optional JSON file at `~/.config/accord/morning-briefing.json` (override the location
+with `$MORNING_CONFIG_PATH`; the legacy `~/.pi/agent/morning-briefing.json` is read when the new file is absent). Every key is optional — anything you omit falls
 back to the default in `config.ts`, so a partial file only changes what it
 mentions. With no file at all the behaviour is identical to the defaults.
 
-Do not confuse this with `~/.pi/agent/morning-briefing.tmp.json`, the debug
-payload dump the briefing overwrites on every run. That one is gitignored and
+Do not confuse this with `~/.local/state/accord/morning-briefing.tmp.json` (`$MORNING_STATE_DIR`), the debug
+payload dump the briefing overwrites on every run. The weekly email guard lives in the same state dir. That one is gitignored and
 safe to delete.
 
 ```json

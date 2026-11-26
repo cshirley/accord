@@ -37,6 +37,7 @@ import {
   type MorningConfig,
   normalizeChannel,
 } from "./config.js";
+import { legacyMorningStateDir, morningStateDir } from "./paths.js";
 import {
   buildWeekObjectives,
   computePreviousWeekRecap,
@@ -61,7 +62,7 @@ const AUTH_FILE =
 // Where the assembled journalPayload is persisted for debugging (optional handoff file).
 // Overwritten every run and safe to delete; not to be confused with the config file,
 // morning-briefing.json.
-const PAYLOAD_DIR = join(homedir(), ".pi", "agent");
+const PAYLOAD_DIR = morningStateDir();
 const PAYLOAD_FILE = join(PAYLOAD_DIR, "morning-briefing.tmp.json");
 
 // Line-manager weekly-objectives email. Recipient, salutation and sign-off come
@@ -785,7 +786,14 @@ function readWeekEmailState(): WeekEmailState {
   try {
     return JSON.parse(readFileSync(WEEK_EMAIL_STATE_FILE, "utf-8"));
   } catch {
-    return {};
+    // Legacy location, so the once-per-week guard survives the move.
+    try {
+      return JSON.parse(
+        readFileSync(join(legacyMorningStateDir(), "week-objectives-emailed.json"), "utf-8"),
+      );
+    } catch {
+      return {};
+    }
   }
 }
 

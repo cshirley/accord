@@ -5,14 +5,13 @@
  * default. The file is optional — with no file and no env vars the defaults here
  * reproduce the extension's original hardcoded behaviour exactly.
  *
- * The file lives at $MORNING_CONFIG_PATH, else ~/.pi/agent/morning-briefing.json,
- * matching the <extension>.json convention used by the other extensions. The
- * run-to-run payload dump is morning-briefing.tmp.json.
+ * The file lives at $MORNING_CONFIG_PATH, else ~/.config/accord/morning-briefing.json
+ * (legacy ~/.pi/agent/morning-briefing.json still read). See paths.ts. The
+ * run-to-run payload dump is morning-briefing.tmp.json in the state dir.
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { morningConfigPath } from "./paths.js";
 
 export interface JiraQuery {
   jql: string;
@@ -165,9 +164,7 @@ function defaults(): Omit<MorningConfig, "sourcePath" | "loadError"> {
 }
 
 export function configPath(): string {
-  return (
-    process.env.MORNING_CONFIG_PATH ?? join(homedir(), ".pi", "agent", "morning-briefing.json")
-  );
+  return morningConfigPath();
 }
 
 /** Read an env var, treating blank as unset so an empty override can't erase a default. */
