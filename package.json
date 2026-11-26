@@ -84,7 +84,7 @@
       "./packages/pi-skills/skills/review",
       "./packages/pi-skills/skills/reuse-scout",
       "./packages/pi-skills/skills/risk-checklist",
-      "./packages/pi-skills/skills/session-retro",
+      "./packages/pi-skills/skills/workflow-retro",
       "./packages/pi-skills/skills/ste",
       "./packages/pi-skills/skills/verify",
       "./packages/pi-skills/skills/worktree"
