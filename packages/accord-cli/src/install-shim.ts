@@ -3,7 +3,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { constants } from "node:fs";
+import { constants, readdirSync, readFileSync } from "node:fs";
 import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -27,15 +27,43 @@ export type InstallAccordShimOptions = {
   entry?: string;
 };
 
-/** Harness-neutral companion CLIs installed alongside `accord`. */
-export const COMPANION_BINS: ReadonlyArray<{ name: string; entry: string }> = [
-  { name: "accord-guardrail", entry: "packages/accord-cli/src/guardrail-main.ts" },
-  { name: "accord-notify", entry: "packages/accord-cli/src/notify-main.ts" },
-  { name: "accord-morning", entry: "packages/accord-cli/src/morning-main.ts" },
-  { name: "accord-sync", entry: "packages/accord-cli/src/sync-main.ts" },
-  { name: "accord-tools", entry: "packages/accord-tools/src/main.ts" },
-  { name: "gdoc-md", entry: "packages/accord-cli/src/gdoc-main.ts" },
-];
+/** First line marker: shims carrying it are ours to overwrite without --force. */
+export const SHIM_MARKER = "# ACCORD CLI shim";
+
+export type BinEntry = { name: string; entry: string };
+
+/**
+ * Every `bin` declared by a workspace package (each `packages/<dir>/package.json`), so the shim
+ * list can never drift from package.json. `accord` is first.
+ */
+export function discoverBins(repoRoot: string): BinEntry[] {
+  const packagesDir = join(resolve(repoRoot), "packages");
+  const bins: BinEntry[] = [];
+  for (const dir of readdirSync(packagesDir).sort()) {
+    let pkg: { bin?: Record<string, string> | string; name?: string };
+    try {
+      pkg = JSON.parse(readFileSync(join(packagesDir, dir, "package.json"), "utf8"));
+    } catch {
+      continue;
+    }
+    const map = typeof pkg.bin === "string" ? { [pkg.name ?? dir]: pkg.bin } : (pkg.bin ?? {});
+    for (const [name, file] of Object.entries(map)) {
+      bins.push({ name, entry: join("packages", dir, file.replace(/^\.\//, "")) });
+    }
+  }
+  return bins.sort((x, y) => Number(y.name === "accord") - Number(x.name === "accord"));
+}
+
+/** Install a shim for every discovered bin. */
+export async function installAllShims(
+  options: Omit<InstallAccordShimOptions, "name" | "entry">,
+): Promise<InstallAccordShimResult[]> {
+  const results: InstallAccordShimResult[] = [];
+  for (const bin of discoverBins(options.repoRoot)) {
+    results.push(await installAccordShim({ ...options, name: bin.name, entry: bin.entry }));
+  }
+  return results;
+}
 
 export type InstallAccordShimResult = {
   path: string;
@@ -64,7 +92,7 @@ export function buildAccordShimContent(options: {
   const mainTs = options.entry ? resolve(repoRoot, options.entry) : resolveAccordCliMain(repoRoot);
   const bun = options.bunPath?.trim() || "bun";
   return `#!/usr/bin/env bash
-# ACCORD CLI shim — installed by @clive.shirley/accord (install-dev / install:shim)
+${SHIM_MARKER} — installed by @clive.shirley/accord (install-dev / install:shim)
 # Repo: ${repoRoot}
 set -euo pipefail
 exec ${shellQuote(bun)} ${shellQuote(mainTs)} "$@"
@@ -128,9 +156,9 @@ export async function installAccordShim(
           message: `Shim already up to date at ${shimPath}`,
         };
       }
-      if (!options.force) {
+      if (!options.force && !existing.includes(SHIM_MARKER)) {
         throw new Error(
-          `Refusing to overwrite existing shim at ${shimPath}. Pass --force to replace.`,
+          `Refusing to overwrite ${shimPath}: not an ACCORD shim. Pass --force to replace.`,
         );
       }
     }

@@ -45,7 +45,9 @@
       "bin": {
         "accord": "./src/main.ts",
         "accord-guardrail": "./src/guardrail-main.ts",
+        "accord-morning": "./src/morning-main.ts",
         "accord-notify": "./src/notify-main.ts",
+        "accord-sync": "./src/sync-main.ts",
         "gdoc-md": "./src/gdoc-main.ts",
       },
       "dependencies": {

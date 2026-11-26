@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   buildAccordShimContent,
+  discoverBins,
   installAccordShim,
   resolveAccordCliMain,
 } from "../src/install-shim.js";
@@ -73,5 +74,25 @@ describe("install accord shim", () => {
     await expect(installAccordShim({ repoRoot, binDir, bunPath: "/usr/bin/bun" })).rejects.toThrow(
       /Refusing to overwrite/,
     );
+  });
+
+  test("updates its own shim without --force (e.g. repo moved)", async () => {
+    const repoA = await mkdtemp(join(tmpdir(), "accord-repo-"));
+    const repoB = await mkdtemp(join(tmpdir(), "accord-repo-"));
+    tempDirs.push(repoA, repoB);
+    for (const r of [repoA, repoB]) await Bun.write(resolveAccordCliMain(r), "export {};\n");
+    const binDir = await makeTempBinDir();
+    await installAccordShim({ repoRoot: repoA, binDir, bunPath: "/usr/bin/bun" });
+    const moved = await installAccordShim({ repoRoot: repoB, binDir, bunPath: "/usr/bin/bun" });
+    expect(moved.written).toBe(true);
+    expect(await readFile(join(binDir, "accord"), "utf8")).toContain(repoB);
+  });
+
+  test("discoverBins reads package.json bins; accord first", () => {
+    const bins = discoverBins(join(import.meta.dir, "..", "..", ".."));
+    const names = bins.map((b) => b.name);
+    expect(names[0]).toBe("accord");
+    for (const n of ["accord-guardrail", "accord-tools", "accord-mcp", "gdoc-md", "accord-morning"])
+      expect(names).toContain(n);
   });
 });
