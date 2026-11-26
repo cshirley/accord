@@ -42,6 +42,17 @@ Gate a command list in any job:
 accord-guardrail check "$CMD" || { echo "blocked by guardrail"; exit 1; }
 ```
 
-`accord-tools` runs without a pi session. Jira, Slack and Google tools need
-credentials in `~/.pi/agent/service-auth.json` or `AI_TOOLS_AUTH_PATH`.
+`accord-tools` runs without a pi session. Credentials: `JIRA_EMAIL`, `JIRA_API_KEY`,
+`SLACK_BOT_TOKEN`, or `~/.pi/agent/service-auth.json` / `AI_TOOLS_AUTH_PATH`.
+Check with `accord-tools run native_preflight_check`. `accord-tools list --json`
+marks tools that mutate external state (`writes: true`).
+
+## MCP (any MCP-capable harness)
+
+`accord-mcp` exposes the git and integration tools opt-in:
+
+```bash
+ACCORD_MCP_EXTRA_TOOLS=git,integrations   # groups to expose (default: none)
+ACCORD_MCP_ALLOW_WRITES=1                 # also expose write tools (commit, PR, Slack send)
+```
 Session-scoped `wt_*` worktree tools are pi-only; use `git worktree`.

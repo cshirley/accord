@@ -7,23 +7,10 @@
  *   accord-tools run <name> [--json-input '{"k":"v"}' | -]  [--cwd dir]
  *
  * Output: JSON {ok,text,details} on stdout. Exit 0 ok, 1 tool error, 64 usage.
- * Interactive-only/session-scoped tools (wt_*) are not included.
+ * Session-scoped wt_* tools are not included.
  */
 
-import { gitToolDefs } from "@clive.shirley/pi-git/src/index.js";
-import { integrationToolDefs } from "@clive.shirley/pi-integrations/src/index.js";
-
-type AnyDef = {
-  name: string;
-  description: string;
-  params: Record<string, unknown>;
-  execute: (p: never, ctx?: never) => Promise<unknown>;
-  format?: (r: never, p: never) => { text: string; details: object };
-  auth?: { check: () => boolean; service: string };
-};
-
-const gitNames = new Set(gitToolDefs.map((d) => d.name));
-const defs: AnyDef[] = [...gitToolDefs, ...integrationToolDefs] as unknown as AnyDef[];
+import { neutralTools } from "./registry.js";
 
 function usage(): number {
   console.error(
@@ -34,28 +21,38 @@ function usage(): number {
 
 async function main(argv: string[]): Promise<number> {
   const [cmd, name, ...rest] = argv;
+  const tools = neutralTools();
   if (cmd === "list") {
-    const json = argv.includes("--json");
-    const rows = defs.map((d) => ({
-      name: d.name,
-      kind: gitNames.has(d.name) ? "git" : "integration",
-      description: d.description,
+    const rows = tools.map((t) => ({
+      name: t.name,
+      kind: t.kind,
+      writes: t.writes,
+      description: t.description,
     }));
-    if (json) console.log(JSON.stringify(rows, null, 2));
+    if (argv.includes("--json")) console.log(JSON.stringify(rows, null, 2));
     else
       for (const r of rows)
         console.log(`${r.name.padEnd(32)} ${r.kind.padEnd(12)} ${r.description}`);
     return 0;
   }
-  const def = defs.find((d) => d.name === name);
-  if (cmd === "describe" && def) {
+  const tool = tools.find((t) => t.name === name);
+  if (cmd === "describe" && tool) {
     console.log(
-      JSON.stringify({ name: def.name, description: def.description, params: def.params }, null, 2),
+      JSON.stringify(
+        {
+          name: tool.name,
+          writes: tool.writes,
+          description: tool.description,
+          params: tool.params,
+        },
+        null,
+        2,
+      ),
     );
     return 0;
   }
   if (cmd !== "run" || !name) return usage();
-  if (!def) {
+  if (!tool) {
     console.error(`Unknown tool: ${name}. Try: accord-tools list`);
     return 64;
   }
@@ -75,36 +72,10 @@ async function main(argv: string[]): Promise<number> {
     console.error("--json-input is not valid JSON");
     return 64;
   }
-  if (def.auth && !def.auth.check()) {
-    console.log(JSON.stringify({ ok: false, text: `${def.auth.service} auth not configured` }));
-    return 1;
-  }
-
-  try {
-    if (gitNames.has(def.name)) {
-      const r = (await def.execute(
-        params as never,
-        {
-          cwd,
-          signal: undefined,
-          onUpdate: undefined,
-          extension: undefined,
-        } as never,
-      )) as { text: string; details?: unknown; isError?: boolean };
-      console.log(JSON.stringify({ ok: !r.isError, text: r.text, details: r.details }));
-      return r.isError ? 1 : 0;
-    }
-    process.chdir(cwd);
-    const result = await def.execute(params as never);
-    const f = def.format?.(result as never, params as never);
-    console.log(JSON.stringify({ ok: true, text: f?.text ?? "", details: f?.details ?? result }));
-    return 0;
-  } catch (error) {
-    console.log(
-      JSON.stringify({ ok: false, text: error instanceof Error ? error.message : String(error) }),
-    );
-    return 1;
-  }
+  process.chdir(cwd);
+  const out = await tool.run(params, cwd);
+  console.log(JSON.stringify(out));
+  return out.ok ? 0 : 1;
 }
 
 process.exit(await main(process.argv.slice(2)));
