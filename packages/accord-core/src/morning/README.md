@@ -1,21 +1,23 @@
-# Morning Briefing Extension
+# Morning Briefing
 
-Self-contained morning workflow for Pi: gather Jira/Slack/Calendar/Gmail, write `work-journal.md`, and email weekly objectives.
+Harness-neutral morning workflow: gather Jira/Slack/Calendar/Gmail, write `work-journal.md`, and draft the weekly objectives email.
 
 ## Entry points
 
-| Entry | Purpose |
-|-------|---------|
-| `/morning` | **Primary.** Extension command — no LLM, runs pipeline directly |
-| `morning-run` | Same pipeline via tool (for agents that prefer tools) |
-| `morning-briefing` | Gather only (debug) |
-| `email-week-objectives` | Objectives email only (debug) |
+Driven by the `accord-morning` CLI (`packages/accord-cli/src/morning-main.ts`), usually through the `morning` skill. There is no pi extension.
+
+| Command | Purpose |
+|---------|---------|
+| `accord-morning run` | **Primary.** Gather, write journal, draft objectives email |
+| `accord-morning briefing` | Gather only (debug) |
+| `accord-morning email` | Objectives email only; `--send` to deliver |
 
 ## Modules
 
 | File | Role |
 |------|------|
-| `index.ts` | Commands, tools, data gathering, email |
+| `pipeline.ts` | Data gathering, journal write, email |
+| `paths.ts` | Config and state locations (XDG) |
 | `config.ts` | Config schema, defaults, and file/env merging |
 | `write-entry.ts` | Journal write/merge logic |
 | `weekly-carry-over.ts` | Week objectives seeding from prior week |

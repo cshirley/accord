@@ -2,7 +2,7 @@
   "name": "@clive.shirley/pi-adapters",
   "version": "0.1.0",
   "private": true,
-  "description": "Pi extension adapters (guardrail, notify, gdoc-md) over harness-neutral accord-core",
+  "description": "Pi extension adapters (guardrail, notify) over harness-neutral accord-core",
   "keywords": [
     "pi-package"
   ],
