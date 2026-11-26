@@ -31,6 +31,7 @@ export type InstallAccordShimOptions = {
 export const COMPANION_BINS: ReadonlyArray<{ name: string; entry: string }> = [
   { name: "accord-guardrail", entry: "packages/accord-cli/src/guardrail-main.ts" },
   { name: "accord-notify", entry: "packages/accord-cli/src/notify-main.ts" },
+  { name: "accord-sync", entry: "packages/accord-cli/src/sync-main.ts" },
   { name: "accord-tools", entry: "packages/accord-tools/src/main.ts" },
   { name: "gdoc-md", entry: "packages/accord-cli/src/gdoc-main.ts" },
 ];
